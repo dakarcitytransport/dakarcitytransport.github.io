@@ -255,6 +255,21 @@
           annulable) et n'est réellement écrit qu'au moment où la fiche
           est créée pour de vrai — voir depOuvrirAcompteInscription /
           _depFinaliserAcompteInscription.
+   40. v1.21.3 : deux ajustements visuels sur le point 39 ci-dessus, suite
+       au premier test réel (retour de Cobey du 06/09/2026) :
+       a) Observation : la saisie d'une nouvelle observation quitte la
+          modale d'historique pour sa propre modale dédiée
+          (modal-dep-observation-ajouter, bouton "➕ Ajouter") — avant, le
+          champ de saisie vide, toujours affiché sous l'historique,
+          attirait davantage l'œil que les observations déjà notées
+          ("on voit plus le champ d'écriture que l'observation"). Les
+          entrées de l'historique sont aussi mises en valeur (fond,
+          bordure, texte plus grand) — voir depOuvrirObservation/
+          depOuvrirAjoutObservation/depAnnulerAjoutObservation.
+       b) Acompte à l'inscription : bouton déplacé juste sous le champ
+          Prix (à côté de la bascule "Prix à définir sur place"), plus
+          logique qu'en bas du formulaire vu qu'il s'agit d'argent — voir
+          injecterChampsClient.
    ═══════════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -264,7 +279,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.21.2';
+var DEP_VERSION = 'v1.21.3';
 
 // v1.20.4 : précharge le SDK Firebase Auth dès le chargement de ce fichier,
 // en parallèle du reste — pour que la connexion anonyme (voir
@@ -2371,27 +2386,50 @@ function injecterEcrans(){
     + '</div></div></div>';
   document.body.appendChild(m5b);
 
-  /* ---- Modale (v1.21.0, historique depuis v1.21.2) : "Observation pour
+  /* ---- Modale (v1.21.0, historique depuis v1.21.2) : "Observations pour
      la collecte" — plusieurs entrées horodatées possibles, jamais
-     écrasées : les précédentes restent affichées en lecture seule
-     au-dessus, le champ du bas ne sert qu'à en AJOUTER une nouvelle
-     (retour de Cobey du 06/09/2026 : "on peut écrire sur l'observation
-     déjà inscrite, il faut pouvoir ajouter une autre observation sans
-     toucher à la première") — voir depOuvrirObservation/
-     depEnregistrerObservation/_depObservationsListe. ---- */
+     écrasées (retour de Cobey du 06/09/2026 : "on peut écrire sur
+     l'observation déjà inscrite, il faut pouvoir ajouter une autre
+     observation sans toucher à la première"). v1.21.3 : scindée en DEUX
+     modales — celle-ci n'affiche que l'historique, mis en avant (retour
+     de Cobey du 06/09/2026 : "on voit plus le champ d'écriture que
+     l'observation" — le champ de saisie, toujours visible juste
+     au-dessus des boutons, prenait toute l'attention). Le bouton
+     "➕ Ajouter une observation" ouvre modal-dep-observation-ajouter,
+     dédiée à la seule saisie — voir depOuvrirObservation/
+     depOuvrirAjoutObservation/depEnregistrerObservation/
+     _depObservationsListe. ---- */
   var m5c = document.createElement('div');
   m5c.className = 'modal-overlay';
   m5c.id = 'modal-dep-observation';
   m5c.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
     + '<div class="modal-emoji">&#128221;</div>'
-    + '<div class="modal-confirm-title">Observation &mdash; <span id="dep-observation-nom"></span></div>'
-    + '<div id="dep-observation-historique" style="max-height:180px;overflow-y:auto;text-align:left;margin-bottom:8px;"></div>'
-    + '<textarea class="fi" id="dep-observation-texte" rows="3" placeholder="Ajouter une nouvelle observation... (ex : b&acirc;timent sans ascenseur)" style="resize:none;margin-bottom:14px;"></textarea>'
+    + '<div class="modal-confirm-title">Observations &mdash; <span id="dep-observation-nom"></span></div>'
+    + '<div id="dep-observation-historique" style="max-height:280px;overflow-y:auto;text-align:left;margin:10px 0 16px;"></div>'
     + '<div class="modal-confirm-btns">'
-    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-observation\')">Annuler</button>'
-    +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerObservation()">&#9989; Enregistrer</button>'
+    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-observation\')">Fermer</button>'
+    +   '<button class="btn-sm btn-green-sm" onclick="depOuvrirAjoutObservation()">&#10133; Ajouter</button>'
     + '</div></div></div>';
   document.body.appendChild(m5c);
+
+  /* ---- Modale (v1.21.3) : saisie d'une NOUVELLE observation — dédiée,
+     séparée de l'historique (modal-dep-observation ci-dessus) pour que le
+     champ de saisie ne concurrence plus visuellement les observations
+     déjà notées. Toujours vide à l'ouverture (voir
+     depOuvrirAjoutObservation) : on n'écrit jamais par-dessus une
+     observation existante. ---- */
+  var m5c2 = document.createElement('div');
+  m5c2.className = 'modal-overlay';
+  m5c2.id = 'modal-dep-observation-ajouter';
+  m5c2.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">&#10133;</div>'
+    + '<div class="modal-confirm-title">Nouvelle observation</div>'
+    + '<textarea class="fi" id="dep-observation-texte" rows="4" placeholder="ex : b&acirc;timent sans ascenseur, v&eacute;rifier dimension des colis..." style="resize:none;margin-bottom:14px;"></textarea>'
+    + '<div class="modal-confirm-btns">'
+    +   '<button class="btn-sm btn-gray-sm" onclick="depAnnulerAjoutObservation()">Annuler</button>'
+    +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerObservation()">&#9989; Enregistrer</button>'
+    + '</div></div></div>';
+  document.body.appendChild(m5c2);
 
   /* ---- Modale (v1.19.26) : rappel de paiement manquant à la validation
      finale de la facture — voir depValiderFactureFinale/
@@ -2964,6 +3002,24 @@ function injecterChampsClient(){
       toggleF.style.cssText = 'margin:-6px 0 12px;';
       toggleF.innerHTML = '<button type="button" class="dep-st" id="f-prix-adef" onclick="depTogglePrixIndefiniCollecte()" style="width:100%;">&#128337; Prix &agrave; d&eacute;finir sur place</button>';
       blocF.parentNode.insertBefore(toggleF, blocF.nextSibling);
+
+      // v1.21.2 : acompte disponible dès l'inscription, à côté du Prix —
+      // pas seulement depuis la fiche une fois le client déjà créé (retour
+      // de Cobey du 06/09/2026, repositionné ici au niveau du prix après un
+      // premier essai plus bas jugé moins logique). Le client n'existe pas
+      // encore à cet instant, donc le montant saisi est juste mis de côté
+      // (voir depOuvrirAcompteInscription/_depAfficherRecapAcompteInscription)
+      // et n'est réellement enregistré qu'au moment où la fiche est créée
+      // pour de vrai (bouton "Enregistrer" plus bas, voir saveClientConfirme).
+      if(!$('f-acompte-btn')){
+        var acompteF = document.createElement('div');
+        acompteF.style.cssText = 'margin:-2px 0 14px;';
+        acompteF.innerHTML = '<button type="button" class="dep-st" id="f-acompte-btn" onclick="depOuvrirAcompteInscription()" '
+          +   'style="width:100%;background:#FFF3E0;color:#B45309;border-color:#E58A00;">&#127991;&#65039; Ajouter un acompte</button>'
+          + '<div id="f-acompte-recap" style="display:none;margin-top:8px;font-size:12.5px;background:#FFF3E0;'
+          +   'border:1.5px solid #E58A00;border-radius:8px;padding:9px 11px;color:#B45309;font-weight:700;"></div>';
+        blocF.parentNode.insertBefore(acompteF, toggleF.nextSibling);
+      }
     }
   }
 
@@ -3039,22 +3095,7 @@ function injecterChampsClient(){
     + '<div class="dep-sec">Observation pour la collecte</div>'
     + '<div class="fg"><label class="fl">Observation '
     +   '<span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
-    +   '<textarea class="fi" id="f-observation" rows="2" placeholder="ex : b&acirc;timent sans ascenseur, v&eacute;rifier dimension des colis..." style="resize:none;"></textarea></div>'
-
-    // v1.21.2 : acompte disponible dès l'inscription, pas seulement depuis
-    // la fiche une fois le client déjà créé (retour de Cobey du
-    // 06/09/2026) — le client n'existe pas encore à cet instant, donc le
-    // montant saisi est juste mis de côté (voir depOuvrirAcompteInscription
-    // / _depAfficherRecapAcompteInscription) et n'est réellement enregistré
-    // qu'au moment où la fiche est créée pour de vrai (bouton "Enregistrer"
-    // plus bas, voir saveClientConfirme).
-    + '<div class="dep-sec">Acompte</div>'
-    + '<div class="fg">'
-    +   '<button type="button" class="dep-st" id="f-acompte-btn" onclick="depOuvrirAcompteInscription()" '
-    +     'style="width:100%;background:#FFF3E0;color:#B45309;border-color:#E58A00;">&#127991;&#65039; Ajouter un acompte</button>'
-    +   '<div id="f-acompte-recap" style="display:none;margin-top:8px;font-size:12.5px;background:#FFF3E0;'
-    +     'border:1.5px solid #E58A00;border-radius:8px;padding:9px 11px;color:#B45309;font-weight:700;"></div>'
-    + '</div>';
+    +   '<textarea class="fi" id="f-observation" rows="2" placeholder="ex : b&acirc;timent sans ascenseur, v&eacute;rifier dimension des colis..." style="resize:none;"></textarea></div>';
 
   if(boutons) content.insertBefore(blocSuite, boutons);
   else content.appendChild(blocSuite);
@@ -11718,6 +11759,12 @@ function _depObservationsListe(c){
 }
 
 window._depObservationCtx = null;
+// v1.21.3 : historique mis en avant (fond, bordure, plus grand) — avant,
+// à texte égal, le champ de saisie vide (toujours visible juste au-dessus
+// des boutons) attirait davantage l'œil que les observations déjà notées
+// (retour de Cobey du 06/09/2026 : "on voit plus le champ d'écriture que
+// l'observation"). Le champ de saisie a depuis déménagé dans sa propre
+// modale (modal-dep-observation-ajouter, voir depOuvrirAjoutObservation).
 window.depOuvrirObservation = function(collecteId, clientId){
   var cls = (window.clientsParCollecte||{})[collecteId] || {};
   var c = cls[clientId];
@@ -11728,20 +11775,34 @@ window.depOuvrirObservation = function(collecteId, clientId){
   var hist = $('dep-observation-historique');
   if(hist){
     if(!liste.length){
-      hist.innerHTML = '<div style="color:#999;font-size:12.5px;font-style:italic;">Aucune observation pour l\'instant.</div>';
+      hist.innerHTML = '<div style="color:#999;font-size:13px;font-style:italic;text-align:center;padding:14px 0;">Aucune observation pour l\'instant.</div>';
     } else {
       hist.innerHTML = liste.map(function(o){
-        return '<div style="padding:7px 0;border-bottom:1px solid #eee;">'
-          + '<div style="font-size:13px;color:#333;white-space:pre-wrap;">' + esc(o.texte || '') + '</div>'
-          + '<div style="font-size:10.5px;color:#999;margin-top:3px;">' + (o.par ? esc(o.par) + ' &middot; ' : '') + dateHeureFr(o.le) + '</div>'
+        return '<div style="background:#FFF8ED;border:1px solid #F0DDB0;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'
+          + '<div style="font-size:14px;color:#333;white-space:pre-wrap;line-height:1.45;">' + esc(o.texte || '') + '</div>'
+          + '<div style="font-size:10.5px;color:#B45309;margin-top:6px;font-weight:700;">' + (o.par ? esc(o.par) + ' &middot; ' : '') + dateHeureFr(o.le) + '</div>'
           + '</div>';
       }).join('');
     }
   }
-  // Le champ du bas ne sert qu'à AJOUTER une nouvelle observation — jamais
-  // pré-rempli avec une existante, pour ne jamais risquer de l'écraser.
-  var champ = $('dep-observation-texte'); if(champ) champ.value = '';
   openModal('modal-dep-observation');
+};
+
+// v1.21.3 : bouton "➕ Ajouter" de la modale historique — ouvre la modale
+// de saisie dédiée, toujours vide (on n'écrit jamais par-dessus une
+// observation existante).
+window.depOuvrirAjoutObservation = function(){
+  closeModal('modal-dep-observation');
+  var champ = $('dep-observation-texte'); if(champ) champ.value = '';
+  openModal('modal-dep-observation-ajouter');
+};
+
+// "Annuler" de la modale de saisie — retour à l'historique, sans rien
+// enregistrer.
+window.depAnnulerAjoutObservation = function(){
+  closeModal('modal-dep-observation-ajouter');
+  var ctx = window._depObservationCtx;
+  if(ctx) window.depOuvrirObservation(ctx.collecteId, ctx.clientId);
 };
 
 window.depEnregistrerObservation = function(){
@@ -11762,9 +11823,11 @@ window.depEnregistrerObservation = function(){
   c.observationCollecte = null; // migration terminée, on ne garde plus l'ancien champ
   _depEcrireClient({ collecteId: ctx.collecteId, clientId: ctx.clientId }, { observations: liste, observationCollecte: null });
   try{ sauvegarder(); }catch(e){}
-  closeModal('modal-dep-observation');
+  closeModal('modal-dep-observation-ajouter');
   toast('✅ Observation ajoutée');
   try{ if(typeof currentCamion !== 'undefined' && currentCamion) renderCamion(currentCamion); }catch(e){}
+  // Retour à l'historique, à jour avec la nouvelle entrée.
+  window.depOuvrirObservation(ctx.collecteId, ctx.clientId);
 };
 
 /* ─────────────────────────────────────────────
