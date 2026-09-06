@@ -270,6 +270,22 @@
           Prix (à côté de la bascule "Prix à définir sur place"), plus
           logique qu'en bas du formulaire vu qu'il s'agit d'argent — voir
           injecterChampsClient.
+   41. v1.21.4 : correctif de flash au tout premier écran ("Choisissez
+       votre espace"), signalé par Cobey le 06/09/2026 ("on aperçoit
+       l'ancien menu, ça apparaît 1 seconde"). Cet écran natif
+       (retourEspaces(), index.html) s'affiche avant même que Firebase
+       ait répondu sur l'état de Global Logistique (_glDesactive,
+       alimenté par ecouterFrance()) : le temps de la réponse (souvent
+       ~1s), la carte "Global Logistique" s'affichait donc dans son
+       ancien état actif ("Danny + N postes", cliquable) au lieu de
+       "🔒 Accès suspendu" depuis le départ de Danny — index.html corrige
+       déjà l'écran tout seul dès que la donnée arrive
+       (_rafraichirLogin()), le souci était uniquement le battement
+       visible entre les deux. Voir _depAntiFlashEspacesLogin ci-dessous
+       (tout en haut du fichier, pour agir le plus tôt possible) : cache
+       juste la liste des espaces (#login-espaces) le temps que
+       _rafraichirLogin() se soit exécutée une première fois, avec un
+       filet de sécurité à 1,8s pour ne jamais bloquer une connexion.
    ═══════════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -279,7 +295,36 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.21.3';
+var DEP_VERSION = 'v1.21.4';
+
+// v1.21.4 : voir point 41 du changelog ci-dessus. Doit s'exécuter le plus
+// tôt possible (avant même demarrer()/greffer(), qui n'arrivent qu'après
+// DOMContentLoaded + 60ms) pour avoir une chance de cacher la liste des
+// espaces avant que son ancien état n'ait été peint à l'écran.
+(function _depAntiFlashEspacesLogin(){
+  try{
+    var style = document.createElement('style');
+    style.id = 'dep-anti-flash-espaces';
+    style.textContent = '#login-espaces{visibility:hidden;}';
+    document.head.appendChild(style);
+    var leve = function(){
+      try{
+        var s = document.getElementById('dep-anti-flash-espaces');
+        if(s && s.parentNode) s.parentNode.removeChild(s);
+      }catch(e){}
+    };
+    setTimeout(leve, 1800); // filet de sécurité : jamais bloqué plus de 1,8s
+    if(typeof window._rafraichirLogin === 'function' && !window._rafraichirLogin._depPatchAntiFlash){
+      var origRafraichirLogin = window._rafraichirLogin;
+      window._rafraichirLogin = function(){
+        var r = origRafraichirLogin.apply(this, arguments);
+        leve();
+        return r;
+      };
+      window._rafraichirLogin._depPatchAntiFlash = true;
+    }
+  }catch(e){}
+})();
 
 // v1.20.4 : précharge le SDK Firebase Auth dès le chargement de ce fichier,
 // en parallèle du reste — pour que la connexion anonyme (voir
