@@ -286,6 +286,21 @@
        juste la liste des espaces (#login-espaces) le temps que
        _rafraichirLogin() se soit exécutée une première fois, avec un
        filet de sécurité à 1,8s pour ne jamais bloquer une connexion.
+   42. v1.21.5 : correctif du point 41 ci-dessus — retour de Cobey le
+       06/09/2026 ("ça met du temps à s'afficher"). Cause trouvée :
+       index.html retarde volontairement initFirebase() de 2 secondes
+       (voir index.html ~11807, "setTimeout(...,2000)") — largement plus
+       long que le filet de sécurité de 1,8s posé en v1.21.4, qui se
+       déclenchait donc systématiquement AVANT que Firebase ait eu la
+       moindre chance de répondre : résultat, un temps d'attente
+       (écran vide) à chaque connexion au lieu du battement d'origine.
+       Correctif : _depAntiFlashEspacesLogin fait désormais sa propre
+       lecture Firebase indépendante et immédiate (juste la valeur
+       france/societes/GL/desactive, pas tout le nœud), sans attendre les
+       2 secondes natives — avec un garde sur firebase.initializeApp()
+       (évite le crash "App already exists" quand initFirebase() natif
+       s'exécutera, lui, 2s plus tard et rappellera initializeApp() sans
+       vérifier). Le filet de sécurité est aussi raccourci à 700ms.
    ═══════════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -295,12 +310,14 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.21.4';
+var DEP_VERSION = 'v1.21.5';
 
-// v1.21.4 : voir point 41 du changelog ci-dessus. Doit s'exécuter le plus
-// tôt possible (avant même demarrer()/greffer(), qui n'arrivent qu'après
-// DOMContentLoaded + 60ms) pour avoir une chance de cacher la liste des
-// espaces avant que son ancien état n'ait été peint à l'écran.
+// v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
+// plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
+// qu'après DOMContentLoaded + 60ms) pour avoir une chance de cacher la
+// liste des espaces avant que son ancien état n'ait été peint à l'écran —
+// et surtout avant les 2 secondes de délai volontaire d'index.html sur
+// initFirebase(), beaucoup trop lent pour cet usage.
 (function _depAntiFlashEspacesLogin(){
   try{
     var style = document.createElement('style');
@@ -313,7 +330,42 @@ var DEP_VERSION = 'v1.21.4';
         if(s && s.parentNode) s.parentNode.removeChild(s);
       }catch(e){}
     };
-    setTimeout(leve, 1800); // filet de sécurité : jamais bloqué plus de 1,8s
+    // Filet de sécurité court : jamais bloqué plus de 700ms, même si la
+    // lecture Firebase ci-dessous échoue ou traîne (mauvais réseau...).
+    setTimeout(leve, 700);
+
+    // Lecture Firebase indépendante et immédiate, sans attendre les 2
+    // secondes de initFirebase() (natif, index.html ~11807) — juste la
+    // valeur qui nous intéresse (france/societes/GL/desactive), pas tout
+    // le nœud france/. On protège firebase.initializeApp() pour que le
+    // second appel (natif, 2s plus tard) ne plante pas dessus.
+    if(typeof firebase !== 'undefined' && firebase && typeof firebase.initializeApp === 'function'){
+      if(!firebase.initializeApp._depPatch){
+        var origInitializeApp = firebase.initializeApp.bind(firebase);
+        firebase.initializeApp = function(config){
+          if(firebase.apps && firebase.apps.length) return firebase.apps[0];
+          return origInitializeApp(config);
+        };
+        firebase.initializeApp._depPatch = true;
+      }
+      try{
+        firebase.initializeApp({
+          apiKey: "AIzaSyCs7oTZAG8vzhqY3rSEqCnwSnQY8hm_f2A",
+          authDomain: "dakar-collecte.firebaseapp.com",
+          databaseURL: "https://dakar-collecte-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "dakar-collecte",
+          storageBucket: "dakar-collecte.firebasestorage.app",
+          messagingSenderId: "910296510414",
+          appId: "1:910296510414:web:de6b814b3420adcd68859f"
+        });
+        firebase.database().ref('france/societes/GL/desactive').once('value').then(function(snap){
+          window._glDesactive = !!snap.val();
+          try{ if(typeof window._rafraichirLogin === 'function') window._rafraichirLogin(); }catch(e){}
+          leve();
+        }).catch(function(){ leve(); });
+      }catch(eFb){ leve(); }
+    }
+
     if(typeof window._rafraichirLogin === 'function' && !window._rafraichirLogin._depPatchAntiFlash){
       var origRafraichirLogin = window._rafraichirLogin;
       window._rafraichirLogin = function(){
