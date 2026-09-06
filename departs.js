@@ -235,6 +235,26 @@
        de tournée du chauffeur (#tr-version dans chauffeur.html), sur le
        même principe que "Module départs vX.X.X" ici, pour vérifier
        facilement qu'une mise à jour de chauffeur.html est bien en ligne.
+   39. v1.21.2 : deux correctifs de conception suite au premier jour
+       d'usage réel (retour de Cobey du 06/09/2026) :
+       a) Observation (point 37d) : le champ était un texte unique
+          réécrit à chaque fois, donc une seconde observation pouvait
+          écraser la première par erreur. Devient un historique : chaque
+          "Enregistrer" AJOUTE une entrée horodatée (avec l'auteur), les
+          précédentes restent affichées au-dessus en lecture seule et ne
+          sont plus jamais modifiables. Ancien champ unique
+          (c.observationCollecte) migré automatiquement dans le nouvel
+          historique (c.observations[]) dès la première nouvelle entrée
+          ajoutée sur une fiche qui en avait déjà une — voir
+          _depObservationsListe.
+       b) Acompte (point 37e) : disponible désormais aussi depuis le
+          formulaire d'inscription (bouton "🏷️ Ajouter un acompte"), pas
+          seulement depuis la fiche d'un client déjà créé. Le client
+          n'ayant pas encore d'ID Firebase à ce stade, le montant saisi
+          est juste mis de côté (récapitulatif affiché sur le formulaire,
+          annulable) et n'est réellement écrit qu'au moment où la fiche
+          est créée pour de vrai — voir depOuvrirAcompteInscription /
+          _depFinaliserAcompteInscription.
    ═══════════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -244,7 +264,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.21.1';
+var DEP_VERSION = 'v1.21.2';
 
 // v1.20.4 : précharge le SDK Firebase Auth dès le chargement de ce fichier,
 // en parallèle du reste — pour que la connexion anonyme (voir
@@ -557,6 +577,14 @@ var _depVersAvanceDevise  = 'eur';
 // aussi au bouton "🏷️ Acompte" — ce drapeau distingue les deux au moment
 // de l'enregistrement (voir depOuvrirAcompte/depAjouterVersementAvance).
 var _depVersAvanceEstAcompte = false;
+// v1.21.2 : "🏷️ Ajouter un acompte" à l'inscription du client (voir
+// depOuvrirAcompteInscription) — le client n'a pas encore d'ID Firebase à
+// ce stade, donc l'acompte saisi est juste mis de côté ici, le temps que
+// la fiche soit vraiment créée (voir saveClientConfirme /
+// _depFinaliserAcompteInscription), qui l'écrit alors pour de bon et vide
+// ces deux variables.
+var _depAcompteInscriptionActif = false;
+var _depAcompteEnAttenteInscription = null; // { montant, devise, saisie, methode }
 // v1.19.35 : versement (colis ou livraison) en attente de confirmation —
 // voir _depOuvrirConfirmationVersement / depConfirmerVersement.
 var _depVersPending = null; // { type: 'colis'|'livraison', ctx, c, montant, devise, saisie, methode }
@@ -2343,16 +2371,22 @@ function injecterEcrans(){
     + '</div></div></div>';
   document.body.appendChild(m5b);
 
-  /* ---- Modale (v1.21.0) : "Observation pour la collecte", même champ en
-     lecture et en écriture — voir depOuvrirObservation/
-     depEnregistrerObservation. ---- */
+  /* ---- Modale (v1.21.0, historique depuis v1.21.2) : "Observation pour
+     la collecte" — plusieurs entrées horodatées possibles, jamais
+     écrasées : les précédentes restent affichées en lecture seule
+     au-dessus, le champ du bas ne sert qu'à en AJOUTER une nouvelle
+     (retour de Cobey du 06/09/2026 : "on peut écrire sur l'observation
+     déjà inscrite, il faut pouvoir ajouter une autre observation sans
+     toucher à la première") — voir depOuvrirObservation/
+     depEnregistrerObservation/_depObservationsListe. ---- */
   var m5c = document.createElement('div');
   m5c.className = 'modal-overlay';
   m5c.id = 'modal-dep-observation';
   m5c.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
     + '<div class="modal-emoji">&#128221;</div>'
     + '<div class="modal-confirm-title">Observation &mdash; <span id="dep-observation-nom"></span></div>'
-    + '<textarea class="fi" id="dep-observation-texte" rows="4" placeholder="ex : b&acirc;timent sans ascenseur, v&eacute;rifier dimension des colis..." style="resize:none;margin-bottom:14px;"></textarea>'
+    + '<div id="dep-observation-historique" style="max-height:180px;overflow-y:auto;text-align:left;margin-bottom:8px;"></div>'
+    + '<textarea class="fi" id="dep-observation-texte" rows="3" placeholder="Ajouter une nouvelle observation... (ex : b&acirc;timent sans ascenseur)" style="resize:none;margin-bottom:14px;"></textarea>'
     + '<div class="modal-confirm-btns">'
     +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-observation\')">Annuler</button>'
     +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerObservation()">&#9989; Enregistrer</button>'
@@ -3005,7 +3039,22 @@ function injecterChampsClient(){
     + '<div class="dep-sec">Observation pour la collecte</div>'
     + '<div class="fg"><label class="fl">Observation '
     +   '<span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
-    +   '<textarea class="fi" id="f-observation" rows="2" placeholder="ex : b&acirc;timent sans ascenseur, v&eacute;rifier dimension des colis..." style="resize:none;"></textarea></div>';
+    +   '<textarea class="fi" id="f-observation" rows="2" placeholder="ex : b&acirc;timent sans ascenseur, v&eacute;rifier dimension des colis..." style="resize:none;"></textarea></div>'
+
+    // v1.21.2 : acompte disponible dès l'inscription, pas seulement depuis
+    // la fiche une fois le client déjà créé (retour de Cobey du
+    // 06/09/2026) — le client n'existe pas encore à cet instant, donc le
+    // montant saisi est juste mis de côté (voir depOuvrirAcompteInscription
+    // / _depAfficherRecapAcompteInscription) et n'est réellement enregistré
+    // qu'au moment où la fiche est créée pour de vrai (bouton "Enregistrer"
+    // plus bas, voir saveClientConfirme).
+    + '<div class="dep-sec">Acompte</div>'
+    + '<div class="fg">'
+    +   '<button type="button" class="dep-st" id="f-acompte-btn" onclick="depOuvrirAcompteInscription()" '
+    +     'style="width:100%;background:#FFF3E0;color:#B45309;border-color:#E58A00;">&#127991;&#65039; Ajouter un acompte</button>'
+    +   '<div id="f-acompte-recap" style="display:none;margin-top:8px;font-size:12.5px;background:#FFF3E0;'
+    +     'border:1.5px solid #E58A00;border-radius:8px;padding:9px 11px;color:#B45309;font-weight:700;"></div>'
+    + '</div>';
 
   if(boutons) content.insertBefore(blocSuite, boutons);
   else content.appendChild(blocSuite);
@@ -6170,6 +6219,7 @@ window.depOuvrirVersementAvance = function(){
   var m = $('dep-vav-montant'); if(m) m.value = '';
   _depVersAvanceMethode = '';
   _depVersAvanceEstAcompte = false;
+  _depAcompteInscriptionActif = false; // v1.21.2 : on quitte le mode inscription si jamais actif
   var be = $('dep-vav-meth-esp'), bv = $('dep-vav-meth-vir');
   if(be) be.className = 'dep-st';
   if(bv) bv.className = 'dep-st';
@@ -6196,19 +6246,62 @@ window.depOuvrirAcompte = function(){
   var sous = $('dep-vav-sous'); if(sous) sous.textContent = 'Non remboursé en cas de refus/annulation le jour de la ramasse — reste normalement déduit de la facture en cas de report.';
 };
 
-// Bouton "Enregistrer" de la modale — mêmes contrôles et le même passage
-// par la confirmation (_depOuvrirConfirmationVersement) que
-// depAjouterVersement, juste avec le client de la fiche de lecture
-// (_depFicheLectureCtx) au lieu de celui de la facture (_depFactureCtx).
+// v1.21.2 : "🏷️ Ajouter un acompte" depuis le formulaire D'INSCRIPTION
+// (voir injecterChampsClient) — même modale que ci-dessus, mais le client
+// n'a pas encore d'ID Firebase à ce stade (il n'est créé qu'au clic sur
+// "Enregistrer" du formulaire). Le drapeau _depAcompteInscriptionActif
+// fait donc bifurquer depAjouterVersementAvance vers une simple mise de
+// côté (_depAcompteEnAttenteInscription) au lieu d'une écriture
+// immédiate — voir _depFinaliserAcompteInscription, appelée juste après
+// la création réelle du client (saveClientConfirme).
+window.depOuvrirAcompteInscription = function(){
+  var m = $('dep-vav-montant'); if(m) m.value = '';
+  _depVersAvanceMethode = '';
+  _depVersAvanceEstAcompte = false;
+  _depAcompteInscriptionActif = true;
+  var be = $('dep-vav-meth-esp'), bv = $('dep-vav-meth-vir');
+  if(be) be.className = 'dep-st';
+  if(bv) bv.className = 'dep-st';
+  depVersAvanceDevise('eur');
+  var titre = $('dep-vav-titre'); if(titre) titre.textContent = 'Ajouter un acompte';
+  var emoji = $('dep-vav-emoji'); if(emoji) emoji.innerHTML = '&#127991;&#65039;';
+  var sous = $('dep-vav-sous'); if(sous) sous.textContent = 'Non remboursé en cas de refus/annulation le jour de la ramasse — reste normalement déduit de la facture en cas de report. Enregistré dès que la fiche sera créée.';
+  // Repermet de corriger un acompte déjà mis de côté avant d'enregistrer.
+  if(_depAcompteEnAttenteInscription){
+    var p = _depAcompteEnAttenteInscription;
+    if(m) m.value = p.saisie;
+    depVersAvanceDevise(p.devise);
+    depVersAvanceMethode(p.methode);
+  }
+  openModal('modal-dep-versement-avance');
+};
+
+// Affiche/masque le petit récapitulatif sur le formulaire d'inscription
+// ("🏷️ Acompte de X € prêt à être enregistré") — voir
+// depOuvrirAcompteInscription/depAjouterVersementAvance/
+// depAnnulerAcompteInscription.
+function _depAfficherRecapAcompteInscription(){
+  var recap = $('f-acompte-recap');
+  if(!recap) return;
+  var p = _depAcompteEnAttenteInscription;
+  if(!p){ recap.style.display = 'none'; recap.innerHTML = ''; return; }
+  var montantTxt = p.montant + ' &euro;' + (p.devise === 'fcfa' ? ' (' + p.saisie + ' FCFA)' : '');
+  recap.innerHTML = '&#127991;&#65039; Acompte de ' + montantTxt + ' pr&ecirc;t &agrave; &ecirc;tre enregistr&eacute; avec la fiche'
+    + ' &middot; <span style="cursor:pointer;text-decoration:underline;" onclick="depAnnulerAcompteInscription()">Annuler</span>';
+  recap.style.display = 'block';
+}
+
+window.depAnnulerAcompteInscription = function(){
+  _depAcompteEnAttenteInscription = null;
+  _depAfficherRecapAcompteInscription();
+};
+
+// Bouton "Enregistrer" de la modale — sert à la fois au versement/acompte
+// classique (fiche déjà créée, voir _depFicheLectureCtx) et à l'acompte
+// saisi à l'inscription (voir depOuvrirAcompteInscription) : dans ce
+// second cas, pas d'écriture Firebase ici, juste une mise de côté (voir
+// _depAcompteEnAttenteInscription) tant que le client n'existe pas.
 window.depAjouterVersementAvance = function(){
-  var ctxL = _depFicheLectureCtx;
-  if(!ctxL){ toast('⚠️ Fiche introuvable.'); return; }
-  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
-
-  var ctx = { collecteId: ctxL.colId, clientId: ctxL.clientId, depot: !!ctxL.depot };
-  var c = _depClientFacture(ctx);
-  if(!c){ toast('⚠️ Client introuvable.'); return; }
-
   var input = $('dep-vav-montant');
   var saisie = parseFloat(input && input.value) || 0;
   if(saisie <= 0){ toast('⚠️ Indiquez un montant supérieur à 0.'); return; }
@@ -6216,6 +6309,22 @@ window.depAjouterVersementAvance = function(){
 
   var devise = _depVersAvanceDevise;
   var montant = devise === 'fcfa' ? Math.round((saisie / TAUX_FCFA_EUR) * 100) / 100 : saisie;
+
+  if(_depAcompteInscriptionActif){
+    _depAcompteEnAttenteInscription = { montant: montant, devise: devise, saisie: saisie, methode: _depVersAvanceMethode };
+    closeModal('modal-dep-versement-avance');
+    _depAfficherRecapAcompteInscription();
+    toast('✅ Acompte prêt, sera enregistré avec la fiche');
+    return;
+  }
+
+  var ctxL = _depFicheLectureCtx;
+  if(!ctxL){ toast('⚠️ Fiche introuvable.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+
+  var ctx = { collecteId: ctxL.colId, clientId: ctxL.clientId, depot: !!ctxL.depot };
+  var c = _depClientFacture(ctx);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
 
   closeModal('modal-dep-versement-avance');
   _depOuvrirConfirmationVersement({ type: 'colis', ctx: ctx, c: c, montant: montant, devise: devise, saisie: saisie, methode: _depVersAvanceMethode, estAcompte: _depVersAvanceEstAcompte });
@@ -6350,6 +6459,31 @@ function _depAjouterVersementExecuter(p){
   } else {
     depRenderFacture(c);
   }
+}
+
+// v1.21.2 : écrit pour de bon l'acompte mis de côté pendant l'inscription
+// (voir depOuvrirAcompteInscription/depAjouterVersementAvance), appelée
+// juste après que saveClientConfirme a vraiment créé le client et qu'on
+// connaît enfin son ID. Volontairement distincte de
+// _depAjouterVersementExecuter : pas de confirmation à afficher (déjà
+// fait en amont sur le formulaire), et surtout pas de changement d'écran
+// (ni facture ni fiche de lecture ne sont pertinentes juste après un
+// "Enregistrer" d'inscription).
+function _depFinaliserAcompteInscription(collecteId, clientId, fiche){
+  var p = _depAcompteEnAttenteInscription;
+  if(!p) return;
+  _depAcompteEnAttenteInscription = null;
+  _depAcompteInscriptionActif = false;
+  try{ _depAfficherRecapAcompteInscription(); }catch(e){}
+  var u = window.currentUser || {};
+  var v = { montant: p.montant, le: Date.now(), par: u.name || u.id || '', methode: p.methode, estAcompte: true };
+  if(p.devise === 'fcfa'){ v.montantFCFA = p.saisie; v.tauxFCFA = TAUX_FCFA_EUR; }
+  var versements = Array.isArray(fiche.versements) ? fiche.versements : [];
+  versements.push(v);
+  fiche.versements = versements;
+  _depEcrireClient({ collecteId: collecteId, clientId: clientId }, { versements: versements });
+  depActivite('&#127991;&#65039;', 'a enregistr&eacute; un acompte de <strong>'+p.montant+' &euro;</strong>'
+    + (p.devise === 'fcfa' ? ' (' + p.saisie + ' FCFA)' : '') + ' pour <strong>'+esc(fiche.name||'')+'</strong>');
 }
 
 // v1.16.2 : corriger un versement (erreur de saisie, trop perçu...) en le
@@ -8640,9 +8774,17 @@ window.depSetLivraison = function(oui){
    l'inscription depuis la v1.11.0. ---- */
 
 function reinitialiserNouveauxChamps(){
-  ['f-dest-nom','f-dest-tel','f-dest-tel2','f-liv-adresse','f-liv-prix','f-note'].forEach(function(id){
+  ['f-dest-nom','f-dest-tel','f-dest-tel2','f-liv-adresse','f-liv-prix','f-note','f-observation'].forEach(function(id){
     var e = $(id); if(e) e.value = '';
   });
+  // v1.21.0/v1.21.2 : nombre de colis (repart à 1) et acompte mis de côté
+  // (voir depOuvrirAcompteInscription) — sans ce nettoyage, un acompte
+  // préparé pour un client puis abandonné (inscription annulée) se
+  // serait retrouvé collé au client suivant.
+  var nbEl = $('f-nb'); if(nbEl) nbEl.value = '1';
+  _depAcompteEnAttenteInscription = null;
+  _depAcompteInscriptionActif = false;
+  try{ _depAfficherRecapAcompteInscription(); }catch(e){}
   _depVilleRemplir('f', '', '');
   depSetLivraison(false);
   _depPrixIndefiniCollecte = false;
@@ -9704,10 +9846,18 @@ function greffer(){
         destinataireTel  : (($('f-dest-tel')||{}).value || '').trim(),
         destinataireTel2 : (($('f-dest-tel2')||{}).value || '').trim(),
         note             : (($('f-note')||{}).value || '').trim(),
-        // v1.21.0 : nombre de colis + observation de collecte (voir
-        // injecterChampsClient).
+        // v1.21.0 : nombre de colis (voir injecterChampsClient).
         nbColis          : parseInt((($('f-nb')||{}).value), 10) || 1,
-        observationCollecte : (($('f-observation')||{}).value || '').trim(),
+        // v1.21.2 : la toute première observation, saisie à l'inscription,
+        // rejoint directement le même historique (voir _depObservationsListe/
+        // depEnregistrerObservation) — plus de champ observationCollecte
+        // séparé, pour ne pas avoir deux mécanismes différents.
+        observations     : (function(){
+          var t = (($('f-observation')||{}).value || '').trim();
+          if(!t) return [];
+          var u = window.currentUser || {};
+          return [{ texte: t, le: Date.now(), par: u.name || u.id || '' }];
+        })(),
         livraisonDakar   : !!window._depLivraison,
         livraisonAdresse : window._depLivraison ? (($('f-liv-adresse')||{}).value || '').trim() : '',
         prixLivraison    : window._depLivraison ? (parseFloat(($('f-liv-prix')||{}).value) || 0) : 0,
@@ -9734,6 +9884,11 @@ function greffer(){
           // direct, ce qui laissait le Suivi sans date pour "a créé la fiche
           // client" (retour de Cobey du 22/08/2026).
           fiche.creeLe = Date.now();
+          // v1.21.2 : acompte mis de côté pendant la saisie du formulaire
+          // (voir depOuvrirAcompteInscription) — le client vient tout juste
+          // d'obtenir un vrai ID (neuf), on peut donc enfin l'écrire pour de
+          // bon (voir _depFinaliserAcompteInscription).
+          try{ _depFinaliserAcompteInscription(colId, neuf, fiche); }catch(eAcpt){ console.error('departs: finalisation acompte inscription', eAcpt); }
           // La photo du colis n'est plus prise ici : elle se prend au moment
           // de la validation de la collecte (voir depOuvrirPhotoValider).
           sauvegarder();
@@ -11532,7 +11687,7 @@ function _depAjouterBoutonsExtraCamionValide(k){
       bPhoto.innerHTML = '&#128247; Photos';
       bPhoto.onclick = function(e){ if(e) e.stopPropagation(); depOuvrirPhotosRapide(window.currentCollecteId || '', cid, false, false); };
 
-      var aUneObs = !!(c.observationCollecte && c.observationCollecte.trim());
+      var aUneObs = _depObservationsListe(c).length > 0;
       var bObs = document.createElement('button');
       bObs.type = 'button';
       bObs.style.cssText = 'flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--font);'
@@ -11547,6 +11702,21 @@ function _depAjouterBoutonsExtraCamionValide(k){
   }
 }
 
+// v1.21.2 : liste normalisée des observations d'un client — gère aussi la
+// migration silencieuse (lecture seule ici, l'écriture réelle n'a lieu
+// que dans depEnregistrerObservation) de l'ancien champ unique
+// c.observationCollecte (v1.21.0/v1.21.1, quand une seule observation en
+// texte libre existait par client) vers le nouvel historique c.observations
+// (v1.21.2 : plusieurs entrées horodatées, jamais écrasées — retour de
+// Cobey du 06/09/2026).
+function _depObservationsListe(c){
+  if(Array.isArray(c.observations)) return c.observations;
+  if(c.observationCollecte && c.observationCollecte.trim()){
+    return [{ texte: c.observationCollecte.trim(), le: c.creeLe || Date.now(), par: '' }];
+  }
+  return [];
+}
+
 window._depObservationCtx = null;
 window.depOuvrirObservation = function(collecteId, clientId){
   var cls = (window.clientsParCollecte||{})[collecteId] || {};
@@ -11554,7 +11724,23 @@ window.depOuvrirObservation = function(collecteId, clientId){
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   window._depObservationCtx = { collecteId: collecteId, clientId: clientId };
   var titre = $('dep-observation-nom'); if(titre) titre.textContent = c.name || 'Client';
-  var champ = $('dep-observation-texte'); if(champ) champ.value = c.observationCollecte || '';
+  var liste = _depObservationsListe(c);
+  var hist = $('dep-observation-historique');
+  if(hist){
+    if(!liste.length){
+      hist.innerHTML = '<div style="color:#999;font-size:12.5px;font-style:italic;">Aucune observation pour l\'instant.</div>';
+    } else {
+      hist.innerHTML = liste.map(function(o){
+        return '<div style="padding:7px 0;border-bottom:1px solid #eee;">'
+          + '<div style="font-size:13px;color:#333;white-space:pre-wrap;">' + esc(o.texte || '') + '</div>'
+          + '<div style="font-size:10.5px;color:#999;margin-top:3px;">' + (o.par ? esc(o.par) + ' &middot; ' : '') + dateHeureFr(o.le) + '</div>'
+          + '</div>';
+      }).join('');
+    }
+  }
+  // Le champ du bas ne sert qu'à AJOUTER une nouvelle observation — jamais
+  // pré-rempli avec une existante, pour ne jamais risquer de l'écraser.
+  var champ = $('dep-observation-texte'); if(champ) champ.value = '';
   openModal('modal-dep-observation');
 };
 
@@ -11566,11 +11752,18 @@ window.depEnregistrerObservation = function(){
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   var champ = $('dep-observation-texte');
   var texte = (champ && champ.value || '').trim();
-  c.observationCollecte = texte;
-  _depEcrireClient({ collecteId: ctx.collecteId, clientId: ctx.clientId }, { observationCollecte: texte });
+  if(!texte){ toast('⚠️ Rien à ajouter.'); return; }
+  var u = window.currentUser || {};
+  // .slice() : on part de la liste normalisée (qui migre au passage
+  // l'éventuelle ancienne observation unique) sans jamais y toucher.
+  var liste = _depObservationsListe(c).slice();
+  liste.push({ texte: texte, le: Date.now(), par: u.name || u.id || '' });
+  c.observations = liste;
+  c.observationCollecte = null; // migration terminée, on ne garde plus l'ancien champ
+  _depEcrireClient({ collecteId: ctx.collecteId, clientId: ctx.clientId }, { observations: liste, observationCollecte: null });
   try{ sauvegarder(); }catch(e){}
   closeModal('modal-dep-observation');
-  toast('✅ Observation enregistrée');
+  toast('✅ Observation ajoutée');
   try{ if(typeof currentCamion !== 'undefined' && currentCamion) renderCamion(currentCamion); }catch(e){}
 };
 
