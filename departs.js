@@ -222,6 +222,19 @@
           camion (Suivi financier) ; bouton WhatsApp "j'arrive
           bientôt" vers le client (numéro direct), séparé du rappel
           avant-ramasse déjà existant.
+   38. v1.21.1 : correctif — le "Montant récolté par le chauffeur" (point
+       37g) était affiché en FCFA partout (chauffeur.html, note par
+       client et total du Suivi financier), alors que les chauffeurs
+       externes actuels opèrent uniquement en France (retour de Cobey du
+       06/09/2026, exemple concret d'un chauffeur sur une collecte à
+       Mantes-la-Jolie/Guerville, 78) : remplacé par € aux trois
+       endroits. ⚠️ Si des chauffeurs externes venaient un jour à opérer
+       aussi à Dakar, il faudrait alors réintroduire un choix de devise
+       (comme sur les versements/acomptes), pas remettre du FCFA en dur.
+       Ajout au passage d'un repère de version visible en bas de l'écran
+       de tournée du chauffeur (#tr-version dans chauffeur.html), sur le
+       même principe que "Module départs vX.X.X" ici, pour vérifier
+       facilement qu'une mise à jour de chauffeur.html est bien en ligne.
    ═══════════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -231,7 +244,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.21.0';
+var DEP_VERSION = 'v1.21.1';
 
 // v1.20.4 : précharge le SDK Firebase Auth dès le chargement de ce fichier,
 // en parallèle du reste — pour que la connexion anonyme (voir
@@ -11175,7 +11188,7 @@ function _depColorerCarteChauffeurExterne(k){
       var noteMt = document.createElement('div');
       noteMt.className = 'route-detail-row dep-note-externe';
       noteMt.style.cssText = 'color:#1a7a40;font-weight:700;';
-      noteMt.innerHTML = '&#128184; ' + (parseFloat(mr.montant)||0) + ' FCFA r&eacute;colt&eacute;s par le chauffeur';
+      noteMt.innerHTML = '&#128184; ' + (parseFloat(mr.montant)||0) + ' &euro; r&eacute;colt&eacute;s par le chauffeur';
       det.insertBefore(noteMt, note.nextSibling);
     }
   }
@@ -11466,7 +11479,7 @@ function _depAfficherFinanceExtra(k){
       rowMt.style.cssText = 'margin-top:4px;';
     }
     rowMt.innerHTML = '<span class="finance-label">&#128184; Montant r&eacute;colt&eacute; par le chauffeur <span style="font-weight:500;color:#999;">(indicatif)</span></span>'
-      + '<span class="finance-val" style="color:#1a237e;">' + mt + ' FCFA</span>';
+      + '<span class="finance-val" style="color:#1a237e;">' + mt + ' &euro;</span>';
     box.insertBefore(rowMt, ancre.nextSibling);
   } else if(rowMt && rowMt.parentNode){
     rowMt.parentNode.removeChild(rowMt);
