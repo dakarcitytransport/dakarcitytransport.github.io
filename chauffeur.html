@@ -97,6 +97,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
         <button type="button" class="btn" style="background:#fff;border:1.5px solid #006b2d;color:#006b2d;padding:11px;" onclick="ouvrirCarte()">🗺️ Voir mon trajet sur la carte</button>
       </div>
       <div class="liste" id="tr-liste"></div>
+      <div style="text-align:center;color:#bbb;font-size:10.5px;padding:4px 0 12px;">Module chauffeur <span id="tr-version"></span></div>
     </div>
   </div>
 
@@ -116,7 +117,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
       <button class="btn act-recup" style="margin-bottom:9px;" onclick="document.getElementById('ph-input').click()">📷 <span id="ph-btn-txt">Prendre une photo</span></button>
 
       <div class="montant-bloc">
-        <label>💵 Montant reçu (FCFA) <span style="color:#999;font-weight:500;">· indicatif, facultatif</span></label>
+        <label>💵 Montant reçu (€) <span style="color:#999;font-weight:500;">· indicatif, facultatif</span></label>
         <div class="montant-row">
           <input id="ph-montant" type="number" min="0" inputmode="numeric" placeholder="ex : 25000">
           <button type="button" class="btn-passer" id="ph-montant-passer" onclick="passerMontant()">Passer</button>
@@ -164,6 +165,11 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 </div>
 
 <script>
+// Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
+// rapidement qu'une mise à jour est bien en ligne, sans deviner via le
+// comportement — même principe que "Module départs vX.X.X" dans departs.js.
+var CHAUFFEUR_VERSION = 'v1.1.0';
+
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -306,6 +312,7 @@ function afficherTournee(tk){
   $('ecran-code').hidden = true;
   $('ecran-tournee').hidden = false;
   $('tr-nom').textContent = '👋 Salut ' + (tk.name || ctx.nom || '');
+  var vEl = $('tr-version'); if(vEl) vEl.textContent = CHAUFFEUR_VERSION;
   var ids = tk.clients || [];
   var statuts = tk.chauffeurStatuts || {};
   var horaires = tk.hours || {};
@@ -392,7 +399,7 @@ function dessinerListe(ids, statuts, horaires){
       var mr = montants[id];
       if(mr && mr.montant){
         var dansDelai = (Date.now() - (mr.ts || 0)) < MONTANT_DELAI_EDITION;
-        h += '<div class="montant-note">💵 ' + (parseFloat(mr.montant)||0) + ' FCFA reçus'
+        h += '<div class="montant-note">💵 ' + (parseFloat(mr.montant)||0) + ' € reçus'
           + (dansDelai ? (' · <span style="cursor:pointer;text-decoration:underline;" onclick="ouvrirEditMontant(\'' + id + '\')">✏️ Modifier</span>') : ' · <span style="color:#999;">verrouillé</span>')
           + '</div>';
       }
@@ -510,7 +517,7 @@ function terminerRecuperation(){
   var montant = mInp ? parseFloat(mInp.value) : NaN;
   if(!isNaN(montant) && montant > 0){
     var c = clientsTournee.find(function(x){ return x.id === clientCourantPhoto; });
-    $('modal-montant-texte').textContent = 'Confirmer ' + montant + ' FCFA reçus de ' + (c ? c.name : 'ce client') + ' ? (indicatif, ne remplace pas la facture)';
+    $('modal-montant-texte').textContent = 'Confirmer ' + montant + ' € reçus de ' + (c ? c.name : 'ce client') + ' ? (indicatif, ne remplace pas la facture)';
     $('modal-montant-confirm').classList.add('open');
     return;
   }
