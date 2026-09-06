@@ -44,14 +44,30 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 .act{flex:1;text-align:center;padding:11px 4px;border-radius:9px;font-size:12px;font-weight:700;border:1.5px solid var(--border);color:#333;text-decoration:none;display:block;}
 .act-recup{background:#006b2d;color:#fff;border:none;font-weight:800;cursor:pointer;}
 .act-refus{background:#FDEDED;border:1.5px solid #F5C6C6;color:#992020;font-weight:800;cursor:pointer;}
+.act-whatsapp{background:#25D366;color:#fff;border:none;font-weight:800;cursor:pointer;}
 .cloture-note{font-size:11px;color:#4a8a63;margin-top:8px;padding-top:8px;border-top:1px dashed #C8E6D0;font-weight:600;}
 .refus-note{font-size:11px;color:#992020;margin-top:8px;padding-top:8px;border-top:1px dashed #F5C6C6;font-weight:600;}
+.montant-note{font-size:11px;color:#1a7a40;margin-top:6px;font-weight:600;}
 .motif{padding:14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:9px;font-size:13.5px;font-weight:700;color:#333;cursor:pointer;background:#fff;text-align:left;width:100%;font-family:var(--font);}
 .photo-vignette{width:56px;height:56px;border-radius:8px;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;}
 .photo-vignette img{width:100%;height:100%;object-fit:cover;}
 .vignettes{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap;}
 [hidden]{display:none!important;}
 .retour{font-size:12.5px;color:#888;text-align:center;margin-top:10px;cursor:pointer;text-decoration:underline;}
+.montant-bloc{background:#F5FBF7;border:1.5px solid #B7E4C7;border-radius:10px;padding:12px;margin-bottom:16px;}
+.montant-bloc label{margin-bottom:8px;}
+.montant-row{display:flex;gap:8px;align-items:center;}
+.montant-row input{margin-bottom:0;flex:1;text-align:center;font-size:18px;font-weight:700;}
+.btn-passer{flex-shrink:0;padding:14px 14px;border:1.5px solid #ccc;background:#f2f2f2;color:#555;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal-sheet{background:#fff;border-radius:16px;padding:20px 18px;max-width:380px;width:100%;}
+.modal-title{font-size:15.5px;font-weight:800;color:#111;margin-bottom:8px;text-align:center;}
+.modal-sub{font-size:13px;color:#666;margin-bottom:16px;text-align:center;line-height:1.5;}
+.modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-sm{padding:12px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:var(--font);}
+.btn-gray-sm{background:#f0f0f0;color:#444;}
+.btn-green-sm{background:#006b2d;color:#fff;}
 </style>
 </head>
 <body>
@@ -98,6 +114,15 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
       <div class="vignettes" id="ph-vignettes"></div>
       <input type="file" id="ph-input" accept="image/*" capture="environment" hidden onchange="photoChoisie(this)">
       <button class="btn act-recup" style="margin-bottom:9px;" onclick="document.getElementById('ph-input').click()">📷 <span id="ph-btn-txt">Prendre une photo</span></button>
+
+      <div class="montant-bloc">
+        <label>💵 Montant reçu (FCFA) <span style="color:#999;font-weight:500;">· indicatif, facultatif</span></label>
+        <div class="montant-row">
+          <input id="ph-montant" type="number" min="0" inputmode="numeric" placeholder="ex : 25000">
+          <button type="button" class="btn-passer" id="ph-montant-passer" onclick="passerMontant()">Passer</button>
+        </div>
+      </div>
+
       <button class="btn btn-light" id="ph-terminer" onclick="terminerRecuperation()" disabled style="opacity:.45;">✅ Terminer — clôturer ce client</button>
       <div class="retour" onclick="fermerEcranPhoto()">← Retour à la tournée</div>
     </div>
@@ -113,6 +138,31 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
   </div>
 
 </div>
+
+<!-- Modale de confirmation du montant reçu (v1.1.0) -->
+<div class="modal-overlay" id="modal-montant-confirm">
+  <div class="modal-sheet">
+    <div class="modal-title">💵 Confirmer le montant</div>
+    <div class="modal-sub" id="modal-montant-texte"></div>
+    <div class="modal-btns">
+      <button class="btn-sm btn-gray-sm" onclick="fermerModalMontant()">Annuler</button>
+      <button class="btn-sm btn-green-sm" onclick="confirmerMontantEtCloture()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale de modification du montant après clôture, dans les 10 min (v1.1.0) -->
+<div class="modal-overlay" id="modal-montant-edit">
+  <div class="modal-sheet">
+    <div class="modal-title">✏️ Modifier le montant</div>
+    <input id="edit-montant-input" type="number" min="0" inputmode="numeric" placeholder="ex : 25000" style="margin-bottom:14px;">
+    <div class="modal-btns">
+      <button class="btn-sm btn-gray-sm" onclick="fermerModalEditMontant()">Annuler</button>
+      <button class="btn-sm btn-green-sm" onclick="confirmerEditMontant()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -127,6 +177,12 @@ var MOTIFS_NON_RAMASSE = [
 ];
 
 var PHOTO_MAX = 5, PHOTO_COTE = 1000, PHOTO_QUALITE = 0.55;
+// Fenêtre de correction du montant reçu après clôture (voir
+// modifierMontantRecolte) — au-delà, verrouillé (retour de Cobey du
+// 06/09/2026 : "on donne un maximum de 10 min pour pouvoir modifier la
+// saisie, après impossible").
+var MONTANT_DELAI_EDITION = 10 * 60 * 1000;
+
 function compresserPhoto(file, cb){
   try{
     var r = new FileReader();
@@ -174,11 +230,43 @@ var truckCourant = null; // dernier objet camion reçu (pour horaires + carte)
 var carteInstance = null;
 var clientCourantPhoto = null;
 var photosCourantes = [];
+var clientEnEditionMontant = null;
 
 (function(){
   var m = /[?&]code=(\d{3,6})/.exec(location.search);
   if(m) $('code-input').value = m[1];
 })();
+
+// v1.21.0 : notification dans le fil d'Activité DCT à chaque action du
+// chauffeur externe (récupéré / non récupéré) — jusqu'ici invisible côté
+// DCT en temps réel (retour de Cobey du 06/09/2026). Écrit directement
+// dans le même nœud Firebase que addActivity() côté appli principale
+// (activite_items), avec la même forme — chauffeur.html n'a pas accès
+// aux fonctions natives (page à part), donc pas d'appel direct possible.
+function _activiteExterne(emoji, texte){
+  try{
+    var now = new Date();
+    var dateStr = now.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+    var heureStr = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    db.ref('activite_items').push({
+      ts: Date.now(),
+      emoji: emoji,
+      bg: '#F5F6FC',
+      text: texte,
+      timeLabel: dateStr + ' à ' + heureStr
+    });
+  }catch(e){ console.error('chauffeur: écriture activité', e); }
+}
+
+// Format international requis par WhatsApp (wa.me) : chiffres seuls, sans
+// le 0 initial — même heuristique que le rappel avant-ramasse côté appli
+// principale (clients ramassés en France).
+function _telIntl(tel){
+  var digits = String(tel||'').replace(/\D/g,'');
+  if(!digits) return '';
+  if(digits.charAt(0) === '0') return '33' + digits.slice(1);
+  return digits;
+}
 
 function afficherErreurCode(msg){
   var el = $('code-err');
@@ -258,6 +346,7 @@ function afficherTournee(tk){
 }
 
 function dessinerListe(ids, statuts, horaires){
+  var montants = (truckCourant && truckCourant.montantRecolte) || {};
   var h = '';
   ids.forEach(function(id){
     var c = clientsTournee.find(function(x){ return x.id === id; });
@@ -283,6 +372,16 @@ function dessinerListe(ids, statuts, horaires){
       +    (tel ? ('<a class="act" href="tel:' + esc(tel) + '">📞 Appeler</a>') : '<span class="act" style="opacity:.4;">📞 —</span>')
       +    (adresse ? ('<button type="button" class="act" style="cursor:pointer;" onclick="ouvrirWaze(\'' + id + '\',\'' + esc(adresse).replace(/'/g, '&#39;') + '\')">🧭 Waze</button>') : '<span class="act" style="opacity:.4;">🧭 —</span>')
       +  '</div>';
+    // v1.21.0 : bouton "j'arrive bientôt" — annonce l'arrivée imminente au
+    // client, séparé du rappel avant-ramasse déjà envoyé côté DCT (retour
+    // de Cobey du 06/09/2026). Numéro direct (wa.me), le chauffeur
+    // complète juste le temps estimé après ouverture de WhatsApp.
+    if(!st && tel){
+      var msgArrive = 'Bonjour, c\'est votre chauffeur Dakar City Transport 🚚. Je suis en route pour venir récupérer votre colis, j\'arrive dans ';
+      h += '<div class="actions">'
+        +    '<button type="button" class="act act-whatsapp" onclick="event.stopPropagation();envoyerJArrive(\'' + esc(tel) + '\')">🚚 J\'arrive bientôt</button>'
+        +  '</div>';
+    }
     if(!st){
       h += '<div class="actions">'
         +    '<button type="button" class="act act-recup" style="flex:2;" onclick="ouvrirEcranPhoto(\'' + id + '\')">📷 Récupéré (photo)</button>'
@@ -290,12 +389,29 @@ function dessinerListe(ids, statuts, horaires){
         +  '</div>';
     } else if(st.etat === 'recupere'){
       h += '<div class="cloture-note">Clôturé · ' + (st.nbPhotos || 0) + ' photo' + (st.nbPhotos > 1 ? 's' : '') + ' jointe' + (st.nbPhotos > 1 ? 's' : '') + ' · <span style="cursor:pointer;text-decoration:underline;" onclick="revenirSurClient(\'' + id + '\')">↩️ Revenir sur ce client</span></div>';
+      var mr = montants[id];
+      if(mr && mr.montant){
+        var dansDelai = (Date.now() - (mr.ts || 0)) < MONTANT_DELAI_EDITION;
+        h += '<div class="montant-note">💵 ' + (parseFloat(mr.montant)||0) + ' FCFA reçus'
+          + (dansDelai ? (' · <span style="cursor:pointer;text-decoration:underline;" onclick="ouvrirEditMontant(\'' + id + '\')">✏️ Modifier</span>') : ' · <span style="color:#999;">verrouillé</span>')
+          + '</div>';
+      }
     } else {
       h += '<div class="refus-note">' + esc(st.motifLib || '') + ' · <span style="cursor:pointer;text-decoration:underline;" onclick="revenirSurClient(\'' + id + '\')">↩️ Revenir sur ce client</span></div>';
     }
     h += '</div>';
   });
   $('tr-liste').innerHTML = h;
+}
+
+// v1.21.0 : bouton "🚚 J'arrive bientôt" — ouvre WhatsApp directement sur
+// le numéro du client, message pré-rempli, le chauffeur ajoute juste le
+// temps estimé avant d'envoyer.
+function envoyerJArrive(tel){
+  var numero = _telIntl(tel);
+  if(!numero){ alert('Numéro de téléphone manquant.'); return; }
+  var msg = 'Bonjour, c\'est votre chauffeur Dakar City Transport 🚚. Je suis en route pour venir récupérer votre colis, j\'arrive dans ';
+  window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
 // Ouvre Waze pour ce client — écrit d'abord le départ (wazeTs) dans
@@ -327,12 +443,13 @@ function revenirSurClient(id){
   });
 }
 
-// ---- Récupéré : photo(s) puis clôture ----
+// ---- Récupéré : photo(s), montant indicatif, puis clôture ----
 function ouvrirEcranPhoto(id){
   clientCourantPhoto = id;
   photosCourantes = [];
   var c = clientsTournee.find(function(x){ return x.id === id; });
   $('ph-nom').textContent = c ? c.name : '';
+  var mInp = $('ph-montant'); if(mInp) mInp.value = '';
   $('ecran-tournee').hidden = true;
   $('ecran-photo').hidden = false;
   redessinerVignettes();
@@ -374,12 +491,49 @@ function photoChoisie(input){
   });
 }
 
+// v1.21.0 : "Passer" — juste un raccourci visuel pour vider le champ
+// montant et confirmer explicitement qu'on saisit rien exprès (le champ
+// n'est de toute façon jamais obligatoire pour clôturer).
+function passerMontant(){
+  var mInp = $('ph-montant');
+  if(mInp) mInp.value = '';
+  mInp.blur();
+}
+
+// v1.21.0 : le montant reçu, s'il est renseigné, passe par une
+// confirmation avant d'être enregistré (retour de Cobey du 06/09/2026 :
+// "avec modal de confirmation bien sûr") — sans montant renseigné, la
+// clôture se fait directement, comme avant.
 function terminerRecuperation(){
   if(!photosCourantes.length || !clientCourantPhoto) return;
+  var mInp = $('ph-montant');
+  var montant = mInp ? parseFloat(mInp.value) : NaN;
+  if(!isNaN(montant) && montant > 0){
+    var c = clientsTournee.find(function(x){ return x.id === clientCourantPhoto; });
+    $('modal-montant-texte').textContent = 'Confirmer ' + montant + ' FCFA reçus de ' + (c ? c.name : 'ce client') + ' ? (indicatif, ne remplace pas la facture)';
+    $('modal-montant-confirm').classList.add('open');
+    return;
+  }
+  _executerCloture(null);
+}
+
+function fermerModalMontant(){
+  $('modal-montant-confirm').classList.remove('open');
+}
+
+function confirmerMontantEtCloture(){
+  var mInp = $('ph-montant');
+  var montant = mInp ? parseFloat(mInp.value) : NaN;
+  $('modal-montant-confirm').classList.remove('open');
+  _executerCloture(isNaN(montant) ? null : montant);
+}
+
+function _executerCloture(montant){
   var id = clientCourantPhoto;
   var ts = Date.now();
   var mapPhotos = {};
   photosCourantes.forEach(function(p, i){ mapPhotos['p' + i] = p; });
+  var c = clientsTournee.find(function(x){ return x.id === id; });
   db.ref('dct_photos_colis/' + id).set(mapPhotos).then(function(){
     return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/chauffeurStatuts/' + id).set({
       etat: 'recupere', ts: ts, nbPhotos: photosCourantes.length
@@ -389,11 +543,55 @@ function terminerRecuperation(){
     // au calcul de durée et à l'heure affichés dans Suivi live.
     return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/finTs/' + id).set(ts);
   }).then(function(){
+    // v1.21.0 : montant reçu, purement indicatif (ne touche jamais aux
+    // versements/à la facture) — stocké à part, pour comparaison en fin
+    // de journée entre DCT et le chauffeur (voir §37g).
+    if(montant !== null){
+      return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/montantRecolte/' + id).set({
+        montant: montant, ts: ts, saisiPar: (ctx.nom || '')
+      });
+    }
+  }).then(function(){
+    _activiteExterne('🚚', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> a récupéré le colis de <strong>' + esc(c ? c.name : '') + '</strong>');
     fermerEcranPhoto();
   }).catch(function(e){
     console.error('chauffeur: enregistrement récupération', e);
     alert('Erreur de connexion, réessaie.');
   });
+}
+
+// v1.21.0 : correction du montant dans les 10 minutes suivant la saisie
+// initiale (voir MONTANT_DELAI_EDITION) — au-delà, verrouillé.
+function ouvrirEditMontant(id){
+  clientEnEditionMontant = id;
+  var montants = (truckCourant && truckCourant.montantRecolte) || {};
+  var mr = montants[id];
+  $('edit-montant-input').value = mr ? mr.montant : '';
+  $('modal-montant-edit').classList.add('open');
+}
+
+function fermerModalEditMontant(){
+  clientEnEditionMontant = null;
+  $('modal-montant-edit').classList.remove('open');
+}
+
+function confirmerEditMontant(){
+  var id = clientEnEditionMontant;
+  if(!id) return;
+  var montants = (truckCourant && truckCourant.montantRecolte) || {};
+  var mr = montants[id];
+  if(!mr || (Date.now() - (mr.ts || 0)) >= MONTANT_DELAI_EDITION){
+    alert('Délai de modification dépassé.');
+    fermerModalEditMontant();
+    return;
+  }
+  var val = parseFloat($('edit-montant-input').value);
+  if(isNaN(val) || val < 0){ alert('Montant invalide.'); return; }
+  // Le ts d'origine est conservé (base de la fenêtre de 10 min) — seule
+  // la valeur change.
+  db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/montantRecolte/' + id + '/montant').set(val)
+    .then(function(){ fermerModalEditMontant(); })
+    .catch(function(e){ console.error('chauffeur: modification montant', e); alert('Erreur de connexion, réessaie.'); });
 }
 
 // ---- Non récupéré : motif ----
@@ -420,12 +618,14 @@ function choisirMotif(motifId, motifLib){
   var id = clientCourantPhoto;
   if(!id) return;
   var ts = Date.now();
+  var c = clientsTournee.find(function(x){ return x.id === id; });
   db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/chauffeurStatuts/' + id).set({
     etat: 'refuse', motif: motifId, motifLib: motifLib, ts: ts
   }).then(function(){
     // finTs = heure de fin, comme côté DCT natif (confirmRefus).
     return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/finTs/' + id).set(ts);
   }).then(function(){
+    _activiteExterne('❌', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> — colis non récupéré chez <strong>' + esc(c ? c.name : '') + '</strong> (' + esc(motifLib) + ')');
     fermerEcranMotif();
   }).catch(function(e){
     console.error('chauffeur: enregistrement refus', e);
