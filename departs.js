@@ -174,6 +174,54 @@
        "💬 Envoyer par WhatsApp" a aussi été ajouté (résumé texte de
        la facture — sans lien, puisque le lien est désormais réservé
        aux employés connectés, voir point 35).
+   37. Retour du premier jour de collecte réel (Cobey, 06/09/2026) —
+       lot de correctifs/ajouts groupés :
+       a) Nombre de colis : nouveau champ numérique à l'inscription
+          (comme France & Europe), modifiable à la validation de la
+          collecte (écran #s-dep-valider), affiché sur la facture et
+          la fiche, et utilisé pour préremplir la question "Combien de
+          colis ?" à l'impression de l'étiquette.
+       b) Impression groupée des étiquettes d'un camion entier
+          (bouton dédié sur l'écran Camion), une étiquette par colis
+          et par client, dans l'ordre de la tournée, en un seul PDF —
+          avec confirmation préalable détaillant le compte.
+       c) Correctif étiquette : le PDF pouvait ne rien produire du
+          tout pour un client au hasard — le dessin du QR code
+          (asynchrone la toute première fois, le temps de charger la
+          librairie) pouvait ne pas être terminé quand l'impression
+          démarrait, et une erreur de capture sur UNE SEULE étiquette
+          arrêtait tout le lot sans rien enregistrer. Corrigé : on
+          attend que tous les QR soient dessinés avant d'autoriser
+          l'impression, et un échec de capture sur une étiquette
+          n'interrompt plus les suivantes.
+       d) Deux nouveaux boutons sur la carte d'un client déjà collecté
+          (écran Camion) : "📷 Photos" (accès direct, sans passer par
+          la fiche) et "📝/⚠️ Observation" (une note libre sur la
+          collecte, ex. "bâtiment sans ascenseur" — même bouton pour
+          lire et écrire, change d'aspect selon qu'une observation
+          existe déjà ; disponible aussi à l'inscription du client).
+       e) Système d'acompte : bouton dédié sur la fiche client
+          (distinct du versement classique), disponible à tout moment
+          avant la ramasse. Un acompte est conservé (non remboursé) si
+          le client refuse la ramasse ou annule (nouvelle ligne
+          "Acomptes conservés" dans le Suivi financier du camion), mais
+          reste normalement attaché à la fiche — et donc déduit de la
+          facture — en cas de report.
+       f) Carte client (écran Camion, avant collecte) simplifiée : le
+          bouton "❌" direct disparaît de la carte, rejoint le menu
+          "⋯" (avec Annulé/Reporté) — 2 boutons visibles au lieu de 3.
+          Le raccourci "🧾 Facture" du même menu "⋯", jugé inutile
+          avant la collecte, est retiré (il reste accessible une fois
+          le client validé, bouton "🧾" dédié sur sa carte).
+       g) Chauffeurs externes (chauffeur.html) : notification dans le
+          fil d'Activité DCT à chaque action (récupéré / non
+          récupéré) ; montant récolté en espèces, purement indicatif
+          (ne touche pas à la facture), saisi après la/les photo(s) et
+          avant la clôture du client, modifiable 10 minutes puis
+          verrouillé — visible côté DCT par client et en total par
+          camion (Suivi financier) ; bouton WhatsApp "j'arrive
+          bientôt" vers le client (numéro direct), séparé du rappel
+          avant-ramasse déjà existant.
    ═══════════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -183,7 +231,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.20.32';
+var DEP_VERSION = 'v1.21.0';
 
 // v1.20.4 : précharge le SDK Firebase Auth dès le chargement de ce fichier,
 // en parallèle du reste — pour que la connexion anonyme (voir
@@ -492,6 +540,10 @@ var _depTombstones = {};
 // avec la saisie en cours sur une facture éventuellement déjà ouverte.
 var _depVersAvanceMethode = '';
 var _depVersAvanceDevise  = 'eur';
+// v1.21.0 : la même modale (modal-dep-versement-avance) sert désormais
+// aussi au bouton "🏷️ Acompte" — ce drapeau distingue les deux au moment
+// de l'enregistrement (voir depOuvrirAcompte/depAjouterVersementAvance).
+var _depVersAvanceEstAcompte = false;
 // v1.19.35 : versement (colis ou livraison) en attente de confirmation —
 // voir _depOuvrirConfirmationVersement / depConfirmerVersement.
 var _depVersPending = null; // { type: 'colis'|'livraison', ctx, c, montant, devise, saisie, methode }
@@ -1985,6 +2037,12 @@ function injecterEcrans(){
   +   '</div>'
   +   '<div class="content">'
   +     '<div class="dep-sec">Colis</div>'
+  // v1.21.0 : "Nombre de colis" modifiable ici, au moment de la ramasse —
+  // c'est là qu'on sait réellement combien de colis le client confie (il
+  // peut en ajouter/retirer par rapport à l'inscription), et c'est cette
+  // valeur qui préremplit ensuite la question à l'impression de
+  // l'étiquette (voir depOuvrirEtiquette).
+  +     '<div class="fg"><label class="fl">Nombre de colis</label><input class="fi" id="dv-nb" type="number" min="1" value="1" style="font-size:18px;font-weight:700;text-align:center;"></div>'
   +     '<div class="fg"><textarea class="fi" id="dv-colis" rows="3" placeholder="ex: 2 valises + 1 carton..." style="resize:none;"></textarea></div>'
 
   +     '<div class="dep-sec">Prix (&euro;)</div>'
@@ -2255,6 +2313,39 @@ function injecterEcrans(){
     + '</div></div></div>';
   document.body.appendChild(m5);
 
+  /* ---- Modale (v1.21.0) : confirmation avant impression groupée de
+     toutes les étiquettes d'un camion — voir
+     depOuvrirImpressionToutesEtiquettesCamion/
+     depConfirmerImpressionToutesEtiquettesCamion. ---- */
+  var m5b = document.createElement('div');
+  m5b.className = 'modal-overlay';
+  m5b.id = 'modal-dep-etq-camion-confirm';
+  m5b.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">&#127991;&#65039;</div>'
+    + '<div class="modal-confirm-title">Imprimer toutes les &eacute;tiquettes ?</div>'
+    + '<div id="dep-etq-camion-texte" style="font-size:13.5px;color:#555;margin:4px 0 16px;line-height:1.5;"></div>'
+    + '<div class="modal-confirm-btns">'
+    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-etq-camion-confirm\')">Annuler</button>'
+    +   '<button class="btn-sm btn-green-sm" onclick="depConfirmerImpressionToutesEtiquettesCamion()">&#127991;&#65039; Imprimer</button>'
+    + '</div></div></div>';
+  document.body.appendChild(m5b);
+
+  /* ---- Modale (v1.21.0) : "Observation pour la collecte", même champ en
+     lecture et en écriture — voir depOuvrirObservation/
+     depEnregistrerObservation. ---- */
+  var m5c = document.createElement('div');
+  m5c.className = 'modal-overlay';
+  m5c.id = 'modal-dep-observation';
+  m5c.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">&#128221;</div>'
+    + '<div class="modal-confirm-title">Observation &mdash; <span id="dep-observation-nom"></span></div>'
+    + '<textarea class="fi" id="dep-observation-texte" rows="4" placeholder="ex : b&acirc;timent sans ascenseur, v&eacute;rifier dimension des colis..." style="resize:none;margin-bottom:14px;"></textarea>'
+    + '<div class="modal-confirm-btns">'
+    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-observation\')">Annuler</button>'
+    +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerObservation()">&#9989; Enregistrer</button>'
+    + '</div></div></div>';
+  document.body.appendChild(m5c);
+
   /* ---- Modale (v1.19.26) : rappel de paiement manquant à la validation
      finale de la facture — voir depValiderFactureFinale/
      depValiderFactureFinaleExecuter. Ne bloque pas (le client peut payer
@@ -2305,9 +2396,9 @@ function injecterEcrans(){
   m7b.className = 'modal-overlay';
   m7b.id = 'modal-dep-versement-avance';
   m7b.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
-    + '<div class="modal-emoji">&#128176;</div>'
-    + '<div class="modal-confirm-title">Ajouter un versement</div>'
-    + '<div style="font-size:12.5px;color:#666;margin:2px 0 14px;">Paiement re&ccedil;u avant la collecte (ex. virement) &mdash; sera d&eacute;j&agrave; comptabilis&eacute; sur la facture, le jour de la ramasse.</div>'
+    + '<div class="modal-emoji" id="dep-vav-emoji">&#128176;</div>'
+    + '<div class="modal-confirm-title" id="dep-vav-titre">Ajouter un versement</div>'
+    + '<div style="font-size:12.5px;color:#666;margin:2px 0 14px;" id="dep-vav-sous">Paiement re&ccedil;u avant la collecte (ex. virement) &mdash; sera d&eacute;j&agrave; comptabilis&eacute; sur la facture, le jour de la ramasse.</div>'
     + '<div style="display:flex;gap:8px;margin-bottom:10px;">'
     +   '<button type="button" class="dep-st on" id="dep-vav-dev-eur" onclick="depVersAvanceDevise(\'eur\')" style="flex:1;">&euro; Euros</button>'
     +   '<button type="button" class="dep-st" id="dep-vav-dev-fcfa" onclick="depVersAvanceDevise(\'fcfa\')" style="flex:1;">FCFA</button>'
@@ -2829,6 +2920,23 @@ function injecterChampsClient(){
     }
   }
 
+  // v1.21.0 : "Nombre de colis" — champ numérique, comme sur le
+  // formulaire France & Europe (fa-nb), inséré juste avant la
+  // description texte du colis. Absent jusqu'ici côté Collecte, ce qui
+  // laissait l'impression des étiquettes sans savoir combien de colis
+  // imprimer pour ce client (retour de Cobey du 06/09/2026).
+  var champColisF = $('f-colis');
+  if(champColisF){
+    var blocColisF = champColisF.closest ? champColisF.closest('.fg') : champColisF.parentNode;
+    if(blocColisF && blocColisF.parentNode && !$('f-nb')){
+      var nbF = document.createElement('div');
+      nbF.className = 'fg';
+      nbF.innerHTML = '<label class="fl">Nombre de colis</label>'
+        + '<input class="fi" id="f-nb" type="number" min="1" value="1" style="font-size:18px;font-weight:700;text-align:center;">';
+      blocColisF.parentNode.insertBefore(nbF, blocColisF);
+    }
+  }
+
   /* --- Le départ n'est PLUS choisi à l'inscription : il est attribué
      plus tard, quand le colis est confié à un container (au moment de
      la facture, ou via le rattachement en masse depuis un départ).
@@ -2872,7 +2980,19 @@ function injecterChampsClient(){
     + '<div class="dep-sec">Note</div>'
     + '<div class="fg"><label class="fl">Note '
     +   '<span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
-    +   '<textarea class="fi" id="f-note" rows="2" placeholder="Remarque sur le colis, le client..." style="resize:none;"></textarea></div>';
+    +   '<textarea class="fi" id="f-note" rows="2" placeholder="Remarque sur le colis, le client..." style="resize:none;"></textarea></div>'
+
+    // v1.21.0 : "Observation pour la collecte" — distincte de la Note
+    // ci-dessus : une info utile pour LA COLLECTE elle-même (accès,
+    // manutention...), lue/écrite depuis ce même champ à l'inscription et
+    // depuis un bouton dédié sur la carte du client, une fois collecté
+    // (écran Camion) — voir depOuvrirObservation (retour de Cobey du
+    // 06/09/2026 : "bâtiment sans ascenseur, vérifier dimension des
+    // colis...").
+    + '<div class="dep-sec">Observation pour la collecte</div>'
+    + '<div class="fg"><label class="fl">Observation '
+    +   '<span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
+    +   '<textarea class="fi" id="f-observation" rows="2" placeholder="ex : b&acirc;timent sans ascenseur, v&eacute;rifier dimension des colis..." style="resize:none;"></textarea></div>';
 
   if(boutons) content.insertBefore(blocSuite, boutons);
   else content.appendChild(blocSuite);
@@ -5140,10 +5260,26 @@ function _depExporterEtiquettesPDFViaCanvas(conteneur, nomFichier){
     var largeurUtile = pageW - marge*2, hauteurUtile = pageH - marge*2;
     var docsArr = Array.prototype.slice.call(docs);
     var pdf = null;
-
-    function capturerSuivant(i){
+    // v1.21.0 : CORRECTIF — un échec de capture sur UNE SEULE étiquette
+    // (glitch ponctuel de html2canvas, ressource pas encore prête...)
+    // arrêtait toute la boucle SANS jamais appeler pdf.save() : sur un
+    // lot d'une seule étiquette (cas le plus fréquent), ça voulait dire
+    // "le PDF ne se génère jamais du tout", sans que rien de visible
+    // n'explique pourquoi — exactement le bug remonté par Cobey le
+    // 06/09/2026 ("certaines étiquettes ne génèrent pas le PDF"). On
+    // retente une fois cette étiquette précise, puis on passe à la
+    // suivante en cas de nouvel échec (au lieu d'abandonner tout le
+    // lot) — et on sauvegarde quoi qu'il arrive tout ce qui a pu être
+    // capturé, avec un message clair sur ce qui a été sauté.
+    var echecs = [];
+    function capturerSuivant(i, retente){
       if (i >= docsArr.length){
-        if (pdf) pdf.save(nomFichier || 'Etiquettes.pdf');
+        if (pdf){
+          pdf.save(nomFichier || 'Etiquettes.pdf');
+          if (echecs.length) toast('⚠️ ' + echecs.length + ' étiquette(s) sur ' + docsArr.length + ' n\'a/n\'ont pas pu être générée(s) — réessayez pour elles.');
+        } else {
+          toast('❌ Échec de la génération du PDF, réessayez.');
+        }
         return;
       }
       window.html2canvas(docsArr[i], {
@@ -5163,13 +5299,18 @@ function _depExporterEtiquettesPDFViaCanvas(conteneur, nomFichier){
           pdf.addPage([pageW, pageH], 'portrait');
         }
         pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', xMm, yMm, wMm, hMm);
-        capturerSuivant(i + 1);
+        capturerSuivant(i + 1, false);
       }).catch(function(e){
-        console.error('departs: échec capture étiquette', e);
-        toast('❌ Échec de la génération du PDF, réessayez.');
+        console.error('departs: échec capture étiquette', i, e);
+        if(!retente){
+          setTimeout(function(){ capturerSuivant(i, true); }, 300);
+        } else {
+          echecs.push(i);
+          capturerSuivant(i + 1, false);
+        }
       });
     }
-    capturerSuivant(0);
+    capturerSuivant(0, false);
   });
 }
 
@@ -5718,11 +5859,27 @@ window.depOuvrirEtiquette = function(){
   // autre chose ou retourner sur sa dispatch".
   var ecranDoc = $('s-dep-impression');
   window._depEtqVientImpression = !!(ecranDoc && ecranDoc.classList.contains('active'));
-  var inp = $('dep-etq-nb'); if(inp) inp.value = '1';
+  window._depEtqVientCamion = null; // v1.21.0 : réinitialisé — voir depOuvrirImpressionToutesEtiquettesCamion
+  // v1.21.0 : préremplissage avec le nombre de colis réellement déclaré
+  // (voir champ "Nombre de colis", inscription + validation) au lieu d'un
+  // "1" fixe — l'info existe déjà, plus besoin de la redemander à chaque
+  // fois (retour de Cobey du 06/09/2026).
+  var inp = $('dep-etq-nb'); if(inp) inp.value = c.nbColis || 1;
   openModal('modal-dep-etiquette-nb');
 };
 
 window.depRetourEtiquette = function(){
+  // v1.21.0 : retour à l'écran Camion après une impression groupée (voir
+  // depOuvrirImpressionToutesEtiquettesCamion) plutôt que vers Facture ou
+  // Documents, qui n'ont pas de sens pour un lot multi-clients.
+  if(window._depEtqVientCamion){
+    var k = window._depEtqVientCamion;
+    window._depEtqVientCamion = null;
+    window.currentCamion = k;
+    goTo('s-camion');
+    try{ renderCamion(k); }catch(e){}
+    return;
+  }
   goTo(window._depEtqVientImpression ? 's-dep-impression' : 's-facture');
 };
 
@@ -5752,9 +5909,25 @@ window.depGenererEtiquettes = function(){
 window.depExporterEtiquettesPDF = function(){
   var conteneur = $('etq-contenu');
   if(!conteneur || !conteneur.children.length){ toast('⚠️ Étiquette introuvable.'); return; }
-  var ctx = window._depEtiquetteCtx;
-  var nomFichier = 'Etiquettes-' + (ctx && ctx.clientId ? ctx.clientId : Date.now()) + '.pdf';
-  _depExporterEtiquettesPDFViaCanvas(conteneur, nomFichier);
+  // v1.21.0 : on n'autorise la capture qu'une fois tous les QR codes
+  // vraiment dessinés (voir depRenderEtiquettes/_depRenderEtiquettesMultiples)
+  // — sinon un tap rapide sur "Imprimer" pouvait capturer un encart QR
+  // encore vide, voire faire planter la capture (voir §37c du récap).
+  // Quelques dixièmes de seconde d'attente maximum, avec un filet de
+  // sécurité à 4s pour ne jamais bloquer indéfiniment en cas de souci
+  // réseau sur la librairie QR.
+  var essais = 0;
+  function tenter(){
+    if(window._depEtiquettesQrPretes !== false || essais > 40){
+      var ctx = window._depEtiquetteCtx;
+      var nomFichier = 'Etiquettes-' + (ctx && ctx.clientId ? ctx.clientId : Date.now()) + '.pdf';
+      _depExporterEtiquettesPDFViaCanvas(conteneur, nomFichier);
+      return;
+    }
+    essais++;
+    setTimeout(tenter, 100);
+  }
+  tenter();
 };
 
 // v1.19.22 : téléphone/adresse partiellement masqués sur l'étiquette — elle
@@ -5869,8 +6042,25 @@ function depRenderEtiquettes(c, ctx, n){
   // v1.19.29 : un QR par étiquette (même jeton que la facture) — la
   // librairie ne se charge qu'une fois (voir _depChargerQR), les appels
   // suivants sont donc instantanés.
+  // v1.21.0 : CORRECTIF — rien n'attendait que les QR soient vraiment
+  // dessinés avant d'autoriser l'impression (voir depExporterEtiquettesPDF)
+  // : la toute première étiquette imprimée après le chargement de la page
+  // (librairie QR pas encore en cache) pouvait donc être capturée par
+  // html2canvas AVANT que son QR n'existe, produisant un PDF avec un
+  // encart vide, voire un plantage de capture — repéré par Cobey le
+  // 06/09/2026 ("certaines étiquettes ne génèrent pas le PDF", sur un
+  // client sans particularité, donc probablement lié au timing plutôt
+  // qu'à la fiche elle-même). window._depEtiquettesQrPretes sert
+  // maintenant de verrou, posé à false pendant le dessin.
+  window._depEtiquettesQrPretes = false;
+  var _qrFaits = 0;
+  var _qrTotal = n;
+  if(!_qrTotal){ window._depEtiquettesQrPretes = true; }
   for(var qi = 1; qi <= n; qi++){
-    depGenererQR(ctx, 'etq-qr-' + qi, undefined, 180);
+    depGenererQR(ctx, 'etq-qr-' + qi, function(){
+      _qrFaits++;
+      if(_qrFaits >= _qrTotal) window._depEtiquettesQrPretes = true;
+    }, 180);
   }
 }
 
@@ -5966,11 +6156,31 @@ window.depOuvrirVersementAvance = function(){
   if(!ctx){ toast('⚠️ Fiche introuvable.'); return; }
   var m = $('dep-vav-montant'); if(m) m.value = '';
   _depVersAvanceMethode = '';
+  _depVersAvanceEstAcompte = false;
   var be = $('dep-vav-meth-esp'), bv = $('dep-vav-meth-vir');
   if(be) be.className = 'dep-st';
   if(bv) bv.className = 'dep-st';
   depVersAvanceDevise('eur');
+  var titre = $('dep-vav-titre'); if(titre) titre.textContent = 'Ajouter un versement';
+  var emoji = $('dep-vav-emoji'); if(emoji) emoji.innerHTML = '&#128176;';
+  var sous = $('dep-vav-sous'); if(sous) sous.textContent = 'Paiement reçu avant la collecte (ex. virement) — sera déjà comptabilisé sur la facture, le jour de la ramasse.';
   openModal('modal-dep-versement-avance');
+};
+
+// v1.21.0 : "🏷️ Acompte" — même modale/mécanisme que "💰 Ajouter un
+// versement" ci-dessus (même tableau c.versements, même confirmation,
+// même écriture), avec juste un drapeau en plus (estAcompte) qui change
+// le libellé affiché et compte dans les "Acomptes conservés" du camion en
+// cas de refus/annulation (voir _depAcomptesConservesCamion) — retour de
+// Cobey du 06/09/2026 : réduire les désistements le jour J en prenant un
+// acompte, non remboursé si le client se désiste, mais normalement conservé
+// sur sa fiche (donc déduit de sa facture) en cas de simple report.
+window.depOuvrirAcompte = function(){
+  window.depOuvrirVersementAvance();
+  _depVersAvanceEstAcompte = true;
+  var titre = $('dep-vav-titre'); if(titre) titre.textContent = 'Ajouter un acompte';
+  var emoji = $('dep-vav-emoji'); if(emoji) emoji.innerHTML = '&#127991;&#65039;';
+  var sous = $('dep-vav-sous'); if(sous) sous.textContent = 'Non remboursé en cas de refus/annulation le jour de la ramasse — reste normalement déduit de la facture en cas de report.';
 };
 
 // Bouton "Enregistrer" de la modale — mêmes contrôles et le même passage
@@ -5995,7 +6205,7 @@ window.depAjouterVersementAvance = function(){
   var montant = devise === 'fcfa' ? Math.round((saisie / TAUX_FCFA_EUR) * 100) / 100 : saisie;
 
   closeModal('modal-dep-versement-avance');
-  _depOuvrirConfirmationVersement({ type: 'colis', ctx: ctx, c: c, montant: montant, devise: devise, saisie: saisie, methode: _depVersAvanceMethode });
+  _depOuvrirConfirmationVersement({ type: 'colis', ctx: ctx, c: c, montant: montant, devise: devise, saisie: saisie, methode: _depVersAvanceMethode, estAcompte: _depVersAvanceEstAcompte });
 };
 
 // v1.17.0 : écriture Firebase immédiate et ciblée d'un client (collecte ou
@@ -6040,9 +6250,11 @@ function _depOuvrirConfirmationVersement(p){
   if(texte){
     var methodeTxt = p.methode === 'especes' ? 'Esp&egrave;ces' : 'Virement';
     var montantTxt = p.montant + '&nbsp;&euro;' + (p.devise === 'fcfa' ? ' (' + p.saisie + '&nbsp;FCFA)' : '');
-    texte.innerHTML = 'Enregistrer un versement' + (p.type === 'livraison' ? ' <strong>livraison</strong>' : '')
+    var natureTxt = p.estAcompte ? ' <strong>acompte</strong>' : (p.type === 'livraison' ? ' <strong>livraison</strong>' : '');
+    texte.innerHTML = 'Enregistrer un versement' + natureTxt
       + ' de <strong>' + montantTxt + '</strong> par <strong>' + methodeTxt + '</strong>'
-      + ' pour <strong>' + esc(p.c.name || '') + '</strong>&nbsp;?';
+      + ' pour <strong>' + esc(p.c.name || '') + '</strong>&nbsp;?'
+      + (p.estAcompte ? '<br><span style="font-size:11.5px;color:#B45309;">Non remboursé en cas de refus/annulation.</span>' : '');
   }
   openModal('modal-dep-vers-confirm');
 }
@@ -6093,6 +6305,12 @@ function _depAjouterVersementExecuter(p){
   var u = window.currentUser || {};
   var v = { montant: montant, le: Date.now(), par: u.name || u.id || '', methode: p.methode };
   if(devise === 'fcfa'){ v.montantFCFA = saisie; v.tauxFCFA = TAUX_FCFA_EUR; }
+  // v1.21.0 : marque ce versement comme un acompte (voir depOuvrirAcompte)
+  // — repris tel quel dans depCalculerPaiement (déduit normalement de la
+  // facture), mais permet de le distinguer sur la fiche (badge) et de le
+  // compter dans les "Acomptes conservés" du camion en cas de refus/
+  // annulation (voir _depAcomptesConservesCamion).
+  if(p.estAcompte) v.estAcompte = true;
 
   var versements = Array.isArray(c.versements) ? c.versements : [];
   versements.push(v);
@@ -6105,7 +6323,7 @@ function _depAjouterVersementExecuter(p){
   // réécraser ce versement avant même qu'il soit vraiment enregistré.
   _depEcrireFacture(ctx, { versements: versements });
 
-  depActivite('&#128176;', 'a enregistr&eacute; un versement de <strong>'+montant+' &euro;</strong>'
+  depActivite(p.estAcompte ? '&#127991;&#65039;' : '&#128176;', 'a enregistr&eacute; ' + (p.estAcompte ? 'un acompte' : 'un versement') + ' de <strong>'+montant+' &euro;</strong>'
     + (devise === 'fcfa' ? ' (' + saisie + ' FCFA)' : '') + ' pour <strong>'+esc(c.name||'')+'</strong>');
 
   toast('✅ Versement enregistré');
@@ -6352,6 +6570,7 @@ function depRenderFacture(c){
   h += kv('R&eacute;f. client', esc(depRefClientPour(_depCleContact(c))));
   h += kv('T&eacute;l&eacute;phone', _depLienTel(c.tel, c.tel || '—'));
   h += kv('Colis', esc(c.colis || '—'));
+  h += kv('Nombre de colis', String(c.nbColis || 1));
 
   if(c.destinataireNom || c.destinataireTel){
     h += kv('Destinataire', esc(c.destinataireNom || '—')
@@ -6961,6 +7180,7 @@ function depRenderFicheLecture(colId, clientId, depot){
     +   kv('Adresse', adresseTxt || '—')
     +   (c.infos ? kv('Infos compl&eacute;mentaires', esc(c.infos)) : '')
     +   kv('Colis', esc(c.colis || '—'))
+    +   kv('Nombre de colis', String(c.nbColis || 1))
     +   kv('Prix', (c.prixADefinir ? '<span style="color:var(--text3);">&Agrave; d&eacute;finir sur place</span>' : ((c.prix||0) + '&nbsp;&euro;'))
           + (pastilleEncaisse ? ('<br><span style="font-size:10.5px;color:var(--text3);">Encaiss&eacute; par</span><br>'+pastilleEncaisse) : ''))
     // v1.19.53 : reste à payer, visible uniquement si le paiement est
@@ -6983,12 +7203,28 @@ function depRenderFicheLecture(colId, clientId, depot){
           }
           return hPay;
         })()
+    // v1.21.0 : badge "Acompte" bien visible si un (ou plusieurs)
+    // versement(s) de ce type existe(nt) déjà — retour de Cobey du
+    // 06/09/2026 : repérer d'un coup d'œil qui a déjà versé un acompte.
+    +   (function(){
+          var totalAcompte = 0;
+          (c.versements||[]).forEach(function(v){ if(v.estAcompte) totalAcompte += (parseFloat(v.montant)||0); });
+          if(totalAcompte <= 0) return '';
+          return kv('Acompte', '<span style="display:inline-block;background:#FFF3E0;color:#B45309;'
+            + 'border:1.5px solid #E58A00;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:800;">'
+            + '&#127991;&#65039; ' + totalAcompte + '&nbsp;&euro; vers&eacute;'+(totalAcompte>1?'(s)':'')+'</span>');
+        })()
     // v1.20.27 : versement avant la ramasse (ex. virement reçu à
     // l'inscription) — disponible ici, avant même que la facture ne soit
-    // accessible (voir depOuvrirVersementAvance).
-    +   (c.prixADefinir ? '' : '<button type="button" class="btn btn-gray" '
-          + 'style="background:#EAF7EE;border-color:#BFE6C8;color:#0d7a3a;margin-top:10px;" '
-          + 'onclick="depOuvrirVersementAvance()">&#128176; Ajouter un versement</button>')
+    // accessible (voir depOuvrirVersementAvance). v1.21.0 : bouton
+    // "🏷️ Acompte" ajouté à côté (voir depOuvrirAcompte), même mécanisme
+    // avec un drapeau en plus.
+    +   (c.prixADefinir ? '' : '<div style="display:flex;gap:8px;margin-top:10px;">'
+          + '<button type="button" class="btn btn-gray" style="flex:1;margin-top:0;background:#EAF7EE;border-color:#BFE6C8;color:#0d7a3a;" '
+          +   'onclick="depOuvrirVersementAvance()">&#128176; Versement</button>'
+          + '<button type="button" class="btn btn-gray" style="flex:1;margin-top:0;background:#FFF3E0;border-color:#F0C36D;color:#B45309;" '
+          +   'onclick="depOuvrirAcompte()">&#127991;&#65039; Acompte</button>'
+          + '</div>')
     + '</div>'
     + '<div class="dep-fiche-card">'
     +   (c.livraisonDakar
@@ -8543,6 +8779,7 @@ window.depOuvrirValidation = function(id, tk, name, prix){
   var titre = $('dv-titre'); if(titre) titre.textContent = 'Valider — ' + (fiche.name || name || '');
 
   var colisEl = $('dv-colis'); if(colisEl) colisEl.value = fiche.colis || '';
+  var nbEl = $('dv-nb'); if(nbEl) nbEl.value = fiche.nbColis || 1;
 
   var pay = depCalculerPaiement(fiche);
   var pAff = $('dv-prix-affiche');
@@ -8736,6 +8973,8 @@ window.depValiderConfirmer = function(){
 
   var colisEl = $('dv-colis');
   if(colisEl) fiche.colis = colisEl.value.trim();
+  var nbEl = $('dv-nb');
+  if(nbEl) fiche.nbColis = parseInt(nbEl.value, 10) || 1;
 
   if(ctx.prixModifie !== null && ctx.prixModifie !== undefined){
     fiche.prix = ctx.prixModifie;
@@ -8788,6 +9027,7 @@ window.depValiderConfirmer = function(){
   // temps réel avant d'avoir vraiment persisté.
   _depEcrireClient({ collecteId: ctx.collecteId, clientId: ctx.clientId }, {
     colis: fiche.colis,
+    nbColis: fiche.nbColis || 1,
     destinataireNom: fiche.destinataireNom,
     destinataireTel: fiche.destinataireTel,
     livraisonDakar: !!fiche.livraisonDakar,
@@ -9451,6 +9691,10 @@ function greffer(){
         destinataireTel  : (($('f-dest-tel')||{}).value || '').trim(),
         destinataireTel2 : (($('f-dest-tel2')||{}).value || '').trim(),
         note             : (($('f-note')||{}).value || '').trim(),
+        // v1.21.0 : nombre de colis + observation de collecte (voir
+        // injecterChampsClient).
+        nbColis          : parseInt((($('f-nb')||{}).value), 10) || 1,
+        observationCollecte : (($('f-observation')||{}).value || '').trim(),
         livraisonDakar   : !!window._depLivraison,
         livraisonAdresse : window._depLivraison ? (($('f-liv-adresse')||{}).value || '').trim() : '',
         prixLivraison    : window._depLivraison ? (parseFloat(($('f-liv-prix')||{}).value) || 0) : 0,
@@ -9806,34 +10050,41 @@ function greffer(){
     window.askValider._depPatch = true;
   }
 
-  /* --- J. Menu "⋯" du camion (ouvrirModalPlus) : ajout d'un accès
-     direct à la facture, ouvert à tous les collaborateurs. Avant ça,
-     le bouton "🧾 Facture" n'existait que dans l'écran Départs, réservé
-     à la direction — un collaborateur normal n'avait aucun moyen
-     d'ouvrir la facture d'un client (constaté par Cobey le 20/08/2026). --- */
+  /* --- J. Menu "⋯" du camion (ouvrirModalPlus). Historique : v1.14.0
+     ajoutait ici un accès direct "🧾 Facture" (le bouton n'existait sinon
+     que dans l'écran Départs, réservé à la direction). v1.21.0 le retire :
+     avant la collecte, consulter la facture ne sert à rien (retour de
+     Cobey du 06/09/2026, "je crois il sert à rien") — elle reste
+     accessible une fois le client validé, via le bouton "🧾" dédié sur sa
+     carte (voir _depAjouterFactureCamionValide). À la place, le bouton
+     "❌" direct de la carte (route-action-refuse, masqué par
+     _depSimplifierBoutonsCarte) rejoint ce menu, pour ne garder que 2
+     boutons visibles sur la carte au lieu de 3 (retour de Cobey du
+     06/09/2026, "il y a trop de boutons à mon goût"). --- */
   if(typeof window.ouvrirModalPlus === 'function' && !window.ouvrirModalPlus._depPatch){
     var origModalPlus = window.ouvrirModalPlus;
     window.ouvrirModalPlus = function(cid, tk, nom){
       origModalPlus.apply(this, arguments);
       try{
         var modal = $('modal-plus');
-        if(modal && !$('dep-plus-facture')){
-          var grille = modal.querySelector('div[style*="grid"]');
-          if(grille){
-            var btn = document.createElement('button');
-            btn.id = 'dep-plus-facture';
-            btn.type = 'button';
-            btn.style.cssText = 'padding:14px;background:#EAF7EE;color:#006b2d;border:2px solid #006b2d;'
-              + 'border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);';
-            btn.textContent = '🧾 Facture';
-            btn.onclick = function(){
-              closeModal('modal-plus');
-              depOuvrirFacture(window.currentCollecteId || '', window._plusClientId || '', false, true);
-            };
-            grille.insertBefore(btn, grille.firstChild);
-          }
+        if(!modal) return;
+        var vieuxFacture = $('dep-plus-facture');
+        if(vieuxFacture && vieuxFacture.parentNode) vieuxFacture.parentNode.removeChild(vieuxFacture);
+        var grille = modal.querySelector('div[style*="grid"]');
+        if(grille && !$('dep-plus-refus')){
+          var btn = document.createElement('button');
+          btn.id = 'dep-plus-refus';
+          btn.type = 'button';
+          btn.style.cssText = 'padding:14px;background:#FDEDED;color:#992020;border:2px solid #c0392b;'
+            + 'border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);';
+          btn.textContent = '❌ Non ramassé / refus';
+          btn.onclick = function(){
+            closeModal('modal-plus');
+            if(typeof window.askRefus === 'function') window.askRefus(window._plusClientId, window._plusTruckKey, window._plusClientNom);
+          };
+          grille.insertBefore(btn, grille.firstChild);
         }
-      }catch(e){ console.error('departs: bouton facture menu plus', e); }
+      }catch(e){ console.error('departs: menu ⋯ (refus + retrait facture)', e); }
     };
     window.ouvrirModalPlus._depPatch = true;
   }
@@ -9862,6 +10113,16 @@ function greffer(){
       // v1.20.29 : boutons de rappel WhatsApp avant la ramasse, sur
       // chaque carte de la tournée — voir _depAjouterWhatsappCamion.
       try{ _depAjouterWhatsappCamion(k); }catch(e){ console.error('departs: rappel WhatsApp (camion)', e); }
+      // v1.21.0 : carte simplifiée (retrait du "❌" direct, voir greffe J
+      // sur ouvrirModalPlus) + badge "Acompte" + 2 boutons supplémentaires
+      // sur la carte validée (photos/observation) + lignes financières
+      // supplémentaires (acomptes conservés, montant récolté chauffeur) +
+      // bouton d'impression groupée des étiquettes du camion.
+      try{ _depSimplifierBoutonsCarte(k); }catch(e){ console.error('departs: simplification boutons carte', e); }
+      try{ _depAjouterBadgeAcompteCamion(k); }catch(e){ console.error('departs: badge acompte (camion)', e); }
+      try{ _depAjouterBoutonsExtraCamionValide(k); }catch(e){ console.error('departs: boutons extra (photos/observation)', e); }
+      try{ _depAfficherFinanceExtra(k); }catch(e){ console.error('departs: finance extra (camion)', e); }
+      try{ _depInjecterBoutonEtiquettesCamion(k); }catch(e){ console.error('departs: bouton étiquettes camion', e); }
     };
     window.renderCamion._depPatch = true;
   }
@@ -10903,6 +11164,20 @@ function _depColorerCarteChauffeurExterne(k){
       continue;
     }
     det.insertBefore(note, det.firstChild);
+
+    // v1.21.0 : montant récolté en espèces par le chauffeur externe (voir
+    // chauffeur.html) — purement indicatif, ne touche pas à la facture
+    // (voir §37g) ; affiché ici, par client, en plus du total global du
+    // camion (voir _depAfficherFinanceExtra) — retour de Cobey du
+    // 06/09/2026 : "sur chaque carte de client individuellement".
+    var mr = (tk.montantRecolte || {})[id];
+    if(mr && mr.montant){
+      var noteMt = document.createElement('div');
+      noteMt.className = 'route-detail-row dep-note-externe';
+      noteMt.style.cssText = 'color:#1a7a40;font-weight:700;';
+      noteMt.innerHTML = '&#128184; ' + (parseFloat(mr.montant)||0) + ' FCFA r&eacute;colt&eacute;s par le chauffeur';
+      det.insertBefore(noteMt, note.nextSibling);
+    }
   }
 }
 
@@ -10975,6 +11250,29 @@ function _depCopierTexteRelance(msg){
   }
 }
 
+// v1.21.0 : CORRECTIF — retour de Cobey du 06/09/2026, "les messages
+// WhatsApp de rappel ne tombent pas forcément sur le numéro du bon
+// client, ça l'a fait à Issyaka". La correspondance carte↔client de
+// cette fonction (et de ses sœurs _depAjouterSuiviCamion/
+// _depColorerCarteChauffeurExterne) repose uniquement sur l'index dans
+// `sorted` — si jamais ce tri diverge de l'ordre réel des cartes (un
+// client sans fiche, une carte non encore posée, un tri natif qui
+// changerait un jour côté index.html...), un client peut se voir attribuer
+// la carte — donc le numéro — d'un AUTRE client, sans que rien ne le
+// signale. On vérifie maintenant, avant d'attacher les boutons, que le
+// nom affiché sur la carte correspond bien au client visé ; en cas de
+// désaccord, on cherche la bonne carte par son nom parmi celles pas
+// encore utilisées plutôt que de risquer d'envoyer le rappel au mauvais
+// numéro.
+function _depNomCarteBrut(carte){
+  var nomEl = carte.querySelector('.route-client-name');
+  if(!nomEl) return '';
+  var txt = nomEl.textContent || '';
+  txt = txt.replace(/^[^\wÀ-ÿ]*\d{1,2}h\d{0,2}[^\wÀ-ÿ]*/, ''); // retire "🕐 08h30 — "
+  txt = txt.replace(/[^\wÀ-ÿ.'\- ]+\s*$/, ''); // retire l'icône Suivi éventuelle en fin
+  return txt.trim();
+}
+
 function _depAjouterWhatsappCamion(k){
   var trks = getTrucks(), tk = trks[k];
   if(!tk || !(tk.clients||[]).length) return;
@@ -10990,14 +11288,30 @@ function _depAjouterWhatsappCamion(k){
   var dateTxt = col ? (col.date || '') : '';
   var clients = getClients() || {};
   var cartes = document.querySelectorAll('#camion-route .route-card');
+  var cartesUtilisees = {};
   for(var i = 0; i < sorted.length; i++){
     var id = sorted[i];
+    var c = clients[id];
+    if(!c) continue;
     var carte = cartes[i];
+    var nomAttendu = (c.name || '').trim();
+    if(carte && nomAttendu && _depNomCarteBrut(carte) !== nomAttendu){
+      // Décalage détecté — on cherche la bonne carte par son nom parmi
+      // celles pas déjà attribuées, plutôt que de faire confiance à
+      // l'index seul.
+      var trouve = null;
+      for(var j = 0; j < cartes.length; j++){
+        if(cartesUtilisees[j]) continue;
+        if(_depNomCarteBrut(cartes[j]) === nomAttendu){ trouve = j; break; }
+      }
+      carte = (trouve !== null) ? cartes[trouve] : null;
+      if(trouve !== null) cartesUtilisees[trouve] = true;
+    } else if(carte){
+      cartesUtilisees[i] = true;
+    }
     if(!carte || carte.querySelector('.dep-relance-whatsapp')) continue;
     var det = carte.querySelector('.route-details');
     if(!det) continue;
-    var c = clients[id];
-    if(!c) continue;
 
     var tel = _depTelIntlRelance(c.tel);
     var creneau = _depCreneauRelance(hours[id]);
@@ -11032,6 +11346,378 @@ function _depAjouterWhatsappCamion(k){
     ligne.appendChild(btnCop);
     det.insertBefore(ligne, det.firstChild);
   }
+}
+
+/* ─────────────────────────────────────────────
+   v1.21.0. CARTE CLIENT SIMPLIFIÉE (écran camion, avant collecte) — le
+   bouton "❌" direct rejoint le menu "⋯" (voir greffe J sur
+   ouvrirModalPlus) : on masque juste ici le bouton natif
+   (.route-action-refuse), sans toucher au reste de la carte. Les deux
+   boutons restants (Valider / ···) se partagent alors l'espace tout
+   seuls (flex:1 par défaut sur .route-action-btn, voir index.html).
+   ───────────────────────────────────────────── */
+function _depSimplifierBoutonsCarte(k){
+  var boutons = document.querySelectorAll('#camion-route .route-action-refuse');
+  for(var i = 0; i < boutons.length; i++) boutons[i].style.display = 'none';
+}
+
+/* ─────────────────────────────────────────────
+   v1.21.0. BADGE "Acompte" sur la carte (avant collecte) — repère d'un
+   coup d'œil, dans la liste du camion, qui a déjà versé un acompte
+   (voir depOuvrirAcompte) avant même d'ouvrir sa fiche. Même technique
+   de correspondance carte↔client que _depAjouterSuiviCamion.
+   ───────────────────────────────────────────── */
+function _depAjouterBadgeAcompteCamion(k){
+  var trks = getTrucks(), tk = trks[k];
+  if(!tk || !(tk.clients||[]).length) return;
+  var hours = tk.hours || {};
+  var sorted = (tk.clients || []).slice().sort(function(a,b){
+    var ha = hours[a], hb = hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return tk.clients.indexOf(a) - tk.clients.indexOf(b);
+  });
+  var clients = getClients() || {};
+  var cartes = document.querySelectorAll('#camion-route .route-card');
+  for(var i = 0; i < sorted.length; i++){
+    var carte = cartes[i];
+    if(!carte) continue;
+    var nomEl = carte.querySelector('.route-client-name');
+    if(!nomEl || nomEl.querySelector('.dep-badge-acompte')) continue;
+    var c = clients[sorted[i]];
+    if(!c) continue;
+    var somme = 0;
+    (c.versements||[]).forEach(function(v){ if(v.estAcompte) somme += (parseFloat(v.montant)||0); });
+    if(somme <= 0) continue;
+    var b = document.createElement('span');
+    b.className = 'dep-badge-acompte';
+    b.style.cssText = 'display:inline-block;margin-left:6px;font-size:9.5px;font-weight:800;'
+      + 'background:#FFF3E0;color:#B45309;border:1.5px solid #E58A00;border-radius:20px;padding:1px 7px;vertical-align:middle;';
+    b.textContent = '🏷️ Acompte';
+    nomEl.appendChild(b);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   v1.21.0. ACOMPTES CONSERVÉS (désistements) — un acompte n'est jamais
+   remboursé quand le client refuse la ramasse ou annule (DCT s'est déjà
+   déplacé/organisé pour rien, retour de Cobey du 06/09/2026), mais reste
+   normalement attaché à la fiche (donc déduit de la facture) en cas de
+   simple report. Cette somme n'apparaissait nulle part dans les totaux
+   du camion — voir _depAfficherFinanceExtra.
+   ───────────────────────────────────────────── */
+function _depAcomptesConservesCamion(tk){
+  var ids = (tk.refused||[]).concat(tk.cancelled||[]);
+  var clients = getClients() || {};
+  var total = 0, noms = [];
+  ids.forEach(function(id){
+    var c = clients[id];
+    if(!c || !Array.isArray(c.versements)) return;
+    var somme = 0;
+    c.versements.forEach(function(v){ if(v.estAcompte) somme += (parseFloat(v.montant)||0); });
+    if(somme > 0){ total += somme; noms.push((c.name||'?') + ' (' + somme + ' €)'); }
+  });
+  return { total: total, detail: noms.join(', ') };
+}
+
+// Insère/actualise, dans le "💰 Suivi financier" natif de l'écran Camion
+// (juste après la ligne "⏳ Restant", jamais modifiée), deux lignes
+// supplémentaires quand elles ont un montant à montrer : les acomptes
+// conservés (tous camions) et le montant récolté par le chauffeur externe
+// (camions "chauffeur externe" uniquement, voir chauffeur.html). Chaque
+// ligne se retire d'elle-même si elle repasse à zéro.
+function _depAfficherFinanceExtra(k){
+  var trks = getTrucks(), tk = trks[k];
+  if(!tk) return;
+  var remRow = document.getElementById('c-remaining');
+  if(!remRow || !remRow.parentNode) return;
+  var ancre = remRow.parentNode; // la .finance-row "⏳ Restant"
+  var box = ancre.parentNode;
+  if(!box) return;
+
+  var ac = _depAcomptesConservesCamion(tk);
+  var rowAc = $('dep-finance-acomptes');
+  if(ac.total > 0){
+    if(!rowAc){
+      rowAc = document.createElement('div');
+      rowAc.id = 'dep-finance-acomptes';
+      rowAc.className = 'finance-row';
+      rowAc.style.cssText = 'margin-top:4px;';
+    }
+    rowAc.title = ac.detail;
+    rowAc.innerHTML = '<span class="finance-label">&#127991;&#65039; Acomptes conserv&eacute;s (d&eacute;sistements)</span>'
+      + '<span class="finance-val" style="color:#B45309;">' + ac.total + ' &euro;</span>';
+    box.insertBefore(rowAc, ancre.nextSibling);
+    ancre = rowAc;
+  } else if(rowAc && rowAc.parentNode){
+    rowAc.parentNode.removeChild(rowAc);
+  }
+
+  var rowMt = $('dep-finance-montant-chauffeur');
+  if(tk.externe){
+    var mt = 0;
+    var mr = tk.montantRecolte || {};
+    Object.keys(mr).forEach(function(id){ mt += (parseFloat((mr[id]||{}).montant) || 0); });
+    if(!rowMt){
+      rowMt = document.createElement('div');
+      rowMt.id = 'dep-finance-montant-chauffeur';
+      rowMt.className = 'finance-row';
+      rowMt.style.cssText = 'margin-top:4px;';
+    }
+    rowMt.innerHTML = '<span class="finance-label">&#128184; Montant r&eacute;colt&eacute; par le chauffeur <span style="font-weight:500;color:#999;">(indicatif)</span></span>'
+      + '<span class="finance-val" style="color:#1a237e;">' + mt + ' FCFA</span>';
+    box.insertBefore(rowMt, ancre.nextSibling);
+  } else if(rowMt && rowMt.parentNode){
+    rowMt.parentNode.removeChild(rowMt);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   v1.21.0. DEUX BOUTONS SUPPLÉMENTAIRES SUR LA CARTE VALIDÉE (écran
+   camion) — retour de Cobey du 06/09/2026 : consultation directe des
+   photos (sans passer par la fiche complète, plus rapide notamment avant
+   l'impression des étiquettes) et observation de collecte (même bouton
+   pour lire et écrire, change d'aspect selon qu'une observation existe
+   déjà). Nouvelle rangée plus petite, AU-DESSUS de la rangée
+   Collecté/↩️/🧾 existante (jamais modifiée) — même technique de
+   correspondance carte↔client que _depAjouterFactureCamionValide (mêmes
+   cartes .route-card.done, même filtre "validated").
+   ───────────────────────────────────────────── */
+function _depAjouterBoutonsExtraCamionValide(k){
+  var trks = getTrucks(), tk = trks[k];
+  if(!tk) return;
+  var validated = tk.validated || [];
+  if(!validated.length) return;
+  var hours = tk.hours || {};
+  var sorted = (tk.clients || []).slice().sort(function(a,b){
+    var ha = hours[a], hb = hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return tk.clients.indexOf(a) - tk.clients.indexOf(b);
+  });
+  var clients = getClients() || {};
+  var cartes = document.querySelectorAll('#camion-route .route-card.done');
+  var idxCarte = 0;
+  for(var i = 0; i < sorted.length; i++){
+    if(validated.indexOf(sorted[i]) < 0) continue;
+    var carte = cartes[idxCarte]; idxCarte++;
+    if(!carte || carte.querySelector('.dep-extra-camion')) continue;
+    var act = carte.querySelector('.route-actions');
+    if(!act) continue;
+    (function(cid){
+      var c = clients[cid] || {};
+      var ligne = document.createElement('div');
+      ligne.className = 'route-actions dep-extra-camion';
+      ligne.style.cssText = 'padding-top:0;padding-bottom:0;margin-top:-2px;';
+
+      var bPhoto = document.createElement('button');
+      bPhoto.type = 'button';
+      bPhoto.style.cssText = 'flex:1;padding:8px;background:#F5F6FC;color:#1a237e;border:2px solid #1a237e;'
+        + 'border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--font);';
+      bPhoto.innerHTML = '&#128247; Photos';
+      bPhoto.onclick = function(e){ if(e) e.stopPropagation(); depOuvrirPhotosRapide(window.currentCollecteId || '', cid, false, false); };
+
+      var aUneObs = !!(c.observationCollecte && c.observationCollecte.trim());
+      var bObs = document.createElement('button');
+      bObs.type = 'button';
+      bObs.style.cssText = 'flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--font);'
+        + (aUneObs ? 'background:#FFF3E0;color:#B45309;border:2px solid #E58A00;' : 'background:#F0F0F0;color:#555;border:2px solid #bbb;');
+      bObs.innerHTML = aUneObs ? '&#9888;&#65039; Observation' : '&#128221; Observation';
+      bObs.onclick = function(e){ if(e) e.stopPropagation(); depOuvrirObservation(window.currentCollecteId || '', cid); };
+
+      ligne.appendChild(bPhoto);
+      ligne.appendChild(bObs);
+      carte.insertBefore(ligne, act);
+    })(sorted[i]);
+  }
+}
+
+window._depObservationCtx = null;
+window.depOuvrirObservation = function(collecteId, clientId){
+  var cls = (window.clientsParCollecte||{})[collecteId] || {};
+  var c = cls[clientId];
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  window._depObservationCtx = { collecteId: collecteId, clientId: clientId };
+  var titre = $('dep-observation-nom'); if(titre) titre.textContent = c.name || 'Client';
+  var champ = $('dep-observation-texte'); if(champ) champ.value = c.observationCollecte || '';
+  openModal('modal-dep-observation');
+};
+
+window.depEnregistrerObservation = function(){
+  var ctx = window._depObservationCtx;
+  if(!ctx){ toast('⚠️ Client introuvable.'); return; }
+  var cls = (window.clientsParCollecte||{})[ctx.collecteId] || {};
+  var c = cls[ctx.clientId];
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  var champ = $('dep-observation-texte');
+  var texte = (champ && champ.value || '').trim();
+  c.observationCollecte = texte;
+  _depEcrireClient({ collecteId: ctx.collecteId, clientId: ctx.clientId }, { observationCollecte: texte });
+  try{ sauvegarder(); }catch(e){}
+  closeModal('modal-dep-observation');
+  toast('✅ Observation enregistrée');
+  try{ if(typeof currentCamion !== 'undefined' && currentCamion) renderCamion(currentCamion); }catch(e){}
+};
+
+/* ─────────────────────────────────────────────
+   v1.21.0. IMPRESSION GROUPÉE DES ÉTIQUETTES D'UN CAMION — un bouton sur
+   l'écran Camion (voir _depInjecterBoutonEtiquettesCamion) génère, en un
+   seul PDF, l'étiquette de chaque colis de chaque client de la tournée
+   (dans l'ordre de passage), avec confirmation préalable détaillant le
+   compte — retour de Cobey du 06/09/2026.
+   ───────────────────────────────────────────── */
+function _depInjecterBoutonEtiquettesCamion(k){
+  var screen = $('s-camion');
+  if(!screen || $('dep-btn-etq-camion')) return;
+  var slabel = screen.querySelector('.slabel');
+  if(!slabel || !slabel.parentNode) return;
+  var btn = document.createElement('button');
+  btn.id = 'dep-btn-etq-camion';
+  btn.type = 'button';
+  btn.style.cssText = 'width:100%;padding:12px;background:#111;color:#fff;border:2px solid #000;'
+    + 'border-radius:10px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:var(--font);margin-bottom:14px;';
+  btn.innerHTML = '&#127991;&#65039; Imprimer toutes les &eacute;tiquettes du camion';
+  btn.onclick = function(){ depOuvrirImpressionToutesEtiquettesCamion(window.currentCamion || k); };
+  slabel.parentNode.insertBefore(btn, slabel);
+}
+
+window._depImprimerToutesEtiquettesCtx = null;
+
+window.depOuvrirImpressionToutesEtiquettesCamion = function(k){
+  var trks = getTrucks(), tk = trks[k];
+  if(!tk || !(tk.clients||[]).length){ toast('⚠️ Aucun client dans ce camion.'); return; }
+  var clients = getClients() || {};
+  var hours = tk.hours || {};
+  var sorted = (tk.clients || []).slice().sort(function(a,b){
+    var ha = hours[a], hb = hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return tk.clients.indexOf(a) - tk.clients.indexOf(b);
+  });
+  var items = [];
+  sorted.forEach(function(id){
+    var c = clients[id];
+    if(!c) return;
+    if(!c.departId || c.departId === DEP_ID_DEPOT || !(window.departsData||{})[c.departId]) return;
+    items.push({ id: id, c: c, n: c.nbColis || 1 });
+  });
+  if(!items.length){ toast('⚠️ Aucun client de ce camion n\'est rattaché à un départ pour l\'instant.'); return; }
+  window._depImprimerToutesEtiquettesCtx = { camion: k, items: items };
+  var total = items.reduce(function(s, it){ return s + it.n; }, 0);
+  var detail = items.map(function(it){ return it.n; }).join(' + ');
+  var texte = $('dep-etq-camion-texte');
+  if(texte){
+    texte.innerHTML = '<strong>' + total + ' &eacute;tiquette' + (total > 1 ? 's' : '') + '</strong> seront g&eacute;n&eacute;r&eacute;es'
+      + ' (' + esc(detail) + ' pour ' + items.length + ' client' + (items.length > 1 ? 's' : '') + '), dans l\'ordre de la tourn&eacute;e.';
+  }
+  openModal('modal-dep-etq-camion-confirm');
+};
+
+window.depConfirmerImpressionToutesEtiquettesCamion = function(){
+  var ctxAll = window._depImprimerToutesEtiquettesCtx;
+  closeModal('modal-dep-etq-camion-confirm');
+  if(!ctxAll || !ctxAll.items.length) return;
+  window._depEtqVientImpression = false;
+  window._depEtqVientCamion = ctxAll.camion;
+  window._depEtiquetteCtx = { collecteId: window.currentCollecteId, clientId: '', depot: false };
+  goTo('s-etiquette');
+  _depRenderEtiquettesMultiples(ctxAll.items);
+};
+
+// Construit, pour TOUS les clients passés (voir
+// depOuvrirImpressionToutesEtiquettesCamion), la même page d'étiquette que
+// depRenderEtiquettes — reprise à l'identique pour chaque client — mais
+// concaténées dans #etq-contenu au lieu de le remplacer une seule fois. Le
+// bouton "Imprimer" existant (depExporterEtiquettesPDF) fonctionne sans
+// modification : il capture simplement tous les .etq-doc trouvés, peu
+// importe combien de clients différents les ont produits.
+function _depRenderEtiquettesMultiples(items){
+  var globalPages = '';
+  var qrJobs = [];
+  var giIndex = 0;
+  items.forEach(function(item){
+    var c = item.c, n = item.n, id = item.id;
+    var ctx = { collecteId: window.currentCollecteId, clientId: id, depot: false };
+    var d = (window.departsData || {})[c.departId] || {};
+    var pInfo = DEP_PAYS_DEST[depPaysDepart(d)] || {};
+    var ddmmyy = '';
+    if(d.dateDepart){
+      var parts = String(d.dateDepart).split('-');
+      if(parts.length === 3) ddmmyy = parts[2] + parts[1] + parts[0].slice(2);
+    }
+    var refClient = depRefClientPour(_depCleContact(c));
+    var nom = c.name || ((c.prenom||'') + ' ' + (c.nom||'')).trim() || 'Client';
+    var prefixeParcours = String(depNumeroFacture(c, ctx) || '').split('-')[0] || '';
+    var couleurParcours = { C:'#006b2d', D:'#B8860B' }[prefixeParcours] || '#1a237e';
+    var adresseExp = [c.adresse||'', ((c.cp||'')+' '+(c.ville||'')).trim()].filter(Boolean).join(', ');
+    var destBlock = c.destinataireNom
+      ? ('<div class="etq-partie-nom">'+esc(c.destinataireNom)+'</div>'
+         + '<div class="etq-partie-detail">'+esc(_depMasquerTel(c.destinataireTel))
+         + (c.destinataireTel2 ? ' &middot; '+esc(_depMasquerTel(c.destinataireTel2)) : '')
+         + (c.livraisonDakar && (c.livraisonVille || c.livraisonVilleAutre || c.livraisonAdresse)
+             ? '<br>'+esc([c.livraisonVille||c.livraisonVilleAutre||'', c.livraisonAdresse ? _depMasquerAdresse(c.livraisonAdresse) : ''].filter(Boolean).join(' — '))
+             : '')
+         + '</div>')
+      : '<div class="etq-partie-nom">—</div>';
+
+    for(var i = 1; i <= n; i++){
+      giIndex++;
+      var canvasId = 'etq-qr-multi-' + giIndex;
+      var numEtq = refClient + '-' + (ddmmyy || 'XXXXXX') + '-' + (c.rangDepart || i);
+      globalPages += ''
+        + '<div class="etq-page">'
+        +   '<div class="etq-doc">'
+        +     '<div class="etq-topbar"></div>'
+        +     '<div class="etq-body">'
+        +       '<div class="etq-header">'
+        +         '<img class="etq-logo" src="'+DEP_LOGO_B64+'" alt="Dakar City Transport">'
+        +         '<div class="etq-marque">DAKAR CITY TRANSPORT</div>'
+        +         '<div class="etq-parcours" style="background:'+couleurParcours+';">'+esc(prefixeParcours)+'</div>'
+        +         '<div class="etq-compte">'+i+'/'+n+'</div>'
+        +       '</div>'
+        +       '<div class="etq-numero">'+esc(numEtq)+'</div>'
+        +       '<div class="etq-dest">'+(pInfo.drapeau||'')+' '+esc(DEP_PAYS_NOM_PLAIN[depPaysDepart(d)] || pInfo.nom || '')+'</div>'
+        +       '<div class="etq-qr-wrap"><canvas id="'+canvasId+'" width="180" height="180"></canvas></div>'
+        +       '<hr class="etq-sep">'
+        +       '<div class="etq-parties">'
+        +         '<div>'
+        +           '<div class="etq-partie-titre">EXP&Eacute;DITEUR</div>'
+        +           '<div class="etq-partie-nom">'+esc(nom)+'</div>'
+        +           '<div class="etq-partie-detail">'+esc(_depMasquerTel(c.tel))
+        +             (adresseExp ? '<br>'+esc(_depMasquerAdresse(adresseExp)) : '')
+        +           '</div>'
+        +         '</div>'
+        +         '<div>'
+        +           '<div class="etq-partie-titre">DESTINATAIRE</div>'
+        +           destBlock
+        +         '</div>'
+        +       '</div>'
+        +       '<div class="etq-nature"><span>Nature</span><strong>'+esc(c.colis||'—')+'</strong></div>'
+        +     '</div>'
+        +     '<div class="etq-footer">dakarcitytransport.com &middot; +33 6 69 18 30 01 / +33 6 03 67 04 98 &middot; @dakar_ct</div>'
+        +   '</div>'
+        + '</div>';
+      qrJobs.push({ ctx: ctx, canvasId: canvasId });
+    }
+  });
+
+  var box = $('etq-contenu');
+  if(box) box.innerHTML = globalPages;
+
+  // Même correctif que depRenderEtiquettes (voir §37c) : on n'autorise
+  // l'impression qu'une fois tous les QR de TOUS les clients dessinés.
+  window._depEtiquettesQrPretes = false;
+  var idx2 = 0;
+  function dessinerSuivant(){
+    if(idx2 >= qrJobs.length){ window._depEtiquettesQrPretes = true; return; }
+    var job = qrJobs[idx2];
+    depGenererQR(job.ctx, job.canvasId, function(){ idx2++; dessinerSuivant(); }, 180);
+  }
+  if(!qrJobs.length) window._depEtiquettesQrPretes = true;
+  else dessinerSuivant();
 }
 
 // Rattrapage appelé quelques secondes après une suppression : si le
