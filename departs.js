@@ -301,6 +301,17 @@
        (évite le crash "App already exists" quand initFirebase() natif
        s'exécutera, lui, 2s plus tard et rappellera initializeApp() sans
        vérifier). Le filet de sécurité est aussi raccourci à 700ms.
+   43. v1.21.6 : "Nombre de colis" ajouté au formulaire d'inscription au
+       dépôt direct (dp-nb, à côté de "Description du colis" — voir
+       depOuvrirDepotForm/depEnregistrerDepot), demande de Cobey du
+       07/09/2026. Contrairement à la collecte, qui a deux moments de
+       saisie (inscription le dimanche, puis modifiable à la validation
+       via dv-nb — la quantité réelle n'étant connue qu'au jour de la
+       ramasse), le dépôt direct n'a besoin que d'un seul champ : tout
+       (inscription, prix, colis) est acté au même moment. Stocké dans
+       le même c.nbColis que côté collecte — remonte donc automatiquement
+       sur la facture, la fiche client et le préremplissage des
+       étiquettes, sans rien changer là-bas.
    ═══════════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -310,7 +321,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.21.5';
+var DEP_VERSION = 'v1.21.6';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1779,6 +1790,12 @@ function injecterEcrans(){
   +       '<div class="fg"><label class="fl">Ville</label><input class="fi" id="dp-ville" placeholder="Aubervilliers"></div>'
   +     '</div>'
   +     '<div class="fg"><label class="fl">Description du colis</label><textarea class="fi" id="dp-colis" rows="3" placeholder="ex: 2 valises + 1 carton..." style="resize:none;"></textarea></div>'
+  // v1.21.6 : "Nombre de colis" — même champ numérique qu'à l'inscription
+  // collecte (voir injecterChampsClient) et à la validation (dv-nb), mais
+  // ici en un seul exemplaire : au dépôt direct, tout s'acte au même
+  // moment (inscription = validation), pas besoin d'un second champ plus
+  // tard (retour de Cobey du 07/09/2026).
+  +     '<div class="fg"><label class="fl">Nombre de colis</label><input class="fi" id="dp-nb" type="number" min="1" value="1" style="font-size:18px;font-weight:700;text-align:center;"></div>'
   // v1.19.55 : "Prix à définir sur place" retiré de ce parcours (retour de
   // Cobey du 28/08/2026) — au dépôt direct, le prix est acté immédiatement,
   // contrairement à la collecte du dimanche.
@@ -7767,6 +7784,9 @@ window.depOuvrirDepotForm = function(departId, clientId, viaCarre){
   ['dp-prenom','dp-nom','dp-tel','dp-tel2','dp-adresse','dp-infos','dp-cp','dp-ville',
    'dp-colis','dp-prix','dp-dest-nom','dp-dest-tel','dp-dest-tel2','dp-liv-adresse','dp-liv-prix','dp-note']
     .forEach(function(id){ var el = $(id); if(el) el.value = ''; });
+  // v1.21.6 : nombre de colis — repart à 1 par défaut (voir prérempli
+  // ci-dessous à c.nbColis en édition).
+  var nbDp = $('dp-nb'); if(nbDp) nbDp.value = '1';
 
   _civDct.dp = c.civilite || '';
   _renderCivDct('dp');
@@ -7782,6 +7802,7 @@ window.depOuvrirDepotForm = function(departId, clientId, viaCarre){
     e = $('dp-cp');         if(e) e.value = c.cp || '';
     e = $('dp-ville');      if(e) e.value = c.ville || '';
     e = $('dp-colis');      if(e) e.value = c.colis || '';
+    e = $('dp-nb');         if(e) e.value = c.nbColis || 1;
     e = $('dp-prix');       if(e) e.value = c.prix ? String(c.prix) : '';
     e = $('dp-dest-nom');   if(e) e.value = c.destinataireNom || '';
     e = $('dp-dest-tel');   if(e) e.value = c.destinataireTel || '';
@@ -8014,6 +8035,9 @@ window.depEnregistrerDepot = function(){
   var infos     = (($('dp-infos')||{}).value || '').trim();
   var ville     = (($('dp-ville')||{}).value || '').trim();
   var colis     = (($('dp-colis')||{}).value || '').trim();
+  // v1.21.6 : nombre de colis — voir dp-nb (formulaire) et le point 42
+  // du changelog / injecterChampsClient pour l'équivalent côté collecte.
+  var nbColis   = parseInt((($('dp-nb')||{}).value), 10) || 1;
   // v1.19.55 : plus de "prix à définir sur place" ici — le prix est acté
   // immédiatement à l'inscription au dépôt (retour de Cobey du 28/08/2026).
   var prix      = parseFloat(($('dp-prix')||{}).value) || 0;
@@ -8036,7 +8060,7 @@ window.depEnregistrerDepot = function(){
   var fiche = {
     civilite: civ, prenom: prenom, nom: nom, name: _composeNom(civ, prenom, nom),
     tel: tel, tel2: tel2, adresse: adresse, infos: infos, ville: ville, cp: cp, dept: dept,
-    colis: colis, prix: prix, prixADefinir: false,
+    colis: colis, nbColis: nbColis, prix: prix, prixADefinir: false,
     departId: departId,
     destinataireNom: dnom, destinataireTel: dtel, destinataireTel2: dtel2,
     livraisonDakar: livraison, livraisonAdresse: ladresse, prixLivraison: lprix,
