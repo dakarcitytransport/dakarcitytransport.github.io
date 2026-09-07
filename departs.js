@@ -312,6 +312,36 @@
        le même c.nbColis que côté collecte — remonte donc automatiquement
        sur la facture, la fiche client et le préremplissage des
        étiquettes, sans rien changer là-bas.
+   44. v1.21.7 : réorganisation complète de l'onglet "Données"
+       (Administration), demande de Cobey du 07/09/2026 — l'ancien écran
+       natif (_htmlStockage/_statsStockage) est entièrement remplacé par
+       window.renderAdminDonnees ci-dessous (voir "Section Z"). Nouveautés :
+       (a) un bloc "Mémoire occupée" avec un total clair (Mo/Go, %, jauge
+       colorée), un détail par catégorie (Collectes Dakar / France & Europe
+       / Photos / Dépôt direct / Carnet de contacts / Autres données) et un
+       bouton "Actualiser tout" — le calcul (photos + "autres") est fait à
+       la demande, horodaté et partagé entre tous les postes via
+       dct_config/stats_stockage_dep (nouveau chemin Firebase dédié à
+       departs.js, choisi pour ne jamais toucher au compteur natif
+       france_stats/photos) ; corrige au passage un vrai bug de sous-
+       comptage : dct_photos_colis (photos collecte + dépôt direct côté
+       departs.js) n'était jusqu'ici jamais compté dans le stockage total.
+       (b) "Libérer de la place" : liste des départs au statut "clôturé"
+       uniquement, chacun avec son résumé de suivi transport
+       (depRenderEtapesTransportResume) et son poids de photos calculé à
+       part (_depChargerPoidsDepart via _depIdsClientsDepart, qui rattache
+       les clients via c.departId, collecte + dépôt confondus) ; bouton
+       "Supprimer les photos" avec confirm() de sécurité, qui ne touche
+       qu'à dct_photos_colis (les fiches, prix, historique restent
+       intacts) et retire la ligne de la liste une fois fait. Pas de seuil
+       automatique (ex : 90 jours) — volontairement laissé au jugement de
+       l'admin, sur la base de la date de clôture du départ (pas de la
+       collecte) puisqu'un container peut partir plusieurs semaines après
+       la collecte et mettre 30 à 40 jours à arriver. (c) les anciens
+       outils (Civilités dans les noms, Diagnostic) sont conservés tels
+       quels mais déplacés dans une section repliable "Outils avancés" en
+       bas d'écran pour désencombrer la vue par défaut. Phase 2 (Équipe,
+       Partenaire, Accès, Message) volontairement hors scope pour l'instant.
    ═══════════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -321,7 +351,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.21.6';
+var DEP_VERSION = 'v1.21.7';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -11130,6 +11160,36 @@ function greffer(){
     };
     window.sauvegarderFirebase._depPatch = true;
   }
+
+  /* --- Z (v1.21.7). Réorganisation de l'onglet "Données" (Administration) —
+     retour de Cobey du 07/09/2026 : le calcul de stockage natif ignorait
+     entièrement les photos de la Collecte et du Dépôt direct
+     (dct_photos_colis, ajouté par ce module bien après le calcul natif
+     d'origine) — un vrai angle mort sur le total affiché. Remplace
+     entièrement renderAdminDonnees (natif) par une version avec des
+     compteurs clairs, un total qui couvre vraiment tout, un bouton
+     "Actualiser tout" (avec horodatage du dernier calcul, voir
+     depActualiserStockage), une nouvelle section pour supprimer les photos
+     d'un départ déjà clôturé (fiches, prix et historique jamais touchés —
+     choix au cas par cas, aucun seuil de jours imposé, voir
+     depSupprimerPhotosDepart et _depHtmlLibererPlace), et les anciens
+     outils (Civilités, Diagnostic) rangés dans une section repliée
+     "Outils avancés" pour désencombrer l'écran au quotidien (voir
+     _depHtmlOutilsAvances). Fonctions détaillées après demarrer(),
+     plus bas dans ce fichier. --- */
+  if(typeof window.renderAdminDonnees === 'function' && !window.renderAdminDonnees._depPatch){
+    window.renderAdminDonnees = function(){
+      var sec = document.getElementById('admin-section-donnees');
+      if(!sec) return;
+      sec.innerHTML = _depHtmlStockage() + _depHtmlLibererPlace() + _depHtmlOutilsAvances();
+      try{
+        tousLesDeparts().filter(function(d){ return d.statut === 'cloture'; }).forEach(function(d){
+          _depChargerPoidsDepart(d._id);
+        });
+      }catch(e){ console.error('departs: poids départs clôturés', e); }
+    };
+    window.renderAdminDonnees._depPatch = true;
+  }
 }
 
 function _depConnexionAnonyme(){
@@ -13050,6 +13110,7 @@ function demarrer(){
   try{ depSetLivraisonFiche(false); }catch(e){}
   try{ depSetLivraisonDepot(false); }catch(e){}
   try{ ecouterDeparts(); }catch(e){ console.error('departs: firebase', e); }
+  try{ _depInitStatsStockage(); }catch(e){ console.error('departs: init stats stockage', e); }
   console.log('%c[DCT] Module départs ' + DEP_VERSION + ' chargé', 'color:#252599;font-weight:bold;');
 }
 
@@ -13058,5 +13119,276 @@ if(document.readyState === 'loading'){
 } else {
   setTimeout(demarrer, 60);
 }
+
+/* ─────────────────────────────────────────────
+   RÉORGANISATION DE L'ONGLET DONNÉES (v1.21.7) — voir section Z des
+   greffes plus haut pour le contexte complet. Ce bloc fournit tout ce
+   qu'utilise le renderAdminDonnees de remplacement : le calcul de
+   stockage (avec les photos Collecte/Dépôt/France réunies + un panier
+   "Autres données" pour que le total soit vraiment complet), la section
+   "Libérer de la place" (suppression des photos d'un départ clôturé,
+   fiches jamais touchées), et la section repliée "Outils avancés"
+   (Civilités, Diagnostic — anciennement en pleine vue).
+   ───────────────────────────────────────────── */
+
+var _depStatsStockage = { calculeLe: null, photosOctets: 0, photosNb: 0, autresOctets: 0 };
+var _depPoidsDepartCache = {};
+
+// Charge le dernier calcul connu (partagé entre tous les appareils, pas
+// recalculé à chaque ouverture — voir depActualiserStockage pour le vrai
+// recalcul, volontairement manuel car il télécharge des données lourdes).
+function _depInitStatsStockage(){
+  if(!window.db) return;
+  db.ref('dct_config/stats_stockage_dep').on('value', function(snap){
+    var v = snap.val() || {};
+    _depStatsStockage = {
+      calculeLe: v.calculeLe || null,
+      photosOctets: v.photosOctets || 0,
+      photosNb: v.photosNb || 0,
+      autresOctets: v.autresOctets || 0
+    };
+    try{
+      var sec = document.getElementById('admin-section-donnees');
+      if(sec && sec.style.display !== 'none' && typeof window.renderAdminDonnees === 'function') window.renderAdminDonnees();
+    }catch(e){}
+  });
+}
+
+function _depDepuisTxt(ts){
+  if(!ts) return 'jamais calculé';
+  var diff = Date.now() - ts;
+  if(diff < 60000) return 'à l\'instant';
+  if(diff < 3600000) return 'il y a ' + Math.max(1, Math.round(diff/60000)) + ' min';
+  if(diff < 86400000) return 'il y a ' + Math.round(diff/3600000) + ' h';
+  return 'il y a ' + Math.round(diff/86400000) + ' j';
+}
+
+function _depCompteursStockage(){
+  var nbClientsCol = 0;
+  Object.keys(window.clientsParCollecte||{}).forEach(function(k){
+    nbClientsCol += Object.keys(window.clientsParCollecte[k]||{}).length;
+  });
+  var nbClientsDepot = Object.keys(window.depotClients||{}).length;
+  var nbClientsFrance = Object.keys((window.franceData||{}).clients||{}).length;
+  return {
+    clients: nbClientsCol + nbClientsDepot + nbClientsFrance,
+    collectes: (window.collectes||[]).length,
+    photos: _depStatsStockage.photosNb || 0
+  };
+}
+
+function _depHtmlStockage(){
+  var col = _poids(window.collectes) + _poids(window.clientsParCollecte) + _poids(window.dispatchParCollecte);
+  var car = _poids(window.dctContacts);
+  var fr  = _poids(window.franceData);
+  var dep = _poids(window.depotClients);
+  var ph  = _depStatsStockage.photosOctets || 0;
+  var autres = _depStatsStockage.autresOctets || 0;
+  var tot = col + car + fr + dep + ph + autres;
+  var pc = Math.min(100, tot / LIMITE_OCTETS * 100);
+  var coul = pc>=85 ? '#c0392b' : (pc>=60 ? '#e08e0b' : '#009A44');
+  var largeur = Math.max(1.5, pc);
+  var cpt = _depCompteursStockage();
+
+  var h = '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">💾 Mémoire occupée</div>'
+   + '<div style="font-size:12px;color:#888;margin-bottom:12px;">Sur le gigaoctet du forfait gratuit.</div>'
+   + '<div style="background:#fff;border:1.5px solid var(--border);border-left:4px solid '+coul+';'
+   +   'border-radius:14px;padding:14px;margin-bottom:9px;box-shadow:var(--shadow);">'
+   +   '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+   +     '<div style="font-size:22px;font-weight:800;color:'+coul+';">'+_mo(tot)+'</div>'
+   +     '<div style="font-size:12.5px;color:#888;">sur 1 Go &middot; '+(pc<0.1?'moins de 0,1':pc.toFixed(1))+' %</div>'
+   +   '</div>'
+   +   '<div style="height:10px;background:#eee;border-radius:6px;margin:11px 0 4px;overflow:hidden;">'
+   +     '<div style="height:100%;width:'+largeur+'%;background:'+coul+';border-radius:6px;"></div></div>'
+   +   '<div style="font-size:11.5px;color:#666;margin-top:8px;">'+cpt.clients+' clients &middot; '+cpt.collectes+' collectes &middot; '+cpt.photos+' photos</div>';
+  if(pc>=85)      h+='<div style="font-size:12px;color:#992020;font-weight:700;margin-top:7px;">⚠️ Il est temps de faire le ménage.</div>';
+  else if(pc>=60) h+='<div style="font-size:12px;color:#92400e;font-weight:700;margin-top:7px;">Surveille : plus de la moitié est prise.</div>';
+  else            h+='<div style="font-size:12px;color:#006b2d;margin-top:7px;">Large. Aucune action nécessaire.</div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:11px;flex-wrap:wrap;gap:8px;">'
+    +   '<button type="button" class="btn btn-gray" style="width:auto;padding:8px 14px;margin:0;" onclick="depActualiserStockage()">🔄 Actualiser tout</button>'
+    +   '<div style="font-size:10.5px;color:#999;">Photos &amp; autres : '+esc(_depDepuisTxt(_depStatsStockage.calculeLe))+'</div>'
+    + '</div>';
+  h+='</div>';
+
+  var lignes=[
+    {lib:'🚚 Collectes de Dakar', o:col},
+    {lib:'🇪🇺 France & Europe',   o:fr},
+    {lib:'📷 Photos',             o:ph},
+    {lib:'🏢 Dépôt direct',       o:dep},
+    {lib:'📇 Carnet de contacts', o:car},
+    {lib:'📦 Autres données',     o:autres}
+  ].sort(function(a,b){ return b.o-a.o; });
+
+  lignes.forEach(function(l){
+    var part = tot ? (l.o/tot*100) : 0;
+    h+='<div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:11px 13px;'
+     +   'margin-bottom:8px;box-shadow:var(--shadow);">'
+     + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+     +   '<div style="font-size:13px;font-weight:700;">'+l.lib+'</div>'
+     +   '<div style="font-size:13px;font-weight:800;color:#1a1a2e;">'+_mo(l.o)+'</div></div>'
+     + '<div style="height:6px;background:#f0f0f0;border-radius:4px;margin:7px 0 2px;overflow:hidden;">'
+     +   '<div style="height:100%;width:'+Math.max(1,part)+'%;background:#1a1a2e;opacity:.55;border-radius:4px;"></div></div>'
+     + '</div>';
+  });
+  h += '<div style="font-size:11.5px;color:#888;margin:7px 2px 4px;line-height:1.55;">Pour lib&eacute;rer de la place : utilise la section ci-dessous pour supprimer les photos d\'un d&eacute;part d&eacute;j&agrave; cl&ocirc;tur&eacute; &mdash; les fiches, prix et historique restent intacts.</div>';
+  return h;
+}
+
+// Recalcul manuel (volontairement pas automatique — télécharge des
+// données lourdes) : photos Collecte + Dépôt + France réunies, plus un
+// panier "Autres données" (tout ce qui n'a pas sa propre ligne). Le
+// résultat est partagé (écrit dans Firebase) : tous les admins voient le
+// même dernier calcul, avec son horodatage, sans avoir à le refaire
+// chacun de leur côté.
+window.depActualiserStockage = function(){
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion Firebase indisponible.'); return; }
+  toast('⏳ Calcul en cours…');
+  var autresChemins = ['activite_items','dct_alertes','dct_codes_externe','dct_connexions','dct_refs_clients','dct_supprimes','devis','france_stats','prixArticles','dct_config'];
+  Promise.all([
+    db.ref('france_photos').once('value'),
+    db.ref('dct_photos_colis').once('value'),
+    Promise.all(autresChemins.map(function(ch){ return db.ref(ch).once('value'); }))
+  ]).then(function(res){
+    var n=0, o=0;
+    function compterLot(v){
+      Object.keys(v||{}).forEach(function(cid){
+        var lot=v[cid]||{};
+        Object.keys(lot).forEach(function(k){
+          var p=lot[k]||{};
+          if(p && p.d){ n++; o+=String(p.d).length; }
+        });
+      });
+    }
+    compterLot(res[0].val());
+    compterLot(res[1].val());
+    var autresOctets = 0;
+    res[2].forEach(function(s){ autresOctets += _poids(s.val()); });
+    var data = { calculeLe: Date.now(), photosOctets:o, photosNb:n, autresOctets:autresOctets };
+    db.ref('dct_config/stats_stockage_dep').set(data).then(function(){
+      _depStatsStockage = data;
+      toast('✅ Stockage recalculé');
+      if(typeof window.renderAdminDonnees === 'function') window.renderAdminDonnees();
+    });
+  }).catch(function(e){ toast('❌ Échec du calcul : ' + ((e&&e.message)||'')); });
+};
+
+// Tous les clients (Collecte, toutes collectes confondues, + Dépôt
+// direct) rattachés à ce départ précis — c'est sur cette liste qu'on
+// mesure puis, si demandé, qu'on supprime les photos.
+function _depIdsClientsDepart(departId){
+  var ids = [];
+  Object.keys(window.clientsParCollecte||{}).forEach(function(colId){
+    var col = window.clientsParCollecte[colId] || {};
+    Object.keys(col).forEach(function(cid){
+      var c = col[cid];
+      if(c && c.departId === departId) ids.push(cid);
+    });
+  });
+  Object.keys(window.depotClients||{}).forEach(function(id){
+    var c = window.depotClients[id];
+    if(c && c.departId === departId) ids.push(id);
+  });
+  return ids;
+}
+
+// Poids en photos d'un départ précis — calculé à la demande (un seul
+// départ à la fois, pas besoin de tout retélécharger), affiché directement
+// dans sa carte de la section "Libérer de la place".
+function _depChargerPoidsDepart(departId){
+  var ids = _depIdsClientsDepart(departId);
+  if(!ids.length){
+    _depPoidsDepartCache[departId] = {n:0,o:0,ids:[]};
+    var elVide = $('dep-lib-poids-'+departId);
+    if(elVide) elVide.textContent = 'Aucun client rattaché.';
+    return;
+  }
+  if(!window.db || !window.firebaseReady) return;
+  db.ref('dct_photos_colis').once('value', function(snap){
+    var v = snap.val() || {};
+    var n=0, o=0;
+    ids.forEach(function(id){
+      var lot = v[id];
+      if(!lot) return;
+      Object.keys(lot).forEach(function(k){
+        var p = lot[k]||{};
+        if(p && p.d){ n++; o += String(p.d).length; }
+      });
+    });
+    _depPoidsDepartCache[departId] = { n:n, o:o, ids:ids };
+    var el = $('dep-lib-poids-'+departId);
+    if(el) el.textContent = n ? (n + ' photo' + (n>1?'s':'') + ' · ' + _mo(o)) : 'Aucune photo à supprimer.';
+  });
+}
+
+// Section "Libérer de la place" : uniquement les départs déjà Clôturés,
+// avec leur suivi transport (mêmes étapes que celles montrées au client
+// sur sa facture) pour juger au cas par cas — aucun seuil de jours imposé
+// (retour de Cobey du 07/09/2026 : mieux vaut se fier au statut Clôturé +
+// au détail de l'acheminement qu'à un délai théorique).
+function _depHtmlLibererPlace(){
+  var deps = tousLesDeparts().filter(function(d){ return d.statut === 'cloture'; });
+  var h = '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin:18px 0 6px;">🗑️ Libérer de la place</div>';
+  if(!deps.length){
+    return h + '<div style="font-size:12px;color:#888;margin-bottom:18px;">Aucun départ clôturé pour l\'instant.</div>';
+  }
+  h += '<div style="font-size:12px;color:#888;margin-bottom:12px;">D&eacute;parts cl&ocirc;tur&eacute;s &mdash; supprime les photos d\'un container une fois s&ucirc;r que tout est r&eacute;gl&eacute;. Les fiches, prix et historique restent intacts.</div>';
+  deps.forEach(function(d){
+    h += '<div id="dep-lib-'+d._id+'" style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:10px;box-shadow:var(--shadow);">'
+      + '<div style="font-weight:800;font-size:13.5px;">'+esc(d.nom||'')+'</div>'
+      + '<div style="font-size:11.5px;color:#888;margin:2px 0 8px;">Parti le '+esc(dateFr(d.dateDepart))+'</div>'
+      + depRenderEtapesTransportResume(d, d._id)
+      + '<div id="dep-lib-poids-'+d._id+'" style="font-size:11.5px;color:#999;margin:10px 0 8px;">Calcul du poids…</div>'
+      + '<button type="button" class="btn btn-gray" style="background:#fde0e0;color:#992020;border:1.5px solid #992020;" onclick="depSupprimerPhotosDepart(\''+d._id+'\')">🗑️ Supprimer les photos</button>'
+      + '</div>';
+  });
+  return h;
+}
+
+window.depSupprimerPhotosDepart = function(departId){
+  var d = (window.departsData||{})[departId];
+  var cache = _depPoidsDepartCache[departId];
+  if(!cache){ toast('⏳ Poids pas encore calculé, réessayez dans un instant.'); return; }
+  if(!cache.n){ toast('⚠️ Aucune photo à supprimer pour ce départ.'); return; }
+  if(!confirm('Supprimer les ' + cache.n + ' photo' + (cache.n>1?'s':'') + ' de « ' + (d?d.nom:'') + ' » ?\n\n'
+    + 'Les fiches clients, prix et historique restent intacts — seules les photos disparaissent. Cette action est irréversible.')) return;
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion Firebase indisponible.'); return; }
+  var maj = {};
+  cache.ids.forEach(function(id){ maj['dct_photos_colis/'+id] = null; });
+  db.ref().update(maj).then(function(){
+    toast('✅ Photos supprimées');
+    try{ depActivite('🗑️', 'a supprim&eacute; les photos du d&eacute;part <strong>'+esc(d?d.nom:'')+'</strong> ('+cache.n+' photo'+(cache.n>1?'s':'')+')'); }catch(e){}
+    var row = $('dep-lib-'+departId);
+    if(row && row.parentNode) row.parentNode.removeChild(row);
+    delete _depPoidsDepartCache[departId];
+  }).catch(function(e){ toast('❌ Échec : ' + ((e&&e.message)||'')); });
+};
+
+// Section repliée : les anciens outils (Civilités, Diagnostic) — toujours
+// là, mais plus en pleine vue au quotidien.
+function _depHtmlOutilsAvances(){
+  return '<div style="margin-top:22px;border-top:1.5px solid var(--border);padding-top:14px;">'
+    + '<div onclick="depToggleOutilsAvances()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">'
+    +   '<div style="font-size:14px;font-weight:800;color:#1a1a2e;">🛠️ Outils avancés</div>'
+    +   '<div id="dep-outils-chevron" style="font-size:18px;color:#888;transition:transform .2s;">&rsaquo;</div>'
+    + '</div>'
+    + '<div id="dep-outils-contenu" style="display:none;margin-top:12px;">'
+    +   _htmlCorrectionCivilites()
+    +   '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🔍 Diagnostic</div>'
+    +   '<div style="font-size:12px;color:#888;margin-bottom:12px;">Cherche les clients supprim&eacute;s encore r&eacute;f&eacute;renc&eacute;s dans un camion. L\'analyse ne modifie rien.</div>'
+    +   '<button type="button" class="btn btn-gray" style="color:#1a237e;border:1.5px solid #1a237e;" onclick="afficherReferencesOrphelines()">🔍 Analyser</button>'
+    +   '<button type="button" class="btn btn-gray" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;margin-top:8px;" onclick="nettoyerOrphelinsCollecteEnCours()">🧹 Nettoyer la collecte en cours</button>'
+    +   '<div style="font-size:11.5px;color:#999;margin-top:8px;line-height:1.55;">Retire uniquement les r&eacute;f&eacute;rences sans fiche client, sur la collecte en cours. Les clients existants ne sont jamais touch&eacute;s.</div>'
+    + '</div>'
+    + '<div style="height:22px;"></div>'
+    + '</div>';
+}
+
+window.depToggleOutilsAvances = function(){
+  var c = $('dep-outils-contenu'), ch = $('dep-outils-chevron');
+  if(!c) return;
+  var open = c.style.display !== 'none';
+  c.style.display = open ? 'none' : 'block';
+  if(ch) ch.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+};
 
 })();
