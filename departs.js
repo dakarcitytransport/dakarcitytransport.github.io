@@ -342,6 +342,44 @@
        quels mais déplacés dans une section repliable "Outils avancés" en
        bas d'écran pour désencombrer la vue par défaut. Phase 2 (Équipe,
        Partenaire, Accès, Message) volontairement hors scope pour l'instant.
+   45. v1.21.8 : nouveau sous-carré "🔧 Outils" dans Administration
+       (DEP_REGLAGES_ITEMS + admin-section-outils), retour de Cobey du
+       07/09/2026 — "je veux que chaque fonction ait sa case, je veux pas
+       de mélange". Civilités et Diagnostic, rangés depuis la v1.21.7 dans
+       une section repliée "Outils avancés" à l'intérieur de l'onglet
+       Données, n'ont pourtant rien à voir avec le stockage : ils
+       ressortent donc dans leur propre sous-carré, au même niveau
+       qu'Équipe/Partenaire/Accès/Données/Message (voir window.showAdminTab
+       ci-dessous, entièrement remplacé — impossible d'ajouter un 6e onglet
+       à la liste codée en dur dans la version native depuis l'extérieur).
+       L'onglet Données ne garde donc que Mémoire occupée + Libérer de la
+       place. Diagnostic gardé tel quel (pas obsolète : le bug d'origine —
+       fiche supprimée encore référencée dans un camion — est réglé pour
+       une suppression normale, mais reste possible en cas de double
+       connexion sur la même collecte en même temps, comme pour le souci
+       similaire corrigé début septembre avec dct_supprimes).
+   46. v1.21.9 : l'ancien carré unique "Accès" (Administration) — qui
+       empilait 4 fonctions différentes : codes des administrateurs, codes
+       des espaces (DCT/GL), passe-partout (code de maintenance, réservé
+       au profil AD) et journal des tentatives de connexion — éclate en 4
+       sous-carrés indépendants (CODES ADMIN, CODES ESPACES, MAINTENANCE,
+       ALERTES), retour de Cobey du 07/09/2026 : "je veux que chaque
+       fonction ait sa case, je veux pas de mélange, vérifie pour le
+       reste". Contrairement à Civilités/Diagnostic (v1.21.8), ces 4
+       fonctions étaient déjà cohérentes entre elles (toutes liées à la
+       sécurité/l'accès) — mais Cobey a choisi la séparation la plus
+       poussée plutôt qu'un simple regroupement thématique. Chaque
+       sous-carré réutilise tel quel le html natif correspondant
+       (_htmlCodesAdmins/_htmlCodesEspaces/_htmlPassePartout/_htmlAlertes),
+       rien n'est dupliqué — seul l'endroit qui les affiche change. Le
+       badge d'alertes non lues (qui vivait sur la case Accès) est déplacé
+       sur la nouvelle case Alertes. _rafraichirAdmin natif est complété
+       (pas remplacé) pour que les 4 nouvelles cases se rafraîchissent
+       aussi toutes seules en temps réel (ex : code d'espace changé depuis
+       un autre appareil) — l'ancien onglet natif "acces" ne servait plus
+       de point d'accroche pour ça une fois abandonné. L'onglet natif
+       "acces" et renderAdminAcces (natif) restent dans index.html mais ne
+       sont plus jamais atteints depuis cette version.
    ═══════════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -351,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.21.7';
+var DEP_VERSION = 'v1.21.9';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3663,11 +3701,24 @@ window.depDepartsPaysRetour = function(){
 // sous forme de sous-carrés cliquables plutôt que d'onglets, pour rester
 // cohérent avec le reste du module (Archivage, Historique...).
 var DEP_REGLAGES_ITEMS = [
-  { tab:'equipe',      icone:'&#128101;', titre:'&Eacute;QUIPE',   couleur:'#009A44', fond:'#DDF1E6' },
-  { tab:'partenaires', icone:'&#128666;', titre:'PARTENAIRE',      couleur:'#1a237e', fond:'#E1E2EE' },
-  { tab:'acces',       icone:'&#128272;', titre:'ACC&Egrave;S',    couleur:'#c0392b', fond:'#F6E5E3' },
-  { tab:'donnees',     icone:'&#128190;', titre:'DONN&Eacute;ES',  couleur:'#455A64', fond:'#E6E9EA' },
-  { tab:'message',     icone:'&#128226;', titre:'MESSAGE',         couleur:'#7c3aed', fond:'#EDE5FC' }
+  { tab:'equipe',       icone:'&#128101;',           titre:'&Eacute;QUIPE',        couleur:'#009A44', fond:'#DDF1E6' },
+  { tab:'partenaires',  icone:'&#128666;',           titre:'PARTENAIRE',           couleur:'#1a237e', fond:'#E1E2EE' },
+  // v1.21.9 : l'ancien carré unique "Accès" (codes admin + codes espaces +
+  // passe-partout + journal, 4 fonctions différentes empilées) éclate en 4
+  // sous-carrés — retour de Cobey du 07/09/2026 : "je veux que chaque
+  // fonction ait sa case, je veux pas de mélange, vérifie pour le reste".
+  { tab:'codesadmin',   icone:'&#128273;',           titre:'CODES ADMIN',          couleur:'#1a1a2e', fond:'#E4E4E8' },
+  { tab:'codesespaces', icone:'&#128682;',           titre:'CODES ESPACES',        couleur:'#00897b', fond:'#D9F2ED' },
+  // adminOnly : réservé au profil AD, comme _htmlPassePartout() natif —
+  // filtré à la construction de la grille (voir _depReglagesPreparerEcran).
+  { tab:'maintenance',  icone:'&#128477;&#65039;',   titre:'MAINTENANCE',          couleur:'#5d4037', fond:'#EFE6DF', adminOnly:true },
+  { tab:'alertes',      icone:'&#128276;',           titre:'ALERTES',              couleur:'#c0392b', fond:'#F6E5E3' },
+  { tab:'donnees',      icone:'&#128190;',           titre:'DONN&Eacute;ES',       couleur:'#455A64', fond:'#E6E9EA' },
+  // v1.21.8 : sous-carré séparé, retour de Cobey du 07/09/2026 — Civilités
+  // et Diagnostic n'ont rien à voir avec le stockage (Données), chaque
+  // fonction doit avoir sa propre case plutôt que d'être mélangée ailleurs.
+  { tab:'outils',       icone:'&#128295;',           titre:'OUTILS',               couleur:'#6D4C41', fond:'#EFE3DD' },
+  { tab:'message',      icone:'&#128226;',           titre:'MESSAGE',              couleur:'#7c3aed', fond:'#EDE5FC' }
 ];
 
 window.depOuvrirEspaceReglages = function(){
@@ -3684,7 +3735,12 @@ function _depReglagesPreparerEcran(){
     grille.id = 'dep-reglages-grille';
     grille.className = 'dep-cases';
     var h = '';
-    DEP_REGLAGES_ITEMS.forEach(function(it){
+    // v1.21.9 : "maintenance" (passe-partout) filtré à la construction —
+    // réservé au profil AD, comme _htmlPassePartout() natif le faisait
+    // déjà au niveau du contenu (retourne '' si pas AD). On va plus loin
+    // ici : même la case n'apparaît pas dans la grille pour les autres.
+    var u = window.currentUser || {};
+    DEP_REGLAGES_ITEMS.filter(function(it){ return !it.adminOnly || u.id === 'AD'; }).forEach(function(it){
       h += '<div class="dep-case" style="background:'+it.fond+';" onclick="_depReglagesOuvrirItem(\''+it.tab+'\')">'
         +   '<div class="dep-case-ico">'+it.icone+'</div>'
         +   '<div class="dep-case-tit" style="color:'+it.couleur+';">'+it.titre+'</div>'
@@ -3694,20 +3750,36 @@ function _depReglagesPreparerEcran(){
     grille.innerHTML = h;
     contenu.insertBefore(grille, contenu.firstChild);
   }
+  // v1.21.8 : le sous-carré "Outils" (Civilités + Diagnostic) n'existe pas
+  // dans le HTML natif (contrairement à équipe/partenaires/acces/donnees/
+  // message) — sa case de contenu doit être créée à la main, une seule
+  // fois, ici même où vit déjà la création de la grille.
+  // v1.21.9 : même chose pour les 4 cases qui remplacent l'ancien carré
+  // unique "Accès" (codesadmin/codesespaces/maintenance/alertes).
+  ['outils','codesadmin','codesespaces','maintenance','alertes'].forEach(function(id){
+    if(contenu && !$('admin-section-'+id)){
+      var sec = document.createElement('div');
+      sec.id = 'admin-section-'+id;
+      sec.style.display = 'none';
+      sec.style.padding = '16px';
+      contenu.appendChild(sec);
+    }
+  });
   // La barre d'onglets native (Équipe/Partenaire/Accès/Données/Message)
   // devient inutile — nos sous-carrés la remplacent.
   var barre = $('admin-tab-equipe') && $('admin-tab-equipe').parentElement;
   if(barre) barre.style.display = 'none';
 
-  // Badge d'alertes non lues sur le sous-carré Accès — reprend celui qui
+  // Badge d'alertes non lues sur le sous-carré Alertes — reprend celui qui
   // vivait sur la molette (voir majPastilleAlertes native), pour ne pas
-  // perdre cette information.
-  var subAcces = $('dep-regl-sub-acces');
+  // perdre cette information. v1.21.9 : déplacé depuis l'ancien sous-carré
+  // Accès (fusionné), qui portait ce badge jusqu'ici.
+  var subAcces = $('dep-regl-sub-alertes');
   if(subAcces){
     var nbAl = (typeof nbAlertesNouvelles === 'function') ? nbAlertesNouvelles() : 0;
     subAcces.innerHTML = nbAl > 0
       ? '<b style="color:#c0392b;">&#9888;&#65039; '+nbAl+'</b> alerte'+(nbAl>1?'s':'')+' non lue'+(nbAl>1?'s':'')
-      : 'Codes, s&eacute;curit&eacute;';
+      : 'Tentatives de connexion';
   }
 }
 
@@ -3733,7 +3805,7 @@ window._depReglagesOuvrirItem = function(tab){
 
 function _depReglagesAfficherGrille(){
   _depReglagesTab = null;
-  ['equipe','partenaires','acces','donnees','message'].forEach(function(t){
+  ['equipe','partenaires','codesadmin','codesespaces','maintenance','alertes','donnees','outils','message'].forEach(function(t){
     var sec = $('admin-section-'+t);
     if(sec) sec.style.display = 'none';
   });
@@ -11169,19 +11241,19 @@ function greffer(){
      entièrement renderAdminDonnees (natif) par une version avec des
      compteurs clairs, un total qui couvre vraiment tout, un bouton
      "Actualiser tout" (avec horodatage du dernier calcul, voir
-     depActualiserStockage), une nouvelle section pour supprimer les photos
-     d'un départ déjà clôturé (fiches, prix et historique jamais touchés —
-     choix au cas par cas, aucun seuil de jours imposé, voir
-     depSupprimerPhotosDepart et _depHtmlLibererPlace), et les anciens
-     outils (Civilités, Diagnostic) rangés dans une section repliée
-     "Outils avancés" pour désencombrer l'écran au quotidien (voir
-     _depHtmlOutilsAvances). Fonctions détaillées après demarrer(),
-     plus bas dans ce fichier. --- */
+     depActualiserStockage), et une nouvelle section pour supprimer les
+     photos d'un départ déjà clôturé (fiches, prix et historique jamais
+     touchés — choix au cas par cas, aucun seuil de jours imposé, voir
+     depSupprimerPhotosDepart et _depHtmlLibererPlace). Fonctions détaillées
+     après demarrer(), plus bas dans ce fichier.
+     v1.21.8 : Civilités et Diagnostic retirés d'ici (voir Section Z2 juste
+     après) — retour de Cobey : "ça n'a rien à voir avec le stockage,
+     chaque fonction doit avoir sa case, sans mélange". --- */
   if(typeof window.renderAdminDonnees === 'function' && !window.renderAdminDonnees._depPatch){
     window.renderAdminDonnees = function(){
       var sec = document.getElementById('admin-section-donnees');
       if(!sec) return;
-      sec.innerHTML = _depHtmlStockage() + _depHtmlLibererPlace() + _depHtmlOutilsAvances();
+      sec.innerHTML = _depHtmlStockage() + _depHtmlLibererPlace();
       try{
         tousLesDeparts().filter(function(d){ return d.statut === 'cloture'; }).forEach(function(d){
           _depChargerPoidsDepart(d._id);
@@ -11189,6 +11261,75 @@ function greffer(){
       }catch(e){ console.error('departs: poids départs clôturés', e); }
     };
     window.renderAdminDonnees._depPatch = true;
+  }
+
+  /* --- Z2 (v1.21.8, étendu v1.21.9). Sous-carrés "hors grille native"
+     (Administration) : "🔧 Outils" accueille Civilités et Diagnostic, qui
+     vivaient avant repliés dans Données (v1.21.7) puis ont été jugés hors
+     sujet par Cobey (retour du 07/09/2026). v1.21.9 : l'ancien carré
+     unique "Accès" (4 fonctions empilées : codes admin, codes espaces,
+     passe-partout, journal des tentatives) éclate à son tour en 4
+     sous-carrés indépendants — retour de Cobey : "je veux que chaque
+     fonction ait sa case, je veux pas de mélange". Les cases elles-mêmes
+     (DEP_REGLAGES_ITEMS, plus haut dans ce fichier) et leurs divs de
+     contenu (_depReglagesPreparerEcran) existent déjà — il ne reste qu'à
+     faire comprendre à showAdminTab natif ce que sont ces nouveaux
+     onglets, puisque cette fonction a la liste des 5 onglets d'origine
+     codée en dur (equipe/partenaires/acces/donnees/message). Remplacement
+     complet (comme pour renderAdminDonnees ci-dessus), pas un simple
+     ajout : impossible d'étendre un tableau interne à une fonction native
+     de l'extérieur. L'onglet natif "acces" (et renderAdminAcces natif) ne
+     sont plus jamais atteints depuis cette version — rien ne les appelle
+     plus, aucune case n'y mène. --- */
+  if(typeof window.showAdminTab === 'function' && !window.showAdminTab._depPatch){
+    window.showAdminTab = function(tab){
+      ['equipe','partenaires','codesadmin','codesespaces','maintenance','alertes','donnees','outils','message'].forEach(function(t){
+        var sec = document.getElementById('admin-section-'+t);
+        var btn = document.getElementById('admin-tab-'+t);
+        if(sec) sec.style.display = t === tab ? 'block' : 'none';
+        if(btn){
+          btn.style.color = t === tab ? '#009A44' : '#888';
+          btn.style.borderBottom = t === tab ? '3px solid #009A44' : '3px solid transparent';
+        }
+      });
+      if(tab === 'equipe') renderAdminEquipe();
+      else if(tab === 'partenaires') renderAdminPartenaires();
+      else if(tab === 'codesadmin') window.renderAdminCodesAdmin();
+      else if(tab === 'codesespaces') window.renderAdminCodesEspaces();
+      else if(tab === 'maintenance') window.renderAdminMaintenance();
+      else if(tab === 'alertes'){ window.renderAdminAlertes(); marquerAlertesVues(); }
+      else if(tab === 'donnees') renderAdminDonnees();
+      else if(tab === 'outils') window.renderAdminOutils();
+      else if(tab === 'message') renderAdminMessage();
+    };
+    window.showAdminTab._depPatch = true;
+  }
+
+  /* --- Z3 (v1.21.9). _rafraichirAdmin natif ne connaît que les sections
+     "acces" et "donnees" (codées en dur) pour se rafraîchir tout seul
+     quand les données changent en direct (ex : un code d'espace modifié
+     depuis un autre appareil, une nouvelle tentative de connexion). Comme
+     "acces" n'est plus jamais affiché (v1.21.9 ci-dessus), il faut ce
+     complément pour que les 4 nouveaux sous-carrés continuent de se
+     rafraîchir tout seuls — sinon il faudrait quitter/rouvrir la case pour
+     voir un changement fait ailleurs. Vient s'ajouter au natif (pas un
+     remplacement cette fois : rien à contourner, juste à compléter). --- */
+  if(typeof window._rafraichirAdmin === 'function' && !window._rafraichirAdmin._depPatch){
+    var origRafraichirAdmin = window._rafraichirAdmin;
+    window._rafraichirAdmin = function(){
+      origRafraichirAdmin.apply(this, arguments);
+      try{
+        var ca = document.getElementById('admin-section-codesadmin');
+        if(ca && ca.style.display !== 'none' && typeof window.renderAdminCodesAdmin === 'function') window.renderAdminCodesAdmin();
+        var ce = document.getElementById('admin-section-codesespaces');
+        if(ce && ce.style.display !== 'none' && typeof window.renderAdminCodesEspaces === 'function') window.renderAdminCodesEspaces();
+        var mt = document.getElementById('admin-section-maintenance');
+        if(mt && mt.style.display !== 'none' && typeof window.renderAdminMaintenance === 'function') window.renderAdminMaintenance();
+        var al = document.getElementById('admin-section-alertes');
+        if(al && al.style.display !== 'none' && typeof window.renderAdminAlertes === 'function') window.renderAdminAlertes();
+      }catch(e){ console.error('departs: rafraîchissement sous-carrés Accès', e); }
+    };
+    window._rafraichirAdmin._depPatch = true;
   }
 }
 
@@ -13363,32 +13504,53 @@ window.depSupprimerPhotosDepart = function(departId){
   }).catch(function(e){ toast('❌ Échec : ' + ((e&&e.message)||'')); });
 };
 
-// Section repliée : les anciens outils (Civilités, Diagnostic) — toujours
-// là, mais plus en pleine vue au quotidien.
-function _depHtmlOutilsAvances(){
-  return '<div style="margin-top:22px;border-top:1.5px solid var(--border);padding-top:14px;">'
-    + '<div onclick="depToggleOutilsAvances()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">'
-    +   '<div style="font-size:14px;font-weight:800;color:#1a1a2e;">🛠️ Outils avancés</div>'
-    +   '<div id="dep-outils-chevron" style="font-size:18px;color:#888;transition:transform .2s;">&rsaquo;</div>'
-    + '</div>'
-    + '<div id="dep-outils-contenu" style="display:none;margin-top:12px;">'
-    +   _htmlCorrectionCivilites()
-    +   '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🔍 Diagnostic</div>'
-    +   '<div style="font-size:12px;color:#888;margin-bottom:12px;">Cherche les clients supprim&eacute;s encore r&eacute;f&eacute;renc&eacute;s dans un camion. L\'analyse ne modifie rien.</div>'
-    +   '<button type="button" class="btn btn-gray" style="color:#1a237e;border:1.5px solid #1a237e;" onclick="afficherReferencesOrphelines()">🔍 Analyser</button>'
-    +   '<button type="button" class="btn btn-gray" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;margin-top:8px;" onclick="nettoyerOrphelinsCollecteEnCours()">🧹 Nettoyer la collecte en cours</button>'
-    +   '<div style="font-size:11.5px;color:#999;margin-top:8px;line-height:1.55;">Retire uniquement les r&eacute;f&eacute;rences sans fiche client, sur la collecte en cours. Les clients existants ne sont jamais touch&eacute;s.</div>'
-    + '</div>'
-    + '<div style="height:22px;"></div>'
-    + '</div>';
+// v1.21.8 : Civilités + Diagnostic ont maintenant leur propre sous-carré
+// "🔧 Outils" (voir DEP_REGLAGES_ITEMS + Section Z2 dans greffer()) —
+// affichés directement, plus besoin de les replier puisqu'ils ne sont
+// plus mélangés avec autre chose sur le même écran.
+function _depHtmlOutils(){
+  return _htmlCorrectionCivilites()
+    + '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🔍 Diagnostic</div>'
+    + '<div style="font-size:12px;color:#888;margin-bottom:12px;">Cherche les clients supprim&eacute;s encore r&eacute;f&eacute;renc&eacute;s dans un camion. L\'analyse ne modifie rien.</div>'
+    + '<button type="button" class="btn btn-gray" style="color:#1a237e;border:1.5px solid #1a237e;" onclick="afficherReferencesOrphelines()">🔍 Analyser</button>'
+    + '<button type="button" class="btn btn-gray" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;margin-top:8px;" onclick="nettoyerOrphelinsCollecteEnCours()">🧹 Nettoyer la collecte en cours</button>'
+    + '<div style="font-size:11.5px;color:#999;margin-top:8px;line-height:1.55;">Retire uniquement les r&eacute;f&eacute;rences sans fiche client, sur la collecte en cours. Les clients existants ne sont jamais touch&eacute;s.</div>'
+    + '<div style="height:22px;"></div>';
 }
 
-window.depToggleOutilsAvances = function(){
-  var c = $('dep-outils-contenu'), ch = $('dep-outils-chevron');
-  if(!c) return;
-  var open = c.style.display !== 'none';
-  c.style.display = open ? 'none' : 'block';
-  if(ch) ch.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+window.renderAdminOutils = function(){
+  var sec = document.getElementById('admin-section-outils');
+  if(!sec) return;
+  sec.innerHTML = _depHtmlOutils();
+};
+
+// v1.21.9 : les 4 sous-carrés qui remplacent l'ancien carré unique
+// "Accès" — chacun réutilise tel quel le html natif correspondant
+// (_htmlCodesAdmins/_htmlCodesEspaces/_htmlPassePartout/_htmlAlertes,
+// tous dans index.html), sans rien dupliquer : seule la case qui les
+// affiche change, pas leur contenu.
+window.renderAdminCodesAdmin = function(){
+  var sec = document.getElementById('admin-section-codesadmin');
+  if(!sec) return;
+  sec.innerHTML = _htmlCodesAdmins();
+};
+
+window.renderAdminCodesEspaces = function(){
+  var sec = document.getElementById('admin-section-codesespaces');
+  if(!sec) return;
+  sec.innerHTML = _htmlCodesEspaces();
+};
+
+window.renderAdminMaintenance = function(){
+  var sec = document.getElementById('admin-section-maintenance');
+  if(!sec) return;
+  sec.innerHTML = _htmlPassePartout();
+};
+
+window.renderAdminAlertes = function(){
+  var sec = document.getElementById('admin-section-alertes');
+  if(!sec) return;
+  sec.innerHTML = _htmlAlertes();
 };
 
 })();
