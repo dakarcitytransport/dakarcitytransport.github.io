@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.22.1';
+var DEP_VERSION = 'v1.22.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -399,19 +399,35 @@ var DEP_VERSION = 'v1.22.1';
 // initFirebase(), beaucoup trop lent pour cet usage.
 (function _depAntiFlashEspacesLogin(){
   try{
-    var style = document.createElement('style');
-    style.id = 'dep-anti-flash-espaces';
-    style.textContent = '#login-espaces{visibility:hidden;}';
-    document.head.appendChild(style);
+    // v1.22.2 : le voile est normalement déjà posé par le <head> de
+    // l'appli (voir dct-app.html, juste avant la balise viewport). On ne
+    // le recrée que s'il manque — vieille version du fichier hôte, page
+    // ouverte autrement...
+    if(!document.getElementById('dep-anti-flash-espaces')){
+      var style = document.createElement('style');
+      style.id = 'dep-anti-flash-espaces';
+      style.textContent = '#login-espaces{visibility:hidden !important;}';
+      document.head.appendChild(style);
+    }
     var leve = function(){
       try{
         var s = document.getElementById('dep-anti-flash-espaces');
         if(s && s.parentNode) s.parentNode.removeChild(s);
       }catch(e){}
     };
-    // Filet de sécurité court : jamais bloqué plus de 700ms, même si la
-    // lecture Firebase ci-dessous échoue ou traîne (mauvais réseau...).
-    setTimeout(leve, 700);
+    // v1.22.2 : c'est le rendu du module (retourEspaces patché, section A
+    // quinquies) qui lève le voile, une fois le nouvel écran réellement
+    // peint. Avant, le voile tombait dès que Firebase avait répondu, sans
+    // garantie que la greffe soit déjà passée — d'où l'ancienne liste de
+    // cartes natives entrevue ~0,1 s à l'ouverture.
+    window._depLeverVoileEspaces = leve;
+    // Filet de sécurité : jamais bloqué longtemps si la greffe du module
+    // échoue. v1.22.2 : 700 ms était trop court maintenant que le voile
+    // est posé dès le <head> — sur un téléphone lent le filet tombait
+    // avant que le module ait peint, et l'ancien écran réapparaissait.
+    // Seule la liste des espaces est masquée, pas le reste de l'écran de
+    // connexion : la voir arriver un peu plus tard est sans gravité.
+    setTimeout(leve, 1200);
 
     // Lecture Firebase indépendante et immédiate, sans attendre les 2
     // secondes de initFirebase() (natif, index.html ~11807) — juste la
@@ -437,21 +453,18 @@ var DEP_VERSION = 'v1.22.1';
           messagingSenderId: "910296510414",
           appId: "1:910296510414:web:de6b814b3420adcd68859f"
         });
-        // v1.22.1 : il n'y a plus de société partenaire à interroger avant
-        // d'afficher l'écran de connexion — on lève le voile tout de suite.
-        leve();
+        // v1.22.1 : il n'y a plus de société partenaire à interroger ici,
+        // mais Firebase doit rester initialisé tôt (voir _depConnexionAnonyme).
+        // v1.22.2 : surtout, on ne lève plus le voile d'ici — c'est le rendu
+        // du module qui s'en charge, sinon l'ancien écran apparaît avant lui.
       }catch(eFb){ leve(); }
     }
 
-    if(typeof window._rafraichirLogin === 'function' && !window._rafraichirLogin._depPatchAntiFlash){
-      var origRafraichirLogin = window._rafraichirLogin;
-      window._rafraichirLogin = function(){
-        var r = origRafraichirLogin.apply(this, arguments);
-        leve();
-        return r;
-      };
-      window._rafraichirLogin._depPatchAntiFlash = true;
-    }
+    // v1.22.2 : on ne se greffe plus sur _rafraichirLogin pour lever le
+    // voile. Ce hook découvrait l'écran juste après le rendu NATIF, donc
+    // avant que le module ait repeint : c'était précisément l'ancienne
+    // interface entrevue à l'ouverture. Seul retourEspaces() patché lève
+    // désormais le voile, avec le filet de 700 ms ci-dessus en secours.
   }catch(e){}
 })();
 
@@ -9900,6 +9913,8 @@ function greffer(){
       }
 
       esp.innerHTML = html;
+      // v1.22.2 : le nouvel écran est à l'écran — on peut découvrir.
+      try{ if(typeof window._depLeverVoileEspaces === 'function') window._depLeverVoileEspaces(); }catch(e){}
     };
     window.retourEspaces._depPatch = true;
     // L'appel natif buildLogin() du tout premier chargement (avant que ce
@@ -9907,6 +9922,9 @@ function greffer(){
     // donc tout de suite, sauf si l'utilisateur a déjà ouvert un espace
     // dans ce court intervalle.
     if(!_espaceOuvertUI){ try{ window.retourEspaces(); }catch(e){} }
+    // Un espace déjà ouvert masque #login-espaces de toute façon : on lève
+    // le voile pour ne pas dépendre du filet de sécurité de 700 ms.
+    else { try{ if(typeof window._depLeverVoileEspaces === 'function') window._depLeverVoileEspaces(); }catch(e){} }
   }
 
   /* --- A sexies. Connexion via le passe-partout (code de maintenance) :
