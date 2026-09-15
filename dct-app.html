@@ -397,7 +397,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   </div>
   <div class="subtabs">
     <div class="subtab active" id="ftab-suivi" onclick="switchFranceTab('suivi')">🔍 Suivi</div>
-    <div class="subtab" id="ftab-tournees" onclick="switchFranceTab('tournees')">📅 Tournées</div>
+    <div class="subtab" id="ftab-dispatch" onclick="switchFranceTab('dispatch')">🚛 Dispatch</div>
   </div>
   <div id="fr-recherche" style="background:#fff;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
     <input class="fi" id="fr-q" placeholder="🔍 Nom, téléphone ou ville…" oninput="renderFrance()" style="margin:0;">
@@ -408,8 +408,8 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <span id="fr-sel-info"></span>
       <span onclick="viderSelectionAdmin()" style="color:#1a237e;font-weight:700;cursor:pointer;">Annuler</span>
     </div>
-    <button id="fr-btn-tournee" class="btn" style="margin:0;background:#1a237e;border:2.5px solid #0d1444;color:#fff;" onclick="ouvrirCreationTournee()">Cr&#233;er une tourn&#233;e</button>
-    <button id="fr-btn-partis" class="btn btn-green" style="margin:0;display:none;" onclick="marquerPartis()">&#9992; D&#233;clarer partis pour Dakar</button>
+    <button id="fr-btn-tournee" class="btn" style="margin:0;background:#1a237e;border:2.5px solid #0d1444;color:#fff;" onclick="ouvrirAffectCamionFrance()">&#128666; Mettre dans un camion</button>
+    <button id="fr-btn-partis" class="btn btn-green" style="margin:0;display:none;" onclick="marquerRamasseSel()">&#9989; Marquer comme ramass&#233;s</button>
     <button id="fr-btn-suppr" class="btn" style="margin:0;display:none;background:#fde0e0;color:#992020;border:1.5px solid #c0392b;" onclick="supprimerHistoriqueSel()">&#128465;&#65039; Supprimer les fiches choisies</button>
   </div>
   <div style="background:#fff;border-top:1px solid var(--border);padding:10px 14px 14px;flex-shrink:0;">
@@ -1181,7 +1181,10 @@ function initFirebase(){
 //  ramassage ne déclenchent pas le listener des collectes,
 //  et inversement. Même principe que activite_items/.
 // ═══════════════════════════════════════════════════════════
-var franceData = { clients:{}, tournees:{}, postes:{}, lots:{} };
+// v3.58.0 : ramassages = le dispatch France & Europe (camions + affectations),
+// groupé par date comme les collectes. tournees et postes restent chargés :
+// ce sont les données de Danny, conservées mais plus affichées nulle part.
+var franceData = { clients:{}, tournees:{}, postes:{}, lots:{}, ramassages:{} };
 var _franceTimeout = null;
 var _franceReady = false;
 
@@ -1193,6 +1196,7 @@ function ecouterFrance(){
     franceData.tournees = d.tournees || {};
     franceData.postes   = d.postes   || {};
     franceData.lots     = d.lots     || {};
+    franceData.ramassages = d.ramassages || {};
     _franceReady = true;
     _initPostesFrance();
     try{ _nettoyerPostes(); }catch(e){}
@@ -1573,7 +1577,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.57.5';
+var APP_VERSION = 'v3.58.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3293,7 +3297,7 @@ function validerTourneeDanny(){
     showToastNew('✅ Tournée du '+lib+' créée');
     _activiteFrance('📅', 'a préparé la tournée <strong>'+reg+' · '+lib+'</strong> — '+dannySel.length+' client'+(dannySel.length>1?'s':''));
     dannySel=[]; _dtConfirmes=[]; _dtPoste='';
-    if(_peutGererFrance()){ switchFranceTab('tournees'); goTo('s-france'); }
+    if(_peutGererFrance()){ switchFranceTab('dispatch'); goTo('s-france'); }
     else { switchDannyTab('tournees'); goTo('s-partenaire'); }
   }).catch(function(){ showToastNew('❌ Enregistrement impossible.'); });
 }
@@ -3389,16 +3393,19 @@ function _htmlPoste(){
 //  RAMASSAGE FRANCE — écrans DCT (v3.0.1)
 // ═══════════════════════════════════════════════════════════
 var franceTab   = 'suivi';
-var franceFiltre= 'attente';   // attente | planifie | chartres | mitry
+var franceFiltre= 'attente';   // attente | planifie | ramasse | chartres | historique
 var franceRegion= '';          // '' = toutes
 var franceDept  = '';
 var franceClientId = null;
 
+// v3.58.0 : le parcours s'arrête à « Ramassé ». Chartres était le dépôt de
+// Danny et Mitry son terminus ; ni l'un ni l'autre n'est une étape désormais.
+// Les anciens colis restés à Chartres gardent leur champ `lieu` et sont
+// regroupés à part, le temps d'aller les récupérer (voir _frResteChartres).
 var FR_STATUTS = {
   attente : {lib:'En attente', badge:'badge-gray'},
   planifie: {lib:'Planifié',   badge:'badge-blue'},
-  ramasse : {lib:'Ramassé',    badge:'badge-orange'},
-  mitry   : {lib:'Arrivé',     badge:'badge-green'}
+  ramasse : {lib:'Ramassé',    badge:'badge-green'}
 };
 
 function ouvrirFrance(){
@@ -3412,13 +3419,13 @@ function ouvrirFrance(){
 
 function switchFranceTab(t){
   franceTab=t;
-  var a=document.getElementById('ftab-suivi'), b=document.getElementById('ftab-tournees');
+  var a=document.getElementById('ftab-suivi'), b=document.getElementById('ftab-dispatch');
   if(a) a.className='subtab'+(t==='suivi'?' active':'');
-  if(b) b.className='subtab'+(t==='tournees'?' active':'');
+  if(b) b.className='subtab'+(t==='dispatch'?' active':'');
   var r=document.getElementById('fr-recherche');
   if(r) r.style.display=(t==='suivi'?'block':'none');
   var so=document.getElementById('fr-sous');
-  if(so) so.textContent=(t==='suivi'?'Suivi des colis':'Tournées du partenaire');
+  if(so) so.textContent=(t==='suivi'?'Suivi des colis':'Camions et affectations');
   renderFrance();
 }
 
@@ -3439,12 +3446,19 @@ function _frMatch(c,q){
       || tel.indexOf(q)>=0
       || (c.ville||'').toLowerCase().indexOf(q)>=0;
 }
+// Colis bloqué à Chartres : hérité de l'époque Danny, tenu à l'écart des
+// listes courantes pour ne pas polluer le nouveau flux.
+function _frResteChartres(c){ return c && c.lieu==='chartres' && c.statut!=='parti'; }
+// Un colis déjà arrivé à Mitry sous l'ancien modèle est simplement ramassé.
+function _frEstRamasse(c){ return c.statut==='ramasse' || c.lieu==='mitry'; }
+
 function _frDansFiltre(c){
-  if(franceFiltre==='attente')  return c.statut==='attente';
-  if(franceFiltre==='planifie') return c.statut==='planifie'||c.statut==='ramasse';
-  if(franceFiltre==='chartres') return c.lieu==='chartres';
-  if(franceFiltre==='mitry')    return c.lieu==='mitry' && c.statut!=='parti';
+  if(franceFiltre==='chartres')   return _frResteChartres(c);
   if(franceFiltre==='historique') return c.statut==='parti';
+  if(_frResteChartres(c)) return false;
+  if(franceFiltre==='attente')  return c.statut==='attente';
+  if(franceFiltre==='planifie') return c.statut==='planifie';
+  if(franceFiltre==='ramasse')  return _frEstRamasse(c) && c.statut!=='parti';
   return c.statut!=='parti';
 }
 function _joursDepuis(ts){
@@ -3461,18 +3475,18 @@ function renderFrance(){
   majBoutonFrance();
   var box=document.getElementById('france-content');
   if(!box) return;
-  if(franceTab==='tournees'){ box.innerHTML=_frTournees(); return; }
+  if(franceTab==='dispatch'){ box.innerHTML=_frDispatch(); _majBarreFrance(); return; }
 
   var q=(document.getElementById('fr-q')||{}).value||'';
   var tous=_frClients();
-  var cpt={attente:0,planifie:0,chartres:0,mitry:0};
+  var cpt={attente:0,planifie:0,ramasse:0,chartres:0};
   var cptH=0;
   tous.forEach(function(c){
     if(c.statut==='parti'){ cptH++; return; }
+    if(_frResteChartres(c)){ cpt.chartres++; return; }
     if(c.statut==='attente') cpt.attente++;
-    if(c.statut==='planifie'||c.statut==='ramasse') cpt.planifie++;
-    if(c.lieu==='chartres') cpt.chartres++;
-    if(c.lieu==='mitry') cpt.mitry++;
+    else if(c.statut==='planifie') cpt.planifie++;
+    if(_frEstRamasse(c)) cpt.ramasse++;
   });
 
   var html='';
@@ -3491,20 +3505,20 @@ function renderFrance(){
   html+='<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;">'
      + _frPuce('attente','En attente',cpt.attente,'#009A44')
      + _frPuce('planifie','Planifiés',cpt.planifie,'#1a237e')
-     + _frPuce('chartres','📍 Chartres',cpt.chartres,'#92400e')
-     + _frPuce('mitry','📍 Mitry',cpt.mitry,'#006b2d')
+     + _frPuce('ramasse','Ramassés',cpt.ramasse,'#006b2d')
      + (_peutGererFrance() ? _frPuce('historique','🗄 Historique',cptH,'#555') : '')
      + '</div>';
 
   // Bloc Chartres, uniquement s'il y a du stock
   if(cpt.chartres>0 && franceFiltre!=='chartres'){
     var plusVieux=0;
-    tous.forEach(function(c){ if(c.lieu==='chartres' && c.depotTs){ var j=_joursDepuis(c.depotTs); if(j>plusVieux) plusVieux=j; } });
+    tous.forEach(function(c){ if(_frResteChartres(c) && c.depotTs){ var j=_joursDepuis(c.depotTs); if(j>plusVieux) plusVieux=j; } });
     html+='<div style="background:#fef3c7;border:2px solid #fcd34d;border-radius:var(--radius);padding:13px 14px;margin-bottom:14px;cursor:pointer;" onclick="setFranceFiltre(\'chartres\')">'
        + '<div style="display:flex;justify-content:space-between;align-items:center;">'
-       + '<div style="font-size:14px;font-weight:800;color:#92400e;">📦 En attente à Chartres</div>'
+       + '<div style="font-size:14px;font-weight:800;color:#92400e;">📦 À récupérer à Chartres</div>'
        + '<span class="badge badge-orange">'+cpt.chartres+' client'+(cpt.chartres>1?'s':'')+'</span></div>'
-       + '<div style="font-size:12px;color:#92400e;margin-top:5px;">Chez Danny'+(plusVieux?' · le plus ancien depuis '+plusVieux+' jour'+(plusVieux>1?'s':''):'')+'</div>'
+       + '<div style="font-size:12px;color:#92400e;margin-top:5px;">Ancien dépôt, hors ramassage'
+       + (plusVieux?' · le plus ancien depuis '+plusVieux+' jour'+(plusVieux>1?'s':''):'')+'</div>'
        + '</div>';
   }
 
@@ -3522,8 +3536,9 @@ function renderFrance(){
        +  'color:#006b2d;cursor:pointer;margin:2px 2px 6px;">'+(tout?'Tout décocher':'Tout cocher')+'</div>';
   }
 
-  var _lib = franceFiltre==='historique' ? 'Partis pour Dakar'
-           : FR_STATUTS[franceFiltre==='planifie'?'planifie':(franceFiltre==='chartres'||franceFiltre==='mitry'?'ramasse':'attente')].lib;
+  var _lib = franceFiltre==='historique' ? 'Historique'
+           : franceFiltre==='chartres' ? 'À récupérer à Chartres'
+           : (FR_STATUTS[franceFiltre]||FR_STATUTS.attente).lib;
   var _tot=_totalPrix(liste.map(function(x){ return x._id; }));
   if(franceFiltre==='attente') html+=_bandeauAnciennete(liste);
   html+='<div class="slabel"><span>'+_lib+' · '+liste.length+' client'+(liste.length>1?'s':'')+'</span>'
@@ -3952,10 +3967,11 @@ function _peutGererFrance(){
 }
 function _selectionPossible(){
   if(!_peutGererFrance() || franceTab!=='suivi') return false;
-  return franceFiltre==='attente' || franceFiltre==='mitry' || franceFiltre==='historique';
+  return franceFiltre==='attente' || franceFiltre==='planifie' || franceFiltre==='historique';
 }
-// Vrai quand la sélection sert à déclarer un départ, pas à monter une tournée.
-function _selectionDepart(){ return _selectionPossible() && franceFiltre==='mitry'; }
+// v3.58.0 : sur les planifiés, la sélection sert à confirmer le ramassage
+// (l'ancien « déclarer partis pour Dakar » n'existe plus).
+function _selectionDepart(){ return _selectionPossible() && franceFiltre==='planifie'; }
 // Vrai quand elle sert à faire le ménage dans les dossiers clos.
 function _selectionSuppression(){ return _selectionPossible() && franceFiltre==='historique'; }
 
@@ -3995,9 +4011,9 @@ function _majBarreFrance(){
 function _frCarte(c){
   var st=FR_STATUTS[c.statut]||FR_STATUTS.attente;
   var lieu='';
-  if(c.statut==='parti') lieu='<span class="badge" style="background:#eee;color:#555;border-color:#ccc;">✈️ Parti</span>';
-  else if(c.lieu==='chartres') lieu='<span class="badge badge-orange">📍 Chartres</span>';
-  else if(c.lieu==='mitry') lieu='<span class="badge badge-green">📍 Mitry</span>';
+  if(c.statut==='parti') lieu='<span class="badge" style="background:#eee;color:#555;border-color:#ccc;">🗄 Clos</span>';
+  else if(_frResteChartres(c)) lieu='<span class="badge badge-orange">📦 Chartres</span>';
+  else if(_frEstRamasse(c)) lieu='<span class="badge badge-green">'+FR_STATUTS.ramasse.lib+'</span>';
   else lieu='<span class="badge '+st.badge+'">'+st.lib+'</span>';
   var j=_joursDepuis(c.creeTs);
   var vieux=(c.statut==='attente' && j>=14);
@@ -4026,10 +4042,11 @@ function _frCarte(c){
     +     ' · <span style="'+(anc?('color:'+anc.bord+';font-weight:800;'):'')+'">'+j+' j</span></span>'
     +   _pastilleAuteur(c.creePar)
     + '</div>'
-    + (c.statut==='parti'
-        ? ('<div style="font-size:11.5px;color:#555;margin-top:4px;">✈️ Parti le '+_dateFr(c.partiTs)
-           +(c.partiPar?(' · '+c.partiPar):'')+'</div>')
-        : '')
+    + (c.statut==='ramasse' && c.ramassePar
+        ? ('<div style="font-size:11.5px;color:#006b2d;margin-top:4px;">✅ Ramassé le '+_dateFr(c.ramasseTs)+' · '+c.ramassePar+'</div>')
+        : (c.statut==='planifie' && c.dateLib
+            ? ('<div style="font-size:11.5px;color:#1a237e;margin-top:4px;">🚛 Ramassage du '+c.dateLib+'</div>')
+            : ''))
     + '</div>';
 }
 
@@ -4212,6 +4229,419 @@ function _frTournees(){
     g.aPrendre.forEach(function(to){ h+=_carteTournee(to,false); });
   }
   h+=_blocHistoriqueTournees(g.finies, false, 'dct_hist_fr');
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DISPATCH FRANCE & EUROPE — v3.58.0
+//  Remplace les tournées du partenaire. Depuis la suppression
+//  de l'espace Global Logistique, les ramassages sont faits
+//  par l'équipe ou par des chauffeurs externes : on reprend
+//  donc le modèle du dispatch Collecte (des camions qu'on
+//  crée à la volée, auxquels on affecte des clients), groupé
+//  par ramassage daté comme les collectes le sont.
+//
+//  Parcours conservé mais raccourci : Inscrit → Planifié →
+//  Ramassé. Chartres était le dépôt de Danny et disparaît ;
+//  les colis qui y restent sont regroupés dans un bouton à
+//  part, le temps d'aller les récupérer.
+// ═══════════════════════════════════════════════════════════
+
+var FR_COULEURS_CAMION = ['#1a237e','#e65100','#6b21a8','#1a7a40','#c0392b','#00838f','#4a148c','#f57f17'];
+
+function _frRamassages(){ return franceData.ramassages || {}; }
+
+// Un seul ramassage ouvert à la fois, comme pour les collectes.
+function _frRamassageEnCours(){
+  var rs=_frRamassages(), out=null;
+  Object.keys(rs).forEach(function(k){
+    var r=rs[k]; if(r && r.statut==='en_cours'){ r._id=k; out=r; }
+  });
+  return out;
+}
+function _frTrucks(r){ r=r||_frRamassageEnCours(); return (r&&r.trucks)||{}; }
+function _frCamionDuClient(id, r){
+  r=r||_frRamassageEnCours();
+  return (r && r.assigned && r.assigned[id]) || '';
+}
+
+// Tri des ramassages : l'ouvert d'abord, puis les terminés du plus récent.
+function _frTrierRamassages(){
+  var rs=_frRamassages(), enCours=null, finis=[];
+  Object.keys(rs).forEach(function(k){
+    var r=rs[k]; if(!r) return; r._id=k;
+    if(r.statut==='en_cours') enCours=r; else finis.push(r);
+  });
+  finis.sort(function(a,b){ return (b.creeTs||0)-(a.creeTs||0); });
+  return { enCours:enCours, finis:finis };
+}
+
+function _frNbClientsCamion(tk){ return ((tk&&tk.clients)||[]).length; }
+function _frNbRamasses(tk){ return ((tk&&tk.validated)||[]).length; }
+
+// ── Écriture ──
+function _frSauverRamassage(r, maj){
+  if(!db || !firebaseReady){ showToastNew('❌ Connexion Firebase indisponible.'); return null; }
+  var m = maj || {};
+  m['ramassages/'+r._id+'/trucks']   = r.trucks || {};
+  m['ramassages/'+r._id+'/assigned'] = r.assigned || {};
+  return db.ref('france').update(m);
+}
+
+// ── Cycle de vie du ramassage ──
+function creerRamassageFrance(){
+  if(!_peutGererFrance()) return;
+  if(_frRamassageEnCours()){ showToastNew('⚠️ Un ramassage est déjà ouvert.'); return; }
+  if(!db || !firebaseReady){ showToastNew('❌ Connexion Firebase indisponible.'); return; }
+  var d=new Date();
+  var lib=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  var iso=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  var rid='R'+Date.now();
+  var maj={};
+  maj['ramassages/'+rid]={
+    id:rid, dateIso:iso, dateLib:lib, statut:'en_cours',
+    creePar:(currentUser||{}).name||'', creeTs:Date.now(),
+    trucks:{}, assigned:{}
+  };
+  db.ref('france').update(maj).then(function(){
+    showToastNew('✅ Ramassage du '+lib+' ouvert');
+    _activiteFrance('🚛','a ouvert le ramassage <strong>'+lib+'</strong>');
+    renderFrance();
+  }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
+}
+
+function terminerRamassageFrance(){
+  var r=_frRamassageEnCours(); if(!r) return;
+  var trks=_frTrucks(r);
+  var restants=0;
+  Object.keys(trks).forEach(function(k){
+    var tk=trks[k];
+    (tk.clients||[]).forEach(function(id){
+      if((tk.validated||[]).indexOf(id)<0 && (tk.refused||[]).indexOf(id)<0) restants++;
+    });
+  });
+  var msg='Terminer le ramassage du '+r.dateLib+' ?';
+  if(restants) msg+='\n\n⚠️ '+restants+' client(s) ne sont ni ramassés ni refusés.\nIls repartiront en attente.';
+  if(!confirm(msg)) return;
+
+  var maj={};
+  // Les clients non traités retournent au vivier, les autres restent ramassés.
+  Object.keys(trks).forEach(function(k){
+    var tk=trks[k];
+    (tk.clients||[]).forEach(function(id){
+      var traite=((tk.validated||[]).indexOf(id)>=0);
+      if(!traite){
+        maj['clients/'+id+'/statut']='attente';
+        maj['clients/'+id+'/ramassageId']='';
+        maj['clients/'+id+'/camionId']='';
+        maj['clients/'+id+'/dateLib']='';
+      }
+    });
+  });
+  maj['ramassages/'+r._id+'/statut']='terminee';
+  maj['ramassages/'+r._id+'/finiPar']=(currentUser||{}).name||'';
+  maj['ramassages/'+r._id+'/finiTs']=Date.now();
+
+  db.ref('france').update(maj).then(function(){
+    showToastNew('✅ Ramassage terminé');
+    _activiteFrance('🏁','a terminé le ramassage <strong>'+r.dateLib+'</strong>');
+    renderFrance();
+  }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
+}
+
+// ── Camions ──
+var _frPendingAffect=false;
+
+function addTruckFrance(){
+  var r=_frRamassageEnCours();
+  if(!r){ showToastNew('⚠️ Ouvrez d\'abord un ramassage.'); return; }
+  var modal=document.getElementById('modal-fr-truck');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-fr-truck';
+    modal.className='modal-overlay';
+    modal.style.cssText='align-items:center;';
+    var h='<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
+      + '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🚛 Nouveau camion</div>'
+      + '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:16px;">Qui part ramasser ? Un collaborateur ou un chauffeur extérieur.</div>'
+      + '<div class="fg"><label class="fl">Conducteur</label>'
+      + '<input class="fi" id="fr-truck-name" placeholder="Moussa — ou un chauffeur externe" maxlength="60"></div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">'
+      + '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-fr-truck\')">Annuler</button>'
+      + '<button class="btn-sm btn-green-sm" onclick="_confirmerAddTruckFrance()">✅ Créer</button>'
+      + '</div></div>';
+    modal.innerHTML=h;
+    document.body.appendChild(modal);
+  }
+  var i=document.getElementById('fr-truck-name'); if(i) i.value='';
+  openModal('modal-fr-truck');
+  setTimeout(function(){ var x=document.getElementById('fr-truck-name'); if(x) x.focus(); },300);
+}
+
+function _confirmerAddTruckFrance(){
+  var r=_frRamassageEnCours(); if(!r) return;
+  var nom=((document.getElementById('fr-truck-name')||{}).value||'').trim();
+  if(!nom){ showToastNew('⚠️ Indiquez qui conduit.'); return; }
+  var trks=r.trucks||{};
+  var num=1; while(trks['T'+String(num).padStart(2,'0')]) num++;
+  if(num>99) return;
+  var k='T'+String(num).padStart(2,'0');
+  trks[k]={name:nom, clients:[], validated:[], refused:[], color:FR_COULEURS_CAMION[(num-1)%FR_COULEURS_CAMION.length]};
+  r.trucks=trks;
+  closeModal('modal-fr-truck');
+  var p=_frSauverRamassage(r);
+  if(p) p.then(function(){
+    showToastNew('🚛 Camion « '+nom+' » créé');
+    _activiteFrance('🚛','a ajouté le camion <strong>'+nom+'</strong> au ramassage du '+r.dateLib);
+    renderFrance();
+    if(_frPendingAffect){ _frPendingAffect=false; setTimeout(ouvrirAffectCamionFrance,350); }
+  });
+}
+
+function supprimerCamionFrance(k){
+  var r=_frRamassageEnCours(); if(!r) return;
+  var tk=(r.trucks||{})[k]; if(!tk) return;
+  var n=_frNbClientsCamion(tk);
+  if(!confirm('Supprimer le camion « '+tk.name+' » ?'+(n?('\n\n'+n+' client(s) repartiront en attente.'):''))) return;
+  var maj={};
+  (tk.clients||[]).forEach(function(id){
+    maj['clients/'+id+'/statut']='attente';
+    maj['clients/'+id+'/ramassageId']='';
+    maj['clients/'+id+'/camionId']='';
+    maj['clients/'+id+'/dateLib']='';
+    if(r.assigned) delete r.assigned[id];
+  });
+  delete r.trucks[k];
+  var p=_frSauverRamassage(r, maj);
+  if(p) p.then(function(){
+    showToastNew('🗑️ Camion supprimé');
+    renderFrance();
+  });
+}
+
+// ── Affectation ──
+function ouvrirAffectCamionFrance(){
+  if(!dannySel.length) return;
+  var r=_frRamassageEnCours();
+  if(!r){ showToastNew('⚠️ Ouvrez d\'abord un ramassage.'); return; }
+  var trks=r.trucks||{};
+  if(!Object.keys(trks).length){ _frPendingAffect=true; addTruckFrance(); return; }
+
+  var modal=document.getElementById('modal-fr-affect');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-fr-affect';
+    modal.className='modal-overlay';
+    modal.innerHTML='<div class="modal-sheet"><div class="modal-title" id="fr-affect-title">Mettre dans…</div>'
+      + '<div id="fr-affect-options"></div>'
+      + '<button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal(\'modal-fr-affect\')">✕ Annuler</button></div>';
+    document.body.appendChild(modal);
+  }
+  var t=document.getElementById('fr-affect-title');
+  if(t) t.textContent=dannySel.length+' client'+(dannySel.length>1?'s':'')+' → quel camion ?';
+  var h='';
+  Object.keys(trks).sort().forEach(function(k){
+    var tk=trks[k];
+    h+='<div onclick="_affecterSelCamionFrance(\''+k+'\')" style="display:flex;align-items:center;gap:11px;background:#fff;'
+      +'border:1.5px solid var(--border);border-left:4px solid '+tk.color+';border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;">'
+      +'<div style="width:34px;height:34px;border-radius:9px;background:'+tk.color+'22;color:'+tk.color
+      +';display:flex;align-items:center;justify-content:center;font-size:16px;">🚛</div>'
+      +'<div style="flex:1;"><div style="font-size:14.5px;font-weight:700;">'+tk.name+'</div>'
+      +'<div style="font-size:12px;color:#888;">'+_frNbClientsCamion(tk)+' client'+(_frNbClientsCamion(tk)>1?'s':'')+'</div></div>'
+      +'</div>';
+  });
+  h+='<div onclick="_frPendingAffect=true;closeModal(\'modal-fr-affect\');addTruckFrance();" style="text-align:center;padding:12px;'
+    +'border:2px dashed #ccc;border-radius:12px;font-size:13px;font-weight:700;color:#555;cursor:pointer;margin-bottom:6px;">+ Nouveau camion</div>';
+  var o=document.getElementById('fr-affect-options'); if(o) o.innerHTML=h;
+  openModal('modal-fr-affect');
+}
+
+function _affecterSelCamionFrance(k){
+  var r=_frRamassageEnCours(); if(!r) return;
+  var tk=(r.trucks||{})[k]; if(!tk) return;
+  r.assigned=r.assigned||{};
+  var maj={};
+  dannySel.forEach(function(id){
+    var c=(franceData.clients||{})[id]; if(!c) return;
+    // Retirer d'un éventuel autre camion avant de réaffecter.
+    Object.keys(r.trucks).forEach(function(kk){
+      var t2=r.trucks[kk];
+      var i=(t2.clients||[]).indexOf(id);
+      if(i>=0) t2.clients.splice(i,1);
+    });
+    tk.clients=tk.clients||[];
+    if(tk.clients.indexOf(id)<0) tk.clients.push(id);
+    r.assigned[id]=k;
+    var hist=(c.hist||[]).slice();
+    hist.push({q:(currentUser||{}).name||'', a:'a mis dans le camion de '+tk.name+' — '+r.dateLib, ts:Date.now()});
+    maj['clients/'+id+'/statut']='planifie';
+    maj['clients/'+id+'/ramassageId']=r._id;
+    maj['clients/'+id+'/camionId']=k;
+    maj['clients/'+id+'/dateLib']=r.dateLib;
+    maj['clients/'+id+'/planifieTs']=Date.now();
+    maj['clients/'+id+'/hist']=hist;
+  });
+  var n=dannySel.length;
+  closeModal('modal-fr-affect');
+  var p=_frSauverRamassage(r, maj);
+  if(p) p.then(function(){
+    showToastNew('✅ '+n+' client'+(n>1?'s':'')+' dans le camion de '+tk.name);
+    _activiteFrance('📦','a mis <strong>'+n+' client'+(n>1?'s':'')+'</strong> dans le camion de <strong>'+tk.name+'</strong>');
+    dannySel=[];
+    renderFrance();
+  });
+}
+
+function retirerClientCamionFrance(id){
+  var r=_frRamassageEnCours(); if(!r) return;
+  var maj={};
+  Object.keys(r.trucks||{}).forEach(function(k){
+    var tk=r.trucks[k];
+    var i=(tk.clients||[]).indexOf(id); if(i>=0) tk.clients.splice(i,1);
+    var j=(tk.validated||[]).indexOf(id); if(j>=0) tk.validated.splice(j,1);
+  });
+  if(r.assigned) delete r.assigned[id];
+  maj['clients/'+id+'/statut']='attente';
+  maj['clients/'+id+'/ramassageId']='';
+  maj['clients/'+id+'/camionId']='';
+  maj['clients/'+id+'/dateLib']='';
+  var p=_frSauverRamassage(r, maj);
+  if(p) p.then(function(){ showToastNew('↩️ Client remis en attente'); renderFrance(); });
+}
+
+// ── Ramassage effectif ──
+function marquerRamasseClientFrance(id){
+  var r=_frRamassageEnCours(); if(!r) return;
+  var k=_frCamionDuClient(id,r); var tk=(r.trucks||{})[k]; if(!tk) return;
+  tk.validated=tk.validated||[];
+  if(tk.validated.indexOf(id)<0) tk.validated.push(id);
+  var c=(franceData.clients||{})[id]||{};
+  var hist=(c.hist||[]).slice();
+  hist.push({q:(currentUser||{}).name||'', a:'a été ramassé par '+tk.name, ts:Date.now()});
+  var maj={};
+  maj['clients/'+id+'/statut']='ramasse';
+  maj['clients/'+id+'/ramassePar']=tk.name;
+  maj['clients/'+id+'/ramasseTs']=Date.now();
+  maj['clients/'+id+'/hist']=hist;
+  var p=_frSauverRamassage(r, maj);
+  if(p) p.then(function(){ showToastNew('✅ Ramassé'); renderFrance(); });
+}
+
+function marquerRamasseSel(){
+  var r=_frRamassageEnCours();
+  if(!r){ showToastNew('⚠️ Aucun ramassage ouvert.'); return; }
+  var ids=dannySel.filter(function(id){ return !!_frCamionDuClient(id,r); });
+  if(!ids.length){ showToastNew('⚠️ Ces clients ne sont dans aucun camion.'); return; }
+  if(!confirm('Marquer '+ids.length+' client(s) comme ramassés ?')) return;
+  var maj={};
+  ids.forEach(function(id){
+    var k=_frCamionDuClient(id,r); var tk=(r.trucks||{})[k]; if(!tk) return;
+    tk.validated=tk.validated||[];
+    if(tk.validated.indexOf(id)<0) tk.validated.push(id);
+    var c=(franceData.clients||{})[id]||{};
+    var hist=(c.hist||[]).slice();
+    hist.push({q:(currentUser||{}).name||'', a:'a été ramassé par '+tk.name, ts:Date.now()});
+    maj['clients/'+id+'/statut']='ramasse';
+    maj['clients/'+id+'/ramassePar']=tk.name;
+    maj['clients/'+id+'/ramasseTs']=Date.now();
+    maj['clients/'+id+'/hist']=hist;
+  });
+  var n=ids.length;
+  var p=_frSauverRamassage(r, maj);
+  if(p) p.then(function(){
+    showToastNew('✅ '+n+' client'+(n>1?'s':'')+' ramassé'+(n>1?'s':''));
+    _activiteFrance('✅','a marqué <strong>'+n+' client'+(n>1?'s':'')+'</strong> comme ramassé'+(n>1?'s':''));
+    dannySel=[]; renderFrance();
+  });
+}
+
+// ── L'onglet Dispatch ──
+function _frDispatch(){
+  var g=_frTrierRamassages();
+  var gere=_peutGererFrance();
+  var h='';
+
+  if(g.enCours){
+    var r=g.enCours, trks=r.trucks||{};
+    var cles=Object.keys(trks).sort();
+    var totC=0, totR=0;
+    cles.forEach(function(k){ totC+=_frNbClientsCamion(trks[k]); totR+=_frNbRamasses(trks[k]); });
+
+    h+='<div style="background:#e8eaf6;border:2px solid #1a237e;border-radius:var(--radius);padding:13px 14px;margin-bottom:14px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      +   '<div><div style="font-size:15px;font-weight:800;color:#1a237e;">🚛 Ramassage du '+r.dateLib+'</div>'
+      +   '<div style="font-size:12px;color:#1a237e;margin-top:3px;">'+cles.length+' camion'+(cles.length>1?'s':'')
+      +     ' · '+totC+' client'+(totC>1?'s':'')+' · '+totR+' ramassé'+(totR>1?'s':'')+'</div></div>'
+      +   '<span class="badge badge-blue">En cours</span>'
+      + '</div></div>';
+
+    if(!cles.length){
+      h+=_frVide('Aucun camion pour l\'instant.<br>Ajoutez-en un pour commencer à affecter.');
+    }
+    cles.forEach(function(k){
+      var tk=trks[k];
+      var n=_frNbClientsCamion(tk), nr=_frNbRamasses(tk);
+      h+='<div style="background:#fff;border:1.5px solid var(--border);border-left:4px solid '+tk.color+';border-radius:var(--radius);padding:13px 14px;margin-bottom:10px;box-shadow:var(--shadow);">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+        +   '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+        +     '<div style="width:34px;height:34px;border-radius:9px;background:'+tk.color+'22;color:'+tk.color
+        +       ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🚛</div>'
+        +     '<div style="min-width:0;"><div style="font-size:14.5px;font-weight:800;">'+tk.name+'</div>'
+        +     '<div style="font-size:12px;color:#888;">'+n+' client'+(n>1?'s':'')+' · '+nr+' ramassé'+(nr>1?'s':'')+'</div></div>'
+        +   '</div>'
+        +   (gere?('<span onclick="supprimerCamionFrance(\''+k+'\')" style="color:#992020;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">Supprimer</span>'):'')
+        + '</div>';
+      if(n){
+        h+='<div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px;">';
+        (tk.clients||[]).forEach(function(id){
+          var c=(franceData.clients||{})[id];
+          if(!c){ return; }
+          var fait=((tk.validated||[]).indexOf(id)>=0);
+          h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;'+(fait?'opacity:.55;':'')+'">'
+            + '<div style="flex:1;min-width:0;" onclick="ouvrirFicheFrance(\''+id+'\')">'
+            +   '<div style="font-size:13.5px;font-weight:700;'+(fait?'text-decoration:line-through;':'')+'">'+_nomAffiche(c)+'</div>'
+            +   '<div style="font-size:11.5px;color:#888;">'+(c.cp||'')+' '+(c.ville||'')+' · '+(c.nb||1)+' colis</div>'
+            + '</div>'
+            + (gere
+                ? (fait
+                    ? '<span style="font-size:11.5px;color:#006b2d;font-weight:700;">✅ Ramassé</span>'
+                    : ('<span onclick="event.stopPropagation();marquerRamasseClientFrance(\''+id+'\')" style="font-size:11.5px;font-weight:700;color:#006b2d;border:1.5px solid #009A44;border-radius:8px;padding:5px 9px;cursor:pointer;">Ramassé</span>'
+                      +'<span onclick="event.stopPropagation();retirerClientCamionFrance(\''+id+'\')" style="font-size:11.5px;color:#992020;cursor:pointer;margin-left:6px;">✕</span>'))
+                : '')
+            + '</div>';
+        });
+        h+='</div>';
+      }
+      h+='</div>';
+    });
+
+    if(gere){
+      h+='<button class="btn btn-gray" style="margin-top:4px;" onclick="addTruckFrance()">+ Ajouter un camion</button>';
+      h+='<button class="btn" style="margin-top:8px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" onclick="terminerRamassageFrance()">🏁 Terminer le ramassage</button>';
+    }
+  } else {
+    h+=_frVide('Aucun ramassage ouvert.'+(gere?'<br>Ouvrez-en un pour affecter des clients à des camions.':''));
+    if(gere) h+='<button class="btn btn-green" style="margin-top:4px;" onclick="creerRamassageFrance()">+ Ouvrir un ramassage</button>';
+  }
+
+  if(g.finis.length){
+    h+='<div class="slabel" style="margin-top:18px;">Ramassages terminés</div>';
+    g.finis.slice(0,20).forEach(function(r){
+      var trks=r.trucks||{}, cles=Object.keys(trks);
+      var totC=0, totR=0;
+      cles.forEach(function(k){ totC+=_frNbClientsCamion(trks[k]); totR+=_frNbRamasses(trks[k]); });
+      h+='<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+        +   '<div style="font-size:13.5px;font-weight:700;">'+r.dateLib+'</div>'
+        +   '<span class="badge badge-gray">Terminé</span></div>'
+        + '<div style="font-size:11.5px;color:#888;margin-top:4px;">'+cles.length+' camion'+(cles.length>1?'s':'')
+        +   ' · '+totR+'/'+totC+' ramassé'+(totR>1?'s':'')
+        +   (r.finiPar?(' · clos par '+r.finiPar):'')+'</div>'
+        + (cles.length?('<div style="font-size:11.5px;color:#555;margin-top:5px;">'
+            + cles.sort().map(function(k){ return '🚛 '+trks[k].name+' ('+_frNbRamasses(trks[k])+')'; }).join(' · ')+'</div>'):'')
+        + '</div>';
+    });
+  }
   return h;
 }
 
@@ -4456,16 +4886,20 @@ function _renderFicheFrance(){
         alerte:_alerte }
     : null;
 
+  // v3.58.0 : parcours ramené à trois étapes. Chartres et Mitry-Mory
+  // appartenaient au montage avec Global Logistique ; « Parti pour Dakar »
+  // faisait doublon avec le module Départs. Le colis va droit au dépôt :
+  // « Ramassé » clôt donc le parcours.
   var et=[
     {t:'Inscrit', ok:true, meta:(c.creePar||'')+' · '+_dateFr(c.creeTs)},
-    {t:'Planifié', ok:(c.statut==='planifie'||c.statut==='ramasse'||c.lieu), meta:c.dateLib?('Passage '+c.dateLib):'en attente de Danny'},
-    {t:'Ramassé',  ok:(c.statut==='ramasse'||c.lieu==='chartres'||c.lieu==='mitry'), meta:c.ramassePar?(c.ramassePar+' · '+_dateFr(c.ramasseTs)):''}
+    {t:'Planifié', ok:(c.statut==='planifie'||_frEstRamasse(c)||c.lieu),
+     meta:c.dateLib ? ('Ramassage du '+c.dateLib)
+        : ((c.statut==='planifie'||_frEstRamasse(c)||c.lieu) ? '' : 'pas encore affecté à un camion')},
+    {t:'Ramassé',  ok:_frEstRamasse(c), meta:c.ramassePar?(c.ramassePar+' · '+_dateFr(c.ramasseTs)):''}
   ];
-  if(etChartres) et.push(etChartres);
-  et.push({t:'Arrivé à Mitry-Mory', ok:(c.lieu==='mitry'),
-           meta:(c.lieu==='mitry'&&c.mitryPar)?(c.mitryPar+' · '+_dateFr(c.mitryTs)):''});
-  et.push({t:'Parti pour Dakar', ok:(c.statut==='parti'),
-           meta:c.statut==='parti'?((c.partiPar||'')+' · '+_dateFr(c.partiTs)):''});
+  // Les colis restés à Chartres gardent la trace de leur dépôt, le temps
+  // qu'on aille les chercher.
+  if(etChartres && _frResteChartres(c)) et.push(etChartres);
 
   var tl='<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:4px 14px 10px;margin-bottom:10px;box-shadow:var(--shadow);"><div class="slabel">Suivi</div><div style="position:relative;padding-left:26px;">'
        + '<div style="position:absolute;left:8px;top:6px;bottom:16px;width:2px;background:var(--border);"></div>';
@@ -10812,17 +11246,18 @@ function ouvrirCarteDanny(){
 }
 
 // On repart sur l'écran de création habituel, avec la sélection faite sur la carte
+// v3.58.0 : la sélection faite sur la carte alimente le dispatch.
 function creerTourneeDepuisCarte(){
   if(!_carteSelFr.length) return;
   dannySel=_carteSelFr.slice();
   fermerCarteFrance();
-  ouvrirCreationTournee();
+  ouvrirAffectCamionFrance();
 }
 
 function _couleurClientCarte(c){
-  if(c.lieu==='mitry')    return {bg:'#009A44', txt:'#fff'};
-  if(c.lieu==='chartres') return {bg:'#b45309', txt:'#fff'};
-  if(c.statut==='planifie'||c.statut==='ramasse') return {bg:'#1a237e', txt:'#fff'};
+  if(_frResteChartres(c)) return {bg:'#b45309', txt:'#fff'};
+  if(_frEstRamasse(c))    return {bg:'#009A44', txt:'#fff'};
+  if(c.statut==='planifie') return {bg:'#1a237e', txt:'#fff'};
   return {bg:'#78909c', txt:'#fff'};
 }
 
@@ -11219,7 +11654,7 @@ function ajouterClientTournee(id){
 }
 
 function retourDepuisEdition(){
-  if(_peutGererFrance()){ switchFranceTab('tournees'); goTo('s-france'); }
+  if(_peutGererFrance()){ switchFranceTab('dispatch'); goTo('s-france'); }
   else { switchDannyTab('tournees'); goTo('s-partenaire'); }
 }
 
@@ -11918,13 +12353,13 @@ setTimeout(function(){
       <span id="cfr-sel-info"></span>
       <span onclick="viderSelectionCarteFr()" style="color:#1a237e;font-weight:700;cursor:pointer;">Tout d&#233;cocher</span>
     </div>
-    <button class="btn" style="margin:0;background:#1a237e;border:2.5px solid #0d1444;color:#fff;" onclick="creerTourneeDepuisCarte()">Cr&#233;er une tourn&#233;e</button>
+    <button class="btn" style="margin:0;background:#1a237e;border:2.5px solid #0d1444;color:#fff;" onclick="creerTourneeDepuisCarte()">&#128666; Mettre dans un camion</button>
   </div>
   <div style="background:#fff;border-top:1px solid var(--border);padding:9px 14px;flex-shrink:0;display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:#555;">
     <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#78909c;margin-right:4px;"></span>En attente</span>
     <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a237e;margin-right:4px;"></span>Planifi&#233;</span>
-    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#b45309;margin-right:4px;"></span>Chartres</span>
-    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#009A44;margin-right:4px;"></span>Mitry</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#009A44;margin-right:4px;"></span>Ramass&#233;</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#b45309;margin-right:4px;"></span>&#224; r&#233;cup&#233;rer &#224; Chartres</span>
   </div>
 </div>
 </div>
