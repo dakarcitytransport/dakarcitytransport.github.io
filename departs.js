@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.22.3';
+var DEP_VERSION = 'v1.22.4';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -406,7 +406,7 @@ var DEP_VERSION = 'v1.22.3';
     if(!document.getElementById('dep-anti-flash-espaces')){
       var style = document.createElement('style');
       style.id = 'dep-anti-flash-espaces';
-      style.textContent = '#login-espaces{visibility:hidden !important;}';
+      style.textContent = '.login-screen > *{visibility:hidden !important;}';
       document.head.appendChild(style);
     }
     var leve = function(){

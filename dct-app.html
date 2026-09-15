@@ -16,17 +16,25 @@ if(/[?&]facture=/.test(location.search)){
 }
 </script>
 <script>
-// v3.57.2 : voile anti-flash sur la liste des espaces. Il DOIT être posé
+// v3.57.2 : voile anti-flash sur l'écran de connexion. Il DOIT être posé
 // ici, dans le <head>, et non depuis departs.js : ce dernier est chargé
 // tout en bas du fichier, or à ce moment-là l'écran de connexion natif
 // est déjà peint — on apercevait donc son ancienne mise en page pendant
 // ~40 ms avant que le module ne reprenne la main. departs.js lève ce
 // voile dès qu'il a repeint l'écran (voir _depAntiFlashEspacesLogin).
+// v3.57.5 : le voile couvrait seulement la liste des espaces. L'écran
+// s'assemblait donc sous les yeux : la pastille de version, puis la
+// ligne « Module départs » s'inséraient l'une après l'autre en poussant
+// « CHOISISSEZ VOTRE ESPACE » vers le bas à chaque fois — trois sauts
+// en ~375 ms sur un téléphone lent. Le voile couvre maintenant TOUT le
+// contenu de l'écran, qui apparaît donc d'un seul bloc, complet.
+// On vise les enfants et non .login-screen elle-même, pour que son fond
+// dégradé reste visible pendant ce temps : l'écran n'est jamais blanc.
 (function(){
   try{
     var s = document.createElement('style');
     s.id = 'dep-anti-flash-espaces';
-    s.textContent = '#login-espaces{visibility:hidden !important;}';
+    s.textContent = '.login-screen > *{visibility:hidden !important;}';
     document.head.appendChild(s);
     // Filet de dernier recours : si departs.js ne se charge pas du tout
     // (erreur réseau...), la liste des espaces ne doit pas rester
@@ -1565,7 +1573,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.57.4';
+var APP_VERSION = 'v3.57.5';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
