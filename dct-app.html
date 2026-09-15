@@ -985,7 +985,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   </div>
   <div style="display:flex;border-bottom:2px solid #e0e0e0;background:#fff;flex-shrink:0;">
     <button id="admin-tab-equipe" onclick="showAdminTab('equipe')" style="flex:1;padding:10px 3px;border:none;border-bottom:3px solid #009A44;background:none;font-size:10.5px;font-weight:700;cursor:pointer;color:#009A44;font-family:var(--font);">👥 Équipe</button>
-    <button id="admin-tab-partenaires" onclick="showAdminTab('partenaires')" style="flex:1;padding:10px 3px;border:none;border-bottom:3px solid transparent;background:none;font-size:10.5px;font-weight:700;cursor:pointer;color:#888;font-family:var(--font);">🚚 Partenaire</button>
+    <button id="admin-tab-partenaires" onclick="showAdminTab('partenaires')" style="flex:1;padding:10px 3px;border:none;border-bottom:3px solid transparent;background:none;font-size:10.5px;font-weight:700;cursor:pointer;color:#888;font-family:var(--font);">🗓 Tournées</button>
     <button id="admin-tab-acces" onclick="showAdminTab('acces')" style="flex:1;padding:10px 3px;border:none;border-bottom:3px solid transparent;background:none;font-size:10.5px;font-weight:700;cursor:pointer;color:#888;font-family:var(--font);">🔐 Accès</button>
     <button id="admin-tab-donnees" onclick="showAdminTab('donnees')" style="flex:1;padding:10px 3px;border:none;border-bottom:3px solid transparent;background:none;font-size:10.5px;font-weight:700;cursor:pointer;color:#888;font-family:var(--font);">💾 Données</button>
     <button id="admin-tab-message" onclick="showAdminTab('message')" style="flex:1;padding:10px 3px;border:none;border-bottom:3px solid transparent;background:none;font-size:10.5px;font-weight:700;cursor:pointer;color:#888;font-family:var(--font);">📢 Message</button>
@@ -1142,13 +1142,6 @@ function ecouterFrance(){
     franceData.tournees = d.tournees || {};
     franceData.postes   = d.postes   || {};
     franceData.lots     = d.lots     || {};
-    var _avant = window._glDesactive;
-    window._glDesactive = !!((d.societes||{}).GL||{}).desactive;
-    if(_avant !== window._glDesactive){
-      _rafraichirLogin();
-      try{ var _sp=document.getElementById('admin-section-partenaires');
-           if(_sp && _sp.style.display!=='none') renderAdminPartenaires(); }catch(e){}
-    }
     _franceReady = true;
     _initPostesFrance();
     try{ _nettoyerPostes(); }catch(e){}
@@ -1529,7 +1522,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.57.0';
+var APP_VERSION = 'v3.57.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2340,17 +2333,10 @@ function _visuelSociete(so){
   return '<div style="'+cadre+'font-size:26px;">🔐</div>';
 }
 
-// Logo Global Logistique (SVG inline, en attendant le fichier réel)
-function _logoGL(t){
-  return '<svg width="'+t+'" height="'+t+'" viewBox="0 0 100 100">'
-    +'<circle cx="50" cy="50" r="38" fill="none" stroke="#4CAF50" stroke-width="9" stroke-dasharray="120 300" transform="rotate(120 50 50)"/>'
-    +'<circle cx="50" cy="50" r="38" fill="none" stroke="#1565C0" stroke-width="9" stroke-dasharray="120 300" transform="rotate(-60 50 50)"/>'
-    +'<text x="50" y="59" text-anchor="middle" font-size="32" font-weight="700" fill="#4CAF50" font-family="Arial">DD</text>'
-    +'<rect x="36" y="74" width="20" height="10" rx="2" fill="#1a1a1a"/><rect x="56" y="77" width="9" height="7" rx="1.5" fill="#1a1a1a"/>'
-    +'<circle cx="42" cy="86" r="3" fill="#1a1a1a"/><circle cx="60" cy="86" r="3" fill="#1a1a1a"/></svg>';
-}
-
-function _societeSuspendue(id){ return id==='GL' && window._glDesactive===true; }
+// v3.57.1 : plus aucune société ne peut être suspendue depuis l'admin —
+// c'était propre à Global Logistique. La fonction reste, toujours
+// fausse, pour les écrans de connexion qui l'interrogent.
+function _societeSuspendue(id){ return false; }
 function _detailSociete(id){
   if(_societeSuspendue(id)) return '🔒 Accès suspendu';
   if(id==='DCT'){
@@ -2391,9 +2377,7 @@ function ouvrirEspace(socId){
   liste.forEach(function(c){
     var sous=_sousTitreProfil(c);
     var _pc = (c.role==='poste') ? getPc(c.id) : {bg:c.bg,color:c.color,bar:c.color};
-    var avat = (c.id==='DD')
-      ? '<div class="av" style="background:'+c.bg+';width:46px;height:46px;border:2px solid '+c.color+';display:flex;align-items:center;justify-content:center;">'+_logoGL(32)+'</div>'
-      : '<div class="av" style="background:'+_pc.bg+';color:'+_pc.color+';width:46px;height:46px;font-size:'+(c.role==='poste'?'17px':'13px')+';border:2px solid '+_pc.bar+';">'+(c.role==='poste'?'🚚':c.id)+'</div>';
+    var avat = '<div class="av" style="background:'+_pc.bg+';color:'+_pc.color+';width:46px;height:46px;font-size:'+(c.role==='poste'?'17px':'13px')+';border:2px solid '+_pc.bar+';">'+(c.role==='poste'?'🚚':c.id)+'</div>';
     html += '<div class="login-card" style="border-left:4px solid '+_pc.bar+';" onclick="login(\''+c.id+'\')">'
          + avat
          + '<div style="flex:1;"><div class="login-name">'+c.name+'</div>'+(sous?'<div class="login-role">'+sous+'</div>':'')+'</div>'
@@ -5922,11 +5906,6 @@ function updateNotifBadge(){
 
 function login(id){
   var collab = getProfil(id)||COLLABS[0];
-  // Société partenaire désactivée par l'admin
-  if(collab.societe && window._glDesactive===true){
-    showToastNew('🔒 Accès suspendu. Contactez Dakar City Transport.');
-    return;
-  }
   // Poste chauffeur : place partagée, pas de code (choix v3.0.1)
   if(collab.role === 'poste'){ finalisLogin(collab); return; }
 
@@ -10238,89 +10217,17 @@ function showAdminTab(tab){
 }
 
 
-// ─── ONGLET PARTENAIRES — v3.0.1 ───
+// ─── ONGLET TOURNÉES — v3.57.1 ───
+// L'espace Global Logistique supprimé, il ne reste de cet onglet que
+// la liste complète des tournées : le seul outil qui ne dépendait pas
+// de la société partenaire. Le nom interne de l'onglet ('partenaires')
+// est conservé pour ne pas casser la navigation de l'admin.
 function renderAdminPartenaires(){
   var sec=document.getElementById('admin-section-partenaires');
   if(!sec) return;
-  var actif = !(window._glDesactive===true);
-  var postes = PARTENAIRES.filter(function(p){ return p.role==='poste'; });
-  var sortis = postes.filter(function(p){ var st=(franceData.postes||{})[p.id]; return st && st.libre===false; });
-  var c = compteursFrance();
-
-  var h='<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:14px;">🚚 Sociétés partenaires</div>';
-  if(!actif){
-    h+='<div style="background:#fde0e0;border:2px solid #c0392b;border-radius:14px;padding:13px 14px;margin-bottom:14px;">'
-      +'<div style="font-size:14px;font-weight:800;color:#992020;">🔒 Accès suspendu</div>'
-      +'<div style="font-size:12px;color:#992020;margin-top:4px;line-height:1.5;">Personne de chez Global Logistique ne peut se connecter. Les tournées et les colis restent enregistrés.</div></div>';
-  }
-
-  // Carte société
-  h+='<div style="background:#fff;border:2px solid '+(actif?'#1a237e':'#ccc')+';border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:var(--shadow);'+(actif?'':'opacity:.6;')+'">'
-   + '<div style="display:flex;align-items:center;gap:12px;">'
-   +   '<div style="width:46px;height:46px;border-radius:50%;background:#e8eaf6;border:2px solid #1a237e;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+_logoGL(32)+'</div>'
-   +   '<div style="flex:1;"><div style="font-size:16px;font-weight:800;">Global Logistique</div>'
-   +   '<div style="font-size:12px;color:#888;">Danny Diop · '+postes.length+' postes</div></div>'
-   +   '<span class="badge '+(actif?'badge-green':'badge-gray')+'">'+(actif?'Actif':'Désactivé')+'</span>'
-   + '</div>'
-   + '<div style="display:flex;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid #eee;">'
-   +   '<div style="flex:1;text-align:center;"><div style="font-size:19px;font-weight:800;color:#1a237e;">'+sortis.length+'</div><div style="font-size:11px;color:#888;">en tournée</div></div>'
-   +   '<div style="flex:1;text-align:center;"><div style="font-size:19px;font-weight:800;color:#92400e;">'+c.chartres+'</div><div style="font-size:11px;color:#888;">à Chartres</div></div>'
-   +   '<div style="flex:1;text-align:center;"><div style="font-size:19px;font-weight:800;color:#006b2d;">'+c.mitry+'</div><div style="font-size:11px;color:#888;">à Mitry</div></div>'
-   + '</div>'
-   + '<button class="btn '+(actif?'btn-gray':'btn-green')+'" style="margin-top:12px;'+(actif?'background:#fde0e0;color:#992020;border:1.5px solid #c0392b;':'')+'" onclick="basculerSocietePartenaire()">'
-   +   (actif?'🔒 Désactiver la société':'✅ Réactiver la société')+'</button>'
-   + '</div>';
-
-  // Danny
-  h+='<div class="slabel">Responsable</div>';
-  h+='<div style="background:#fff;border:1.5px solid var(--border);border-left:4px solid #1a237e;border-radius:14px;padding:13px 14px;margin-bottom:10px;box-shadow:var(--shadow);">'
-   + '<div style="display:flex;align-items:center;gap:12px;">'
-   +   '<div class="av" style="background:#e8eaf6;width:40px;height:40px;border:2px solid #1a237e;">'+_logoGL(28)+'</div>'
-   +   '<div style="flex:1;"><div style="font-size:15px;font-weight:700;">Danny Diop</div>'
-   +   '<div style="font-size:12px;color:#888;">Accès par code personnel</div></div></div>'
-   + '<button class="btn btn-gray" style="margin-top:10px;" onclick="reinitPinPartenaire(\'DD\')">🔑 Réinitialiser son code</button>'
-   + '</div>';
-
-  // Postes
-  h+='<div class="slabel">Postes chauffeur — sans code</div>';
-  postes.forEach(function(p){
-    var st=(franceData.postes||{})[p.id]||{};
-    var occ=(st.libre===false);
-    h+='<div style="background:#fff;border:1.5px solid var(--border);border-left:4px solid '+(occ?'#92400e':'#ccc')+';border-radius:14px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);">'
-     + '<div style="display:flex;align-items:center;gap:12px;">'
-     +   '<div class="av" style="background:'+(occ?'#fef3c7':'#f2f3f5')+';color:'+(occ?'#92400e':'#aaa')+';width:38px;height:38px;font-size:16px;border:2px solid '+(occ?'#92400e':'#ddd')+';">🚚</div>'
-     +   '<div style="flex:1;"><div style="font-size:14.5px;font-weight:700;">'+p.name+'</div>'
-     +   '<div style="font-size:12px;color:'+(occ?'#92400e':'#888')+';">'+(occ?(st.chauffeur||'occupé')+' · en tournée':'Libre')+'</div></div>'
-     +   (occ?'<button class="btn-back" style="color:#992020;font-size:12px;" onclick="libererPoste(\''+p.id+'\')">Libérer</button>':'')
-     + '</div></div>';
-  });
-
-  h+='<div style="font-size:11.5px;color:#888;line-height:1.6;margin-top:6px;">Les postes s\'ouvrent sans code : le chauffeur saisit seulement son nom, qui reste attaché à chaque colis qu\'il ramasse.</div>';
-  h+=_htmlVuesPartenaire();
-  h+=_htmlToutesTournees();
-  sec.innerHTML=h;
+  sec.innerHTML=_htmlToutesTournees();
 }
 
-function basculerSocietePartenaire(){
-  if(!db || !firebaseReady){ showToastNew('❌ Connexion Firebase indisponible.'); return; }
-  var actif = !(window._glDesactive===true);
-  var msg = actif
-    ? "Suspendre Global Logistique ?\n\nDanny et les 4 postes ne pourront plus se connecter.\nLes données et les tournées sont conservées."
-    : "Réactiver Global Logistique ?\n\nDanny et les postes pourront de nouveau se connecter.";
-  if(!confirm(msg)) return;
-  db.ref('france/societes/GL').update({
-    desactive : actif,
-    parQui    : (currentUser||{}).name||'',
-    quandTs   : Date.now()
-  }).then(function(){
-    window._glDesactive = actif;
-    showToastNew(actif?'🔒 Global Logistique suspendue':'✅ Global Logistique réactivée');
-    renderAdminPartenaires();
-  }).catch(function(e){
-    showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée'));
-    console.log('basculerSocietePartenaire:', e);
-  });
-}
 function reinitPinPartenaire(id){
   if(!db) return;
   var p=getProfil(id)||{};
@@ -10329,14 +10236,6 @@ function reinitPinPartenaire(id){
     localStorage.setItem('dct_pin_attempts_'+id,'0');
     db.ref('dct_config/pins_blocked/'+id).remove();
     showToastNew('🔑 Code réinitialisé');
-  });
-}
-function libererPoste(id){
-  if(!db) return;
-  if(!confirm('Libérer ce poste ?\nLa tournée en cours restera enregistrée.')) return;
-  db.ref('france/postes/'+id).update({libre:true,chauffeur:'',tourneeId:''}).then(function(){
-    showToastNew('✅ Poste libéré');
-    renderAdminPartenaires();
   });
 }
 
@@ -10351,7 +10250,7 @@ function journaliserCodeErrone(id, essais, bloque){
   db.ref('dct_alertes').push({
     profilId : id,
     profil   : p.name || id,
-    societe  : p.societe ? 'Global Logistique' : 'Dakar City Transport',
+    societe  : 'Dakar City Transport',
     essais   : essais,
     bloque   : !!bloque,
     date     : now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})
@@ -11011,9 +10910,8 @@ function _activiteFrance(emoji, texte){
     } else if(u.role==='responsable'){
       bg = '#e8eaf6'; col = '#1a237e';
     }
-    var suffixe = u.societe ? ' <span style="color:#888;">· Global Logistique</span>' : '';
     addActivity(emoji, bg,
-      '<strong style="color:'+col+'">'+nom+'</strong> '+texte+suffixe,
+      '<strong style="color:'+col+'">'+nom+'</strong> '+texte,
       "À l'instant");
   }catch(e){ console.warn('[ACTIVITE FRANCE]', e); }
 }
@@ -11050,21 +10948,6 @@ function _bloqueSiVueAdmin(){
     return true;
   }
   return false;
-}
-
-function ouvrirVuePartenaire(profilId){
-  var p = getProfil(profilId);
-  if(!p){ showToastNew('⚠️ Profil introuvable.'); return; }
-  _adminRetour = currentUser;
-  _vueAdmin = true;
-  currentUser = p;
-  var b=document.getElementById('bandeau-vue-admin');
-  if(b) b.style.display='block';
-  dannySel=[]; dannyRegion=''; dannyDept='';
-  var st=document.getElementById('part-subtabs');
-  if(st) st.style.display = (p.role==='responsable') ? 'flex' : 'none';
-  if(p.role==='poste'){ ouvrirPoste(); }
-  else { switchDannyTab('vivier'); goTo('s-partenaire'); }
 }
 
 function quitterVuePartenaire(){
@@ -11127,30 +11010,6 @@ function supprimerTournee(tid){
   }).catch(function(e){ showToastNew('❌ '+((e&&e.message)||'échec')); });
 }
 
-// ─── Onglet admin : accès aux espaces partenaires ───
-function _htmlVuesPartenaire(){
-  var h='<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin:18px 0 6px;">👁 Voir ce qu\'ils voient</div>'
-      + '<div style="font-size:12px;color:#888;margin-bottom:12px;">Ouvre leur espace en lecture seule. Aucune action n\'est possible depuis cette vue.</div>';
-  h+='<div style="background:#fff;border:1.5px solid var(--border);border-left:4px solid #1a237e;border-radius:14px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);">'
-   + '<div style="display:flex;align-items:center;gap:11px;">'
-   +   '<div class="av" style="background:#e8eaf6;width:38px;height:38px;border:2px solid #1a237e;">'+_logoGL(26)+'</div>'
-   +   '<div style="flex:1;"><div style="font-size:14.5px;font-weight:700;">Danny Diop</div>'
-   +   '<div style="font-size:12px;color:#888;">Le vivier et ses tournées</div></div></div>'
-   + '<button class="btn btn-gray" style="margin-top:10px;" onclick="ouvrirVuePartenaire(\'DD\')">Ouvrir son espace</button></div>';
-  PARTENAIRES.filter(function(p){ return p.role==='poste'; }).forEach(function(p){
-    var st=(franceData.postes||{})[p.id]||{};
-    var occ=(st.libre===false);
-    h+='<div style="background:#fff;border:1.5px solid var(--border);border-left:4px solid '+(occ?'#92400e':'#ccc')+';border-radius:14px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);">'
-     + '<div style="display:flex;align-items:center;gap:11px;">'
-     +   '<div class="av" style="background:'+(occ?'#fef3c7':'#f2f3f5')+';color:'+(occ?'#92400e':'#aaa')+';width:38px;height:38px;font-size:16px;border:2px solid '+(occ?'#92400e':'#ddd')+';">🚚</div>'
-     +   '<div style="flex:1;"><div style="font-size:14.5px;font-weight:700;">'+p.name+'</div>'
-     +   '<div style="font-size:12px;color:'+(occ?'#92400e':'#888')+';">'+(occ?(st.chauffeur||'occupé')+' · en tournée':'Libre')+'</div></div></div>'
-     + '<button class="btn btn-gray" style="margin-top:10px;" onclick="ouvrirVuePartenaire(\''+p.id+'\')">Ouvrir son écran</button></div>';
-  });
-  return h;
-}
-
-// ─── Onglet admin : toutes les tournées, avec suppression ───
 function _htmlToutesTournees(){
   var g=_trierTournees();
   var tout=g.enCours.concat(g.aPrendre).concat(g.finies);

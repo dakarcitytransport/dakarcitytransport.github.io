@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.22.0';
+var DEP_VERSION = 'v1.22.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -437,11 +437,9 @@ var DEP_VERSION = 'v1.22.0';
           messagingSenderId: "910296510414",
           appId: "1:910296510414:web:de6b814b3420adcd68859f"
         });
-        firebase.database().ref('france/societes/GL/desactive').once('value').then(function(snap){
-          window._glDesactive = !!snap.val();
-          try{ if(typeof window._rafraichirLogin === 'function') window._rafraichirLogin(); }catch(e){}
-          leve();
-        }).catch(function(){ leve(); });
+        // v1.22.1 : il n'y a plus de société partenaire à interroger avant
+        // d'afficher l'écran de connexion — on lève le voile tout de suite.
+        leve();
       }catch(eFb){ leve(); }
     }
 
@@ -3702,7 +3700,9 @@ window.depDepartsPaysRetour = function(){
 // cohérent avec le reste du module (Archivage, Historique...).
 var DEP_REGLAGES_ITEMS = [
   { tab:'equipe',       icone:'&#128101;',           titre:'&Eacute;QUIPE',        couleur:'#009A44', fond:'#DDF1E6' },
-  { tab:'partenaires',  icone:'&#128666;',           titre:'PARTENAIRE',           couleur:'#1a237e', fond:'#E1E2EE' },
+  // v1.22.1 : ex-carré PARTENAIRE — l'espace Global Logistique supprimé,
+  // il ne reste derrière que la liste complète des tournées.
+  { tab:'partenaires',  icone:'&#128197;',           titre:'TOURN&Eacute;ES',      couleur:'#1a237e', fond:'#E1E2EE' },
   // v1.21.9 : l'ancien carré unique "Accès" (codes admin + codes espaces +
   // passe-partout + journal, 4 fonctions différentes empilées) éclate en 4
   // sous-carrés — retour de Cobey du 07/09/2026 : "je veux que chaque
