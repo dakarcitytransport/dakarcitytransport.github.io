@@ -1529,7 +1529,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.56.1';
+var APP_VERSION = 'v3.57.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -1545,20 +1545,17 @@ var COLLABS = [
 // Profils externes, droits restreints.
 // Un "poste" n'est pas une personne : c'est une place que le
 // chauffeur du jour occupe en saisissant son nom.
-var PARTENAIRES = [
-  {id:'DD',name:'Danny Diop', bg:'#e8eaf6',color:'#1a237e', societe:'GL', role:'responsable'},
-  {id:'P1',name:'Poste 1',    bg:'#eef0fa',color:'#5c6bc0', societe:'GL', role:'poste'},
-  {id:'P2',name:'Poste 2',    bg:'#eef0fa',color:'#5c6bc0', societe:'GL', role:'poste'},
-  {id:'P3',name:'Poste 3',    bg:'#eef0fa',color:'#5c6bc0', societe:'GL', role:'poste'},
-  {id:'P4',name:'Poste 4',    bg:'#eef0fa',color:'#5c6bc0', societe:'GL', role:'poste'}
-];
+// v3.57.0 : l'espace Global Logistique a été supprimé — ses cinq
+// profils (Danny Diop et les quatre postes) avec lui. La liste reste
+// en place, vide, pour accueillir un futur partenaire sans avoir à
+// retoucher tout le code qui la parcourt.
+var PARTENAIRES = [];
 
-// Les trois espaces de l'écran d'accueil
+// Les espaces de l'écran d'accueil
 // bandeau = le liseré du haut de la carte, aux couleurs du Sénégal.
 // color reste la couleur d'usage (chevron, pastille, avatars).
 var SOCIETES = [
   {id:'DCT', nom:'Dakar City Transport', sous:'Équipe interne',          color:'#009A44', bgd:'#d4f0e0', bandeau:'#009A44'},
-  {id:'GL',  nom:'Global Logistique',    sous:'Transporteur partenaire', color:'#1a237e', bgd:'#e8eaf6', bandeau:'#FDEF42'},
   {id:'ADM', nom:'Administration',       sous:'',                        color:'#1a1a2e', bgd:'#ececf2', bandeau:'#E31B23'}
 ];
 
@@ -2340,7 +2337,6 @@ function _visuelSociete(so){
     var src=lg?lg.getAttribute('src'):'';
     return '<div style="'+cadre+'"><img src="'+src+'" style="width:56px;height:56px;object-fit:cover;"></div>';
   }
-  if(so.id==='GL') return '<div style="'+cadre+'">'+_logoGL(40)+'</div>';
   return '<div style="'+cadre+'font-size:26px;">🔐</div>';
 }
 
@@ -2360,14 +2356,6 @@ function _detailSociete(id){
   if(id==='DCT'){
     var n=COLLABS.filter(function(c){return !c.admin;}).length;
     return n+' collaborateur'+(n>1?'s':'');
-  }
-  if(id==='GL'){
-    var postes=PARTENAIRES.filter(function(p){return p.role==='poste';});
-    var sortis=postes.filter(function(p){
-      var st=(franceData.postes||{})[p.id];
-      return st && st.libre===false;
-    }).length;
-    return 'Danny + '+postes.length+' postes · '+sortis+' en tournée';
   }
   // Rien du tout : ni prénom, ni nombre. La discrétion est voulue.
   return '';
@@ -10540,10 +10528,9 @@ function ecouterCodesEspaces(){
   });
 }
 
-// Les deux sociétés ont leur code d'entrée. Danny transmet le sien
-// à son équipe : les chauffeurs franchissent la porte, puis prennent
-// un poste librement. Danny garde en plus son code personnel.
-var ESPACES_AVEC_CODE = ['DCT','GL'];
+// Chaque société a son code d'entrée. Chez Dakar City, chacun garde
+// ensuite son code personnel derrière la porte.
+var ESPACES_AVEC_CODE = ['DCT'];
 function _espaceProtege(socId){
   if(ESPACES_AVEC_CODE.indexOf(socId)<0) return false;
   var c=_codesEspaces[socId];
@@ -10566,8 +10553,7 @@ function ouvrirEspaceProtege(socId){
     if(socId==='DCT'){
       var lg=document.getElementById('dct-logo');
       v.innerHTML='<img src="'+(lg?lg.getAttribute('src'):'')+'" style="width:60px;height:60px;object-fit:cover;">';
-    } else if(socId==='GL'){ v.innerHTML=_logoGL(42); }
-    else { v.innerHTML='<span style="font-size:28px;">🔐</span>'; }
+    } else { v.innerHTML='<span style="font-size:28px;">🔐</span>'; }
   }
   openModal('modal-code-espace');
   var inp=document.getElementById('ce-input');
@@ -10661,7 +10647,7 @@ function _htmlCodesAdmins(){
 
 function _htmlCodesEspaces(){
   var h='<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🚪 Codes des espaces</div>'
-      + '<div style="font-size:12px;color:#888;margin-bottom:12px;">Un code par société. Chez Dakar City, chacun garde ensuite son code personnel. Chez Global Logistique, Danny a le sien et les postes chauffeur restent libres derrière la porte.</div>';
+      + '<div style="font-size:12px;color:#888;margin-bottom:12px;">Un code par société. Chez Dakar City, chacun garde ensuite son code personnel.</div>';
   SOCIETES.forEach(function(so){
     if(ESPACES_AVEC_CODE.indexOf(so.id)<0) return;
     var actuel=_codesEspaces[so.id];

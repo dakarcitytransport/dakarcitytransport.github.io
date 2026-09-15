@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.21.9';
+var DEP_VERSION = 'v1.22.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1541,8 +1541,8 @@ function injecterStyles(){
     +   '#s-dep-impression .content, #s-espaces .content, #s-etiquette .content, #s-archive .content, '
     +   '#s-stats .content { padding-bottom: 90px; }'
     // v1.19.78 : écran d'accueil (choix de l'espace) — DCT en carte "hero"
-    // pleine couleur (l'espace principal), les partenaires (Global
-    // Logistique, futur Mamadou Niass) groupés en dessous sous un
+    // pleine couleur (l'espace principal), les partenaires groupés en
+    // dessous sous un
     // intertitre "Partenaires", Administration réduite à un accès discret.
     + '.dep-esp-hero{background:linear-gradient(135deg,var(--green),var(--green-dark));border-radius:16px;'
     +   'padding:18px 16px;color:#fff;margin-bottom:16px;box-shadow:0 6px 18px rgba(0,154,68,.28);'
@@ -9827,17 +9827,18 @@ function greffer(){
 
   /* --- A quinquies. Écran d'accueil (niveau 1, choix de l'espace) :
      Dakar City Transport en carte "hero" pleine couleur (l'espace
-     principal), les partenaires (Global Logistique, + Mamadou Niass en
-     vitrine — son vrai compte sera créé "sur le tas" plus tard) groupés
-     sous un intertitre "Partenaires", Administration réduite à un accès
-     discret en bas d'écran plutôt qu'une carte à part entière. --- */
+     principal), les éventuels partenaires groupés sous un intertitre
+     "Partenaires", Administration réduite à un accès discret en bas
+     d'écran plutôt qu'une carte à part entière.
+     v1.22.0 : les espaces Global Logistique et Mamadou Niass ont été
+     supprimés — la section "Partenaires" reste en place mais ne
+     s'affiche plus tant qu'aucun partenaire n'est déclaré. --- */
   function _depVisuelSocieteIcone(so){
     if(so.id === 'DCT'){
       var lg = document.getElementById('dct-logo');
       var src = lg ? lg.getAttribute('src') : '';
       return '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;">';
     }
-    if(so.id === 'GL' && typeof _logoGL === 'function') return _logoGL(28);
     return '<span style="font-size:18px;">🔐</span>';
   }
   if(typeof window.retourEspaces === 'function' && !window.retourEspaces._depPatch){
@@ -9875,7 +9876,11 @@ function greffer(){
           + '</div></div>';
       }
 
-      html += '<div class="dep-esp-section-lbl">Partenaires</div>';
+      // v1.22.0 : l'intertitre n'apparaît que s'il reste au moins un
+      // partenaire — sinon il flottait tout seul au-dessus du vide.
+      if(partenaires.length){
+        html += '<div class="dep-esp-section-lbl">Partenaires</div>';
+      }
       partenaires.forEach(function(so){
         var susp = _societeSuspendue(so.id);
         var d = _detailSociete(so.id), v = (_espaceProtege(so.id) ? '🔒 ' : '') + d;
@@ -9890,18 +9895,6 @@ function greffer(){
           + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + so.color + '" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>'
           + '</div>';
       });
-      // Mamadou Niass : carte en vitrine, pas encore de compte réel derrière
-      // (son espace sera construit progressivement).
-      html += '<div class="dep-esp-mini" onclick="showToastNew(\'🚧 Espace Mamadou Niass en cours de création.\')">'
-        + '<div class="dep-esp-mini-ic" style="font-size:17px;">📦</div>'
-        + '<div style="flex:1;">'
-        +   '<div class="dep-esp-mini-ttl">Mamadou Niass</div>'
-        +   '<div class="dep-esp-mini-sub">Dépôt Parcelle Assainie</div>'
-        +   '<span class="dep-esp-mini-badge">🚧 Bientôt disponible</span>'
-        + '</div>'
-        + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c7c7c7" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>'
-        + '</div>';
-
       if(adm){
         html += '<div class="dep-esp-admin-discret" onclick="ouvrirEspaceProtege(\'' + adm.id + '\')">🔒 Administration</div>';
       }
