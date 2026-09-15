@@ -38,6 +38,20 @@ if(/[?&]facture=/.test(location.search)){
   }catch(e){}
 })();
 </script>
+<style>
+/* v3.57.4 : deux contenus périmés étaient entrevus au démarrage, le temps
+   que departs.js — chargé tout en bas de ce fichier — prenne la main.
+   - #app-update affiche une date écrite en dur, qui n'est jamais la bonne
+     (retour de Cobey du 29/08/2026). departs.js la masque depuis la
+     v1.19.79, mais trop tard : elle restait lisible ~90 ms. On la masque
+     donc ici, avant tout rendu.
+   - #app-version part vide (voir plus bas) et ne s'affiche qu'une fois
+     renseignée par buildLogin(), au lieu de montrer le « v1.0.0 » du
+     gabarit pendant une image. La règle :empty s'en charge toute seule,
+     sans rien à tenir à jour. */
+#app-update{display:none;}
+#app-version:empty{visibility:hidden;}
+</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -345,7 +359,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
        restait donc visible ~100 ms avant d'être remplacé. La réécriture
        côté module reste en place, sans effet, par sécurité. -->
     <div style="font-size:13px;color:var(--text3);margin-bottom:4px;">Sénégal</div>
-    <div id="app-version" style="font-size:11px;color:#aaa;font-weight:600;background:#f0f0f0;padding:3px 12px;border-radius:20px;display:inline-block;">v1.0.0</div>
+    <div id="app-version" style="font-size:11px;color:#aaa;font-weight:600;background:#f0f0f0;padding:3px 12px;border-radius:20px;display:inline-block;"></div>
     <div id="app-update" style="font-size:10px;color:#bbb;font-weight:500;margin-bottom:16px;"></div>
     <div id="admin-message-login" style="display:none;margin-bottom:16px;"></div>
     <div id="login-titre" style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;font-weight:600;">Choisissez votre espace</div>
@@ -1551,7 +1565,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.57.3';
+var APP_VERSION = 'v3.57.4';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
