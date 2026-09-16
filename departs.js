@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.25.5';
+var DEP_VERSION = 'v1.25.6';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -998,14 +998,21 @@ function _depLignesColis(c){
       return { nom:(l.nom||'Colis'), qte:qte, pu:pu,
                total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
     });
-    // v1.25.4 : le detail saisi fait foi, toujours. La v1.25.2 le jetait
-    // au profit d'une moyenne des que le prix global de la fiche ne
-    // tombait pas sur la somme des lignes — un prix negocie a la main
+    // v1.25.4 : le detail saisi fait foi sur les prix. La v1.25.2 le
+    // jetait au profit d'une moyenne des que le prix global de la fiche
+    // ne tombait pas sur la somme des lignes — un prix negocie a la main
     // suffisait a effacer le prix propre de chaque article (retour de
     // Cobey du 16/09/2026 : quatre colis affiches a 36,25 € chacun).
-    // C'est desormais l'inverse : le total de la facture est la somme des
-    // lignes (voir _depTotalColis).
-    return lignes;
+    //
+    // v1.25.6 : mais la description, elle, est tenue a jour par tous les
+    // ecrans de l'appli, y compris ceux qui ignorent encore le detail.
+    // Quand les deux ne racontent plus la meme chose, c'est la
+    // description qui est la plus recente : un colis ajoute ailleurs
+    // doit apparaitre sur la facture, pas rester invisible derriere un
+    // detail perime (retour de Cobey du 16/09/2026). On garde alors les
+    // prix deja connus, article par article.
+    if(_depDetailConcorde(lignes, c)) return lignes;
+    return _depLignesRecollees(lignes, c);
   }
   var nb    = parseInt(c.nbColis, 10) || 1;
   var total = parseFloat(c.prix) || 0;
@@ -1015,6 +1022,72 @@ function _depLignesColis(c){
   return _depLignesDepuisTexte(c.colis, nb, total);
 }
 
+// v1.25.6 — Le detail enregistre raconte-t-il la meme chose que la
+// description de la fiche ? Tous les ecrans tiennent `colis` a jour ;
+// `colisDetail` n'est ecrit que par ceux qui ont l'editeur de lignes. Un
+// ecart signifie donc que le detail a pris du retard.
+function _depDetailConcorde(lignes, c){
+  var attendus = _depItemsDescription(c.colis);
+  if(!attendus.length) return true;              // pas de description : rien a comparer
+  if(attendus.length !== lignes.length) return false;
+  var nbFiche = parseInt(c.nbColis, 10) || 0;
+  if(nbFiche){
+    var nbLignes = lignes.reduce(function(s, l){ return s + (l.qte || 0); }, 0);
+    if(nbLignes !== nbFiche) return false;
+  }
+  return attendus.every(function(it, i){
+    return _depNomEgal(it.nom, lignes[i].nom);
+  });
+}
+
+function _depNomEgal(a, b){ return _depCleNom(a) === _depCleNom(b); }
+
+// Recolle la description a jour avec les prix deja connus : chaque article
+// retrouve son prix si on l'avait, et ce qui reste du total se repartit
+// sur les nouveaux. Un colis ajoute depuis un ecran sans editeur apparait
+// ainsi sur la facture au lieu de rester invisible.
+function _depLignesRecollees(lignes, c){
+  var connus = {};
+  lignes.forEach(function(l){ connus[_depCleNom(l.nom)] = l; });
+
+  var items = _depItemsDescription(c.colis);
+  var restants = [];
+  var lignesFinales = items.map(function(it){
+    var ref = connus[_depCleNom(it.nom)];
+    if(ref){
+      var t = Math.round(ref.pu * it.qte * 100) / 100;
+      return { nom:it.nom, qte:it.qte, pu:ref.pu, total:t };
+    }
+    var neuf = { nom:it.nom, qte:it.qte, pu:0, total:0 };
+    restants.push(neuf);
+    return neuf;
+  });
+
+  // Ce qui reste du prix de la fiche va aux articles dont on ignore le prix.
+  if(restants.length){
+    var deja = lignesFinales.reduce(function(s, l){ return s + l.total; }, 0);
+    var reste = (parseFloat(c.prix) || 0) - deja;
+    if(reste > 0){
+      var qteRestante = restants.reduce(function(s, l){ return s + l.qte; }, 0) || 1;
+      var cumul = 0;
+      restants.forEach(function(l, i){
+        l.total = (i === restants.length - 1)
+          ? Math.round((reste - cumul) * 100) / 100
+          : Math.round(reste / qteRestante * l.qte * 100) / 100;
+        cumul += l.total;
+        l.pu = Math.round(l.total / l.qte * 100) / 100;
+      });
+    }
+  }
+  return lignesFinales;
+}
+
+function _depCleNom(x){
+  var s = String(x || '').trim().toLowerCase();
+  try{ s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }catch(e){}
+  return s;
+}
+
 // v1.25.3 — Reconstitution d'un detail a partir de la description libre.
 // Les fiches d'avant les lignes n'ont qu'une phrase ("2 Fut 270 L, Valise")
 // et un prix global. On imprimait tout ca sur une seule ligne de facture,
@@ -1022,7 +1095,9 @@ function _depLignesColis(c){
 // decoupe donc article par article, et on repartit le prix au prorata des
 // quantites — le dernier article absorbe l'arrondi pour que la somme des
 // lignes fasse toujours le total exact.
-function _depLignesDepuisTexte(texte, nbColis, total){
+// Decoupe la description libre en articles, sans prix. Partagee entre la
+// reconstitution d'un detail absent et le recollage d'un detail perime.
+function _depItemsDescription(texte, nbColis){
   var brut = String(texte || '').split(/\s*(?:,|;|\+|\bet\b)\s*/);
   var items = [];
   brut.forEach(function(m){
@@ -1038,8 +1113,6 @@ function _depLignesDepuisTexte(texte, nbColis, total){
     items.push({ nom:nom, qte:q, brut:m });
   });
 
-  if(!items.length) items = [{ nom:'Colis', qte:(parseInt(nbColis,10) || 1) }];
-
   // Un nombre en tete n'est une quantite que si le compte tombe juste :
   // "270 L de gasoil" sur une fiche a 1 colis, c'est un libelle, pas 270
   // colis. Quand le total ne colle pas au nombre de colis de la fiche, on
@@ -1049,6 +1122,12 @@ function _depLignesDepuisTexte(texte, nbColis, total){
   if(nbFiche > 0 && sommeLue > nbFiche){
     items.forEach(function(i){ i.qte = 1; if(i.brut) i.nom = i.brut; });
   }
+  return items;
+}
+
+function _depLignesDepuisTexte(texte, nbColis, total){
+  var items = _depItemsDescription(texte, nbColis);
+  if(!items.length) items = [{ nom:'Colis', qte:(parseInt(nbColis,10) || 1) }];
 
   var sommeQte = items.reduce(function(s, i){ return s + i.qte; }, 0) || 1;
   var parColis = total / sommeQte;
@@ -10064,6 +10143,14 @@ window.depValiderConfirmer = function(){
     historiqueDepart: fiche.historiqueDepart || null,
     prix: fiche.prix,
     prixADefinir: !!fiche.prixADefinir,
+    // v1.25.6 : le detail ligne par ligne DOIT figurer dans cette
+    // ecriture ciblee. Sans lui, il ne vivait qu'en memoire : le
+    // sauvegarder() debounce (800 ms) arrivait apres la resynchronisation
+    // temps real, qui rendait la fiche telle qu'elle etait sur le serveur
+    // — sans detail. Un colis ajoute a la validation disparaissait donc
+    // de la facture (retour de Cobey du 16/09/2026 : "j'ai rajouté une
+    // télé à 45 euros, il ne l'a pas mise sur la facture").
+    colisDetail: fiche.colisDetail || null,
     aPhotoColis: true,
     hist: fiche.hist
   });
@@ -10944,6 +11031,21 @@ function greffer(){
           // depActivite() écrit sur Firebase, ce qui peut redéclencher la
           // synchro temps réel et détacher cette référence locale — tout
           // doit déjà être posé avant.
+          // v1.25.6 : ecriture ciblee immediate du detail et du prix, pour
+          // la meme raison qu'a la validation (voir depValiderConfirmer) :
+          // sauvegarder() est debounce de 800 ms et la resynchronisation
+          // temps reel peut le devancer, rendant la fiche telle qu'elle
+          // est encore sur le serveur — sans le colis qu'on vient
+          // d'ajouter.
+          if(extras.colisDetail && extras.colisDetail.length){
+            _depEcrireClient({ collecteId: colId, clientId: id }, {
+              colisDetail: extras.colisDetail,
+              colis: fiche.colis || '',
+              nbColis: fiche.nbColis || 1,
+              prix: fiche.prix,
+              prixADefinir: !!fiche.prixADefinir
+            });
+          }
           _depTracerModifsFacture(fiche, avant);
           sauvegarder();
         }
