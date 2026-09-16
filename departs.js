@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.24.2';
+var DEP_VERSION = 'v1.25.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1032,10 +1032,14 @@ window._depMajDepuisLignes = _depMajDepuisLignes;
 // client-la, remise comprise. Le catalogue reste la reference.
 var _depLignesEdit  = [];   // les lignes en cours d'edition
 var _depLignesCible = '';   // conteneur dans lequel on dessine
+var _depLignesSuivi = null; // appele a chaque changement (total, nb colis)
 
 // Ouvre l'editeur sur un jeu de lignes. Rendre les lignes : depLignesValeur().
-window.depEditerLignes = function(containerId, lignes){
+// onChange (optionnel) est rappele a chaque modification, avec le total et le
+// nombre de colis — l'ecran hote s'en sert pour garder ses champs a jour.
+window.depEditerLignes = function(containerId, lignes, onChange){
   _depLignesCible = containerId;
+  _depLignesSuivi = (typeof onChange === 'function') ? onChange : null;
   _depLignesEdit  = (lignes || []).map(function(l){
     var qte = parseFloat(l.qte) || 1, pu = parseFloat(l.pu) || 0;
     return { nom:(l.nom||'Colis'), qte:qte, pu:pu,
@@ -1130,6 +1134,9 @@ function _depRenderLignes(){
       +  '</div>';
   }
   box.innerHTML = h;
+  if(_depLignesSuivi){
+    try{ _depLignesSuivi(_depLignesTotal(), _depLignesNbColis(), depLignesValeur()); }catch(e){}
+  }
 }
 
 window.depLigneAjouterCatalogue = function(){
@@ -2491,6 +2498,13 @@ function injecterEcrans(){
   // l'étiquette (voir depOuvrirEtiquette).
   +     '<div class="fg"><label class="fl">Nombre de colis</label><input class="fi" id="dv-nb" type="number" min="1" value="1" style="font-size:18px;font-weight:700;text-align:center;"></div>'
   +     '<div class="fg"><textarea class="fi" id="dv-colis" rows="3" placeholder="ex: 2 valises + 1 carton..." style="resize:none;"></textarea></div>'
+
+  // v1.25.0 : le detail ligne par ligne. Une ligne = un article, avec son
+  // prix ; le nombre de colis et le montant de la facture se deduisent des
+  // lignes. Un prix change ici (remise) reste propre a ce client : le
+  // catalogue Prix articles n'est jamais touche.
+  +     '<div class="dep-sec">D&eacute;tail des colis</div>'
+  +     '<div id="dv-lignes" style="margin-bottom:14px;"></div>'
 
   +     '<div class="dep-sec">Prix (&euro;)</div>'
   +     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">'
@@ -9414,6 +9428,38 @@ function _depTracerModifsFacture(fiche, avant){
    récap projet pour le contexte de ce changement.
    ───────────────────────────────────────────── */
 
+/* v1.25.0 — Les lignes commandent.
+   A chaque ajout, suppression ou changement de prix, le nombre de colis et
+   le montant se recalculent tout seuls : ce sont les lignes qui font foi,
+   plus une saisie separee. Le champ prix reste modifiable a la main (il
+   ecrase alors le total des lignes, pour un forfait negocie). */
+function _depValiderLignesMaj(total, nbColis, lignes){
+  var ctx = _depValiderCtx;
+  if(!ctx) return;
+
+  var nbEl = $('dv-nb');
+  if(nbEl && nbColis > 0) nbEl.value = nbColis;
+
+  var colisEl = $('dv-colis');
+  if(colisEl && lignes && lignes.length){
+    colisEl.value = lignes.map(function(l){
+      // Les fiches d'avant les lignes ont leur quantite dans le libelle
+      // ("2 valises") : on ne la remet pas devant une deuxieme fois.
+      var deja = /^\s*\d/.test(l.nom || '');
+      return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
+    }).join(', ');
+  }
+
+  // Un client dont le prix reste "a definir" et dont les lignes ne valent
+  // rien encore garde son affichage d'attente.
+  var fiche = (typeof getClients === 'function') ? (getClients()[ctx.clientId] || {}) : {};
+  if(total <= 0 && fiche.prixADefinir && ctx.prixModifie == null) return;
+
+  ctx.prixModifie = total;
+  var pAff = $('dv-prix-affiche'); if(pAff) pAff.textContent = total + ' €';
+  var pInp = $('dv-prix-input');   if(pInp) pInp.value = total;
+}
+
 window.depOuvrirValidation = function(id, tk, name, prix){
   var fiche = (typeof getClients === 'function') ? getClients()[id] : null;
   if(!fiche){ toast('⚠️ Client introuvable.'); return; }
@@ -9431,6 +9477,13 @@ window.depOuvrirValidation = function(id, tk, name, prix){
   var pInp = $('dv-prix-input'); if(pInp){ pInp.value = fiche.prixADefinir ? '' : pay.total; pInp.style.display = 'none'; }
   var pBtn = $('dv-prix-btn'); if(pBtn) pBtn.style.display = 'inline-block';
   var pConf = $('dv-prix-confirm-btn'); if(pConf) pConf.style.display = 'none'; // v1.19.46
+
+  // v1.25.0 : l'editeur de lignes pilote le nombre de colis et le prix.
+  // On part des lignes deja enregistrees, ou d'une ligne reconstituee a
+  // partir de la fiche pour les clients inscrits avant cette version.
+  if(typeof window.depEditerLignes === 'function'){
+    window.depEditerLignes('dv-lignes', window._depLignesColis(fiche), _depValiderLignesMaj);
+  }
 
   window.depRetirerPhotoValider();
 
@@ -9695,6 +9748,13 @@ window.depValiderConfirmer = function(){
   if(colisEl) fiche.colis = colisEl.value.trim();
   var nbEl = $('dv-nb');
   if(nbEl) fiche.nbColis = parseInt(nbEl.value, 10) || 1;
+
+  // v1.25.0 : on garde le detail ligne par ligne sur la fiche — c'est lui
+  // que la facture imprime ensuite, une ligne par article.
+  if(typeof window.depLignesValeur === 'function'){
+    var lg = window.depLignesValeur();
+    if(lg && lg.length) fiche.colisDetail = lg;
+  }
 
   if(ctx.prixModifie !== null && ctx.prixModifie !== undefined){
     fiche.prix = ctx.prixModifie;
