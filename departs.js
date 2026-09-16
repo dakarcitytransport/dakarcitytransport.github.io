@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.24.1';
+var DEP_VERSION = 'v1.24.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1032,12 +1032,10 @@ window._depMajDepuisLignes = _depMajDepuisLignes;
 // client-la, remise comprise. Le catalogue reste la reference.
 var _depLignesEdit  = [];   // les lignes en cours d'edition
 var _depLignesCible = '';   // conteneur dans lequel on dessine
-var _depLignesTheme = '';   // theme choisi dans le selecteur
 
 // Ouvre l'editeur sur un jeu de lignes. Rendre les lignes : depLignesValeur().
 window.depEditerLignes = function(containerId, lignes){
   _depLignesCible = containerId;
-  _depLignesTheme = '';
   _depLignesEdit  = (lignes || []).map(function(l){
     var qte = parseFloat(l.qte) || 1, pu = parseFloat(l.pu) || 0;
     return { nom:(l.nom||'Colis'), qte:qte, pu:pu,
@@ -1064,49 +1062,32 @@ function _depCatalogue(){
   var d = window.prixArticlesData || {};
   return Object.keys(d).map(function(k){ return Object.assign({_id:k}, d[k]); });
 }
-function _depCatalogueThemes(){
-  var vus = {}, out = [];
-  _depCatalogue().forEach(function(a){
-    var t = (a.theme||'').trim() || 'Sans thème';
-    if(!vus[t]){ vus[t] = 1; out.push(t); }
+// v1.24.2 : plus de selecteur de theme. Les categories venaient de
+// Cargo 360 ; ici tout part en maritime, un seul menu suffit.
+function _depCatalogueProduits(){
+  return _depCatalogue().sort(function(a,b){
+    return (a.nom||'').localeCompare(b.nom||'');
   });
-  return out.sort();
-}
-function _depCatalogueProduits(theme){
-  return _depCatalogue().filter(function(a){
-    return ((a.theme||'').trim() || 'Sans thème') === theme;
-  }).sort(function(a,b){ return (a.nom||'').localeCompare(b.nom||''); });
 }
 
 function _depRenderLignes(){
   var box = document.getElementById(_depLignesCible);
   if(!box) return;
-  var themes = _depCatalogueThemes();
+  var prods = _depCatalogueProduits();
 
   var h = '';
 
   // ── Choix au catalogue ──
-  if(themes.length){
-    h += '<div style="display:flex;gap:8px;margin-bottom:8px;">'
-      +   '<select class="fi" id="dl-theme" onchange="depLigneThemeChange()" style="flex:1;margin:0;">'
-      +     '<option value="">— Thème —</option>'
-      +     themes.map(function(t){
-              return '<option value="'+esc(t)+'"'+(t===_depLignesTheme?' selected':'')+'>'+esc(t)+'</option>';
+  if(prods.length){
+    h += '<div style="display:flex;gap:8px;margin-bottom:10px;">'
+      +   '<select class="fi" id="dl-produit" style="flex:1;margin:0;">'
+      +     '<option value="">— Choisir un article —</option>'
+      +     prods.map(function(a){
+              return '<option value="'+esc(a._id)+'">'+esc(a.nom)+' · '+(parseFloat(a.prix)||0)+' €</option>';
             }).join('')
       +   '</select>'
+      +   '<button type="button" class="dep-cli-btn" onclick="depLigneAjouterCatalogue()" style="flex-shrink:0;">+ Ajouter</button>'
       + '</div>';
-    if(_depLignesTheme){
-      var prods = _depCatalogueProduits(_depLignesTheme);
-      h += '<div style="display:flex;gap:8px;margin-bottom:10px;">'
-        +   '<select class="fi" id="dl-produit" style="flex:1;margin:0;">'
-        +     '<option value="">— Produit —</option>'
-        +     prods.map(function(a){
-                return '<option value="'+esc(a._id)+'">'+esc(a.nom)+' · '+(parseFloat(a.prix)||0)+' €</option>';
-              }).join('')
-        +   '</select>'
-        +   '<button type="button" class="dep-cli-btn" onclick="depLigneAjouterCatalogue()" style="flex-shrink:0;">+ Ajouter</button>'
-        + '</div>';
-    }
   }
 
   // ── Ligne libre ──
@@ -1150,12 +1131,6 @@ function _depRenderLignes(){
   }
   box.innerHTML = h;
 }
-
-window.depLigneThemeChange = function(){
-  var s = document.getElementById('dl-theme');
-  _depLignesTheme = s ? s.value : '';
-  _depRenderLignes();
-};
 
 window.depLigneAjouterCatalogue = function(){
   var s = document.getElementById('dl-produit');
