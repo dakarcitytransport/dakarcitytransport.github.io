@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.61.0';
+var APP_VERSION = 'v3.62.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -9231,6 +9231,91 @@ function _updateNumeros(){
   });
 }
 
+// ═══════════ DISTANCE RÉELLE PAR LA ROUTE — v3.62.0 ═══════════
+// L'estimation à vol d'oiseau majorée de 30 % ignore les rues, les sens
+// uniques et les obstacles : deux points séparés par l'autoroute sans
+// échangeur proche étaient largement sous-estimés. On interroge donc un
+// service de calcul d'itinéraire, qui rend la vraie distance, le vrai
+// temps, et le tracé à suivre.
+//
+// Tant que ORS_KEY est vide, rien ne change : l'estimation à vol d'oiseau
+// reste seule affichée. Renseigner la clé suffit à tout activer.
+// Clé gratuite : openrouteservice.org (2000 requêtes/jour).
+var ORS_KEY = '';
+var ORS_MAX_POINTS = 50;          // limite de l'offre gratuite
+var _routeTimer = null;           // temporisation entre deux clics
+var _routeSeq = 0;                // ignore les réponses d'une sélection périmée
+
+function _demanderRouteReelle(){
+  if(!ORS_KEY) return;
+  if(!_mapSelection || _mapSelection.length < 2) return;
+  if(_mapSelection.length > ORS_MAX_POINTS) return;
+  clearTimeout(_routeTimer);
+  // On attend que l'utilisateur ait fini de cliquer : sans ça, monter une
+  // tournée de dix clients déclencherait dix appels réseau.
+  _routeTimer = setTimeout(_calculerRouteReelle, 700);
+}
+
+function _calculerRouteReelle(){
+  var seq = ++_routeSeq;
+  var coords = _mapSelection.map(function(sel){
+    var m = _mapMarkers[sel.id];
+    if(!m) return null;
+    var ll = m.getLatLng();
+    return [ll.lng, ll.lat];      // le service attend lon,lat
+  }).filter(Boolean);
+  if(coords.length < 2) return;
+
+  var el = document.getElementById('carte-distance');
+  if(el) el.textContent = '📏 calcul de l\'itinéraire…';
+
+  fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
+    method : 'POST',
+    headers: { 'Authorization': ORS_KEY, 'Content-Type': 'application/json' },
+    body   : JSON.stringify({ coordinates: coords })
+  })
+  .then(function(r){ return r.ok ? r.json() : Promise.reject('HTTP ' + r.status); })
+  .then(function(j){
+    // Une sélection plus récente a pris le relais : cette réponse est périmée.
+    if(seq !== _routeSeq) return;
+    var f = (j && j.features || [])[0];
+    var sum = f && f.properties && f.properties.summary;
+    if(!sum) return _routeEchouee('réponse inattendue');
+
+    var km   = (Math.round(sum.distance / 100) / 10).toFixed(1).replace('.', ',');
+    var mins = Math.round(sum.duration / 60);
+    var d = document.getElementById('carte-distance');
+    if(d) d.textContent = '📏 ' + km + ' km · ⏱ ' + mins + ' min · par la route';
+
+    // Le tracé suit désormais les routes, en trait plein.
+    var g = f.geometry && f.geometry.coordinates;
+    if(g && g.length && _mapInstance){
+      if(_mapPolyline){ try{ _mapPolyline.remove(); }catch(e){} }
+      _mapPolyline = L.polyline(g.map(function(c){ return [c[1], c[0]]; }),
+        { color:'#e65100', weight:4, opacity:0.85 }).addTo(_mapInstance);
+    }
+  })
+  .catch(function(err){
+    if(seq !== _routeSeq) return;
+    _routeEchouee(err);
+  });
+}
+
+// Réseau coupé, quota dépassé, clé invalide : on retombe sur l'estimation,
+// en le disant. En tournée le réseau lâche, ce cas n'a rien d'exceptionnel.
+function _routeEchouee(raison){
+  console.log('routage indisponible :', raison);
+  var totalDist = 0;
+  for(var i=0;i<_mapSelection.length-1;i++){
+    var mA = _mapMarkers[_mapSelection[i].id];
+    var mB = _mapMarkers[_mapSelection[i+1].id];
+    if(mA && mB) totalDist += mA.getLatLng().distanceTo(mB.getLatLng());
+  }
+  var km = Math.round(totalDist/1000*1.3);
+  var el = document.getElementById('carte-distance');
+  if(el) el.textContent = '📏 ~' + km + ' km · ⏱ ~' + Math.round(km*2.2) + ' min · à vol d\'oiseau';
+}
+
 function _updateSelectionUI(){
   var zone = document.getElementById('carte-selection');
   if(!zone) return;
@@ -9257,7 +9342,8 @@ function _updateSelectionUI(){
     return;
   }
 
-  // Distance estimée
+  // Distance : estimation immédiate à vol d'oiseau, puis — si une clé de
+  // routage est configurée — la vraie distance par la route (v3.62.0).
   if(_mapSelection.length > 1){
     var totalDist = 0;
     for(var i=0;i<_mapSelection.length-1;i++){
@@ -9268,9 +9354,11 @@ function _updateSelectionUI(){
     var km = Math.round(totalDist/1000*1.3);
     var mins = Math.round(km*2.2);
     var dist = document.createElement('div');
+    dist.id = 'carte-distance';
     dist.style.cssText = 'font-size:11px;color:#e65100;font-weight:700;margin-bottom:6px;width:100%;';
-    dist.textContent = '📏 ~'+km+' km · ⏱ ~'+mins+' min estimés';
+    dist.textContent = '📏 ~'+km+' km · ⏱ ~'+mins+' min · à vol d\'oiseau';
     zone.appendChild(dist);
+    _demanderRouteReelle();
   }
 
   // Pills clients sélectionnés
