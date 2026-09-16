@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.25.0';
+var DEP_VERSION = 'v1.25.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1001,6 +1001,9 @@ function _depLignesColis(c){
   }
   var nb    = parseInt(c.nbColis, 10) || 1;
   var total = parseFloat(c.prix) || 0;
+  // v1.25.1 : rien a reconstituer — ni description ni prix. Mieux vaut un
+  // editeur vide qu'une ligne "Colis · 0 €" a effacer a la main.
+  if(!c.colis && !total) return [];
   return [{ nom:(c.colis || 'Colis'), qte:nb,
             pu:(nb ? Math.round(total/nb*100)/100 : total), total:total }];
 }
@@ -1038,6 +1041,12 @@ var _depLignesSuivi = null; // appele a chaque changement (total, nb colis)
 // onChange (optionnel) est rappele a chaque modification, avec le total et le
 // nombre de colis — l'ecran hote s'en sert pour garder ses champs a jour.
 window.depEditerLignes = function(containerId, lignes, onChange){
+  // v1.25.1 : on vide l'ancien conteneur — deux editeurs dessines en meme
+  // temps, c'est deux fois les memes identifiants de champ dans la page.
+  if(_depLignesCible && _depLignesCible !== containerId){
+    var vieux = document.getElementById(_depLignesCible);
+    if(vieux) vieux.innerHTML = '';
+  }
   _depLignesCible = containerId;
   _depLignesSuivi = (typeof onChange === 'function') ? onChange : null;
   _depLignesEdit  = (lignes || []).map(function(l){
@@ -1072,6 +1081,18 @@ function _depCatalogueProduits(){
   return _depCatalogue().sort(function(a,b){
     return (a.nom||'').localeCompare(b.nom||'');
   });
+}
+
+// v1.25.1 : l'editeur vit maintenant a deux endroits (inscription et
+// validation). Les deux conteneurs portaient les memes identifiants de
+// champ, et getElementById rendait toujours le premier du document —
+// celui du formulaire d'inscription, reste vide : on tapait un nom dans
+// l'ecran Valider et l'appli repondait "Donnez un nom a l'article"
+// (retour de Cobey du 16/09/2026). On cherche desormais les champs dans
+// le conteneur en cours, jamais dans tout le document.
+function _depLigneChamp(id){
+  var box = document.getElementById(_depLignesCible);
+  return box ? box.querySelector('#' + id) : null;
 }
 
 function _depRenderLignes(){
@@ -1140,7 +1161,7 @@ function _depRenderLignes(){
 }
 
 window.depLigneAjouterCatalogue = function(){
-  var s = document.getElementById('dl-produit');
+  var s = _depLigneChamp('dl-produit');
   var id = s ? s.value : '';
   if(!id){ toast('⚠️ Choisissez un produit.'); return; }
   var a = (window.prixArticlesData || {})[id];
@@ -1153,8 +1174,8 @@ window.depLigneAjouterCatalogue = function(){
 };
 
 window.depLigneAjouterLibre = function(){
-  var n = document.getElementById('dl-libre-nom');
-  var p = document.getElementById('dl-libre-prix');
+  var n = _depLigneChamp('dl-libre-nom');
+  var p = _depLigneChamp('dl-libre-prix');
   var nom = ((n && n.value) || '').trim();
   var pu  = parseFloat(p && p.value) || 0;
   if(!nom){ toast('⚠️ Donnez un nom à l\'article.'); return; }
@@ -6176,7 +6197,11 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
   var totalColisTxt = prixIndefiniPub ? 'à définir' : (totalColis + ' €');
   // Une ligne de tableau par article, numerotees a la suite.
   function _depLignesFacture(cl, indefini){
-    return _depLignesColis(cl).map(function(l, i){
+    var lg = _depLignesColis(cl);
+    // v1.25.1 : une facture garde toujours au moins une ligne de colis,
+    // meme pour une fiche sans description ni prix.
+    if(!lg.length) lg = [{ nom:(cl.colis || 'Colis'), qte:(parseInt(cl.nbColis,10)||1), pu:0, total:0 }];
+    return lg.map(function(l, i){
       var pu  = indefini ? 'à définir' : (l.pu + ' €');
       var mtt = indefini ? 'à définir' : (l.total + ' €');
       return '<tr><td>'+(i+1)+'</td><td>'+esc(l.nom)+'</td><td>'+l.qte+'</td>'
