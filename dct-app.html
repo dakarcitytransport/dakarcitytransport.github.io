@@ -1578,7 +1578,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.59.0';
+var APP_VERSION = 'v3.59.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3411,6 +3411,7 @@ var FR_STATUTS = {
 
 function ouvrirFrance(){
   franceTab='clients'; franceFiltre='attente'; franceRegion=''; franceDept='';
+  currentCollecteFrId='';
   var q=document.getElementById('fr-q'); if(q) q.value='';
   var a=document.getElementById('fr-av');
   if(a && currentUser){ a.textContent=currentUser.id; a.style.background=currentUser.bg; a.style.color=currentUser.color; a.style.border='2px solid '+currentUser.color; }
@@ -3420,9 +3421,14 @@ function ouvrirFrance(){
 
 function switchFranceTab(t){
   franceTab=t;
-  // v3.58.2 : trois onglets. La Collecte de Paris n'en a que deux
-  // (Clients / Dispatch) ; ici le vivier des inscrits vit sa propre vie,
-  // indépendamment des collectes datées, d'où l'onglet Suivi en plus.
+  // v3.59.1 : Dispatch n'apparaît qu'une fois une collecte ouverte, comme
+  // à Paris où c'est un sous-onglet de la collecte et non de l'accueil.
+  // Tant qu'aucune n'est ouverte, l'onglet n'aurait rien à montrer.
+  var ouverte = !!(currentCollecteFrId && _frCollectes()[currentCollecteFrId]);
+  if(t==='dispatch' && !ouverte) t='collectes';
+  franceTab=t;
+  var dsp=document.getElementById('ftab-dispatch');
+  if(dsp) dsp.style.display = ouverte ? 'block' : 'none';
   [['ftab-clients','clients'],['ftab-collectes','collectes'],['ftab-dispatch','dispatch']].forEach(function(x){
     var e=document.getElementById(x[0]);
     if(e) e.className='subtab'+(t===x[1]?' active':'');
@@ -4252,7 +4258,7 @@ function _frTournees(){
 // ═══════════════════════════════════════════════════════════
 
 var FR_COULEURS_CAMION = ['#1a237e','#e65100','#6b21a8','#1a7a40','#c0392b','#00838f','#4a148c','#f57f17'];
-var currentCollecteFrId = '';   // la collecte ouvert, comme currentCollecteId
+var currentCollecteFrId = '';   // la collecte ouverte, comme currentCollecteId
 var _fcStatutId = '';          // celui dont on change le statut
 
 function _frCollectes(){ return franceData.collectes || {}; }
@@ -4383,7 +4389,7 @@ function creerCollecteFrance(){
 
 // ── Ouvrir / fermer / statut / supprimer ──
 function ouvrirCollecteFrance(id){ currentCollecteFrId=id; switchFranceTab('dispatch'); }
-function fermerCollecteFrance(){ switchFranceTab('collectes'); }
+function fermerCollecteFrance(){ currentCollecteFrId=''; switchFranceTab('collectes'); }
 
 function ouvrirStatutCollecteFr(id){
   _fcStatutId=id;
@@ -4458,8 +4464,8 @@ function supprimerCollecteFrance(id){
   });
   maj['collectes/'+id]=null;
   db.ref('france').update(maj).then(function(){
-    showToastNew('🗑️ Collecte supprimé');
-    if(currentCollecteFrId===id) currentCollecteFrId='';
+    showToastNew('🗑️ Collecte supprimée');
+    if(currentCollecteFrId===id){ currentCollecteFrId=''; switchFranceTab('collectes'); return; }
     renderFrance();
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
 }
@@ -4662,7 +4668,7 @@ function _confirmerAddTruckFrance(){
   var p=_frSauverCollecte(r);
   if(p) p.then(function(){
     showToastNew('🚛 Camion « '+nom+' » créé');
-    _activiteFrance('🚛','a ajouté le camion <strong>'+nom+'</strong> au collecte du '+r.dateLib);
+    _activiteFrance('🚛','a ajouté le camion <strong>'+nom+'</strong> à la collecte du '+r.dateLib);
     renderFrance();
     if(_frPendingAffect){ _frPendingAffect=false; setTimeout(ouvrirAffectCamionFrance,350); }
   });
@@ -4823,11 +4829,11 @@ function marquerRamasseSel(){
 
 // ── L'onglet Dispatch ──
 // Deux vues, comme la Collecte : la liste des collectes, et le
-// collecte ouvert avec ses camions.
+// collecte ouverte avec ses camions.
 function _frDispatch(){
-  // La collecte ouverte, ou à défaut celle en cours : on ne tombe sur
-  // l'écran vide que s'il n'y a vraiment aucune collecte ouverte.
-  var r=_frCollecteActive();
+  // L'onglet n'est atteignable qu'avec une collecte ouverte ; ce repli ne
+  // sert que si elle vient d'être supprimée sous nos pieds.
+  var r=(currentCollecteFrId && _frCollectes()[currentCollecteFrId]) ? _frCollecteActive() : null;
   if(!r){
     return _frVide('Aucune collecte ouverte.'
       + (_peutGererFrance()?'<br>Passez par l\'onglet Collectes pour en créer une.':''))
@@ -4909,7 +4915,7 @@ function _frCarteCollecte(r){
     + '</div></div>';
 }
 
-// ── La collecte ouvert : ses camions ──
+// ── La collecte ouverte : ses camions ──
 function _frDispatchDetail(r){
   var gere=_peutGererFrance() && r.statut!=='terminee';
   var trks=r.trucks||{};
