@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.22.4';
+var DEP_VERSION = 'v1.23.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2297,14 +2297,19 @@ function injecterEcrans(){
   +     '<div class="dep-sec">Prix (&euro;)</div>'
   +     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">'
   +       '<div id="dv-prix-affiche" style="flex:1;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:13px;text-align:center;font-size:20px;font-weight:800;">0 &euro;</div>'
-  // v1.19.46 : la saisie ne s'appliquait plus qu'en tapant les chiffres,
-  // sans aucune confirmation — retour de Cobey du 24/08/2026 : "c'est pas
-  // sécurisant, faut valider pour confirmation". Un bouton "✓ Valider ce
-  // prix" explicite est désormais requis (voir depValiderConfirmerPrix) ;
-  // tant qu'on n'a pas appuyé dessus, l'ancien prix reste celui retenu.
-  +       '<input class="fi" id="dv-prix-input" type="number" min="0" style="display:none;flex:1;font-size:20px;font-weight:700;text-align:center;padding:13px;margin:0;">'
+  // v1.19.46 : un bouton "✓ Valider ce prix" confirmait la saisie, l'ancien
+  // prix restant retenu tant qu'on n'avait pas appuyé dessus.
+  // v1.23.0 : ce bouton disparaît. Le montant saisi est le montant de la
+  // facture — la touche Entrée referme simplement la saisie, et le champ
+  // reste synchronisé à la frappe pour qu'aucun montant ne se perde si on
+  // passe directement au bouton du bas. La sécurité est reportée là où
+  // elle compte : une confirmation du prix avant d'ouvrir la facture
+  // (voir depValiderConfirmer).
+  +       '<input class="fi" id="dv-prix-input" type="number" min="0" inputmode="decimal" enterkeyhint="done"'
+  +          ' oninput="depValiderPrixSaisi()" onkeydown="if(event.key===\'Enter\'){event.preventDefault();depValiderConfirmerPrix();}"'
+  +          ' style="display:none;flex:1;font-size:20px;font-weight:700;text-align:center;padding:13px;margin:0;">'
   +       '<button type="button" class="dep-cli-btn" id="dv-prix-btn" onclick="depValiderModifierPrix()">&#9999;&#65039; Modifier</button>'
-  +       '<button type="button" class="dep-cli-btn" id="dv-prix-confirm-btn" style="display:none;background:var(--green-light);border-color:#C8E6D0;color:var(--green-dark);" onclick="depValiderConfirmerPrix()">&#10003; Valider ce prix</button>'
+  +       '<button type="button" class="dep-cli-btn" id="dv-prix-confirm-btn" style="display:none !important;background:var(--green-light);border-color:#C8E6D0;color:var(--green-dark);" onclick="depValiderConfirmerPrix()">&#10003; Valider ce prix</button>'
   +     '</div>'
 
   +     '<div class="dep-sec">Photo du colis <span style="color:#992020;">*</span></div>'
@@ -9271,11 +9276,22 @@ window.depValiderAnnuler = function(){
 };
 
 window.depValiderModifierPrix = function(){
-  var disp = $('dv-prix-affiche'), inp = $('dv-prix-input'), btn = $('dv-prix-btn'), conf = $('dv-prix-confirm-btn');
+  var disp = $('dv-prix-affiche'), inp = $('dv-prix-input'), btn = $('dv-prix-btn');
   if(disp) disp.style.display = 'none';
   if(btn) btn.style.display = 'none';
-  if(conf) conf.style.display = 'inline-block'; // v1.19.46
-  if(inp){ inp.style.display = 'block'; inp.focus(); }
+  if(inp){ inp.style.display = 'block'; inp.focus(); inp.select && inp.select(); }
+};
+
+// v1.23.0 : le montant saisi s'applique a la frappe. Sans ca, taper un
+// prix puis aller directement au bouton du bas perdait la saisie — c'est
+// ce que l'ancien bouton "Valider ce prix" evitait.
+window.depValiderPrixSaisi = function(){
+  var inp = $('dv-prix-input');
+  if(!inp || !_depValiderCtx) return;
+  var t = String(inp.value || '').trim();
+  if(t === ''){ _depValiderCtx.prixModifie = null; return; }
+  var v = parseFloat(t);
+  if(!isNaN(v) && v >= 0) _depValiderCtx.prixModifie = v;
 };
 
 // v1.19.23 : toggle Oui/Non de la livraison, sur l'écran de validation
@@ -9288,23 +9304,62 @@ window.depValiderToggleLivraison = function(oui){
   if(bloc) bloc.style.display = oui ? 'block' : 'none';
 };
 
-// v1.19.46 : le prix ne s'appliquait plus qu'en tapant les chiffres, sans
-// confirmation (retour de Cobey du 24/08/2026 : "pas sécurisant") — il
-// faut désormais appuyer sur "✓ Valider ce prix" pour que la saisie soit
-// prise en compte ; tant que ce n'est pas fait, _depValiderCtx.prixModifie
-// (et donc ce qui sera écrit à la validation) garde l'ancienne valeur.
+// v1.23.0 : appelee par la touche Entree du clavier. Elle applique le
+// montant et referme la saisie — il n'y a plus de bouton de confirmation
+// ici : la confirmation se fait avant d'ouvrir la facture.
 window.depValiderConfirmerPrix = function(){
   var inp = $('dv-prix-input');
   var v = parseFloat(inp && inp.value);
   if(isNaN(v) || v < 0){ toast('⚠️ Entrez un prix valide.'); return; }
   if(_depValiderCtx) _depValiderCtx.prixModifie = v;
 
-  var disp = $('dv-prix-affiche'), btn = $('dv-prix-btn'), conf = $('dv-prix-confirm-btn');
+  var disp = $('dv-prix-affiche'), btn = $('dv-prix-btn');
   if(disp){ disp.textContent = v + ' €'; disp.style.display = 'block'; }
   if(inp) inp.style.display = 'none';
-  if(conf) conf.style.display = 'none';
   if(btn) btn.style.display = 'inline-block';
-  toast('✅ Prix confirmé : ' + v + ' €');
+};
+
+// v1.23.0 : derniere verification avant la facture. L'ancien bouton
+// "Valider ce prix" securisait la saisie mais pas l'envoi ; on confirme
+// desormais le montant au moment ou il compte vraiment, juste avant
+// d'ouvrir l'encaissement.
+function _depOuvrirConfirmPrix(prixColis, prixLivraison){
+  var total = (prixColis || 0) + (prixLivraison || 0);
+  var m = document.getElementById('modal-dep-confirm-prix');
+  if(!m){
+    m = document.createElement('div');
+    m.id = 'modal-dep-confirm-prix';
+    m.className = 'modal-overlay';
+    m.style.cssText = 'align-items:center;';
+    m.innerHTML = '<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
+      + '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">💰 Confirmer le montant</div>'
+      + '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:14px;">C\'est le montant qui sera porté sur la facture.</div>'
+      + '<div id="dcp-detail" style="margin-bottom:14px;"></div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+      + '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-confirm-prix\')">← Corriger</button>'
+      + '<button class="btn-sm btn-green-sm" onclick="depConfirmerPrixEtContinuer()">✅ Confirmer</button>'
+      + '</div></div>';
+    document.body.appendChild(m);
+  }
+  var d = document.getElementById('dcp-detail');
+  if(d){
+    var h = '';
+    if(prixLivraison){
+      h += '<div style="display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;">'
+         + '<span style="color:#555;">Colis</span><span style="font-weight:700;">' + (prixColis||0) + ' €</span></div>'
+         + '<div style="display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;border-bottom:1px solid #eee;">'
+         + '<span style="color:#555;">Livraison</span><span style="font-weight:700;">' + prixLivraison + ' €</span></div>';
+    }
+    h += '<div style="text-align:center;font-size:30px;font-weight:800;color:#006b2d;margin-top:10px;">' + total + ' €</div>';
+    d.innerHTML = h;
+  }
+  openModal('modal-dep-confirm-prix');
+}
+
+window.depConfirmerPrixEtContinuer = function(){
+  closeModal('modal-dep-confirm-prix');
+  if(_depValiderCtx) _depValiderCtx._prixConfirme = true;
+  window.depValiderConfirmer();
 };
 
 // v1.19.16 : "pays" filtre la liste aux containers de la destination
@@ -9399,6 +9454,21 @@ window.depValiderConfirmer = function(){
   var livPrix = livOui ? (parseFloat(($('dv-liv-prix')||{}).value) || 0) : 0;
   var livVille = livOui ? _depVilleLire('dv') : { livraisonVille:'', livraisonVilleAutre:'' };
   if(livOui && !livVille.livraisonVille && !livVille.livraisonVilleAutre){ toast('⚠️ Choisissez la ville de livraison.'); return; }
+
+  // v1.23.0 : confirmation du montant, juste avant d'ouvrir la facture.
+  // Elle vient apres toutes les autres verifications : inutile de faire
+  // confirmer un prix pour ensuite reclamer une adresse de livraison.
+  if(!ctx._prixConfirme){
+    var prixColis = (ctx.prixModifie !== null && ctx.prixModifie !== undefined)
+      ? ctx.prixModifie
+      : ((typeof depCalculerPaiement === 'function')
+          ? ((depCalculerPaiement(fiche) || {}).total || 0)
+          : (fiche.prix || 0));
+    _depOuvrirConfirmPrix(prixColis, livPrix);
+    return;
+  }
+  // Toute nouvelle tentative repassera par la confirmation.
+  ctx._prixConfirme = false;
 
   var avant = {};
   try{ avant = JSON.parse(JSON.stringify(fiche)); }catch(e){}
