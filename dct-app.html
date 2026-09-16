@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.60.0';
+var APP_VERSION = 'v3.61.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4696,7 +4696,9 @@ function _confirmerAddTruckFrance(){
     showToastNew('🚛 Camion « '+nom+' » créé');
     _activiteFrance('🚛','a ajouté le camion <strong>'+nom+'</strong> à la collecte du '+r.dateLib);
     renderFrance();
-    if(_frPendingAffect){ _frPendingAffect=false; setTimeout(ouvrirAffectCamionFrance,350); }
+    if(_frPendingAffect){ _frPendingAffect=false; setTimeout(ouvrirAffectCamionFrance,350); return; }
+    // Les clients sont deja inscrits : on enchaine sur « qui monte ? »
+    setTimeout(function(){ ouvrirPickCamionFrance(k); }, 350);
   });
 }
 
@@ -5009,6 +5011,17 @@ function _frDispatchDetail(r){
       +'<div style="flex:1;background:#fde0e0;border:1.5px solid #c0392b;border-radius:10px;padding:10px;text-align:center;">'
       +  '<div style="font-size:11px;color:#992020;font-weight:700;">NON AFFECTÉS</div><div style="font-size:19px;font-weight:800;color:#992020;">'+(nb-aff)+'</div></div>'
       +'</div>';
+
+    // v3.60.1 : le compteur rouge seul ne disait pas quoi faire — rien
+    // n'indiquait qu'il fallait descendre jusqu'à la liste par
+    // département pour donner un camion à chacun.
+    if(gere && (nb-aff)>0){
+      h+='<div onclick="_frAllerAffecter()" style="background:#fff3cd;border:2px solid #856404;border-radius:var(--radius);'
+        +'padding:13px 14px;margin-bottom:14px;cursor:pointer;">'
+        +'<div style="font-size:14px;font-weight:800;color:#856404;">⚠️ '+(nb-aff)+' client'+((nb-aff)>1?'s':'')+' sans camion</div>'
+        +'<div style="font-size:12.5px;color:#856404;margin-top:4px;line-height:1.5;">'
+        +  'Tapez ici, puis tapez un client dans la liste pour lui donner un camion.</div></div>';
+    }
   } else {
     h+='<div style="background:#fff;border:1.5px dashed var(--border);border-radius:var(--radius);text-align:center;color:#888;'
       +'padding:18px 16px;margin-bottom:12px;line-height:1.6;font-size:13px;">Aucun client sur cette collecte.'
@@ -5042,7 +5055,8 @@ function _frDispatchDetail(r){
       +'<div class="truck-head">'
       +'<div style="display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;flex-wrap:wrap;">'
       +'<span class="truck-name">🚛 '+tk.name+'</span>'
-      +(gere?('<span onclick="event.stopPropagation();_frToggleRename(\''+k+'\')" style="font-size:11px;cursor:pointer;padding:2px 8px;background:#e0e0e0;border-radius:6px;color:#333;font-weight:700;">✏️</span>'
+      +(gere?('<span onclick="event.stopPropagation();ouvrirPickCamionFrance(\''+k+'\')" style="font-size:11px;cursor:pointer;padding:2px 8px;background:#e8eaf6;border-radius:6px;color:#1a237e;font-weight:700;">👥 Clients</span>'
+      +'<span onclick="event.stopPropagation();_frToggleRename(\''+k+'\')" style="font-size:11px;cursor:pointer;padding:2px 8px;background:#e0e0e0;border-radius:6px;color:#333;font-weight:700;">✏️</span>'
       +'<span onclick="event.stopPropagation();supprimerCamionFrance(\''+k+'\')" style="font-size:11px;cursor:pointer;padding:2px 8px;background:#fde0e0;border-radius:6px;color:#992020;font-weight:700;">🗑️</span>'):'')
       +'</div>'
       +'<span class="truck-count" style="flex-shrink:0;background:'+tc.bg+';color:'+tc.color+';border-color:'+tc.color+';">'+nCl+' client'+(nCl>1?'s':'')+'</span>'
@@ -5097,7 +5111,7 @@ function _frDispatchDetail(r){
 
   // 7. Les clients par departement
   if(nb){
-    h+='<div class="slabel">Clients par département'+(fige?'':' — tap pour affecter')+'</div>';
+    h+='<div id="fr-liste-clients" class="slabel">Clients par département'+(fige?'':' — tap sur un client pour lui donner un camion')+'</div>';
     var parDept={};
     ids.forEach(function(id){
       var c=(franceData.clients||{})[id]; if(!c) return;
@@ -5128,6 +5142,12 @@ function _frDispatchDetail(r){
 }
 
 // ── Renommer un camion ──
+// Amene jusqu'a la liste des clients par departement.
+function _frAllerAffecter(){
+  var e=document.getElementById('fr-liste-clients');
+  if(e && e.scrollIntoView) e.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
 function _frToggleRename(k){
   var z=document.getElementById('frz-'+k);
   if(!z) return;
@@ -5183,6 +5203,160 @@ function annulerValidationDispatchFrance(){
     renderFrance();
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
 }
+// ── Choisir qui monte dans un camion ──
+// La difference de fond avec Paris : la-bas les clients n'existent pas
+// encore, on les cree dans la collecte. Ici ils sont deja inscrits — on
+// coche donc directement ceux qui montent dans ce camion, sans passer
+// par une etape d'affectation separee.
+var _frSelCam=[];      // ce qu'on coche
+var _frPickCamK='';    // le camion qu'on remplit
+
+function _frClientsDispoCamion(r){
+  var out=[], vus={};
+  // D'abord ceux de la collecte, puis le reste du vivier disponible.
+  _frClientsDeCollecte(r).forEach(function(id){
+    var c=(franceData.clients||{})[id];
+    if(c && !vus[id]){ vus[id]=1; c._id=id; out.push(c); }
+  });
+  Object.keys(franceData.clients||{}).forEach(function(id){
+    if(vus[id]) return;
+    var c=franceData.clients[id]; if(!c) return;
+    if(c.statut==='parti') return;
+    if(_frResteChartres(c)) return;
+    if(c.collecteId) return;        // deja pris par une autre collecte
+    if(_frEstRamasse(c)) return;
+    vus[id]=1; c._id=id; out.push(c);
+  });
+  out.sort(function(a,b){ return (a.creeTs||0)-(b.creeTs||0); });
+  return out;
+}
+
+function ouvrirPickCamionFrance(k){
+  var r=_frCollecteActive(); if(!r) return;
+  var tk=(r.trucks||{})[k]; if(!tk) return;
+  _frPickCamK=k;
+  _frSelCam=((tk.clients||[]).slice());
+  var modal=document.getElementById('modal-fr-pickcam');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-fr-pickcam';
+    modal.className='modal-overlay';
+    modal.innerHTML='<div class="modal-sheet">'
+      + '<div class="modal-title" id="frpc-titre">Qui monte dans ce camion ?</div>'
+      + '<div style="font-size:12.5px;color:#666;line-height:1.5;margin-bottom:10px;">Cochez les clients que ce camion va ramasser.</div>'
+      + '<input class="fi" id="frpc-q" placeholder="🔍 Nom, téléphone ou ville…" oninput="_frRenderPickCam()" style="margin-bottom:10px;">'
+      + '<div id="frpc-list" style="max-height:46vh;overflow-y:auto;margin-bottom:10px;"></div>'
+      + '<div id="frpc-info" style="font-size:12.5px;font-weight:700;color:#1a237e;text-align:center;margin-bottom:10px;"></div>'
+      + '<button class="btn btn-green" style="margin:0;" onclick="_frValiderPickCam()">✅ Enregistrer</button>'
+      + '<button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal(\'modal-fr-pickcam\')">✕ Annuler</button>'
+      + '</div>';
+    document.body.appendChild(modal);
+  }
+  var t=document.getElementById('frpc-titre'); if(t) t.textContent='🚛 '+tk.name;
+  var q=document.getElementById('frpc-q'); if(q) q.value='';
+  _frRenderPickCam();
+  openModal('modal-fr-pickcam');
+}
+
+function _frRenderPickCam(){
+  var r=_frCollecteActive(); if(!r) return;
+  var q=((document.getElementById('frpc-q')||{}).value)||'';
+  var liste=_frClientsDispoCamion(r).filter(function(c){ return _frMatch(c,q); });
+  var asgn=r.assigned||{}, trks=r.trucks||{};
+  var h='';
+  if(!liste.length){
+    h='<div style="text-align:center;color:#aaa;padding:26px 10px;font-size:13px;line-height:1.6;">'
+     + (q?'Aucun client ne correspond.':'Aucun client disponible.<br>Inscrivez-en depuis l\'onglet Clients.')+'</div>';
+  }
+  liste.forEach(function(c){
+    var on=(_frSelCam.indexOf(c._id)>=0);
+    var fige=_frEstRamasse(c);
+    var autre=asgn[c._id];
+    var note='';
+    if(fige) note='<span style="font-size:11px;font-weight:700;color:#006b2d;flex-shrink:0;">✅ Ramassé</span>';
+    else if(autre && autre!==_frPickCamK && trks[autre])
+      note='<span style="font-size:11px;font-weight:700;color:#b45309;flex-shrink:0;">🚛 '+trks[autre].name+'</span>';
+    h+='<div'+(fige?'':' onclick="_frTogglePickCam(\''+c._id+'\')"')+' style="display:flex;align-items:center;gap:10px;'
+      +'border:1.5px solid '+(on?'#009A44':'var(--border)')+';background:'+(on?'#f2fbf5':'#fff')+';'
+      +'border-radius:11px;padding:10px 12px;margin-bottom:7px;'+(fige?'opacity:.7;':'cursor:pointer;')+'">'
+      +'<div style="width:24px;height:24px;border-radius:7px;flex-shrink:0;border:2px solid '+(on?'#009A44':'#ccc')+';'
+      +'background:'+(on?'#009A44':'#fff')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;">'+(on?'✓':'')+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +  '<div style="font-size:13.5px;font-weight:700;">'+_nomAffiche(c)+'</div>'
+      +  '<div style="font-size:11.5px;color:#888;">'+(c.cp||'')+' '+(c.ville||'')+' · '+(c.nb||1)+' colis'
+      +    (_montantsVisibles()?(' · '+(c.prix||0)+' €'):'')+'</div>'
+      +'</div>'+note+'</div>';
+  });
+  var l=document.getElementById('frpc-list'); if(l) l.innerHTML=h;
+  var colis=0, euros=0;
+  _frSelCam.forEach(function(id){ var c=(franceData.clients||{})[id]; if(c){ colis+=(c.nb||1); euros+=(c.prix||0); } });
+  var i=document.getElementById('frpc-info');
+  if(i) i.textContent=_frSelCam.length+' client'+(_frSelCam.length>1?'s':'')+' · '+colis+' colis'
+    +(_montantsVisibles()?(' · '+euros+' €'):'');
+}
+
+function _frTogglePickCam(id){
+  var c=(franceData.clients||{})[id];
+  if(c && _frEstRamasse(c)){ showToastNew('✅ Déjà ramassé — impossible de le retirer.'); return; }
+  var i=_frSelCam.indexOf(id);
+  if(i>=0) _frSelCam.splice(i,1); else _frSelCam.push(id);
+  _frRenderPickCam();
+}
+
+function _frValiderPickCam(){
+  var r=_frCollecteActive(); if(!r) return;
+  var k=_frPickCamK, tk=(r.trucks||{})[k];
+  if(!tk){ closeModal('modal-fr-pickcam'); return; }
+  var avant=(tk.clients||[]).slice();
+  var apres=_frSelCam.slice();
+  r.assigned=r.assigned||{};
+  r.clients=_frClientsDeCollecte(r).slice();
+  var maj={};
+
+  // Descendus du camion : ils restent dans la collecte, a replacer.
+  avant.forEach(function(id){
+    if(apres.indexOf(id)>=0) return;
+    if(r.assigned[id]===k) delete r.assigned[id];
+    maj['clients/'+id+'/camionId']='';
+  });
+
+  // Montes dans le camion : on les sort d'un autre camion au besoin,
+  // et on les rattache a la collecte s'ils n'y etaient pas.
+  apres.forEach(function(id){
+    var c=(franceData.clients||{})[id]; if(!c) return;
+    Object.keys(r.trucks||{}).forEach(function(kk){
+      if(kk===k) return;
+      var t2=r.trucks[kk];
+      var j=(t2.clients||[]).indexOf(id);
+      if(j>=0) t2.clients.splice(j,1);
+    });
+    r.assigned[id]=k;
+    if(r.clients.indexOf(id)<0) r.clients.push(id);
+    if(avant.indexOf(id)<0){
+      var hist=(c.hist||[]).slice();
+      hist.push({q:(currentUser||{}).name||'', a:'a été mis dans le camion de '+tk.name+' — '+r.dateLib, ts:Date.now()});
+      maj['clients/'+id+'/hist']=hist;
+      maj['clients/'+id+'/planifieTs']=Date.now();
+    }
+    maj['clients/'+id+'/statut']=_frEstRamasse(c)?c.statut:'planifie';
+    maj['clients/'+id+'/collecteId']=r._id;
+    maj['clients/'+id+'/camionId']=k;
+    maj['clients/'+id+'/dateLib']=r.dateLib;
+  });
+
+  tk.clients=apres;
+  maj['collectes/'+r._id+'/clients']=r.clients;
+  var n=apres.length;
+  closeModal('modal-fr-pickcam');
+  var p=_frSauverCollecte(r, maj);
+  if(p) p.then(function(){
+    showToastNew('✅ '+n+' client'+(n>1?'s':'')+' dans '+tk.name);
+    _activiteFrance('🚛','a rempli le camion <strong>'+tk.name+'</strong> — '+n+' client'+(n>1?'s':''));
+    var sc=document.querySelector('.screen.active');
+    if(sc && sc.id==='s-fr-camion') renderCamionFrance(); else renderFrance();
+  });
+}
+
 // ═══════════ FEUILLE DE ROUTE D'UN CAMION FRANCE ═══════════
 // Meme forme qu'a Paris : barres d'avancement, ordre de passage,
 // heure de rendez-vous, adresse vers Waze, telephone, et les deux
@@ -5218,7 +5392,9 @@ function renderCamionFrance(){
 
   var route=document.getElementById('frc-route'); if(!route) return;
   if(!nCl){
-    route.innerHTML='<div style="text-align:center;color:#aaa;padding:30px;border:2px dashed #ddd;border-radius:14px;">Aucun client affecté</div>';
+    route.innerHTML='<div style="text-align:center;color:#888;padding:26px 18px;border:2px dashed #ddd;border-radius:14px;line-height:1.6;font-size:13px;">'
+      +'Aucun client dans ce camion.<br><span style="color:#aaa;">Revenez au dispatch et tapez un client de la liste pour le mettre ici.</span></div>'
+      +'<button class="btn" style="margin-top:12px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" onclick="ouvrirPickCamionFrance(_frCamion)">👥 Choisir les clients de ce camion</button>';
     return;
   }
   // Tries par heure quand elle est fixee, sinon dans l'ordre d'affectation.
@@ -5273,6 +5449,10 @@ function renderCamionFrance(){
     }
     h+='</div></div>';
   });
+  if(!fige){
+    h+='<button class="btn" style="margin-top:6px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" '
+      +'onclick="ouvrirPickCamionFrance(_frCamion)">👥 Modifier les clients de ce camion</button>';
+  }
   route.innerHTML=h;
 }
 
