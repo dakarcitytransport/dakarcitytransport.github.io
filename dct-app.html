@@ -1578,7 +1578,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.58.3';
+var APP_VERSION = 'v3.59.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4292,10 +4292,23 @@ function _frTrierCollectes(){
   return { enCours:enCours, aVenir:aVenir, finis:finis };
 }
 
+// Les clients de la collecte. Une collecte montee avant la v3.59.0 n'a
+// pas de liste propre : on la reconstitue depuis ses camions plutot que
+// d'afficher zero client.
+function _frClientsDeCollecte(r){
+  if(!r) return [];
+  if(r.clients && r.clients.length) return r.clients;
+  var vus={}, out=[];
+  Object.keys(r.trucks||{}).forEach(function(k){
+    (r.trucks[k].clients||[]).forEach(function(id){ if(!vus[id]){ vus[id]=1; out.push(id); } });
+  });
+  return out;
+}
+
 function _frTotauxCollecte(r){
-  var trks=(r&&r.trucks)||{}, c=0, ok=0;
-  Object.keys(trks).forEach(function(k){ c+=_frNbClientsCamion(trks[k]); ok+=_frNbRamasses(trks[k]); });
-  return { camions:Object.keys(trks).length, clients:c, ramasses:ok };
+  var trks=(r&&r.trucks)||{}, ok=0;
+  Object.keys(trks).forEach(function(k){ ok+=_frNbRamasses(trks[k]); });
+  return { camions:Object.keys(trks).length, clients:_frClientsDeCollecte(r).length, ramasses:ok };
 }
 
 // ── Écriture ──
@@ -4354,7 +4367,7 @@ function creerCollecteFrance(){
   maj['collectes/'+rid]={
     id:rid, dateIso:v, dateLib:lib, statut:statut,
     creePar:(currentUser||{}).name||'', creeTs:Date.now(),
-    trucks:{}, assigned:{}
+    clients:[], trucks:{}, assigned:{}
   };
   closeModal('modal-fc-nouveau');
   db.ref('france').update(maj).then(function(){
@@ -4362,6 +4375,9 @@ function creerCollecteFrance(){
     _activiteFrance('🚛','a créé la collecte <strong>'+lib+'</strong>');
     currentCollecteFrId=rid;
     renderFrance();
+    // Enchaîner sur le choix des clients : c'est le geste attendu ici,
+    // le vivier existe déjà.
+    setTimeout(function(){ ouvrirPickClientsFrance(rid); }, 350);
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
 }
 
@@ -4400,18 +4416,17 @@ function changerStatutCollecteFr(nouveau){
   // Clore une collecte renvoie en attente ce qui n'a pas été ramassé :
   // ces clients doivent repartir dans le vivier, pas rester en suspens.
   if(nouveau==='terminee'){
-    var restants=0;
+    var restants=0, ramasses={};
     Object.keys(r.trucks||{}).forEach(function(k){
-      var tk=r.trucks[k];
-      (tk.clients||[]).forEach(function(cid){
-        if((tk.validated||[]).indexOf(cid)<0){
-          restants++;
-          maj['clients/'+cid+'/statut']='attente';
-          maj['clients/'+cid+'/collecteId']='';
-          maj['clients/'+cid+'/camionId']='';
-          maj['clients/'+cid+'/dateLib']='';
-        }
-      });
+      (r.trucks[k].validated||[]).forEach(function(cid){ ramasses[cid]=1; });
+    });
+    _frClientsDeCollecte(r).forEach(function(cid){
+      if(ramasses[cid]) return;
+      restants++;
+      maj['clients/'+cid+'/statut']='attente';
+      maj['clients/'+cid+'/collecteId']='';
+      maj['clients/'+cid+'/camionId']='';
+      maj['clients/'+cid+'/dateLib']='';
     });
     if(restants && !confirm('Terminer la collecte du '+r.dateLib+' ?\n\n'+restants+' client(s) ne sont pas ramassés : ils repartiront en attente.')){
       closeModal('modal-fc-statut'); return;
@@ -4435,13 +4450,11 @@ function supprimerCollecteFrance(id){
       +(t.clients?('\n\n'+t.clients+' client(s) repartiront en attente.'):'')
       +'\n\nCette action est définitive.')) return;
   var maj={};
-  Object.keys(r.trucks||{}).forEach(function(k){
-    (r.trucks[k].clients||[]).forEach(function(cid){
-      maj['clients/'+cid+'/statut']='attente';
-      maj['clients/'+cid+'/collecteId']='';
-      maj['clients/'+cid+'/camionId']='';
-      maj['clients/'+cid+'/dateLib']='';
-    });
+  _frClientsDeCollecte(r).forEach(function(cid){
+    maj['clients/'+cid+'/statut']='attente';
+    maj['clients/'+cid+'/collecteId']='';
+    maj['clients/'+cid+'/camionId']='';
+    maj['clients/'+cid+'/dateLib']='';
   });
   maj['collectes/'+id]=null;
   db.ref('france').update(maj).then(function(){
@@ -4449,6 +4462,162 @@ function supprimerCollecteFrance(id){
     if(currentCollecteFrId===id) currentCollecteFrId='';
     renderFrance();
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
+}
+
+// ── Choisir des clients du vivier ──
+// C'est la difference avec le parcours Collecte de Paris : la-bas on
+// cree la collecte puis on inscrit les clients au fur et a mesure ;
+// ici les clients sont deja enregistres, et la collecte se monte en
+// piochant dedans.
+var _frSelPick=[];      // ce qu'on est en train de cocher
+var _frPickCible='';    // la collecte qu'on remplit
+
+// Disponibles : inscrits, pas deja dans une autre collecte, et pas
+// bloques a Chartres (ceux-la relevent de leur propre bouton).
+function _frClientsDispo(rid){
+  var out=[];
+  Object.keys(franceData.clients||{}).forEach(function(k){
+    var c=franceData.clients[k]; if(!c) return;
+    if(c.statut==='parti') return;
+    if(_frResteChartres(c)) return;
+    // Ceux de la collecte en cours de composition figurent toujours dans
+    // la liste, y compris s'ils sont deja ramasses : sans ca le compteur
+    // annoncait des clients qu'on ne voyait pas.
+    if(c.collecteId===rid){ c._id=k; out.push(c); return; }
+    if(c.collecteId) return;
+    if(_frEstRamasse(c)) return;
+    c._id=k; out.push(c);
+  });
+  out.sort(function(a,b){ return (a.creeTs||0)-(b.creeTs||0); });
+  return out;
+}
+
+// Un client deja ramasse ne se retire pas de sa collecte : le colis a
+// physiquement bouge, on ne reecrit pas l'histoire.
+function _frPickVerrouille(c){ return c.collecteId===_frPickCible && _frEstRamasse(c); }
+
+function ouvrirPickClientsFrance(rid){
+  var r=_frCollectes()[rid]; if(!r) return;
+  _frPickCible=rid;
+  r._id=rid;
+  _frSelPick=_frClientsDeCollecte(r).slice();
+  var modal=document.getElementById('modal-fc-pick');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-fc-pick';
+    modal.className='modal-overlay';
+    modal.innerHTML='<div class="modal-sheet">'
+      + '<div class="modal-title" id="fc-pick-titre">Clients de la collecte</div>'
+      + '<div style="font-size:12.5px;color:#666;line-height:1.5;margin-bottom:10px;">Cochez les clients déjà inscrits à embarquer dans cette collecte.</div>'
+      + '<input class="fi" id="fc-pick-q" placeholder="🔍 Nom, téléphone ou ville…" oninput="_frRenderPick()" style="margin-bottom:10px;">'
+      + '<div id="fc-pick-list" style="max-height:46vh;overflow-y:auto;margin-bottom:10px;"></div>'
+      + '<div id="fc-pick-info" style="font-size:12.5px;font-weight:700;color:#1a237e;text-align:center;margin-bottom:10px;"></div>'
+      + '<button class="btn btn-green" style="margin:0;" onclick="_frValiderPick()">✅ Enregistrer</button>'
+      + '<button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal(\'modal-fc-pick\')">✕ Annuler</button>'
+      + '</div>';
+    document.body.appendChild(modal);
+  }
+  var t=document.getElementById('fc-pick-titre'); if(t) t.textContent='Collecte du '+r.dateLib;
+  var q=document.getElementById('fc-pick-q'); if(q) q.value='';
+  _frRenderPick();
+  openModal('modal-fc-pick');
+}
+
+function _frRenderPick(){
+  var q=((document.getElementById('fc-pick-q')||{}).value)||'';
+  var liste=_frClientsDispo(_frPickCible).filter(function(c){ return _frMatch(c,q); });
+  var h='';
+  if(!liste.length){
+    h='<div style="text-align:center;color:#aaa;padding:26px 10px;font-size:13px;line-height:1.6;">'
+     + (q?'Aucun client ne correspond.':'Aucun client disponible.<br>Inscrivez-en depuis l\'onglet Clients.')+'</div>';
+  }
+  liste.forEach(function(c){
+    var on=(_frSelPick.indexOf(c._id)>=0);
+    var fige=_frPickVerrouille(c);
+    h+='<div'+(fige?'':' onclick="_frTogglePick(\''+c._id+'\')"')+' style="display:flex;align-items:center;gap:10px;'
+      +'border:1.5px solid '+(on?'#009A44':'var(--border)')+';background:'+(on?'#f2fbf5':'#fff')+';'
+      +'border-radius:11px;padding:10px 12px;margin-bottom:7px;'+(fige?'opacity:.7;':'cursor:pointer;')+'">'
+      +'<div style="width:24px;height:24px;border-radius:7px;flex-shrink:0;border:2px solid '+(on?'#009A44':'#ccc')+';'
+      +'background:'+(on?'#009A44':'#fff')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;">'+(on?'✓':'')+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +  '<div style="font-size:13.5px;font-weight:700;">'+_nomAffiche(c)+'</div>'
+      +  '<div style="font-size:11.5px;color:#888;">'+(c.cp||'')+' '+(c.ville||'')+' · '+(c.nb||1)+' colis'
+      +    (_montantsVisibles()?(' · '+(c.prix||0)+' €'):'')+'</div>'
+      +'</div>'
+      +(fige?'<span style="font-size:11px;font-weight:700;color:#006b2d;flex-shrink:0;">✅ Ramassé</span>':'')
+      +'</div>';
+  });
+  var l=document.getElementById('fc-pick-list'); if(l) l.innerHTML=h;
+  var colis=0;
+  _frSelPick.forEach(function(id){ var c=(franceData.clients||{})[id]; if(c) colis+=(c.nb||1); });
+  var i=document.getElementById('fc-pick-info');
+  if(i) i.textContent=_frSelPick.length+' client'+(_frSelPick.length>1?'s':'')+' · '+colis+' colis';
+}
+
+function _frTogglePick(id){
+  var c=(franceData.clients||{})[id];
+  if(c && _frPickVerrouille(c)){ showToastNew('✅ Déjà ramassé — impossible de le retirer.'); return; }
+  var i=_frSelPick.indexOf(id);
+  if(i>=0) _frSelPick.splice(i,1); else _frSelPick.push(id);
+  _frRenderPick();
+}
+
+function _frValiderPick(){
+  var r=_frCollectes()[_frPickCible];
+  if(!r){ closeModal('modal-fc-pick'); return; }
+  r._id=_frPickCible;
+  var avant=_frClientsDeCollecte(r).slice();
+  var apres=_frSelPick.slice();
+  var maj={};
+
+  // Retires de la collecte : ils repartent au vivier, et quittent leur
+  // camion s'ils y etaient deja.
+  avant.forEach(function(id){
+    if(apres.indexOf(id)>=0) return;
+    Object.keys(r.trucks||{}).forEach(function(k){
+      var tk=r.trucks[k];
+      var a=(tk.clients||[]).indexOf(id); if(a>=0) tk.clients.splice(a,1);
+      var b=(tk.validated||[]).indexOf(id); if(b>=0) tk.validated.splice(b,1);
+    });
+    if(r.assigned) delete r.assigned[id];
+    maj['clients/'+id+'/statut']='attente';
+    maj['clients/'+id+'/collecteId']='';
+    maj['clients/'+id+'/camionId']='';
+    maj['clients/'+id+'/dateLib']='';
+  });
+
+  // Ajoutes : planifies sur cette collecte, pas encore dans un camion.
+  apres.forEach(function(id){
+    if(avant.indexOf(id)>=0) return;
+    var c=(franceData.clients||{})[id]||{};
+    var hist=(c.hist||[]).slice();
+    hist.push({q:(currentUser||{}).name||'', a:'a été ajouté à la collecte du '+r.dateLib, ts:Date.now()});
+    maj['clients/'+id+'/statut']='planifie';
+    maj['clients/'+id+'/collecteId']=r._id;
+    maj['clients/'+id+'/dateLib']=r.dateLib;
+    maj['clients/'+id+'/planifieTs']=Date.now();
+    maj['clients/'+id+'/hist']=hist;
+  });
+
+  r.clients=apres;
+  maj['collectes/'+r._id+'/clients']=apres;
+  var n=apres.length;
+  closeModal('modal-fc-pick');
+  var p=_frSauverCollecte(r, maj);
+  if(p) p.then(function(){
+    showToastNew('✅ '+n+' client'+(n>1?'s':'')+' dans la collecte');
+    _activiteFrance('📋','a composé la collecte <strong>'+r.dateLib+'</strong> — '+n+' client'+(n>1?'s':''));
+    renderFrance();
+  });
+}
+
+// Clients de la collecte qui ne sont dans aucun camion.
+function _frNonAffectes(r){
+  var dedans={};
+  Object.keys(r.trucks||{}).forEach(function(k){
+    (r.trucks[k].clients||[]).forEach(function(id){ dedans[id]=1; });
+  });
+  return _frClientsDeCollecte(r).filter(function(id){ return !dedans[id]; });
 }
 
 // ── Camions ──
@@ -4503,13 +4672,11 @@ function supprimerCamionFrance(k){
   var r=_frCollecteActive(); if(!r) return;
   var tk=(r.trucks||{})[k]; if(!tk) return;
   var n=_frNbClientsCamion(tk);
-  if(!confirm('Supprimer le camion « '+tk.name+' » ?'+(n?('\n\n'+n+' client(s) repartiront en attente.'):''))) return;
+  if(!confirm('Supprimer le camion « '+tk.name+' » ?'+(n?('\n\n'+n+' client(s) reviendront à affecter.'):''))) return;
   var maj={};
   (tk.clients||[]).forEach(function(id){
-    maj['clients/'+id+'/statut']='attente';
-    maj['clients/'+id+'/collecteId']='';
+    // Les clients restent dans la collecte, à réaffecter.
     maj['clients/'+id+'/camionId']='';
-    maj['clients/'+id+'/dateLib']='';
     if(r.assigned) delete r.assigned[id];
   });
   delete r.trucks[k];
@@ -4568,6 +4735,8 @@ function _affecterSelCamionFrance(k){
     });
     tk.clients=tk.clients||[];
     if(tk.clients.indexOf(id)<0) tk.clients.push(id);
+    r.clients=r.clients||[];
+    if(r.clients.indexOf(id)<0){ r.clients.push(id); maj['collectes/'+r._id+'/clients']=r.clients; }
     r.assigned[id]=k;
     var hist=(c.hist||[]).slice();
     hist.push({q:(currentUser||{}).name||'', a:'a mis dans le camion de '+tk.name+' — '+r.dateLib, ts:Date.now()});
@@ -4589,6 +4758,8 @@ function _affecterSelCamionFrance(k){
   });
 }
 
+function _frAffecterUn(id){ dannySel=[id]; ouvrirAffectCamionFrance(); }
+
 function retirerClientCamionFrance(id){
   var r=_frCollecteActive(); if(!r) return;
   var maj={};
@@ -4598,12 +4769,10 @@ function retirerClientCamionFrance(id){
     var j=(tk.validated||[]).indexOf(id); if(j>=0) tk.validated.splice(j,1);
   });
   if(r.assigned) delete r.assigned[id];
-  maj['clients/'+id+'/statut']='attente';
-  maj['clients/'+id+'/collecteId']='';
+  // Il reste dans la collecte, simplement plus dans un camion.
   maj['clients/'+id+'/camionId']='';
-  maj['clients/'+id+'/dateLib']='';
   var p=_frSauverCollecte(r, maj);
-  if(p) p.then(function(){ showToastNew('↩️ Client remis en attente'); renderFrance(); });
+  if(p) p.then(function(){ showToastNew('↩️ Client sorti du camion'); renderFrance(); });
 }
 
 // ── Collecte effectif ──
@@ -4759,9 +4928,27 @@ function _frDispatchDetail(r){
     +   '<span class="badge '+badge+'">'+lib+'</span>'
     + '</div></div>';
 
-  if(!cles.length){
-    h+=_frVide('Aucun camion.'+(gere?'<br>Ajoutez-en un pour commencer à affecter des clients.':''));
+  // Les clients de la collecte qui n'ont pas encore de camion. C'est le
+  // cœur de la difference avec Paris : ils sont deja la, il reste a les
+  // repartir.
+  var libres=_frNonAffectes(r);
+  if(libres.length){
+    h+='<div class="slabel" style="margin-top:2px;">À affecter · '+libres.length+'</div>';
+    libres.forEach(function(id){
+      var c=(franceData.clients||{})[id]; if(!c) return;
+      h+='<div style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px dashed #bbb;'
+        +'border-radius:12px;padding:11px 13px;margin-bottom:8px;">'
+        + '<div style="flex:1;min-width:0;" onclick="ouvrirFicheFrance(\''+id+'\')">'
+        +   '<div style="font-size:13.5px;font-weight:700;">'+_nomAffiche(c)+'</div>'
+        +   '<div style="font-size:11.5px;color:#888;">'+(c.cp||'')+' '+(c.ville||'')+' · '+(c.nb||1)+' colis</div>'
+        + '</div>'
+        + (gere?('<span onclick="event.stopPropagation();_frAffecterUn(\''+id+'\')" style="font-size:11.5px;font-weight:700;color:#1a237e;border:1.5px solid #1a237e;border-radius:8px;padding:5px 9px;cursor:pointer;flex-shrink:0;">🚛 Camion</span>'):'')
+        + '</div>';
+    });
   }
+
+  if(cles.length) h+='<div class="slabel">Camions</div>';
+  else h+=_frVide('Aucun camion.'+(gere?'<br>Ajoutez-en un pour répartir les clients.':''));
 
   cles.forEach(function(k){
     var tk=trks[k];
@@ -4802,8 +4989,10 @@ function _frDispatchDetail(r){
 
   if(gere){
     h+='<button class="btn btn-gray" style="margin-top:4px;" onclick="addTruckFrance()">+ Ajouter un camion</button>';
+    h+='<button class="btn" style="margin-top:8px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" '
+      + 'onclick="ouvrirPickClientsFrance(\''+r._id+'\')">👥 Choisir les clients de la collecte</button>';
     h+='<div style="font-size:12px;color:#888;text-align:center;line-height:1.6;margin-top:4px;">'
-      + 'Les clients s\'affectent depuis l\'onglet Suivi :<br>cochez-les puis « Mettre dans un camion ».</div>';
+      + 'Vous pouvez aussi les cocher depuis l\'onglet Clients,<br>puis « Mettre dans un camion ».</div>';
   }
   return h;
 }
