@@ -47,21 +47,15 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 .act-whatsapp{background:#25D366;color:#fff;border:none;font-weight:800;cursor:pointer;}
 .cloture-note{font-size:11px;color:#4a8a63;margin-top:8px;padding-top:8px;border-top:1px dashed #C8E6D0;font-weight:600;}
 .refus-note{font-size:11px;color:#992020;margin-top:8px;padding-top:8px;border-top:1px dashed #F5C6C6;font-weight:600;}
-.montant-note{font-size:11px;color:#1a7a40;margin-top:6px;font-weight:600;}
 .motif{padding:14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:9px;font-size:13.5px;font-weight:700;color:#333;cursor:pointer;background:#fff;text-align:left;width:100%;font-family:var(--font);}
 .photo-vignette{width:56px;height:56px;border-radius:8px;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;}
 .photo-vignette img{width:100%;height:100%;object-fit:cover;}
 .vignettes{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap;}
 [hidden]{display:none!important;}
 .retour{font-size:12.5px;color:#888;text-align:center;margin-top:10px;cursor:pointer;text-decoration:underline;}
-.montant-bloc{background:#F5FBF7;border:1.5px solid #B7E4C7;border-radius:10px;padding:12px;margin-bottom:16px;}
-.montant-bloc label{margin-bottom:8px;}
-.montant-row{display:flex;gap:8px;align-items:center;}
-.montant-row input{margin-bottom:0;flex:1;text-align:center;font-size:18px;font-weight:700;}
-.btn-passer{flex-shrink:0;padding:14px 14px;border:1.5px solid #ccc;background:#f2f2f2;color:#555;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font);}
 /* v1.2.0 — Détail des colis : le client en confie parfois un de plus au
-   moment du ramassage, c'est le chauffeur qui le voit. Même principe que
-   dans l'appli DCT : une ligne par colis, avec son prix. */
+   moment du ramassage, c'est le chauffeur qui le voit.
+   v1.3.0 : sans aucun prix. Le chauffeur dit ce qu'il charge, DCT chiffre. */
 .colis-bloc{background:#F7F8FA;border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;}
 .colis-bloc label{margin-bottom:8px;}
 .colis-row{display:flex;gap:7px;margin-bottom:9px;}
@@ -139,14 +133,6 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
         <div id="ph-colis-edit"></div>
       </div>
 
-      <div class="montant-bloc">
-        <label>💵 Montant reçu (€) <span style="color:#999;font-weight:500;">· indicatif, facultatif</span></label>
-        <div class="montant-row">
-          <input id="ph-montant" type="number" min="0" inputmode="numeric" placeholder="ex : 25000">
-          <button type="button" class="btn-passer" id="ph-montant-passer" onclick="passerMontant()">Passer</button>
-        </div>
-      </div>
-
       <button class="btn btn-light" id="ph-terminer" onclick="terminerRecuperation()" disabled style="opacity:.45;">✅ Terminer — clôturer ce client</button>
       <div class="retour" onclick="fermerEcranPhoto()">← Retour à la tournée</div>
     </div>
@@ -163,35 +149,11 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 
 </div>
 
-<!-- Modale de confirmation du montant reçu (v1.1.0) -->
-<div class="modal-overlay" id="modal-montant-confirm">
-  <div class="modal-sheet">
-    <div class="modal-title">💵 Confirmer le montant</div>
-    <div class="modal-sub" id="modal-montant-texte"></div>
-    <div class="modal-btns">
-      <button class="btn-sm btn-gray-sm" onclick="fermerModalMontant()">Annuler</button>
-      <button class="btn-sm btn-green-sm" onclick="confirmerMontantEtCloture()">✅ Confirmer</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modale de modification du montant après clôture, dans les 10 min (v1.1.0) -->
-<div class="modal-overlay" id="modal-montant-edit">
-  <div class="modal-sheet">
-    <div class="modal-title">✏️ Modifier le montant</div>
-    <input id="edit-montant-input" type="number" min="0" inputmode="numeric" placeholder="ex : 25000" style="margin-bottom:14px;">
-    <div class="modal-btns">
-      <button class="btn-sm btn-gray-sm" onclick="fermerModalEditMontant()">Annuler</button>
-      <button class="btn-sm btn-green-sm" onclick="confirmerEditMontant()">✅ Enregistrer</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.2.0';
+var CHAUFFEUR_VERSION = 'v1.3.0';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -206,11 +168,6 @@ var MOTIFS_NON_RAMASSE = [
 ];
 
 var PHOTO_MAX = 5, PHOTO_COTE = 1000, PHOTO_QUALITE = 0.55;
-// Fenêtre de correction du montant reçu après clôture (voir
-// modifierMontantRecolte) — au-delà, verrouillé (retour de Cobey du
-// 06/09/2026 : "on donne un maximum de 10 min pour pouvoir modifier la
-// saisie, après impossible").
-var MONTANT_DELAI_EDITION = 10 * 60 * 1000;
 
 function compresserPhoto(file, cb){
   try{
@@ -259,7 +216,6 @@ var truckCourant = null; // dernier objet camion reçu (pour horaires + carte)
 var carteInstance = null;
 var clientCourantPhoto = null;
 var photosCourantes = [];
-var clientEnEditionMontant = null;
 
 /* ═══════════ DÉTAIL DES COLIS — v1.2.0 ═══════════
    Le client confie parfois un colis de plus au moment du ramassage : le
@@ -342,33 +298,32 @@ function dessinerLignesColis(){
     h += '<div class="colis-row">'
       +   '<select id="cl-produit"><option value="">— Choisir un article —</option>'
       +   catalogueArticles.map(function(a){
-            return '<option value="' + esc(a.id) + '">' + esc(a.nom) + ' · ' + a.prix + ' €</option>';
+            return '<option value="' + esc(a.id) + '">' + esc(a.nom) + '</option>';
           }).join('')
       +   '</select>'
       +   '<button type="button" class="colis-plus" onclick="ajouterLigneCatalogue()">+ Ajouter</button>'
       + '</div>';
   }
   h += '<div class="colis-row">'
-    +   '<input id="cl-libre-nom" placeholder="Autre article…" maxlength="60" style="flex:2;">'
-    +   '<input id="cl-libre-prix" type="number" min="0" inputmode="decimal" placeholder="€" style="flex:1;">'
-    +   '<button type="button" class="colis-plus" onclick="ajouterLigneLibre()">+</button>'
+    +   '<input id="cl-libre-nom" placeholder="Autre article…" maxlength="60" style="flex:1;">'
+    +   '<button type="button" class="colis-plus" onclick="ajouterLigneLibre()">+ Ajouter</button>'
     + '</div>';
 
+  // v1.3.0 : aucun prix sur cette page. Les tarifs sont l'affaire de
+  // DCT, pas du chauffeur : il dit ce qu'il charge, c'est tout.
   if(!lignesColis.length){
     h += '<div class="colis-vide">Aucun colis détaillé.<br>Ajoute-les si le client en confie.</div>';
   } else {
-    h += '<table class="colis-tab"><thead><tr><th>Article</th><th style="width:46px;">Qté</th>'
-      +  '<th style="width:58px;">P.U.</th><th style="width:56px;">Total</th><th style="width:32px;"></th></tr></thead><tbody>';
+    h += '<table class="colis-tab"><thead><tr><th>Article</th><th style="width:52px;">Qté</th>'
+      +  '<th style="width:34px;"></th></tr></thead><tbody>';
     lignesColis.forEach(function(l, i){
       h += '<tr><td>' + esc(l.nom) + '</td>'
         +  '<td><input type="number" min="1" value="' + l.qte + '" onchange="ligneQte(' + i + ',this.value)" style="width:100%;"></td>'
-        +  '<td><input type="number" min="0" value="' + l.pu + '" onchange="lignePu(' + i + ',this.value)" style="width:100%;"></td>'
-        +  '<td style="text-align:center;font-weight:800;color:#00602a;">' + l.total + '</td>'
         +  '<td style="text-align:center;"><button type="button" class="colis-suppr" onclick="ligneSuppr(' + i + ')">✕</button></td></tr>';
     });
     h += '</tbody></table>'
-      +  '<div class="colis-total"><span class="g">' + nbColisLignes() + ' colis</span>'
-      +  '<span class="d">' + totalLignes() + ' €</span></div>';
+      +  '<div class="colis-total"><span class="g">Total</span>'
+      +  '<span class="d">' + nbColisLignes() + ' colis</span></div>';
   }
   box.innerHTML = h;
 }
@@ -380,32 +335,25 @@ function ajouterLigneCatalogue(){
   if(!id){ alert('Choisis un article.'); return; }
   var a = catalogueArticles.find(function(x){ return x.id === id; });
   if(!a) return;
-  // Le prix du catalogue n'est qu'un point de départ : il se modifie
-  // ligne par ligne, sans jamais toucher au catalogue.
-  lignesColis.push({ nom: a.nom, qte: 1, pu: a.prix, total: a.prix });
+  // v1.3.0 : sans prix, même depuis le catalogue. Le chauffeur dit ce
+  // qu'il charge ; c'est DCT qui chiffre, à l'écran Valider.
+  lignesColis.push({ nom: a.nom, qte: 1, pu: 0, total: 0, aChiffrer: true });
   dessinerLignesColis();
 }
 
 function ajouterLigneLibre(){
   var box = $('ph-colis-edit');
   var n = box ? box.querySelector('#cl-libre-nom') : null;
-  var p = box ? box.querySelector('#cl-libre-prix') : null;
   var nom = ((n && n.value) || '').trim();
-  var pu = parseFloat(p && p.value) || 0;
   if(!nom){ alert('Donne un nom à l\'article.'); return; }
-  lignesColis.push({ nom: nom, qte: 1, pu: pu, total: pu });
+  // Prix à 0 : c'est DCT qui chiffrera cet article à l'écran Valider.
+  lignesColis.push({ nom: nom, qte: 1, pu: 0, total: 0, aChiffrer: true });
   dessinerLignesColis();
 }
 
 function ligneQte(i, v){
   var l = lignesColis[i]; if(!l) return;
   l.qte = Math.max(1, parseInt(v, 10) || 1);
-  l.total = Math.round(l.qte * l.pu * 100) / 100;
-  dessinerLignesColis();
-}
-function lignePu(i, v){
-  var l = lignesColis[i]; if(!l) return;
-  l.pu = Math.max(0, parseFloat(v) || 0);
   l.total = Math.round(l.qte * l.pu * 100) / 100;
   dessinerLignesColis();
 }
@@ -530,7 +478,6 @@ function afficherTournee(tk){
 }
 
 function dessinerListe(ids, statuts, horaires){
-  var montants = (truckCourant && truckCourant.montantRecolte) || {};
   var h = '';
   ids.forEach(function(id){
     var c = clientsTournee.find(function(x){ return x.id === id; });
@@ -573,13 +520,6 @@ function dessinerListe(ids, statuts, horaires){
         +  '</div>';
     } else if(st.etat === 'recupere'){
       h += '<div class="cloture-note">Clôturé · ' + (st.nbPhotos || 0) + ' photo' + (st.nbPhotos > 1 ? 's' : '') + ' jointe' + (st.nbPhotos > 1 ? 's' : '') + ' · <span style="cursor:pointer;text-decoration:underline;" onclick="revenirSurClient(\'' + id + '\')">↩️ Revenir sur ce client</span></div>';
-      var mr = montants[id];
-      if(mr && mr.montant){
-        var dansDelai = (Date.now() - (mr.ts || 0)) < MONTANT_DELAI_EDITION;
-        h += '<div class="montant-note">💵 ' + (parseFloat(mr.montant)||0) + ' € reçus'
-          + (dansDelai ? (' · <span style="cursor:pointer;text-decoration:underline;" onclick="ouvrirEditMontant(\'' + id + '\')">✏️ Modifier</span>') : ' · <span style="color:#999;">verrouillé</span>')
-          + '</div>';
-      }
     } else {
       h += '<div class="refus-note">' + esc(st.motifLib || '') + ' · <span style="cursor:pointer;text-decoration:underline;" onclick="revenirSurClient(\'' + id + '\')">↩️ Revenir sur ce client</span></div>';
     }
@@ -627,13 +567,12 @@ function revenirSurClient(id){
   });
 }
 
-// ---- Récupéré : photo(s), montant indicatif, puis clôture ----
+// ---- Récupéré : photo(s), détail des colis, puis clôture ----
 function ouvrirEcranPhoto(id){
   clientCourantPhoto = id;
   photosCourantes = [];
   var c = clientsTournee.find(function(x){ return x.id === id; });
   $('ph-nom').textContent = c ? c.name : '';
-  var mInp = $('ph-montant'); if(mInp) mInp.value = '';
   // v1.2.0 : le détail des colis déjà enregistré par DCT, prêt à être
   // complété si le client en confie un de plus.
   lignesColis = lignesDepuisFiche(c);
@@ -679,44 +618,15 @@ function photoChoisie(input){
   });
 }
 
-// v1.21.0 : "Passer" — juste un raccourci visuel pour vider le champ
-// montant et confirmer explicitement qu'on saisit rien exprès (le champ
-// n'est de toute façon jamais obligatoire pour clôturer).
-function passerMontant(){
-  var mInp = $('ph-montant');
-  if(mInp) mInp.value = '';
-  mInp.blur();
-}
-
-// v1.21.0 : le montant reçu, s'il est renseigné, passe par une
-// confirmation avant d'être enregistré (retour de Cobey du 06/09/2026 :
-// "avec modal de confirmation bien sûr") — sans montant renseigné, la
-// clôture se fait directement, comme avant.
+// v1.3.0 : plus de montant reçu sur cette page — les clients confiés aux
+// chauffeurs externes paient par virement, pas en main propre (retour de
+// Cobey du 16/09/2026). La clôture est donc directe.
 function terminerRecuperation(){
   if(!photosCourantes.length || !clientCourantPhoto) return;
-  var mInp = $('ph-montant');
-  var montant = mInp ? parseFloat(mInp.value) : NaN;
-  if(!isNaN(montant) && montant > 0){
-    var c = clientsTournee.find(function(x){ return x.id === clientCourantPhoto; });
-    $('modal-montant-texte').textContent = 'Confirmer ' + montant + ' € reçus de ' + (c ? c.name : 'ce client') + ' ? (indicatif, ne remplace pas la facture)';
-    $('modal-montant-confirm').classList.add('open');
-    return;
-  }
-  _executerCloture(null);
+  _executerCloture();
 }
 
-function fermerModalMontant(){
-  $('modal-montant-confirm').classList.remove('open');
-}
-
-function confirmerMontantEtCloture(){
-  var mInp = $('ph-montant');
-  var montant = mInp ? parseFloat(mInp.value) : NaN;
-  $('modal-montant-confirm').classList.remove('open');
-  _executerCloture(isNaN(montant) ? null : montant);
-}
-
-function _executerCloture(montant){
+function _executerCloture(){
   var id = clientCourantPhoto;
   var ts = Date.now();
   var mapPhotos = {};
@@ -731,20 +641,10 @@ function _executerCloture(montant){
     // au calcul de durée et à l'heure affichés dans Suivi live.
     return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/finTs/' + id).set(ts);
   }).then(function(){
-    // v1.21.0 : montant reçu, purement indicatif (ne touche jamais aux
-    // versements/à la facture) — stocké à part, pour comparaison en fin
-    // de journée entre DCT et le chauffeur (voir §37g).
-    if(montant !== null){
-      return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/montantRecolte/' + id).set({
-        montant: montant, ts: ts, saisiPar: (ctx.nom || '')
-      });
-    }
-  }).then(function(){
-    // v1.2.0 : le détail des colis, s'il a bougé. Contrairement au
-    // montant reçu (indicatif), celui-ci va bien sur la fiche du client
-    // et donc sur sa facture : c'est le chauffeur qui voit ce que le
-    // client confie réellement. DCT le retrouve à l'écran "Valider", où
-    // il reste corrigeable avant l'encaissement.
+    // v1.2.0 : le détail des colis, s'il a bougé. C'est le chauffeur qui
+    // voit ce que le client confie réellement, donc ça part sur la fiche
+    // du client. DCT le retrouve à l'écran "Valider", où les articles
+    // ajoutés restent à chiffrer avant l'encaissement.
     if(!lignesColis.length) return;
     var avant = lignesDepuisFiche(c);
     var memeChose = avant.length === lignesColis.length
@@ -753,32 +653,33 @@ function _executerCloture(montant){
          });
     if(memeChose) return;
 
-    var totalCl = totalLignes();
+    // v1.3.0 : le prix de la fiche n'est PAS touché ici. Les articles
+    // ajoutés par le chauffeur arrivent à 0 € et attendent d'être
+    // chiffrés par DCT à l'écran Valider : la facture ne peut donc pas
+    // bouger dans le dos de l'équipe.
+    var aChiffrer = lignesColis.filter(function(l){ return !l.pu; }).length;
     var hist = (c && Array.isArray(c.hist)) ? c.hist.slice() : [];
     hist.push({
       q: (ctx.nom || 'Chauffeur externe'),
-      a: 'a mis à jour le détail des colis au ramassage — <strong>' + nbColisLignes()
-         + ' colis</strong>, <strong>' + totalCl + ' €</strong>',
+      a: 'a mis à jour le détail des colis au ramassage — <strong>' + nbColisLignes() + ' colis</strong>'
+         + (aChiffrer ? (', dont <strong>' + aChiffrer + ' à chiffrer</strong>') : ''),
       ts: ts, type: 'colis'
     });
     if(c){
       c.colisDetail = lignesColis.slice();
       c.colis = resumeLignes();
       c.nbColis = nbColisLignes();
-      c.prix = totalCl;
-      c.prixADefinir = false;
       c.hist = hist;
     }
     return db.ref('dct/clients/' + ctx.collecteId + '/' + id).update({
       colisDetail: lignesColis,
       colis: resumeLignes(),
       nbColis: nbColisLignes(),
-      prix: totalCl,
-      prixADefinir: false,
       hist: hist
     }).then(function(){
       _activiteExterne('📦', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> a mis à jour les colis de <strong>'
-        + esc(c ? c.name : '') + '</strong> — ' + nbColisLignes() + ' colis, ' + totalCl + ' €');
+        + esc(c ? c.name : '') + '</strong> — ' + nbColisLignes() + ' colis'
+        + (aChiffrer ? (', dont ' + aChiffrer + ' à chiffrer') : ''));
     });
   }).then(function(){
     _activiteExterne('🚚', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> a récupéré le colis de <strong>' + esc(c ? c.name : '') + '</strong>');
@@ -787,40 +688,6 @@ function _executerCloture(montant){
     console.error('chauffeur: enregistrement récupération', e);
     alert('Erreur de connexion, réessaie.');
   });
-}
-
-// v1.21.0 : correction du montant dans les 10 minutes suivant la saisie
-// initiale (voir MONTANT_DELAI_EDITION) — au-delà, verrouillé.
-function ouvrirEditMontant(id){
-  clientEnEditionMontant = id;
-  var montants = (truckCourant && truckCourant.montantRecolte) || {};
-  var mr = montants[id];
-  $('edit-montant-input').value = mr ? mr.montant : '';
-  $('modal-montant-edit').classList.add('open');
-}
-
-function fermerModalEditMontant(){
-  clientEnEditionMontant = null;
-  $('modal-montant-edit').classList.remove('open');
-}
-
-function confirmerEditMontant(){
-  var id = clientEnEditionMontant;
-  if(!id) return;
-  var montants = (truckCourant && truckCourant.montantRecolte) || {};
-  var mr = montants[id];
-  if(!mr || (Date.now() - (mr.ts || 0)) >= MONTANT_DELAI_EDITION){
-    alert('Délai de modification dépassé.');
-    fermerModalEditMontant();
-    return;
-  }
-  var val = parseFloat($('edit-montant-input').value);
-  if(isNaN(val) || val < 0){ alert('Montant invalide.'); return; }
-  // Le ts d'origine est conservé (base de la fenêtre de 10 min) — seule
-  // la valeur change.
-  db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/montantRecolte/' + id + '/montant').set(val)
-    .then(function(){ fermerModalEditMontant(); })
-    .catch(function(e){ console.error('chauffeur: modification montant', e); alert('Erreur de connexion, réessaie.'); });
 }
 
 // ---- Non récupéré : motif ----
