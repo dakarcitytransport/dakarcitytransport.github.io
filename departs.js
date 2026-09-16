@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.25.1';
+var DEP_VERSION = 'v1.25.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -992,12 +992,21 @@ function _depLignesColis(c){
   if(!c) return [];
   var d = c.colisDetail;
   if(Array.isArray(d) && d.length){
-    return d.map(function(l){
+    var lignes = d.map(function(l){
       var qte = parseFloat(l.qte) || 1;
       var pu  = parseFloat(l.pu)  || 0;
       return { nom:(l.nom||'Colis'), qte:qte, pu:pu,
                total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
     });
+    // v1.25.2 : garde-fou. Le prix de la fiche peut avoir ete change par
+    // un chemin qui ignore les lignes (ancienne fiche, import, correction
+    // a la main) : la facture affichait alors des lignes qui ne faisaient
+    // pas le total imprime en bas. Si les deux ne concordent plus, c'est
+    // le prix qui fait foi et on repart d'une ligne unique.
+    var somme = lignes.reduce(function(s2,l){ return s2 + (l.total||0); }, 0);
+    var attendu = parseFloat(c.prix) || 0;
+    // On ne touche pas a la fiche ici : cette fonction ne fait que lire.
+    if(c.prixADefinir || Math.abs(somme - attendu) <= 0.01) return lignes;
   }
   var nb    = parseInt(c.nbColis, 10) || 1;
   var total = parseFloat(c.prix) || 0;
@@ -9158,6 +9167,35 @@ function injecterChampsFiche(){
 
   if(actions) content.insertBefore(bloc, actions);
   else content.appendChild(bloc);
+
+  // v1.25.2 : le detail ligne par ligne sur la fiche aussi — c'est ici
+  // qu'on corrige une facture apres coup (retour de Cobey du 16/09/2026 :
+  // un colis ajoute depuis la fiche n'apparaissait pas sur la facture,
+  // qui restait sur les colis d'origine).
+  var champColisE = $('e-colis');
+  if(champColisE && !$('e-lignes')){
+    var blocColisE = champColisE.closest ? champColisE.closest('.fg') : champColisE.parentNode;
+    if(blocColisE && blocColisE.parentNode){
+      var lgE = document.createElement('div');
+      lgE.innerHTML = '<div class="dep-sec">D&eacute;tail des colis</div>'
+        + '<div id="e-lignes" style="margin-bottom:14px;"></div>';
+      blocColisE.parentNode.insertBefore(lgE, blocColisE.nextSibling);
+    }
+  }
+}
+
+/* v1.25.2 — Sur la fiche, les lignes commandent le prix de la facture. */
+function _depFicheLignesMaj(total, nbColis, lignes){
+  if(!lignes || !lignes.length) return;
+  var colisEl = $('e-colis');
+  if(colisEl){
+    colisEl.value = lignes.map(function(l){
+      var deja = /^\s*\d/.test(l.nom || '');
+      return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
+    }).join(', ');
+  }
+  var prixEl = $('e-prix');
+  if(prixEl) prixEl.value = total;
 }
 
 window.depSetLivraisonFiche = function(oui){
@@ -9199,6 +9237,9 @@ function remplirFiche(clientId){
     ep.value = c.prixADefinir ? '' : (c.prix ? String(c.prix) : '');
     ep.placeholder = c.prixADefinir ? 'à définir sur place' : '100';
   }
+
+  // v1.25.2 : l'editeur de lignes, charge sur le detail de ce client.
+  try{ window.depEditerLignes('e-lignes', window._depLignesColis(c), _depFicheLignesMaj); }catch(eLg){}
 
   // Verrouillage si la collecte est terminée
   var locked = false;
@@ -10684,6 +10725,14 @@ function greffer(){
         extras.prix = parseFloat(epVal);
         extras.prixADefinir = false;
       }
+
+      // v1.25.2 : le detail ligne par ligne saisi juste au-dessus — sans
+      // lui, un colis ajoute depuis la fiche changeait bien le total mais
+      // la facture continuait d'imprimer les lignes d'origine.
+      try{
+        var lgE = window.depLignesValeur();
+        if(lgE && lgE.length) extras.colisDetail = lgE;
+      }catch(eLg2){}
 
       _depOuvrirConfirmationFiche({ colId: colId, id: id, avant: avant, extras: extras, nom: (ficheActuelle||{}).name || '' });
     };
