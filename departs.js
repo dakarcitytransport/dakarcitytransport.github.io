@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.23.0';
+var DEP_VERSION = 'v1.23.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9323,8 +9323,9 @@ window.depValiderConfirmerPrix = function(){
 // "Valider ce prix" securisait la saisie mais pas l'envoi ; on confirme
 // desormais le montant au moment ou il compte vraiment, juste avant
 // d'ouvrir l'encaissement.
-function _depOuvrirConfirmPrix(prixColis, prixLivraison){
+function _depOuvrirConfirmPrix(prixColis, prixLivraison, nbColis){
   var total = (prixColis || 0) + (prixLivraison || 0);
+  var nb = parseInt(nbColis, 10) || 1;
   var m = document.getElementById('modal-dep-confirm-prix');
   if(!m){
     m = document.createElement('div');
@@ -9332,8 +9333,8 @@ function _depOuvrirConfirmPrix(prixColis, prixLivraison){
     m.className = 'modal-overlay';
     m.style.cssText = 'align-items:center;';
     m.innerHTML = '<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
-      + '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">💰 Confirmer le montant</div>'
-      + '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:14px;">C\'est le montant qui sera porté sur la facture.</div>'
+      + '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">📦 Confirmer avant la facture</div>'
+      + '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:14px;">C\'est ce qui sera porté sur la facture.</div>'
       + '<div id="dcp-detail" style="margin-bottom:14px;"></div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
       + '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-confirm-prix\')">← Corriger</button>'
@@ -9343,14 +9344,23 @@ function _depOuvrirConfirmPrix(prixColis, prixLivraison){
   }
   var d = document.getElementById('dcp-detail');
   if(d){
-    var h = '';
+    // v1.23.1 : le nombre de colis se confirme avec le montant — c'est
+    // l'autre chiffre qu'on ne peut plus corriger une fois la facture
+    // ouverte.
+    var h = '<div style="display:flex;gap:10px;margin-bottom:12px;">'
+      + '<div style="flex:1;background:#f2f3f5;border:1.5px solid var(--border);border-radius:12px;padding:12px;text-align:center;">'
+      +   '<div style="font-size:11px;color:#888;font-weight:700;">NOMBRE DE COLIS</div>'
+      +   '<div style="font-size:26px;font-weight:800;color:#1a1a2e;">' + nb + '</div></div>'
+      + '<div style="flex:1;background:#d4f0e0;border:1.5px solid #009A44;border-radius:12px;padding:12px;text-align:center;">'
+      +   '<div style="font-size:11px;color:#006b2d;font-weight:700;">MONTANT</div>'
+      +   '<div style="font-size:26px;font-weight:800;color:#006b2d;">' + total + ' €</div></div>'
+      + '</div>';
     if(prixLivraison){
-      h += '<div style="display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;">'
-         + '<span style="color:#555;">Colis</span><span style="font-weight:700;">' + (prixColis||0) + ' €</span></div>'
-         + '<div style="display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;border-bottom:1px solid #eee;">'
-         + '<span style="color:#555;">Livraison</span><span style="font-weight:700;">' + prixLivraison + ' €</span></div>';
+      h += '<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 2px;color:#555;">'
+         + '<span>dont colis</span><span style="font-weight:700;">' + (prixColis||0) + ' €</span></div>'
+         + '<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 2px;color:#555;">'
+         + '<span>dont livraison</span><span style="font-weight:700;">' + prixLivraison + ' €</span></div>';
     }
-    h += '<div style="text-align:center;font-size:30px;font-weight:800;color:#006b2d;margin-top:10px;">' + total + ' €</div>';
     d.innerHTML = h;
   }
   openModal('modal-dep-confirm-prix');
@@ -9464,7 +9474,8 @@ window.depValiderConfirmer = function(){
       : ((typeof depCalculerPaiement === 'function')
           ? ((depCalculerPaiement(fiche) || {}).total || 0)
           : (fiche.prix || 0));
-    _depOuvrirConfirmPrix(prixColis, livPrix);
+    var nbEl0 = $('dv-nb');
+    _depOuvrirConfirmPrix(prixColis, livPrix, nbEl0 ? nbEl0.value : (fiche.nbColis || 1));
     return;
   }
   // Toute nouvelle tentative repassera par la confirmation.
