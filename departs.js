@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.25.2';
+var DEP_VERSION = 'v1.25.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1013,8 +1013,55 @@ function _depLignesColis(c){
   // v1.25.1 : rien a reconstituer — ni description ni prix. Mieux vaut un
   // editeur vide qu'une ligne "Colis · 0 €" a effacer a la main.
   if(!c.colis && !total) return [];
-  return [{ nom:(c.colis || 'Colis'), qte:nb,
-            pu:(nb ? Math.round(total/nb*100)/100 : total), total:total }];
+  return _depLignesDepuisTexte(c.colis, nb, total);
+}
+
+// v1.25.3 — Reconstitution d'un detail a partir de la description libre.
+// Les fiches d'avant les lignes n'ont qu'une phrase ("2 Fut 270 L, Valise")
+// et un prix global. On imprimait tout ca sur une seule ligne de facture,
+// ce qui ne ressemblait a rien (retour de Cobey du 16/09/2026). On la
+// decoupe donc article par article, et on repartit le prix au prorata des
+// quantites — le dernier article absorbe l'arrondi pour que la somme des
+// lignes fasse toujours le total exact.
+function _depLignesDepuisTexte(texte, nbColis, total){
+  var brut = String(texte || '').split(/\s*(?:,|;|\+|\bet\b)\s*/);
+  var items = [];
+  brut.forEach(function(m){
+    m = m.trim();
+    if(!m) return;
+    // "2 Fut 270 L" -> quantite 2, article "Fut 270 L". Attention aux
+    // libelles qui commencent par un nombre faisant partie du nom
+    // ("270 L de gasoil") : on n'y voit une quantite que s'il reste bien
+    // du texte derriere.
+    var q = 1, nom = m;
+    var mm = m.match(/^(\d+)\s*(?:x|×)?\s+(.+)$/);
+    if(mm && mm[2].trim()){ q = parseInt(mm[1], 10) || 1; nom = mm[2].trim(); }
+    items.push({ nom:nom, qte:q, brut:m });
+  });
+
+  if(!items.length) items = [{ nom:'Colis', qte:(parseInt(nbColis,10) || 1) }];
+
+  // Un nombre en tete n'est une quantite que si le compte tombe juste :
+  // "270 L de gasoil" sur une fiche a 1 colis, c'est un libelle, pas 270
+  // colis. Quand le total ne colle pas au nombre de colis de la fiche, on
+  // revient a un article par element.
+  var nbFiche = parseInt(nbColis, 10) || 0;
+  var sommeLue = items.reduce(function(s, i){ return s + i.qte; }, 0);
+  if(nbFiche > 0 && sommeLue > nbFiche){
+    items.forEach(function(i){ i.qte = 1; if(i.brut) i.nom = i.brut; });
+  }
+
+  var sommeQte = items.reduce(function(s, i){ return s + i.qte; }, 0) || 1;
+  var parColis = total / sommeQte;
+  var cumul = 0;
+  return items.map(function(it, i){
+    var mtt = (i === items.length - 1)
+      ? Math.round((total - cumul) * 100) / 100
+      : Math.round(parColis * it.qte * 100) / 100;
+    cumul += mtt;
+    return { nom:it.nom, qte:it.qte,
+             pu:Math.round(mtt / it.qte * 100) / 100, total:mtt };
+  });
 }
 
 // Recalcule ce qui decoule des lignes. A appeler des qu'elles changent.
