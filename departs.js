@@ -3448,6 +3448,15 @@ function injecterChampsClient(){
         + '<input class="fi" id="f-nb" type="number" min="1" value="1" style="font-size:18px;font-weight:700;text-align:center;">';
       blocColisF.parentNode.insertBefore(nbF, blocColisF);
     }
+    // v1.25.0 : le detail ligne par ligne, juste apres la description —
+    // un article par ligne avec son prix. Le nombre de colis, la
+    // description et le prix se recalculent depuis les lignes.
+    if(blocColisF && blocColisF.parentNode && !$('f-lignes')){
+      var lgF = document.createElement('div');
+      lgF.innerHTML = '<div class="dep-sec">D&eacute;tail des colis</div>'
+        + '<div id="f-lignes" style="margin-bottom:14px;"></div>';
+      blocColisF.parentNode.insertBefore(lgF, blocColisF.nextSibling);
+    }
   }
 
   /* --- Le départ n'est PLUS choisi à l'inscription : il est attribué
@@ -9295,6 +9304,29 @@ function reinitialiserNouveauxChamps(){
   depRemplirSelect();
 }
 
+/* v1.25.0 — Les lignes commandent aussi à l'inscription.
+   Même principe qu'à la validation : ce sont les lignes qui donnent le
+   nombre de colis, la description et le prix. Tant que "prix à définir
+   sur place" est actif, on laisse le champ prix tranquille. */
+function _depInscriptionLignesMaj(total, nbColis, lignes){
+  if(!lignes || !lignes.length) return;
+
+  var nbEl = $('f-nb');
+  if(nbEl && nbColis > 0) nbEl.value = nbColis;
+
+  var colisEl = $('f-colis');
+  if(colisEl){
+    colisEl.value = lignes.map(function(l){
+      var deja = /^\s*\d/.test(l.nom || '');
+      return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
+    }).join(', ');
+  }
+
+  if(_depPrixIndefiniCollecte) return;
+  var prixEl = $('f-prix');
+  if(prixEl) prixEl.value = total;
+}
+
 // v1.17.0 : bascule "prix à définir sur place" du formulaire collecte —
 // désactive/vide le champ prix pendant que la bascule est active.
 window.depTogglePrixIndefiniCollecte = function(){
@@ -10372,6 +10404,8 @@ function greffer(){
       // appel s'il s'agit bien d'une redirection depuis un devis).
       window._depDevisEnCoursId = null;
       try{ reinitialiserNouveauxChamps(); }catch(e){}
+      // v1.25.0 : l'editeur de lignes repart vide a chaque nouveau client.
+      try{ window.depEditerLignes('f-lignes', [], _depInscriptionLignesMaj); }catch(e){}
       // v1.19.15 : les suggestions de contact existent déjà nativement sur ce
       // formulaire (f-prenom/f-nom/f-tel → _showSuggestionsCombo) — on ajoute
       // ici seulement l'autocomplete d'adresse et la réconciliation CP↔ville.
@@ -10471,6 +10505,14 @@ function greffer(){
         note             : (($('f-note')||{}).value || '').trim(),
         // v1.21.0 : nombre de colis (voir injecterChampsClient).
         nbColis          : parseInt((($('f-nb')||{}).value), 10) || 1,
+        // v1.25.0 : le detail ligne par ligne saisi a l'inscription — il
+        // se retrouve tel quel a la validation, ou il reste modifiable.
+        colisDetail      : (function(){
+          try{
+            var lg = window.depLignesValeur();
+            return (lg && lg.length) ? lg : null;
+          }catch(e){ return null; }
+        })(),
         // v1.21.2 : la toute première observation, saisie à l'inscription,
         // rejoint directement le même historique (voir _depObservationsListe/
         // depEnregistrerObservation) — plus de champ observationCollecte
