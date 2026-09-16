@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.25.4';
+var DEP_VERSION = 'v1.25.5';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2174,7 +2174,15 @@ function injecterEcrans(){
   // v1.19.55 : "Prix à définir sur place" retiré de ce parcours (retour de
   // Cobey du 28/08/2026) — au dépôt direct, le prix est acté immédiatement,
   // contrairement à la collecte du dimanche.
+  // v1.25.5 : le detail ligne par ligne, comme a l'inscription, a la
+  // collecte et sur la fiche. Sans lui, un colis ajoute depuis ce
+  // formulaire ne ressortait pas sur la facture (retour de Cobey du
+  // 16/09/2026).
+  +     '<div class="dep-sec">D&eacute;tail des colis</div>'
+  +     '<div id="dp-lignes" style="margin-bottom:14px;"></div>'
   +     '<div class="fg"><label class="fl">Prix (&euro;)</label><input class="fi" id="dp-prix" placeholder="100" type="number" min="0" style="font-size:20px;font-weight:700;text-align:center;padding:14px;"></div>'
+  +     '<div id="dp-prix-note" style="display:none;font-size:11.5px;color:var(--text3);margin:-10px 0 14px;line-height:1.5;">'
+  +       '&#8505;&#65039; Total calcul&eacute; sur le d&eacute;tail des colis. Pour le changer, modifiez le prix de l\'article concern&eacute; ci-dessus.</div>'
 
   +     '<div class="dep-sec">Destinataire &agrave; Dakar</div>'
   +     '<div class="fg"><label class="fl">Nom du destinataire</label><input class="fi" id="dp-dest-nom" placeholder="Awa Ndiaye"></div>'
@@ -8207,6 +8215,34 @@ window.depOuvrirFicheDepot = function(departId, clientId, viaCarre){
    (hors collecte — réservé à Issyaka et Cobey)
    ───────────────────────────────────────────── */
 
+/* v1.25.5 — Sur le formulaire dépôt aussi, les lignes commandent. */
+function _depDepotLignesMaj(total, nbColis, lignes){
+  if(!lignes || !lignes.length){
+    var pN0 = $('dp-prix-note'); if(pN0) pN0.style.display = 'none';
+    var pE0 = $('dp-prix');
+    if(pE0){ pE0.readOnly = false; pE0.style.background = ''; }
+    return;
+  }
+  var nbEl = $('dp-nb');
+  if(nbEl && nbColis > 0) nbEl.value = nbColis;
+
+  var colisEl = $('dp-colis');
+  if(colisEl){
+    colisEl.value = lignes.map(function(l){
+      var deja = /^\s*\d/.test(l.nom || '');
+      return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
+    }).join(', ');
+  }
+
+  var prixEl = $('dp-prix');
+  if(prixEl){
+    prixEl.value = total;
+    prixEl.readOnly = true;
+    prixEl.style.background = '#f5f5f5';
+  }
+  var note = $('dp-prix-note'); if(note) note.style.display = 'block';
+}
+
 window.depOuvrirDepotForm = function(departId, clientId, viaCarre){
   // v1.19.50 : ouvert à toute l'équipe (plus réservé à la direction) —
   // voir le carré Dépôt (depCarreDepotOuvrir). "Supprimer" reste réservé
@@ -8261,6 +8297,12 @@ window.depOuvrirDepotForm = function(departId, clientId, viaCarre){
   } else {
     _depVilleRemplir('dp', '', '');
   }
+
+  // v1.25.5 : l'editeur de lignes — vide en creation, charge sur le
+  // detail du client en modification.
+  try{
+    window.depEditerLignes('dp-lignes', clientId ? window._depLignesColis(c) : [], _depDepotLignesMaj);
+  }catch(eLgDp){}
 
   depSetLivraisonDepot(c.livraisonDakar === true);
   _depPrixIndefiniDepot = !!c.prixADefinir;
@@ -8518,6 +8560,22 @@ window.depEnregistrerDepot = function(){
     by: (existant && existant.by) || u.name || '',
     creeLe: (existant && existant.creeLe) || Date.now()
   };
+
+  // v1.25.5 : le detail ligne par ligne. Ce formulaire reconstruit toute
+  // la fiche puis l'ecrit avec .set(), qui remplace le noeud entier — sans
+  // cette reprise, un colis ajoute ici disparaissait de la facture, qui
+  // restait sur le detail d'origine (retour de Cobey du 16/09/2026). Comme
+  // partout ailleurs, le detail donne le prix.
+  try{
+    var lgDp = window.depLignesValeur();
+    if(lgDp && lgDp.length){
+      fiche.colisDetail = lgDp;
+      fiche.prix = window._depTotalColis({ colisDetail: lgDp });
+      fiche.prixADefinir = false;
+    } else if(existant && existant.colisDetail){
+      fiche.colisDetail = null;
+    }
+  }catch(eLgDp2){}
 
   // v1.16.0 : jusqu'à PHOTO_MAX photos (tableau _depDepotPhotos, chargé
   // et modifiable dès l'ouverture du formulaire, voir depOuvrirDepotForm)
