@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.24.0';
+var DEP_VERSION = 'v1.24.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1023,6 +1023,181 @@ function _depMajDepuisLignes(c){
 // des attributs onclick, qui ne voient que la portee globale.
 window._depLignesColis    = _depLignesColis;
 window._depMajDepuisLignes = _depMajDepuisLignes;
+
+// ═══════════ ÉDITEUR DE LIGNES DE COLIS — v1.24.1 ═══════════
+// On pioche dans le catalogue Prix articles (theme -> produit, le prix se
+// pre-remplit), ou on tape une ligne a la main pour ce qui n'y est pas.
+//
+// Un prix modifie ici ne touche JAMAIS le catalogue : c'est le prix de ce
+// client-la, remise comprise. Le catalogue reste la reference.
+var _depLignesEdit  = [];   // les lignes en cours d'edition
+var _depLignesCible = '';   // conteneur dans lequel on dessine
+var _depLignesTheme = '';   // theme choisi dans le selecteur
+
+// Ouvre l'editeur sur un jeu de lignes. Rendre les lignes : depLignesValeur().
+window.depEditerLignes = function(containerId, lignes){
+  _depLignesCible = containerId;
+  _depLignesTheme = '';
+  _depLignesEdit  = (lignes || []).map(function(l){
+    var qte = parseFloat(l.qte) || 1, pu = parseFloat(l.pu) || 0;
+    return { nom:(l.nom||'Colis'), qte:qte, pu:pu,
+             total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
+  });
+  _depRenderLignes();
+};
+
+window.depLignesValeur = function(){
+  return _depLignesEdit.map(function(l){
+    return { nom:l.nom, qte:l.qte, pu:l.pu, total:l.total };
+  });
+};
+
+function _depLignesTotal(){
+  return _depLignesEdit.reduce(function(s, l){ return s + (l.total||0); }, 0);
+}
+function _depLignesNbColis(){
+  return _depLignesEdit.reduce(function(s, l){ return s + (l.qte||0); }, 0);
+}
+
+// Themes et produits du catalogue, tries.
+function _depCatalogue(){
+  var d = window.prixArticlesData || {};
+  return Object.keys(d).map(function(k){ return Object.assign({_id:k}, d[k]); });
+}
+function _depCatalogueThemes(){
+  var vus = {}, out = [];
+  _depCatalogue().forEach(function(a){
+    var t = (a.theme||'').trim() || 'Sans thème';
+    if(!vus[t]){ vus[t] = 1; out.push(t); }
+  });
+  return out.sort();
+}
+function _depCatalogueProduits(theme){
+  return _depCatalogue().filter(function(a){
+    return ((a.theme||'').trim() || 'Sans thème') === theme;
+  }).sort(function(a,b){ return (a.nom||'').localeCompare(b.nom||''); });
+}
+
+function _depRenderLignes(){
+  var box = document.getElementById(_depLignesCible);
+  if(!box) return;
+  var themes = _depCatalogueThemes();
+
+  var h = '';
+
+  // ── Choix au catalogue ──
+  if(themes.length){
+    h += '<div style="display:flex;gap:8px;margin-bottom:8px;">'
+      +   '<select class="fi" id="dl-theme" onchange="depLigneThemeChange()" style="flex:1;margin:0;">'
+      +     '<option value="">— Thème —</option>'
+      +     themes.map(function(t){
+              return '<option value="'+esc(t)+'"'+(t===_depLignesTheme?' selected':'')+'>'+esc(t)+'</option>';
+            }).join('')
+      +   '</select>'
+      + '</div>';
+    if(_depLignesTheme){
+      var prods = _depCatalogueProduits(_depLignesTheme);
+      h += '<div style="display:flex;gap:8px;margin-bottom:10px;">'
+        +   '<select class="fi" id="dl-produit" style="flex:1;margin:0;">'
+        +     '<option value="">— Produit —</option>'
+        +     prods.map(function(a){
+                return '<option value="'+esc(a._id)+'">'+esc(a.nom)+' · '+(parseFloat(a.prix)||0)+' €</option>';
+              }).join('')
+        +   '</select>'
+        +   '<button type="button" class="dep-cli-btn" onclick="depLigneAjouterCatalogue()" style="flex-shrink:0;">+ Ajouter</button>'
+        + '</div>';
+    }
+  }
+
+  // ── Ligne libre ──
+  h += '<div style="display:flex;gap:6px;margin-bottom:12px;">'
+    +   '<input class="fi" id="dl-libre-nom" placeholder="Autre article…" maxlength="60" style="flex:2;margin:0;">'
+    +   '<input class="fi" id="dl-libre-prix" type="number" min="0" inputmode="decimal" placeholder="€" style="flex:1;margin:0;">'
+    +   '<button type="button" class="dep-cli-btn" onclick="depLigneAjouterLibre()" style="flex-shrink:0;">+</button>'
+    + '</div>';
+
+  // ── Le tableau ──
+  if(!_depLignesEdit.length){
+    h += '<div style="text-align:center;color:#aaa;padding:18px;border:2px dashed #ddd;border-radius:12px;font-size:13px;">'
+      +  'Aucun colis.<br>Ajoutez-en depuis le catalogue ou à la main.</div>';
+  } else {
+    h += '<div style="border:1.5px solid var(--border);border-radius:10px;overflow:hidden;">'
+      +  '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">'
+      +  '<thead><tr style="background:#f2f3f5;">'
+      +    '<th style="text-align:left;padding:7px 8px;font-weight:700;">Article</th>'
+      +    '<th style="width:52px;padding:7px 4px;font-weight:700;">Qté</th>'
+      +    '<th style="width:64px;padding:7px 4px;font-weight:700;">P.U.</th>'
+      +    '<th style="width:64px;padding:7px 4px;font-weight:700;">Total</th>'
+      +    '<th style="width:34px;"></th></tr></thead><tbody>';
+    _depLignesEdit.forEach(function(l, i){
+      h += '<tr style="border-top:1px solid #eee;">'
+        +   '<td style="padding:6px 8px;">'+esc(l.nom)+'</td>'
+        +   '<td style="padding:4px 2px;"><input type="number" min="1" value="'+l.qte+'" onchange="depLigneQte('+i+',this.value)"'
+        +     ' style="width:100%;border:1px solid #ddd;border-radius:6px;padding:5px 3px;text-align:center;font-size:12.5px;font-family:var(--font);"></td>'
+        +   '<td style="padding:4px 2px;"><input type="number" min="0" value="'+l.pu+'" onchange="depLignePu('+i+',this.value)"'
+        +     ' style="width:100%;border:1px solid #ddd;border-radius:6px;padding:5px 3px;text-align:center;font-size:12.5px;font-family:var(--font);"></td>'
+        +   '<td style="padding:6px 4px;text-align:center;font-weight:800;color:#006b2d;">'+l.total+'</td>'
+        +   '<td style="padding:4px 2px;text-align:center;"><span onclick="depLigneSupprimer('+i+')"'
+        +     ' style="display:inline-block;background:#fde0e0;color:#992020;border-radius:6px;padding:4px 7px;font-size:11px;font-weight:800;cursor:pointer;">✕</span></td>'
+        + '</tr>';
+    });
+    h += '</tbody></table></div>'
+      +  '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 12px;'
+      +  'background:#d4f0e0;border:1.5px solid #009A44;border-radius:10px;">'
+      +    '<span style="font-size:12.5px;font-weight:700;color:#006b2d;">'+_depLignesNbColis()+' colis</span>'
+      +    '<span style="font-size:19px;font-weight:800;color:#006b2d;">'+_depLignesTotal()+' €</span>'
+      +  '</div>';
+  }
+  box.innerHTML = h;
+}
+
+window.depLigneThemeChange = function(){
+  var s = document.getElementById('dl-theme');
+  _depLignesTheme = s ? s.value : '';
+  _depRenderLignes();
+};
+
+window.depLigneAjouterCatalogue = function(){
+  var s = document.getElementById('dl-produit');
+  var id = s ? s.value : '';
+  if(!id){ toast('⚠️ Choisissez un produit.'); return; }
+  var a = (window.prixArticlesData || {})[id];
+  if(!a) return;
+  var pu = parseFloat(a.prix) || 0;
+  // Le prix du catalogue n'est qu'un point de depart : on peut le changer
+  // ligne par ligne sans jamais toucher au catalogue.
+  _depLignesEdit.push({ nom:(a.nom||'Article'), qte:1, pu:pu, total:pu });
+  _depRenderLignes();
+};
+
+window.depLigneAjouterLibre = function(){
+  var n = document.getElementById('dl-libre-nom');
+  var p = document.getElementById('dl-libre-prix');
+  var nom = ((n && n.value) || '').trim();
+  var pu  = parseFloat(p && p.value) || 0;
+  if(!nom){ toast('⚠️ Donnez un nom à l\'article.'); return; }
+  _depLignesEdit.push({ nom:nom, qte:1, pu:pu, total:pu });
+  _depRenderLignes();
+};
+
+window.depLigneQte = function(i, v){
+  var l = _depLignesEdit[i]; if(!l) return;
+  l.qte = Math.max(1, parseInt(v, 10) || 1);
+  l.total = Math.round(l.qte * l.pu * 100) / 100;
+  _depRenderLignes();
+};
+
+window.depLignePu = function(i, v){
+  var l = _depLignesEdit[i]; if(!l) return;
+  l.pu = Math.max(0, parseFloat(v) || 0);
+  l.total = Math.round(l.qte * l.pu * 100) / 100;
+  _depRenderLignes();
+};
+
+window.depLigneSupprimer = function(i){
+  _depLignesEdit.splice(i, 1);
+  _depRenderLignes();
+};
 
 function depPaysFiche(c){
   if(!c) return DEP_PAYS_DEFAUT;
