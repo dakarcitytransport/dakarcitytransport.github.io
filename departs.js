@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.25.3';
+var DEP_VERSION = 'v1.25.4';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -998,15 +998,14 @@ function _depLignesColis(c){
       return { nom:(l.nom||'Colis'), qte:qte, pu:pu,
                total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
     });
-    // v1.25.2 : garde-fou. Le prix de la fiche peut avoir ete change par
-    // un chemin qui ignore les lignes (ancienne fiche, import, correction
-    // a la main) : la facture affichait alors des lignes qui ne faisaient
-    // pas le total imprime en bas. Si les deux ne concordent plus, c'est
-    // le prix qui fait foi et on repart d'une ligne unique.
-    var somme = lignes.reduce(function(s2,l){ return s2 + (l.total||0); }, 0);
-    var attendu = parseFloat(c.prix) || 0;
-    // On ne touche pas a la fiche ici : cette fonction ne fait que lire.
-    if(c.prixADefinir || Math.abs(somme - attendu) <= 0.01) return lignes;
+    // v1.25.4 : le detail saisi fait foi, toujours. La v1.25.2 le jetait
+    // au profit d'une moyenne des que le prix global de la fiche ne
+    // tombait pas sur la somme des lignes — un prix negocie a la main
+    // suffisait a effacer le prix propre de chaque article (retour de
+    // Cobey du 16/09/2026 : quatre colis affiches a 36,25 € chacun).
+    // C'est desormais l'inverse : le total de la facture est la somme des
+    // lignes (voir _depTotalColis).
+    return lignes;
   }
   var nb    = parseInt(c.nbColis, 10) || 1;
   var total = parseFloat(c.prix) || 0;
@@ -1063,6 +1062,21 @@ function _depLignesDepuisTexte(texte, nbColis, total){
              pu:Math.round(mtt / it.qte * 100) / 100, total:mtt };
   });
 }
+
+// v1.25.4 : le prix des colis d'une fiche. Des qu'un detail ligne par
+// ligne existe, c'est lui qui donne le total — "le nombre total sera lie
+// a l'addition des colis". Sans detail, on garde le prix global.
+function _depTotalColis(c){
+  if(!c) return 0;
+  var d = c.colisDetail;
+  if(Array.isArray(d) && d.length){
+    return Math.round(_depLignesColis(c).reduce(function(s, l){
+      return s + (l.total || 0);
+    }, 0) * 100) / 100;
+  }
+  return parseFloat(c.prix) || 0;
+}
+window._depTotalColis = _depTotalColis;
 
 // Recalcule ce qui decoule des lignes. A appeler des qu'elles changent.
 function _depMajDepuisLignes(c){
@@ -2600,6 +2614,8 @@ function injecterEcrans(){
   +       '<button type="button" class="dep-cli-btn" id="dv-prix-btn" onclick="depValiderModifierPrix()">&#9999;&#65039; Modifier</button>'
   +       '<button type="button" class="dep-cli-btn" id="dv-prix-confirm-btn" style="display:none !important;background:var(--green-light);border-color:#C8E6D0;color:var(--green-dark);" onclick="depValiderConfirmerPrix()">&#10003; Valider ce prix</button>'
   +     '</div>'
+  +     '<div id="dv-prix-note" style="display:none;font-size:11.5px;color:var(--text3);margin:-8px 0 14px;line-height:1.5;">'
+  +       '&#8505;&#65039; Total calcul&eacute; sur le d&eacute;tail des colis. Pour le changer, modifiez le prix de l\'article concern&eacute; ci-dessus.</div>'
 
   +     '<div class="dep-sec">Photo du colis <span style="color:#992020;">*</span></div>'
   +     '<div style="font-size:11.5px;color:var(--text3);margin:-6px 0 8px;">Obligatoire pour valider &mdash; le paiement se fait ensuite sur la facture.</div>'
@@ -6249,7 +6265,7 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
   var prixIndefiniPub = !!c.prixADefinir;
   var st = prixIndefiniPub ? { bg:'#FFF3CD', color:'#856404', label:'Prix à définir sur place' } : (STATUTS_PAIEMENT[payCombinePub.statut] || {});
   var nom = c.name || ((c.prenom||'') + ' ' + (c.nom||'')).trim() || 'Client';
-  var totalColis = parseFloat(c.prix) || 0;
+  var totalColis = _depTotalColis(c);
   var totalColisTxt = prixIndefiniPub ? 'à définir' : (totalColis + ' €');
   // Une ligne de tableau par article, numerotees a la suite.
   function _depLignesFacture(cl, indefini){
@@ -9241,8 +9257,15 @@ function _depFicheLignesMaj(total, nbColis, lignes){
       return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
     }).join(', ');
   }
+  // v1.25.4 : le prix decoule des lignes, on le met en lecture seule
+  // plutot que de laisser saisir un montant qui serait ignore.
   var prixEl = $('e-prix');
-  if(prixEl) prixEl.value = total;
+  if(prixEl){
+    prixEl.value = total;
+    prixEl.readOnly = true;
+    prixEl.style.background = '#f5f5f5';
+    prixEl.title = 'Calculé sur le détail des colis';
+  }
 }
 
 window.depSetLivraisonFiche = function(oui){
@@ -9601,8 +9624,19 @@ function _depValiderLignesMaj(total, nbColis, lignes){
   if(total <= 0 && fiche.prixADefinir && ctx.prixModifie == null) return;
 
   ctx.prixModifie = total;
-  var pAff = $('dv-prix-affiche'); if(pAff) pAff.textContent = total + ' €';
-  var pInp = $('dv-prix-input');   if(pInp) pInp.value = total;
+  var pAff = $('dv-prix-affiche');
+  if(pAff){ pAff.textContent = total + ' €'; pAff.style.display = 'block'; }
+  var pInp = $('dv-prix-input');
+  if(pInp){ pInp.value = total; pInp.style.display = 'none'; }
+
+  // v1.25.4 : des qu'un detail existe, le total vient des lignes. On
+  // retire donc "Modifier" plutot que de laisser taper un montant qui
+  // serait ignore a l'enregistrement — pour changer le prix, on change
+  // celui de l'article concerne, juste au-dessus.
+  var pBtn = $('dv-prix-btn');
+  if(pBtn) pBtn.style.display = lignes.length ? 'none' : 'inline-block';
+  var note = $('dv-prix-note');
+  if(note) note.style.display = lignes.length ? 'block' : 'none';
 }
 
 window.depOuvrirValidation = function(id, tk, name, prix){
@@ -9900,9 +9934,15 @@ window.depValiderConfirmer = function(){
     var lg = window.depLignesValeur();
     if(lg && lg.length) fiche.colisDetail = lg;
   }
-
   if(ctx.prixModifie !== null && ctx.prixModifie !== undefined){
     fiche.prix = ctx.prixModifie;
+    fiche.prixADefinir = false;
+  }
+  // v1.25.4 : le detail passe en dernier et gagne. Un prix tape a la main
+  // par-dessus des lignes deja saisies laissait les deux en desaccord, et
+  // la facture ne savait plus lequel imprimer.
+  if(fiche.colisDetail && fiche.colisDetail.length){
+    fiche.prix = window._depTotalColis(fiche);
     fiche.prixADefinir = false;
   }
 
@@ -10646,6 +10686,14 @@ function greffer(){
         // ensuite à la validation (voir depValiderRemplirDepart).
         paysDestination  : window._depClientPaysChoisi || DEP_PAYS_DEFAUT
       };
+      // v1.25.4 : quand un detail a ete saisi, c'est lui qui donne le prix.
+      // On ne pose la cle que dans ce cas — sinon on ecraserait avec
+      // "undefined" le prix que le formulaire natif vient d'enregistrer.
+      if(extras.colisDetail && extras.colisDetail.length){
+        extras.prix = window._depTotalColis({ colisDetail: extras.colisDetail });
+        extras.prixADefinir = false;
+      }
+
       var venantDuCarre = _depAjoutClientCarre;
       _depAjoutClientCarre = false;
 
@@ -10778,7 +10826,12 @@ function greffer(){
       // la facture continuait d'imprimer les lignes d'origine.
       try{
         var lgE = window.depLignesValeur();
-        if(lgE && lgE.length) extras.colisDetail = lgE;
+        if(lgE && lgE.length){
+          extras.colisDetail = lgE;
+          // v1.25.4 : le detail fait foi sur le prix tape juste au-dessus.
+          extras.prix = window._depTotalColis({ colisDetail: lgE });
+          extras.prixADefinir = false;
+        }
       }catch(eLg2){}
 
       _depOuvrirConfirmationFiche({ colId: colId, id: id, avant: avant, extras: extras, nom: (ficheActuelle||{}).name || '' });
