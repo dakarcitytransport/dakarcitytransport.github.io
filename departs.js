@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.23.1';
+var DEP_VERSION = 'v1.24.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -976,6 +976,54 @@ function depPaysClient(c){ return (c && c.paysDestination) || DEP_PAYS_DEFAUT; }
 // collecte depuis v1.19.16), sinon celui du container déjà attribué (dépôt
 // direct — le départ est toujours connu dès la création, voir
 // depOuvrirDepotForm), sinon Sénégal par défaut (fiche antérieure aux deux).
+// ═══════════ LIGNES DE COLIS — v1.24.0 ═══════════
+// Un client portait un seul prix et une description libre (« 1 barigo »).
+// Il porte desormais le detail : une ligne par article, avec sa quantite
+// et son prix. Le total de la facture est l'addition de ces lignes.
+//
+// prix, nbColis et colis restent renseignes et synchronises : tout ce qui
+// les lisait deja — factures, etiquettes, totaux de collecte, suivi
+// financier du dispatch — continue de fonctionner sans rien changer.
+//
+// Les fiches anterieures n'ont pas de colisDetail : on reconstitue une
+// ligne unique a partir de ce qu'elles portent, pour qu'aucune ancienne
+// facture ne change de montant.
+function _depLignesColis(c){
+  if(!c) return [];
+  var d = c.colisDetail;
+  if(Array.isArray(d) && d.length){
+    return d.map(function(l){
+      var qte = parseFloat(l.qte) || 1;
+      var pu  = parseFloat(l.pu)  || 0;
+      return { nom:(l.nom||'Colis'), qte:qte, pu:pu,
+               total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
+    });
+  }
+  var nb    = parseInt(c.nbColis, 10) || 1;
+  var total = parseFloat(c.prix) || 0;
+  return [{ nom:(c.colis || 'Colis'), qte:nb,
+            pu:(nb ? Math.round(total/nb*100)/100 : total), total:total }];
+}
+
+// Recalcule ce qui decoule des lignes. A appeler des qu'elles changent.
+function _depMajDepuisLignes(c){
+  if(!c) return c;
+  var lignes = _depLignesColis(c);
+  c.colisDetail = lignes;
+  c.prix    = lignes.reduce(function(s2,l){ return s2 + (l.total||0); }, 0);
+  c.nbColis = lignes.reduce(function(s2,l){ return s2 + (l.qte||0); }, 0) || 1;
+  // Resume lisible, repris partout ou une seule ligne de texte suffit.
+  c.colis = lignes.map(function(l){
+    return (l.qte > 1 ? (l.qte + ' ') : '') + l.nom;
+  }).join(', ');
+  return c;
+}
+
+// Exposes : les gestionnaires de l'editeur de lignes sont appeles depuis
+// des attributs onclick, qui ne voient que la portee globale.
+window._depLignesColis    = _depLignesColis;
+window._depMajDepuisLignes = _depMajDepuisLignes;
+
 function depPaysFiche(c){
   if(!c) return DEP_PAYS_DEFAUT;
   if(c.paysDestination) return c.paysDestination;
@@ -5953,6 +6001,15 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
   var nom = c.name || ((c.prenom||'') + ' ' + (c.nom||'')).trim() || 'Client';
   var totalColis = parseFloat(c.prix) || 0;
   var totalColisTxt = prixIndefiniPub ? 'à définir' : (totalColis + ' €');
+  // Une ligne de tableau par article, numerotees a la suite.
+  function _depLignesFacture(cl, indefini){
+    return _depLignesColis(cl).map(function(l, i){
+      var pu  = indefini ? 'à définir' : (l.pu + ' €');
+      var mtt = indefini ? 'à définir' : (l.total + ' €');
+      return '<tr><td>'+(i+1)+'</td><td>'+esc(l.nom)+'</td><td>'+l.qte+'</td>'
+           + '<td>colis</td><td>'+esc(pu)+'</td><td>'+esc(mtt)+'</td></tr>';
+    }).join('');
+  }
   var totalLivraison = c.livraisonDakar ? (parseFloat(c.prixLivraison) || 0) : 0;
   var totalGeneral = totalColis + totalLivraison;
   var totalGeneralTxt = prixIndefiniPub ? 'à définir' : (totalGeneral + ' €');
@@ -6022,8 +6079,8 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     +     '<div class="fac-tbl-wrap"><table class="fac-table">'
     +       '<thead><tr><th>N&deg;</th><th>Description</th><th>Qt&eacute;</th><th>Unit&eacute;</th><th>Prix unitaire</th><th>Montant</th></tr></thead>'
     +       '<tbody>'
-    +         '<tr><td>1</td><td>'+esc(c.colis||'Colis')+'</td><td>1</td><td>colis</td><td>'+esc(totalColisTxt)+'</td><td>'+esc(totalColisTxt)+'</td></tr>'
-    +         (c.livraisonDakar ? ('<tr><td>2</td><td>Livraison &agrave; Dakar'+((c.livraisonVille||c.livraisonVilleAutre||c.livraisonAdresse) ? (' &mdash; '+_depLivraisonLibelle(c)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
+    +         _depLignesFacture(c, prixIndefiniPub)
+    +         (c.livraisonDakar ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Livraison &agrave; Dakar'+((c.livraisonVille||c.livraisonVilleAutre||c.livraisonAdresse) ? (' &mdash; '+_depLivraisonLibelle(c)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
     +       '</tbody>'
     +     '</table></div>'
 
