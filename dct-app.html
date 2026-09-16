@@ -396,7 +396,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     <button onclick="ouvrirCarteFrance('suivi')" style="background:#e8eaf6;color:#1a237e;border:1.5px solid #1a237e;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">&#128506;</button>
   </div>
   <div class="subtabs">
-    <div class="subtab active" id="ftab-suivi" onclick="switchFranceTab('suivi')">🔍 Suivi</div>
+    <div class="subtab active" id="ftab-clients" onclick="switchFranceTab('clients')">👥 Clients</div>
     <div class="subtab" id="ftab-collectes" onclick="switchFranceTab('collectes')">📅 Collectes</div>
     <div class="subtab" id="ftab-dispatch" onclick="switchFranceTab('dispatch')">🚛 Dispatch</div>
   </div>
@@ -1578,7 +1578,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.58.2';
+var APP_VERSION = 'v3.58.3';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3393,7 +3393,7 @@ function _htmlPoste(){
 // ═══════════════════════════════════════════════════════════
 //  RAMASSAGE FRANCE — écrans DCT (v3.0.1)
 // ═══════════════════════════════════════════════════════════
-var franceTab   = 'suivi';
+var franceTab   = 'clients';
 var franceFiltre= 'attente';   // attente | planifie | ramasse | chartres | historique
 var franceRegion= '';          // '' = toutes
 var franceDept  = '';
@@ -3410,11 +3410,11 @@ var FR_STATUTS = {
 };
 
 function ouvrirFrance(){
-  franceTab='suivi'; franceFiltre='attente'; franceRegion=''; franceDept='';
+  franceTab='clients'; franceFiltre='attente'; franceRegion=''; franceDept='';
   var q=document.getElementById('fr-q'); if(q) q.value='';
   var a=document.getElementById('fr-av');
   if(a && currentUser){ a.textContent=currentUser.id; a.style.background=currentUser.bg; a.style.color=currentUser.color; a.style.border='2px solid '+currentUser.color; }
-  switchFranceTab('suivi');
+  switchFranceTab('clients');
   goTo('s-france');
 }
 
@@ -3423,14 +3423,14 @@ function switchFranceTab(t){
   // v3.58.2 : trois onglets. La Collecte de Paris n'en a que deux
   // (Clients / Dispatch) ; ici le vivier des inscrits vit sa propre vie,
   // indépendamment des collectes datées, d'où l'onglet Suivi en plus.
-  [['ftab-suivi','suivi'],['ftab-collectes','collectes'],['ftab-dispatch','dispatch']].forEach(function(x){
+  [['ftab-clients','clients'],['ftab-collectes','collectes'],['ftab-dispatch','dispatch']].forEach(function(x){
     var e=document.getElementById(x[0]);
     if(e) e.className='subtab'+(t===x[1]?' active':'');
   });
   var r=document.getElementById('fr-recherche');
-  if(r) r.style.display=(t==='suivi'?'block':'none');
+  if(r) r.style.display=(t==='clients'?'block':'none');
   var so=document.getElementById('fr-sous');
-  if(so) so.textContent=(t==='suivi'?'Suivi des colis'
+  if(so) so.textContent=(t==='clients'?'Clients inscrits'
                        :(t==='collectes'?'Collectes datées':'Camions et affectations'));
   renderFrance();
 }
@@ -3973,7 +3973,7 @@ function _peutGererFrance(){
   return !!(currentUser && !currentUser.societe);
 }
 function _selectionPossible(){
-  if(!_peutGererFrance() || franceTab!=='suivi') return false;
+  if(!_peutGererFrance() || franceTab!=='clients') return false;
   return franceFiltre==='attente' || franceFiltre==='planifie' || franceFiltre==='historique';
 }
 // v3.58.0 : sur les planifiés, la sélection sert à confirmer le ramassage
