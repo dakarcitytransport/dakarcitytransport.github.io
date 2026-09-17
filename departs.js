@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.25.6';
+var DEP_VERSION = 'v1.26.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10540,32 +10540,28 @@ function greffer(){
       var cards = document.getElementById('login-cards');
       var ret = document.getElementById('login-retour');
       var titre = document.getElementById('login-titre');
-      if(titre) titre.textContent = 'Choisissez votre espace';
+      // v1.26.0 : l'accueil s'ouvre directement sur les prenoms. Le grand
+      // carre "Dakar City Transport" imposait un tap de plus chaque matin
+      // pour arriver a son profil, alors qu'il ne menait qu'a un seul
+      // endroit (retour de Cobey du 17/09/2026). Chacun garde son code
+      // personnel derriere son prenom.
+      if(titre) titre.textContent = 'Qui êtes-vous ?';
       if(ret) ret.style.display = 'none';
       if(cards){ cards.innerHTML = ''; cards.style.display = 'none'; }
       if(!esp) return;
       esp.style.display = 'block';
 
-      var dct = SOCIETES.find(function(s){ return s.id === 'DCT'; });
       var adm = SOCIETES.find(function(s){ return s.id === 'ADM'; });
       var partenaires = SOCIETES.filter(function(s){ return s.id !== 'DCT' && s.id !== 'ADM'; });
 
       var html = '';
 
-      if(dct){
-        var suspDct = _societeSuspendue(dct.id);
-        var detailDct = _detailSociete(dct.id);
-        html += '<div class="dep-esp-hero' + (suspDct ? ' suspendu' : '') + '" onclick="'
-          + (suspDct ? 'showToastNew(\'🔒 Accès suspendu.\')' : 'ouvrirEspaceProtege(\'' + dct.id + '\')') + '">'
-          + '<div class="dep-esp-hero-top">'
-          +   '<div class="dep-esp-hero-ic">' + _depVisuelSocieteIcone(dct) + '</div>'
-          +   '<div style="flex:1;">'
-          +     '<div class="dep-esp-hero-ttl">' + dct.nom + '</div>'
-          +     (dct.sous ? ('<div class="dep-esp-hero-sub">' + dct.sous + '</div>') : '')
-          +     (detailDct ? ('<span class="dep-esp-hero-badge">' + detailDct + '</span>') : '')
-          +   '</div>'
-          + '</div></div>';
-      }
+      (window.COLLABS || []).filter(function(c){ return !c.admin && !c.desactive; })
+        .forEach(function(c){
+          html += (typeof window._carteProfil === 'function')
+            ? window._carteProfil(c)
+            : ('<div class="login-card" onclick="login(\'' + c.id + '\')">' + esc(c.name) + '</div>');
+        });
 
       // v1.22.0 : l'intertitre n'apparaît que s'il reste au moins un
       // partenaire — sinon il flottait tout seul au-dessus du vide.

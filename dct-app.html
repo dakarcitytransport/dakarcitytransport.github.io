@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.62.0';
+var APP_VERSION = 'v3.63.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2383,6 +2383,9 @@ function _rafraichirLogin(){
 }
 
 // ── Niveau 1 : les trois espaces ──
+/* Écran d'accueil de secours : le module Départs le remplace par sa
+   propre version (voir la greffe sur retourEspaces dans departs.js),
+   qui est celle réellement affichée. */
 function retourEspaces(){
   _espaceOuvertUI='';
   var esp=document.getElementById('login-espaces');
@@ -2430,7 +2433,7 @@ function _societeSuspendue(id){ return false; }
 function _detailSociete(id){
   if(_societeSuspendue(id)) return '🔒 Accès suspendu';
   if(id==='DCT'){
-    var n=COLLABS.filter(function(c){return !c.admin;}).length;
+    var n=COLLABS.filter(function(c){return !c.admin && !c.desactive;}).length;
     return n+' collaborateur'+(n>1?'s':'');
   }
   // Rien du tout : ni prénom, ni nombre. La discrétion est voulue.
@@ -2454,7 +2457,7 @@ function ouvrirEspace(socId){
     document.getElementById('login-soc-sous').textContent=so.sous;
   }
   var liste=[];
-  if(socId==='DCT') liste=COLLABS.filter(function(c){return !c.admin;});
+  if(socId==='DCT') liste=COLLABS.filter(function(c){return !c.admin && !c.desactive;});
   else if(socId==='ADM'){
     // Aucun prénom sur l'écran de connexion : seulement les initiales
     liste=COLLABS.filter(function(c){return c.admin;}).map(function(c){
@@ -2464,17 +2467,21 @@ function ouvrirEspace(socId){
   else liste=PARTENAIRES.filter(function(p){return p.societe===socId;});
 
   var html='';
-  liste.forEach(function(c){
-    var sous=_sousTitreProfil(c);
-    var _pc = (c.role==='poste') ? getPc(c.id) : {bg:c.bg,color:c.color,bar:c.color};
-    var avat = '<div class="av" style="background:'+_pc.bg+';color:'+_pc.color+';width:46px;height:46px;font-size:'+(c.role==='poste'?'17px':'13px')+';border:2px solid '+_pc.bar+';">'+(c.role==='poste'?'🚚':c.id)+'</div>';
-    html += '<div class="login-card" style="border-left:4px solid '+_pc.bar+';" onclick="login(\''+c.id+'\')">'
-         + avat
-         + '<div style="flex:1;"><div class="login-name">'+c.name+'</div>'+(sous?'<div class="login-role">'+sous+'</div>':'')+'</div>'
-         + '<svg style="margin-left:auto;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="'+c.color+'" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>'
-         + '</div>';
-  });
+  liste.forEach(function(c){ html += _carteProfil(c); });
   if(cards){ cards.style.display='block'; cards.innerHTML=html; }
+}
+
+// v3.63.0 : une seule fabrique de carte profil, partagée entre l'accueil
+// (collaborateurs DCT listés directement) et l'écran d'un espace.
+function _carteProfil(c){
+  var sous=_sousTitreProfil(c);
+  var _pc = (c.role==='poste') ? getPc(c.id) : {bg:c.bg,color:c.color,bar:c.color};
+  var avat = '<div class="av" style="background:'+_pc.bg+';color:'+_pc.color+';width:46px;height:46px;font-size:'+(c.role==='poste'?'17px':'13px')+';border:2px solid '+_pc.bar+';">'+(c.role==='poste'?'🚚':c.id)+'</div>';
+  return '<div class="login-card" style="border-left:4px solid '+_pc.bar+';" onclick="login(\''+c.id+'\')">'
+       + avat
+       + '<div style="flex:1;"><div class="login-name">'+c.name+'</div>'+(sous?'<div class="login-role">'+sous+'</div>':'')+'</div>'
+       + '<svg style="margin-left:auto;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="'+c.color+'" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>'
+       + '</div>';
 }
 
 function _sousTitreProfil(c){
@@ -7296,6 +7303,12 @@ function updateNotifBadge(){
 
 function login(id){
   var collab = getProfil(id)||COLLABS[0];
+  // v3.63.0 : profil désactivé depuis l'Administration — dernier verrou,
+  // au cas où la carte serait encore affichée (écran pas rafraîchi).
+  if(collab.desactive){
+    showToastNew('🚫 Ce profil est désactivé. Voyez avec l\'administration.');
+    return;
+  }
   // Poste chauffeur : place partagée, pas de code (choix v3.0.1)
   if(collab.role === 'poste'){ finalisLogin(collab); return; }
 
@@ -9631,7 +9644,7 @@ function addTruck(){
     modalHtml += '<div class="fg"><label class="fl">Équipage</label>';
     modalHtml += '<input class="fi" id="new-truck-name" placeholder="Samba + Issyaka" maxlength="60" oninput="_syncPastilles()"></div>';
     modalHtml += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">';
-    COLLABS.filter(function(cb){return !cb.admin;}).forEach(function(cb){
+    COLLABS.filter(function(cb){return !cb.admin && !cb.desactive;}).forEach(function(cb){
       modalHtml += '<span class="pastille-collab" data-nom="'+cb.name+'" data-bg="'+cb.bg+'" data-color="'+cb.color+'" onclick="_togglePastille(this)" style="font-size:12px;padding:5px 11px;border-radius:999px;background:#f2f2f2;color:#888;font-weight:700;cursor:pointer;border:2px solid transparent;">'+cb.name+'</span>';
     });
     modalHtml += '<span onclick="_ouvrirAutreNom()" style="font-size:12px;padding:5px 11px;border-radius:999px;background:#fff;color:#333;font-weight:700;cursor:pointer;border:2px dashed #999;">+ Autre</span>';
@@ -11557,6 +11570,33 @@ function _sauvegarderCollabs(){
   }
 }
 
+/* v3.63.0 — Désactiver un collaborateur au lieu de le supprimer.
+   Quelqu'un qui quitte l'équipe ne doit plus pouvoir se connecter, mais
+   tout ce qu'il a fait reste à son nom : collectes, factures, Activité,
+   Suivi. Le supprimer effacerait la personne des écrans où son travail
+   est encore consulté. Il disparaît donc de l'accueil et de la liste des
+   profils, sans rien perdre de son historique — et se réactive d'un
+   tap. */
+function _basculerCollabActif(realIdx){
+  var c = COLLABS[realIdx];
+  if(!c || c.admin) return;
+  c.desactive = !c.desactive;
+  if(!c.desactive) delete c.desactive;   // on ne stocke pas de "false" inutile
+  _sauvegarderCollabs();
+  renderAdminEquipe();
+  buildLogin();
+  if(typeof addActivity === 'function'){
+    try{
+      addActivity(c.desactive ? '🚫' : '☑️', (currentUser && currentUser.bg) || '#eee',
+        '<strong>' + (currentUser ? currentUser.name : '') + '</strong> a '
+        + (c.desactive ? 'désactivé' : 'réactivé') + ' le profil de <strong>' + c.name + '</strong>',
+        "À l'instant");
+    }catch(e){}
+  }
+  showToastNew(c.desactive ? ('🚫 ' + c.name + ' ne peut plus se connecter.')
+                           : ('☑️ ' + c.name + ' peut de nouveau se connecter.'));
+}
+
 function _ouvrirModifierCollab(realIdx){
   var c = COLLABS[realIdx];
   if(!c || c.admin) return;
@@ -12779,16 +12819,21 @@ function renderAdminEquipe(){
   nonAdmins.forEach(function(c, i){
     var realIdx = COLLABS.indexOf(c);
     var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:8px;border-left:4px solid '+c.color+';';
+    // v3.63.0 : un collaborateur désactivé reste dans la liste, grisé —
+    // on ne perd ni son historique ni ses initiales, il ne peut juste
+    // plus se connecter.
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;background:'+(c.desactive?'#f7f7f7':'#fff')+';border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:8px;border-left:4px solid '+(c.desactive?'#bbb':c.color)+';'+(c.desactive?'opacity:.7;':'');
 
     var av = document.createElement('div');
-    av.style.cssText = 'width:40px;height:40px;border-radius:50%;background:'+c.bg+';color:'+c.color+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:2px solid '+c.color+';flex-shrink:0;';
+    av.style.cssText = 'width:40px;height:40px;border-radius:50%;background:'+(c.desactive?'#eee':c.bg)+';color:'+(c.desactive?'#999':c.color)+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:2px solid '+(c.desactive?'#bbb':c.color)+';flex-shrink:0;';
     av.textContent = c.id;
     row.appendChild(av);
 
     var info = document.createElement('div');
     info.style.cssText = 'flex:1;min-width:0;';
-    info.innerHTML = '<div style="font-weight:800;font-size:14px;color:#111;">'+c.name+'</div><div style="font-size:11px;color:#888;">ID : '+c.id+'</div>';
+    info.innerHTML = '<div style="font-weight:800;font-size:14px;color:'+(c.desactive?'#888':'#111')+';">'+c.name+'</div>'
+      + '<div style="font-size:11px;color:#888;">ID : '+c.id
+      + (c.desactive ? ' · <span style="color:#c0392b;font-weight:800;">Désactivé</span>' : '') + '</div>';
     row.appendChild(info);
 
     var btnUp = document.createElement('button');
@@ -12812,6 +12857,17 @@ function renderAdminEquipe(){
     btnEdit.style.cssText = 'padding:6px 10px;background:#fff8e1;color:#e65100;border:1.5px solid #e65100;border-radius:8px;font-size:13px;cursor:pointer;font-family:var(--font);';
     (function(ri){ btnEdit.onclick = function(){ _ouvrirModifierCollab(ri); }; })(realIdx);
     row.appendChild(btnEdit);
+
+    // v3.63.0 : désactiver plutôt que supprimer. Un collaborateur qui
+    // s'en va ne doit plus pouvoir se connecter, mais son nom doit rester
+    // lisible partout où il a travaillé — collectes, factures, Activité,
+    // Suivi. La suppression, elle, reste possible juste à côté.
+    var btnOff = document.createElement('button');
+    btnOff.textContent = c.desactive ? '☑️' : '🚫';
+    btnOff.title = c.desactive ? 'Réactiver' : 'Désactiver';
+    btnOff.style.cssText = 'padding:6px 10px;background:'+(c.desactive?'#e8f5e9':'#f0f0f0')+';color:'+(c.desactive?'#1b5e20':'#555')+';border:1.5px solid '+(c.desactive?'#1b5e20':'#999')+';border-radius:8px;font-size:13px;cursor:pointer;font-family:var(--font);';
+    (function(ri){ btnOff.onclick = function(){ _basculerCollabActif(ri); }; })(realIdx);
+    row.appendChild(btnOff);
 
     var btnPin = document.createElement('button');
     btnPin.textContent = '🔑';
