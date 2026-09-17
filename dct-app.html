@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.65.0';
+var APP_VERSION = 'v3.66.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -1628,6 +1628,38 @@ var COLLABS = [
   {id:'AD',name:'Eric',    bg:'#FDE4E5',color:'#A31118', admin:true},
   {id:'AI',name:'Issyaka', bg:'#F7D5D7',color:'#7A0F14', admin:true}
 ];
+
+/* v3.66.0 — L'équipe, mémorisée pour le prochain démarrage.
+   La liste ci-dessus est celle inscrite dans le code : elle sert au tout
+   premier lancement, avant que Firebase ait répondu. Résultat, un profil
+   désactivé depuis l'Administration réapparaissait une seconde à
+   l'accueil, puis disparaissait quand la config arrivait (retour de
+   Cobey du 17/09/2026).
+
+   On garde donc une copie locale de la dernière équipe connue, relue ici
+   même, avant le premier dessin de l'écran. Firebase reste la référence
+   et corrige juste après s'il y a eu un changement ailleurs — mais le
+   premier affichage est déjà le bon. */
+function _memoriserCollabs(){
+  try{
+    localStorage.setItem('dct_v3_collabs',
+      JSON.stringify(COLLABS.filter(function(c){ return !c.admin; })));
+  }catch(e){}
+}
+
+(function _restaurerCollabsMemorises(){
+  try{
+    var brut = localStorage.getItem('dct_v3_collabs');
+    if(!brut) return;
+    var liste = JSON.parse(brut);
+    if(!Array.isArray(liste) || !liste.length) return;
+    var admins = COLLABS.filter(function(c){ return c.admin; });
+    COLLABS = liste.filter(function(c){ return c && !c.admin; });
+    admins.forEach(function(a){
+      if(!COLLABS.some(function(c){ return c.id === a.id; })) COLLABS.push(a);
+    });
+  }catch(e){}
+})();
 
 // ═══════════ PARTENAIRES — v2.10.0 ═══════════
 // Profils externes, droits restreints.
@@ -11583,6 +11615,7 @@ function _descendreCollab(realIdx){
 function _sauvegarderCollabs(){
   if(firebaseReady && db){
     db.ref('dct_config/collabs').set(COLLABS.filter(function(c){ return !c.admin; }));
+  _memoriserCollabs();
   }
 }
 
@@ -12971,6 +13004,7 @@ function ajouterCollab(){
   while(COLLABS.find(function(c){ return c.id === id; })){ id = name.substring(0,2).toUpperCase()+counter; counter++; }
   COLLABS.push({id:id, name:name, bg:palette.bg, color:palette.color});
   if(firebaseReady && db) db.ref('dct_config/collabs').set(COLLABS.filter(function(c){ return !c.admin; }));
+  _memoriserCollabs();
   showToastNew('✅ '+name+' ajouté(e) !');
   nameEl.value = '';
   buildLogin();
@@ -13007,6 +13041,7 @@ function demanderSupprimerCollab(idx){
   document.getElementById('btn-confirm-suppr').onclick = function(){
     COLLABS.splice(idx, 1);
     if(firebaseReady && db) db.ref('dct_config/collabs').set(COLLABS.filter(function(c){ return !c.admin; }));
+  _memoriserCollabs();
     showToastNew('✅ '+c.name+' supprimé(e).');
     modal.remove();
     buildLogin();
@@ -13103,6 +13138,7 @@ function chargerConfigFirebase(){
       admins.forEach(function(a){
         if(!COLLABS.some(function(c){ return c.id===a.id; })) COLLABS.push(a);
       });
+      _memoriserCollabs();   // v3.66.0 : pour le prochain démarrage
       var v=document.getElementById('app-version'); if(v) v.textContent=APP_VERSION;
       _rafraichirLogin();
     }
