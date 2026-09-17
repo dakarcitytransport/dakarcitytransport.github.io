@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.26.1';
+var DEP_VERSION = 'v1.27.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10648,8 +10648,20 @@ function greffer(){
           + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + so.color + '" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>'
           + '</div>';
       });
-      if(adm){
-        html += '<div class="dep-esp-admin-discret" onclick="ouvrirEspaceProtege(\'' + adm.id + '\')">🔒 Administration</div>';
+      // v1.27.0 : l'administration demandait deux taps — la ligne
+      // "Administration", puis des initiales sans prénom. Les
+      // administrateurs ont maintenant leur propre case, au nom, comme
+      // tout le monde (retour de Cobey du 17/09/2026). Elles restent
+      // en bas et gardent le cadenas : on voit d'un coup d'œil que ce
+      // n'est pas un profil de collecte.
+      var admins = (window.COLLABS || []).filter(function(c){ return c.admin && !c.desactive; });
+      if(admins.length){
+        html += '<div class="dep-esp-section-lbl">Administration</div>';
+        admins.forEach(function(c){
+          html += (typeof window._carteProfil === 'function')
+            ? window._carteProfil(c, '🔒')
+            : ('<div class="login-card" onclick="login(\'' + c.id + '\')">' + esc(c.name) + '</div>');
+        });
       }
 
       esp.innerHTML = html;

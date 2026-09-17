@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.63.0';
+var APP_VERSION = 'v3.64.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -1620,8 +1620,13 @@ var COLLABS = [
   {id:'SA',name:'Samba',     bg:'#CFFAFE',color:'#0e7490'},
   {id:'IB',name:'Ibrahima',  bg:'#EDE9FE',color:'#7c3aed'},
   {id:'BO',name:'Boubacar',  bg:'#FEF3C7',color:'#92400e'},
-  {id:'AD',name:'Eric',    bg:'#1a1a2e',color:'#ffffff', admin:true},
-  {id:'AI',name:'Issyaka', bg:'#1a1a2e',color:'#ffffff', admin:true}
+  // v3.64.0 : les deux profils administrateurs étaient en blanc sur fond
+  // sombre. L'avatar passait, mais le fil d'Activité écrit le nom avec
+  // cette même couleur sur fond blanc — donc en blanc sur blanc, illisible
+  // (retour de Cobey du 17/09/2026). Ils passent au rouge de la maison,
+  // qui reste lisible partout : avatar, Activité, Suivi.
+  {id:'AD',name:'Eric',    bg:'#FDE4E5',color:'#A31118', admin:true},
+  {id:'AI',name:'Issyaka', bg:'#F7D5D7',color:'#7A0F14', admin:true}
 ];
 
 // ═══════════ PARTENAIRES — v2.10.0 ═══════════
@@ -2473,10 +2478,13 @@ function ouvrirEspace(socId){
 
 // v3.63.0 : une seule fabrique de carte profil, partagée entre l'accueil
 // (collaborateurs DCT listés directement) et l'écran d'un espace.
-function _carteProfil(c){
+function _carteProfil(c, marque){
   var sous=_sousTitreProfil(c);
   var _pc = (c.role==='poste') ? getPc(c.id) : {bg:c.bg,color:c.color,bar:c.color};
-  var avat = '<div class="av" style="background:'+_pc.bg+';color:'+_pc.color+';width:46px;height:46px;font-size:'+(c.role==='poste'?'17px':'13px')+';border:2px solid '+_pc.bar+';">'+(c.role==='poste'?'🚚':c.id)+'</div>';
+  // v3.64.0 : `marque` remplace les initiales par un symbole — le cadenas
+  // des profils administrateurs, pour les distinguer d'un coup d'œil.
+  var dedans = marque ? marque : (c.role==='poste' ? '🚚' : c.id);
+  var avat = '<div class="av" style="background:'+_pc.bg+';color:'+_pc.color+';width:46px;height:46px;font-size:'+((c.role==='poste'||marque)?'17px':'13px')+';border:2px solid '+_pc.bar+';">'+dedans+'</div>';
   return '<div class="login-card" style="border-left:4px solid '+_pc.bar+';" onclick="login(\''+c.id+'\')">'
        + avat
        + '<div style="flex:1;"><div class="login-name">'+c.name+'</div>'+(sous?'<div class="login-role">'+sous+'</div>':'')+'</div>'
