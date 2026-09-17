@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.64.0';
+var APP_VERSION = 'v3.65.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -8627,6 +8627,11 @@ function renderClientsTab(){
   COLLABS.forEach(function(co){
     if(co.admin) return; // Admin non affiché
     var myC=Object.values(cls).filter(function(c){return c.by===co.name;});
+    // v3.65.0 : un profil désactivé disparaît des collectes où il n'a
+    // rien fait. S'il y a travaillé, sa carte reste — son chiffre
+    // appartient à la collecte, pas au profil (retour de Cobey du
+    // 17/09/2026 : ils apparaissaient encore à 0 €, incohérent).
+    if(co.desactive && !myC.length) return;
     var tot=myC.reduce(function(s,c){return s+(c.prix||0);},0);
     var card=document.createElement('div');card.className='collab-card';card.style.borderLeft='3px solid '+co.color;
     card.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><div class="av" style="background:'+co.bg+';color:'+co.color+';width:24px;height:24px;font-size:9px;">'+co.id+'</div><span style="font-size:11px;font-weight:800;color:'+co.color+';">'+co.name+'</span></div><div class="collab-amount">'+tot+' €</div><div class="collab-clients">'+myC.length+' client'+(myC.length!==1?'s':'')+'</div>';
@@ -8649,6 +8654,9 @@ function renderClientsTab(){
   allBtn.textContent='Tous';allBtn.onclick=function(){activeFilter='';renderClientsTab();};fp.appendChild(allBtn);
   COLLABS.forEach(function(co){
     if(co.admin) return;
+    // Même règle que les cartes ci-dessus : pas de filtre pour un profil
+    // désactivé qui n'a aucun client ici.
+    if(co.desactive && !Object.values(cls).some(function(c){return c.by===co.name;})) return;
     var pb=document.createElement('button');pb.className='filter-pill'+(activeFilter===co.name?' active':'');
     pb.textContent=co.name;pb.onclick=function(){activeFilter=co.name;renderClientsTab();};fp.appendChild(pb);
   });
