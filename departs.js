@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.27.0';
+var DEP_VERSION = 'v1.28.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -457,6 +457,42 @@ var DEP_VERSION = 'v1.27.0';
         // mais Firebase doit rester initialisé tôt (voir _depConnexionAnonyme).
         // v1.22.2 : surtout, on ne lève plus le voile d'ici — c'est le rendu
         // du module qui s'en charge, sinon l'ancien écran apparaît avant lui.
+
+        // v1.28.0 : tout premier démarrage sur cet appareil — aucune équipe
+        // mémorisée en local (voir _memoriserCollabs, dct-app.html). Sans
+        // rien de plus, l'accueil se peint avec la liste inscrite dans le
+        // code, puis se corrige quand Firebase répond : un profil désactivé
+        // clignote (retour de Cobey du 17/09/2026). On va donc chercher
+        // l'équipe tout de suite, et on retient le dessin le temps de
+        // l'avoir. Les démarrages suivants n'attendent rien : la mémoire
+        // locale suffit.
+        var dejaConnue = false;
+        try{ dejaConnue = !!localStorage.getItem('dct_v3_collabs'); }catch(eLs){}
+        if(!dejaConnue){
+          window._depAttenteEquipe = true;
+          firebase.database().ref('dct_config/collabs').once('value')
+            .then(function(snap){
+              var data = snap.val();
+              if(data && data.length && window.COLLABS){
+                var admins = COLLABS.filter(function(c){ return c.admin; });
+                window.COLLABS = data.filter(function(c){ return c && !c.admin; });
+                admins.forEach(function(a){
+                  if(!COLLABS.some(function(c){ return c.id === a.id; })) COLLABS.push(a);
+                });
+                // appliquerProfils() retire le second profil admin et
+                // repose les droits — indispensable après avoir remplacé
+                // la liste, sinon un doublon revient sur l'accueil.
+                try{ appliquerProfils(); }catch(eP){}
+                try{ if(typeof window._memoriserCollabs === 'function') window._memoriserCollabs(); }catch(eM){}
+              }
+            })
+            .catch(function(){})
+            .then(function(){
+              window._depAttenteEquipe = false;
+              try{ if(typeof window.retourEspaces === 'function' && !window._espaceOuvertUI) window.retourEspaces(); }catch(eR){}
+              leve();
+            });
+        }
       }catch(eFb){ leve(); }
     }
 
@@ -10666,6 +10702,11 @@ function greffer(){
 
       esp.innerHTML = html;
       // v1.22.2 : le nouvel écran est à l'écran — on peut découvrir.
+      // v1.28.0 : sauf au tout premier démarrage, tant qu'on ne sait pas
+      // encore qui est dans l'équipe. Découvrir maintenant montrerait la
+      // liste inscrite dans le code, avec les profils désactivés dedans.
+      // Le filet de 1200 ms plus haut reste la limite absolue.
+      if(window._depAttenteEquipe) return;
       try{ if(typeof window._depLeverVoileEspaces === 'function') window._depLeverVoileEspaces(); }catch(e){}
     };
     window.retourEspaces._depPatch = true;
