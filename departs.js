@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.28.0';
+var DEP_VERSION = 'v1.28.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8184,6 +8184,15 @@ window.depModifierFicheActuelle = function(force){
   // simple clic — le verrou ne se lève que par le chemin explicite.
   if(loc && !force) return;
   _depAppliquerGardeFiche(false);
+  // v1.28.1 : sur une collecte terminée, l'appli masque le bloc d'actions
+  // en entier (client-actions) et affiche sa bannière de lecture seule.
+  // _depAppliquerGardeFiche ne rouvrait que les champs et les boutons
+  // eux-mêmes : on entrait dans la fiche sans pouvoir enregistrer
+  // (retour de Cobey du 17/09/2026). On rouvre donc aussi le conteneur.
+  if(loc && force){
+    var acts = $('client-actions'); if(acts) acts.style.display = 'block';
+    var ban = $('client-locked-banner'); if(ban) ban.style.display = 'none';
+  }
   goTo('s-client');
 };
 
