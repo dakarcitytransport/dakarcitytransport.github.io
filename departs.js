@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.26.0';
+var DEP_VERSION = 'v1.26.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3110,6 +3110,29 @@ function injecterEcrans(){
     +   '<button class="btn-sm btn-green-sm" onclick="depConfirmerModifFiche()">&#9989; Confirmer</button>'
     + '</div></div></div>';
   document.body.appendChild(m8);
+
+  /* ---- Modale (v1.26.1) : rouvrir la fiche d'un client dont la collecte
+     est déjà terminée. Le colis est parti dans un container, mais il
+     reste des réajustements de facture à faire (retour de Cobey du
+     17/09/2026 : "actuellement on est bloqué"). On ne retire pas le
+     verrou, on le rend franchissable : un geste explicite, tracé dans le
+     Suivi et dans l'Activité. ---- */
+  var m8b = document.createElement('div');
+  m8b.className = 'modal-overlay';
+  m8b.id = 'modal-dep-fiche-rouvrir';
+  m8b.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">&#128275;</div>'
+    + '<div class="modal-confirm-title">Modifier une collecte termin&eacute;e</div>'
+    + '<div id="dep-fiche-rouvrir-texte" style="font-size:14px;color:#333;margin:4px 0 10px;line-height:1.5;"></div>'
+    + '<div style="font-size:12.5px;color:var(--text3);background:#FFF8E1;border:1.5px solid #F0E2A0;'
+    +   'border-radius:8px;padding:9px 11px;margin-bottom:16px;line-height:1.5;text-align:left;">'
+    +   '&#9888;&#65039; Cette collecte est cl&ocirc;tur&eacute;e et le colis est d&eacute;j&agrave; dans un container. '
+    +   'La modification sera inscrite &agrave; votre nom dans le Suivi.</div>'
+    + '<div class="modal-confirm-btns">'
+    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-fiche-rouvrir\')">Annuler</button>'
+    +   '<button class="btn-sm btn-green-sm" onclick="depConfirmerRouvrirFiche()">&#128275; Modifier quand m&ecirc;me</button>'
+    + '</div></div></div>';
+  document.body.appendChild(m8b);
 
   /* ---- Modale (v1.19.41) : ajouter une note sur la fiche client — la
      note n'est plus un champ figé mais un événement daté, qui vient
@@ -8095,8 +8118,13 @@ function depRenderFicheLecture(colId, clientId, depot){
   try{ loc = !depot && isLocked(); }catch(e2){}
   var act = $('dep-ficheL-actions');
   if(act){
+    // v1.26.1 : une collecte terminée n'enferme plus la facture. Le
+    // verrou reste affiché — il dit quelque chose de vrai — mais on peut
+    // le franchir pour un réajustement, en connaissance de cause.
     act.innerHTML = loc
-      ? '<div class="dep-alert" style="margin-top:4px;">&#128274; Collecte termin&eacute;e — modification impossible.</div>'
+      ? '<div class="dep-alert" style="margin-top:4px;">&#128274; Collecte termin&eacute;e.</div>'
+        + '<button class="btn btn-gray" style="margin-top:8px;background:#FFF8E1;border-color:#F0E2A0;color:#8A7300;" '
+        + 'onclick="depRouvrirFicheTerminee()">&#128275; Modifier quand m&ecirc;me la facture</button>'
       : '<button class="btn btn-green" style="margin-top:4px;" onclick="depModifierFicheActuelle()">&#9999;&#65039; Modifier la fiche</button>';
   }
 }
@@ -8108,7 +8136,7 @@ function depRenderFicheLecture(colId, clientId, depot){
 // v1.20.13 : Dépôt direct — pas de garde native à lever, ouvre directement
 // le formulaire dédié (depOuvrirDepotForm), en revenant au bon endroit
 // (carré Dépôt ou carré Départ, voir _depFicheLectureCtx).
-window.depModifierFicheActuelle = function(){
+window.depModifierFicheActuelle = function(force){
   var ctx = _depFicheLectureCtx;
   if(ctx && ctx.depot){
     depOuvrirDepotForm(ctx.departId, ctx.clientId, ctx.viaCarre);
@@ -8116,9 +8144,47 @@ window.depModifierFicheActuelle = function(){
   }
   var loc = false;
   try{ loc = isLocked(); }catch(e){}
-  if(loc) return;
+  // v1.26.1 : `force` vient de depConfirmerRouvrirFiche, jamais d'un
+  // simple clic — le verrou ne se lève que par le chemin explicite.
+  if(loc && !force) return;
   _depAppliquerGardeFiche(false);
   goTo('s-client');
+};
+
+/* v1.26.1 — Rouvrir la facture d'un client dont la collecte est close.
+   Le colis est parti, mais un prix se réajuste encore (un article ajouté
+   au dernier moment, une remise convenue après coup). Plutôt que de
+   retirer le verrou pour tout le monde, on le rend franchissable : une
+   confirmation qui dit ce qu'on fait, et une trace nominative. */
+window.depRouvrirFicheTerminee = function(){
+  var ctx = _depFicheLectureCtx;
+  if(!ctx || !ctx.clientId) return;
+  var c = ((window.clientsParCollecte || {})[ctx.colId || window.currentCollecteId] || {})[ctx.clientId] || {};
+  var t = $('dep-fiche-rouvrir-texte');
+  if(t) t.innerHTML = 'Rouvrir la facture de <strong>' + esc(c.name || '') + '</strong>&nbsp;?';
+  openModal('modal-dep-fiche-rouvrir');
+};
+
+window.depConfirmerRouvrirFiche = function(){
+  closeModal('modal-dep-fiche-rouvrir');
+  var ctx = _depFicheLectureCtx;
+  var colId = (ctx && ctx.colId) || window.currentCollecteId;
+  var c = ((window.clientsParCollecte || {})[colId] || {})[(ctx || {}).clientId];
+  if(c){
+    var u = window.currentUser || {};
+    var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+    hist.push({ q: u.name || u.id || '', ts: Date.now(), type: 'modif',
+      a: 'a rouvert la facture alors que la collecte &eacute;tait <strong>termin&eacute;e</strong>' });
+    c.hist = hist;
+    try{
+      _depEcrireClient({ collecteId: colId, clientId: ctx.clientId }, { hist: hist });
+    }catch(e){}
+    try{
+      depActivite('&#128275;', 'a rouvert la facture de <strong>' + esc(c.name || '')
+        + '</strong> &mdash; collecte termin&eacute;e');
+    }catch(e){}
+  }
+  depModifierFicheActuelle(true);
 };
 
 // v1.19.41 : premier collaborateur à avoir encaissé ce client (son tout
@@ -10972,6 +11038,10 @@ function greffer(){
           // v1.25.4 : le detail fait foi sur le prix tape juste au-dessus.
           extras.prix = window._depTotalColis({ colisDetail: lgE });
           extras.prixADefinir = false;
+          // v1.26.1 : et sur le nombre de colis. Cette fiche n'a pas de
+          // champ "Nombre de colis" — sans ca, ajouter une ligne ici
+          // laissait la facture a "1 colis" avec trois lignes dessous.
+          extras.nbColis = lgE.reduce(function(s, l){ return s + (parseFloat(l.qte) || 0); }, 0) || 1;
         }
       }catch(eLg2){}
 
