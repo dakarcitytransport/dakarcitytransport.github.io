@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.42.0';
+var DEP_VERSION = 'v1.43.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1052,7 +1052,8 @@ function _depLignesColis(c){
     if(_depDetailConcorde(lignes, c)) return lignes;
     return _depLignesRecollees(lignes, c);
   }
-  var nb    = parseInt(c.nbColis, 10) || 1;
+  // v1.43.0 : France & Europe nomme ce champ `nb`.
+  var nb    = parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 1;
   var total = parseFloat(c.prix) || 0;
   // v1.25.1 : rien a reconstituer — ni description ni prix. Mieux vaut un
   // editeur vide qu'une ligne "Colis · 0 €" a effacer a la main.
@@ -1068,7 +1069,7 @@ function _depDetailConcorde(lignes, c){
   var attendus = _depItemsDescription(c.colis);
   if(!attendus.length) return true;              // pas de description : rien a comparer
   if(attendus.length !== lignes.length) return false;
-  var nbFiche = parseInt(c.nbColis, 10) || 0;
+  var nbFiche = parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 0;
   if(nbFiche){
     // v1.39.0 : compte physique — un lot vaut un colis, pas sa quantité.
     if(_depNbPhysique(lignes) !== nbFiche) return false;
@@ -1325,7 +1326,7 @@ function _depPlanEtiquettes(c){
   });
   // Fiche sans détail : on retombe sur le comptage d'avant.
   if(!plan.length){
-    var n = parseInt(c && c.nbColis, 10) || 1;
+    var n = parseInt(c && c.nbColis, 10) || parseInt(c && c.nb, 10) || 1;
     for(var z = 1; z <= n; z++) plan.push({ rang:z, total:n, contenu:'' });
   }
   return plan;
@@ -6973,7 +6974,7 @@ window.depOuvrirEtiquette = function(){
   // v1.40.0 : le nombre d'étiquettes, lots compris — un lot filmé en
   // trois paquets en demande trois, alors qu'il ne compte que pour un
   // colis (voir _depNbEtiquettes).
-  var nEtq = c.nbColis || 1;
+  var nEtq = c.nbColis || c.nb || 1;
   try{
     var lgEtq = _depLignesColis(c);
     if(lgEtq.length) nEtq = _depNbEtiquettes(lgEtq) || nEtq;
@@ -7790,7 +7791,7 @@ function depRenderFacture(c){
   h += kv('R&eacute;f. client', esc(depRefClientPour(_depCleContact(c))));
   h += kv('T&eacute;l&eacute;phone', _depLienTel(c.tel, c.tel || '—'));
   h += kv('Colis', esc(c.colis || '—'));
-  h += kv('Nombre de colis', String(c.nbColis || 1));
+  h += kv('Nombre de colis', String(c.nbColis || c.nb || 1));
   // v1.37.0 : dire sur la facture elle-même qu'elle réunit plusieurs
   // collectes, et lesquelles — sinon rien ne distingue une facture
   // regroupée d'une facture ordinaire (retour de Cobey du 18/09/2026).
@@ -8412,7 +8413,7 @@ function depRenderFicheLecture(colId, clientId, depot){
     +   kv('Adresse', adresseTxt || '—')
     +   (c.infos ? kv('Infos compl&eacute;mentaires', esc(c.infos)) : '')
     +   kv('Colis', esc(c.colis || '—'))
-    +   kv('Nombre de colis', String(c.nbColis || 1))
+    +   kv('Nombre de colis', String(c.nbColis || c.nb || 1))
     +   kv('Prix', (c.prixADefinir ? '<span style="color:var(--text3);">&Agrave; d&eacute;finir sur place</span>' : ((c.prix||0) + '&nbsp;&euro;'))
           + (pastilleEncaisse ? ('<br><span style="font-size:10.5px;color:var(--text3);">Encaiss&eacute; par</span><br>'+pastilleEncaisse) : ''))
     // v1.19.53 : reste à payer, visible uniquement si le paiement est
@@ -10099,6 +10100,54 @@ function injecterChampsFiche(){
         + '<div class="dep-sec">R&eacute;capitulatif</div>';
       blocColisE.parentNode.insertBefore(lgE, blocColisE);
     }
+  }
+}
+
+/* ═══════════ FRANCE & EUROPE — v1.43.0 ═══════════
+   Ce parcours gardait ses trois champs à remplir à la main : nombre de
+   colis, description, prix. Pas de détail ligne par ligne, donc pas de
+   facture détaillée et pas de lots — alors que ces clients-là envoient
+   aussi bien un colis simple qu'un lot de palettes (retour de Cobey du
+   19/09/2026 : "autant faire la même chose").
+
+   La facture, elle, est déjà partagée avec la Collecte : il suffit que
+   la fiche porte colisDetail pour qu'elle s'imprime ligne par ligne.
+   ═══════════════════════════════════════════════ */
+function _depInjecterLignesFrance(){
+  var champ = $('fa-colis');
+  if(!champ || $('fa-lignes')) return;
+  var blocColis = champ.closest ? champ.closest('.fg') : champ.parentNode;
+  if(!blocColis || !blocColis.parentNode) return;
+  // La rangée "Nombre de colis / Prix" est au-dessus de la description :
+  // le détail se pose avant elle, comme dans les autres parcours.
+  var nbEl = $('fa-nb');
+  var rangee = nbEl && nbEl.closest ? nbEl.closest('.form-row') : null;
+  var bloc = document.createElement('div');
+  bloc.innerHTML = '<div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">D&eacute;tail des colis</div>'
+    + '<div id="fa-lignes" style="margin-bottom:14px;"></div>'
+    + '<div class="dep-sec">R&eacute;capitulatif</div>';
+  blocColis.parentNode.insertBefore(bloc, rangee || blocColis);
+}
+
+/* Les lignes commandent les trois champs, comme partout ailleurs. */
+function _depFranceLignesMaj(total, nbColis, lignes){
+  if(!lignes || !lignes.length) return;
+  var nbEl = $('fa-nb');
+  if(nbEl && nbColis > 0) nbEl.value = nbColis;
+  var colisEl = $('fa-colis');
+  if(colisEl){
+    colisEl.value = lignes.map(function(l){
+      if(l.lot) return (l.qte > 1 ? ('lot de ' + l.qte + ' ') : '') + l.nom;
+      var deja = /^\s*\d/.test(l.nom || '');
+      return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
+    }).join(', ');
+  }
+  var prixEl = $('fa-prix');
+  if(prixEl){
+    prixEl.value = total;
+    prixEl.readOnly = true;
+    prixEl.style.background = '#f5f5f5';
+    prixEl.title = 'Calculé sur le détail des colis';
   }
 }
 
@@ -12063,6 +12112,13 @@ function greffer(){
     var origOuvrirFrance = window.ouvrirAjoutFrance;
     window.ouvrirAjoutFrance = function(){
       origOuvrirFrance.apply(this, arguments);
+      // v1.43.0 : le détail des colis, vide pour un nouveau client.
+      try{
+        _depInjecterLignesFrance();
+        window.depEditerLignes('fa-lignes', [], _depFranceLignesMaj);
+        var pfa = $('fa-prix');
+        if(pfa){ pfa.readOnly = false; pfa.style.background = ''; }
+      }catch(eFr){}
       // v1.19.86 : idem Collecte — voir le patch de ouvrirAjoutClient.
       window._depDevisEnCoursId = null;
       // v1.19.74 : "Inscrire un client" partage l'écran (s-france-add) avec
@@ -12096,6 +12152,18 @@ function greffer(){
     var origModifierFrance = window.modifierClientFrance;
     window.modifierClientFrance = function(){
       origModifierFrance.apply(this, arguments);
+      // v1.43.0 : le détail déjà enregistré, ou reconstitué depuis la
+      // description pour les fiches d'avant. `nb` est le nom du champ
+      // côté France — on le présente à _depLignesColis sous le nom
+      // qu'elle attend.
+      try{
+        _depInjecterLignesFrance();
+        var cFr = ((window.franceData||{}).clients||{})[window.franceClientId] || {};
+        var vueFr = { colisDetail: cFr.colisDetail, colis: cFr.colis,
+                      nbColis: cFr.nbColis || cFr.nb, prix: cFr.prix,
+                      prixADefinir: cFr.prixADefinir };
+        window.depEditerLignes('fa-lignes', window._depLignesColis(vueFr), _depFranceLignesMaj);
+      }catch(eFr2){}
       // v1.19.74 : même bug que la fiche en lecture seule (voir le patch de
       // ouvrirFicheFrance plus bas) — "Modifier la fiche", ouverte depuis
       // un container, ramenait à tort vers l'écran France & Europe au lieu
@@ -12315,6 +12383,21 @@ function greffer(){
           maj['clients/'+id+'/livraisonVille']      = _frLivraison ? _depVilleLire('fa').livraisonVille : '';
           maj['clients/'+id+'/livraisonVilleAutre'] = _frLivraison ? _depVilleLire('fa').livraisonVilleAutre : '';
           maj['clients/'+id+'/prixADefinir']      = !!_frPrixIndefini;
+          // v1.43.0 : le détail ligne par ligne, et les deux comptes qui en
+          // découlent. `nb` est le champ historique de ce parcours,
+          // `nbColis` celui que lisent la facture et les étiquettes,
+          // partagées avec la Collecte — on écrit les deux pour que la
+          // facture d'un client France cesse d'afficher "1 colis".
+          try{
+            var lgFr = window.depLignesValeur();
+            if(lgFr && lgFr.length){
+              var nFr = window._depNbPhysique(lgFr) || 1;
+              maj['clients/'+id+'/colisDetail'] = lgFr;
+              maj['clients/'+id+'/nb']          = nFr;
+              maj['clients/'+id+'/nbColis']     = nFr;
+              maj['clients/'+id+'/prix']        = window._depTotalColis({ colisDetail: lgFr });
+            }
+          }catch(eLgFr){}
           // v1.19.60 : la note tapée à l'inscription/modification n'existait
           // nulle part ensuite (champ "note" mort) — retour de Cobey du
           // 28/08/2026 : elle rejoint directement le Suivi (📝 Notes de
@@ -13778,7 +13861,7 @@ window.depOuvrirImpressionToutesEtiquettesCamion = function(k){
     if(!c.departId || c.departId === DEP_ID_DEPOT || !(window.departsData||{})[c.departId]) return;
     // v1.40.0 : le plan dit combien d'étiquettes ce client demande —
     // lots filmés compris — et ce que chacune porte.
-    var plan = null, nEtq = c.nbColis || 1;
+    var plan = null, nEtq = c.nbColis || c.nb || 1;
     try{
       plan = _depPlanEtiquettes(c);
       if(plan && plan.length) nEtq = plan.length; else plan = null;
