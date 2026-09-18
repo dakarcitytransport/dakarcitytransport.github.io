@@ -153,7 +153,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.3.0';
+var CHAUFFEUR_VERSION = 'v1.4.0';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -318,12 +318,13 @@ function dessinerLignesColis(){
       +  '<th style="width:34px;"></th></tr></thead><tbody>';
     lignesColis.forEach(function(l, i){
       h += '<tr><td>' + esc(l.nom) + '</td>'
-        +  '<td><input type="number" min="1" value="' + l.qte + '" onchange="ligneQte(' + i + ',this.value)" style="width:100%;"></td>'
+        +  '<td><input type="number" min="1" value="' + l.qte + '"'
+        +     ' oninput="ligneQte(' + i + ',this.value)" onblur="ligneQteFin(' + i + ',this)" style="width:100%;"></td>'
         +  '<td style="text-align:center;"><button type="button" class="colis-suppr" onclick="ligneSuppr(' + i + ')">✕</button></td></tr>';
     });
     h += '</tbody></table>'
       +  '<div class="colis-total"><span class="g">Total</span>'
-      +  '<span class="d">' + nbColisLignes() + ' colis</span></div>';
+      +  '<span class="d" id="cl-total">' + nbColisLignes() + ' colis</span></div>';
   }
   box.innerHTML = h;
 }
@@ -351,11 +352,21 @@ function ajouterLigneLibre(){
   dessinerLignesColis();
 }
 
+// v1.4.0 : la quantité se prend lettre par lettre et ne redessine plus le
+// tableau. Sinon, toucher le ✕ juste après avoir tapé un chiffre remplaçait
+// le tableau au moment du blur : le bouton disparaissait sous le doigt et
+// le clic n'arrivait jamais.
 function ligneQte(i, v){
   var l = lignesColis[i]; if(!l) return;
   l.qte = Math.max(1, parseInt(v, 10) || 1);
   l.total = Math.round(l.qte * l.pu * 100) / 100;
-  dessinerLignesColis();
+  var box = $('ph-colis-edit');
+  var t = box ? box.querySelector('#cl-total') : null;
+  if(t) t.textContent = nbColisLignes() + ' colis';
+}
+function ligneQteFin(i, el){
+  var l = lignesColis[i]; if(!l || !el) return;
+  if(String(el.value) !== String(l.qte)) el.value = l.qte;
 }
 function ligneSuppr(i){
   lignesColis.splice(i, 1);

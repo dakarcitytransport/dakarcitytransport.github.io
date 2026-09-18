@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.43.1';
+var DEP_VERSION = 'v1.44.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1406,11 +1406,13 @@ function _depRenderLignes(){
     _depLignesEdit.forEach(function(l, i){
       h += '<tr style="border-top:1px solid #eee;">'
         +   '<td style="padding:6px 8px;">'+esc(l.nom)+'</td>'
-        +   '<td style="padding:4px 2px;"><input type="number" min="1" value="'+l.qte+'" onchange="depLigneQte('+i+',this.value)"'
+        +   '<td style="padding:4px 2px;"><input type="number" min="1" value="'+l.qte+'"'
+        +     ' oninput="depLigneQte('+i+',this.value)" onblur="depLigneQteFin('+i+',this)"'
         +     ' style="width:100%;border:1px solid #ddd;border-radius:6px;padding:5px 3px;text-align:center;font-size:12.5px;font-family:var(--font);"></td>'
-        +   '<td style="padding:4px 2px;"><input type="number" min="0" value="'+l.pu+'" onchange="depLignePu('+i+',this.value)"'
+        +   '<td style="padding:4px 2px;"><input type="number" min="0" value="'+l.pu+'"'
+        +     ' oninput="depLignePu('+i+',this.value)" onblur="depLignePuFin('+i+',this)"'
         +     ' style="width:100%;border:1px solid #ddd;border-radius:6px;padding:5px 3px;text-align:center;font-size:12.5px;font-family:var(--font);"></td>'
-        +   '<td style="padding:6px 4px;text-align:center;font-weight:800;color:#006b2d;">'+l.total+'</td>'
+        +   '<td id="dl-tot-'+i+'" style="padding:6px 4px;text-align:center;font-weight:800;color:#006b2d;">'+l.total+'</td>'
         +   '<td style="padding:4px 2px;text-align:center;"><span onclick="depLigneLot('+i+')"'
         +     ' title="' + (l.lot ? 'Lot : un seul colis' : 'Compter chaque unité') + '"'
         +     ' style="display:inline-block;border-radius:6px;padding:4px 6px;font-size:13px;cursor:pointer;'
@@ -1429,34 +1431,71 @@ function _depRenderLignes(){
           +   '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11.5px;color:#8A5200;font-weight:700;">'
           +     '<span>&#128230; Lot &mdash; compte pour <strong>1 colis</strong>, film&eacute; en</span>'
           +     '<input type="number" min="1" max="50" value="'+(parseInt(l.nbLot,10)||1)+'"'
-          +       ' onchange="depLigneNbLot('+i+',this.value)"'
+          +       ' oninput="depLigneNbLot('+i+',this.value)" onblur="depLigneNbLotFin('+i+',this)"'
           +       ' style="width:52px;border:1.5px solid #E58A00;border-radius:6px;padding:4px 2px;text-align:center;'
           +       'font-size:12.5px;font-weight:800;color:#8A5200;background:#fff;font-family:var(--font);margin:0;">'
-          +     '<span>paquet' + ((parseInt(l.nbLot,10)||1) > 1 ? 's' : '') + ' &rarr; '
-          +       (parseInt(l.nbLot,10)||1) + ' &eacute;tiquette' + ((parseInt(l.nbLot,10)||1) > 1 ? 's' : '') + '</span>'
+          +     '<span id="dl-lotxt-'+i+'">' + _depLotPhrase(l) + '</span>'
           +   '</div></td></tr>';
       }
     });
-    var _lots = _depLignesEdit.filter(function(l){ return l.lot; });
-    var _unites = _lots.reduce(function(s2,l){ return s2 + (parseFloat(l.qte)||0); }, 0);
-    var _etqLots = _lots.reduce(function(s2,l){ return s2 + (parseInt(l.nbLot,10)||1); }, 0);
     h += '</tbody></table></div>'
       +  '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 12px;'
       +  'background:#d4f0e0;border:1.5px solid #009A44;border-radius:10px;">'
-      +    '<span style="font-size:12.5px;font-weight:700;color:#006b2d;">'+_depLignesNbColis()+' colis</span>'
-      +    '<span style="font-size:19px;font-weight:800;color:#006b2d;">'+_depLignesTotal()+' €</span>'
+      +    '<span id="dl-rc-nb" style="font-size:12.5px;font-weight:700;color:#006b2d;">'+_depLignesNbColis()+' colis</span>'
+      +    '<span id="dl-rc-tot" style="font-size:19px;font-weight:800;color:#006b2d;">'+_depLignesTotal()+' €</span>'
       +  '</div>'
-      +  (_lots.length
-          ? '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border:1.5px solid #E58A00;'
-            + 'border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5;">'
-            + '&#128230; ' + _lots.length + ' lot' + (_lots.length>1?'s':'') + ' &mdash; ' + _unites
-            + ' unit&eacute;' + (_unites>1?'s':'') + ' factur&eacute;' + (_unites>1?'es':'e') + ', '
-            + _etqLots + ' &eacute;tiquette' + (_etqLots>1?'s':'') + ' &agrave; imprimer.</div>'
-          : '<div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.4;">'
-            + '&#128230; Touchez l\'ic&ocirc;ne d\'une ligne pour en faire un <strong>lot</strong> : '
-            + 'plusieurs unit&eacute;s factur&eacute;es, un seul colis &agrave; &eacute;tiqueter.</div>');
+      +  '<div id="dl-lotinfo">' + _depLotRecapHtml() + '</div>';
   }
   box.innerHTML = h;
+  if(_depLignesSuivi){
+    try{ _depLignesSuivi(_depLignesTotal(), _depLignesNbColis(), depLignesValeur()); }catch(e){}
+  }
+}
+
+// La phrase qui suit le nombre de paquets d'un lot.
+function _depLotPhrase(l){
+  var n = parseInt(l.nbLot, 10) || 1;
+  return 'paquet' + (n>1?'s':'') + ' &rarr; ' + n + ' &eacute;tiquette' + (n>1?'s':'');
+}
+
+// Le bandeau sous le récapitulatif : ce que les lots changent au compte.
+function _depLotRecapHtml(){
+  var lots = _depLignesEdit.filter(function(l){ return l.lot; });
+  if(!lots.length){
+    return '<div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.4;">'
+      + '&#128230; Touchez l\'ic&ocirc;ne d\'une ligne pour en faire un <strong>lot</strong> : '
+      + 'plusieurs unit&eacute;s factur&eacute;es, un seul colis &agrave; &eacute;tiqueter.</div>';
+  }
+  var unites = lots.reduce(function(s,l){ return s + (parseFloat(l.qte)||0); }, 0);
+  var etq    = lots.reduce(function(s,l){ return s + (parseInt(l.nbLot,10)||1); }, 0);
+  return '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border:1.5px solid #E58A00;'
+    + 'border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5;">'
+    + '&#128230; ' + lots.length + ' lot' + (lots.length>1?'s':'') + ' &mdash; ' + unites
+    + ' unit&eacute;' + (unites>1?'s':'') + ' factur&eacute;' + (unites>1?'es':'e') + ', '
+    + etq + ' &eacute;tiquette' + (etq>1?'s':'') + ' &agrave; imprimer.</div>';
+}
+
+/* v1.44.0 — Rafraîchir les chiffres SANS redessiner le tableau.
+   Le tableau se reconstruisait entièrement à chaque changement de
+   quantité. Sur mobile, toucher le 📦 juste après avoir tapé "10"
+   déclenchait d'abord le blur du champ : le tableau était remplacé, le
+   bouton touché n'existait plus, et le clic n'arrivait jamais — on
+   tapait sur le lot et il ne se passait rien (retour de Cobey du
+   20/09/2026 : "je mets la quantité 10, je ne peux pas valider").
+   On ne réécrit donc plus que les nombres affichés. */
+function _depMajChiffresLignes(){
+  _depLignesEdit.forEach(function(l, i){
+    var t = _depLigneChamp('dl-tot-' + i);
+    if(t) t.textContent = l.total;
+    var p = _depLigneChamp('dl-lotxt-' + i);
+    if(p) p.innerHTML = _depLotPhrase(l);
+  });
+  var nb = _depLigneChamp('dl-rc-nb');
+  if(nb) nb.textContent = _depLignesNbColis() + ' colis';
+  var tot = _depLigneChamp('dl-rc-tot');
+  if(tot) tot.textContent = _depLignesTotal() + ' €';
+  var info = _depLigneChamp('dl-lotinfo');
+  if(info) info.innerHTML = _depLotRecapHtml();
   if(_depLignesSuivi){
     try{ _depLignesSuivi(_depLignesTotal(), _depLignesNbColis(), depLignesValeur()); }catch(e){}
   }
@@ -1485,18 +1524,29 @@ window.depLigneAjouterLibre = function(){
   _depRenderLignes();
 };
 
+// v1.44.0 : la saisie est prise en compte lettre par lettre (oninput), et
+// ne redessine plus le tableau — sinon le bouton qu'on touche ensuite
+// disparaît sous le doigt. Le champ est remis au propre en le quittant.
 window.depLigneQte = function(i, v){
   var l = _depLignesEdit[i]; if(!l) return;
   l.qte = Math.max(1, parseInt(v, 10) || 1);
   l.total = Math.round(l.qte * l.pu * 100) / 100;
-  _depRenderLignes();
+  _depMajChiffresLignes();
+};
+window.depLigneQteFin = function(i, el){
+  var l = _depLignesEdit[i]; if(!l || !el) return;
+  if(String(el.value) !== String(l.qte)) el.value = l.qte;
 };
 
 window.depLignePu = function(i, v){
   var l = _depLignesEdit[i]; if(!l) return;
   l.pu = Math.max(0, parseFloat(v) || 0);
   l.total = Math.round(l.qte * l.pu * 100) / 100;
-  _depRenderLignes();
+  _depMajChiffresLignes();
+};
+window.depLignePuFin = function(i, el){
+  var l = _depLignesEdit[i]; if(!l || !el) return;
+  if(String(el.value) !== String(l.pu)) el.value = l.pu;
 };
 
 window.depLigneLot = function(i){
@@ -1511,7 +1561,11 @@ window.depLigneLot = function(i){
 window.depLigneNbLot = function(i, v){
   var l = _depLignesEdit[i]; if(!l || !l.lot) return;
   l.nbLot = Math.min(50, Math.max(1, parseInt(v, 10) || 1));
-  _depRenderLignes();
+  _depMajChiffresLignes();
+};
+window.depLigneNbLotFin = function(i, el){
+  var l = _depLignesEdit[i]; if(!l || !el) return;
+  if(String(el.value) !== String(l.nbLot)) el.value = l.nbLot;
 };
 
 window.depLigneSupprimer = function(i){
