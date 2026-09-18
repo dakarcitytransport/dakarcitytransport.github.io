@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.34.0';
+var DEP_VERSION = 'v1.35.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8384,9 +8384,19 @@ window.depOuvrirFusionFacture = function(){
       // v1.32.0 : on montre le container de chaque facture, et on alerte
       // quand ce n'est pas le même que celui de la facture principale.
       var memeDep = (x.c.departId || '') === (c.departId || '');
-      // v1.34.0 : une collecte peut ne plus exister (archivée) — on écrit
-      // alors "Autre collecte" plutôt qu'un tiret énigmatique.
-      var libCol = (col && col.date) ? ('Collecte du ' + esc(col.date)) : 'Autre collecte';
+      // v1.35.0 : la collecte d'origine peut ne plus figurer dans la liste
+      // (archivée, supprimée) alors que la fiche du client, elle, est
+      // restée. Un tiret ne disait rien — on affiche alors la date
+      // d'inscription de la fiche, la seule chose qui permette de la
+      // reconnaître (retour de Cobey du 18/09/2026 : "elle sort d'où ?").
+      var libCol;
+      if(col && col.date){
+        libCol = 'Collecte du ' + esc(col.date);
+      } else if(x.c.creeLe){
+        libCol = 'Fiche du ' + esc(dateHeureFr(x.c.creeLe));
+      } else {
+        libCol = 'Collecte archiv&eacute;e';
+      }
       return '<div class="dep-cli-card" style="cursor:pointer;border-left:4px solid #E58A00;margin-bottom:8px;"'
         + ' onclick="depChoisirFusion(\''+x.collecteId+'\',\''+x.clientId+'\')">'
         + '<div style="font-weight:800;font-size:13.5px;color:#111;">' + libCol + '</div>'
