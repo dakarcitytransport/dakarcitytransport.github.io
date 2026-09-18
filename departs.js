@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.28.1';
+var DEP_VERSION = 'v1.29.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5154,6 +5154,14 @@ function depRenderEtapesTransportEcran(id){
 // même chemin en sens inverse, sinon on se retrouve sur la liste des
 // containers d'un pays au hasard.
 window.depDetailRetour = function(){
+  // v1.29.0 : on quitte vraiment ce départ — c'est ici, et seulement ici,
+  // que les filtres se remettent à zéro. Y revenir plus tard repart donc
+  // d'une liste complète, alors qu'aller voir un client et revenir garde
+  // le dépouillement en cours.
+  _depFiltrePaye = 'tous';
+  _depFiltreLivraison = 'tous';
+  _depDetailRecherche = '';
+  var rechD = $('dep-d-recherche'); if(rechD) rechD.value = '';
   if(_depDetailId === DEP_ID_DEPOT){ goTo('s-departs-pays'); depRenderDepartsPaysChoix(); return; }
   goTo('s-departs'); depRenderListe();
 };
@@ -5163,7 +5171,14 @@ window.depDetail = function(id, gardeFiltres){
   // réinitialisent que sur une VRAIE nouvelle ouverture du départ — pas
   // quand depFiltrerDetail() se rappelle elle-même pour rafraîchir la
   // liste après un tap sur une pastille.
-  if(!gardeFiltres || id !== _depDetailId){ _depFiltrePaye = 'tous'; _depFiltreLivraison = 'tous'; _depDetailRecherche = ''; }
+  //
+  // v1.29.0 : tant qu'on reste sur le même départ, les filtres et la
+  // recherche tiennent. Ouvrir la fiche d'un client puis revenir les
+  // remettait à zéro, et il fallait tout refaire pour continuer à
+  // dépouiller la même liste (retour de Cobey du 18/09/2026). Ils ne
+  // repartent plus que sur un autre départ, ou quand on quitte vraiment
+  // celui-ci par son bouton retour (voir depDetailRetour).
+  if(id !== _depDetailId){ _depFiltrePaye = 'tous'; _depFiltreLivraison = 'tous'; _depDetailRecherche = ''; }
   _depDetailId = id;
   // v1.19.57 : barre de recherche par expéditeur/destinataire, en dehors de
   // dep-d-content (voir template) pour ne pas perdre le focus à chaque
