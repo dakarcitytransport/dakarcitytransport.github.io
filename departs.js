@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.32.0';
+var DEP_VERSION = 'v1.33.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5365,6 +5365,28 @@ window.depDetail = function(id, gardeFiltres){
   var tousAffiches = clients.concat(clientsDepot).concat(clientsFrance)
     .filter(function(x){ return !_depEstFusionnee(x.c); });
 
+  /* v1.33.0 — Signaler les clients qui ont plusieurs factures ici.
+     Le bouton "Regrouper" ne sert à rien si on ne sait pas chez qui aller
+     le chercher : il aurait fallu ouvrir les fiches une par une (retour
+     de Cobey du 18/09/2026). On compte donc les factures par personne
+     dans ce container, on l'annonce en haut de la liste, et chaque client
+     concerné porte une pastille. */
+  var _comptes = {};
+  tousAffiches.forEach(function(x){
+    var k = _depCleFusion(x.c);
+    if(k) _comptes[k] = (_comptes[k] || 0) + 1;
+  });
+  var _doubles = Object.keys(_comptes).filter(function(k){ return _comptes[k] > 1; });
+  if(_doubles.length){
+    var nbFactures = _doubles.reduce(function(s,k){ return s + _comptes[k]; }, 0);
+    h += '<div style="background:#FFF3E0;border:1.5px solid #E58A00;border-radius:10px;'
+      +   'padding:11px 13px;margin-bottom:12px;font-size:12.5px;color:#8A5200;line-height:1.5;">'
+      +   '<strong>&#128279; ' + _doubles.length + ' client' + (_doubles.length>1?'s ont':' a')
+      +   ' plusieurs factures</strong> dans ce container — ' + nbFactures + ' factures en tout.<br>'
+      +   'Ouvrez la fiche d\'un client marqu&eacute; <strong>&#128279;</strong> ci-dessous pour les regrouper en une seule.'
+      + '</div>';
+  }
+
   // v1.19.41 : filtres cumulables — retour de Cobey du 24/08/2026. Payé =
   // colis ET livraison intégralement réglés (depCalculerPaiementCombine) ;
   // tout le reste (y compris un acompte partiel) compte comme "non payé",
@@ -5439,8 +5461,16 @@ window.depDetail = function(id, gardeFiltres){
       // de Cobey du 24/08/2026 : "il devrait être partout où un parcours
       // est ouvert pour un client".
       var drapeauCli = (DEP_PAYS_DEST[depPaysFiche(c)] || {}).drapeau || '';
-      h += '<div class="dep-cli" style="cursor:pointer;" onclick="'+clic+'">'
-        +   '<div class="dep-cli-n">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))+' '+drapeauCli
+      // v1.33.0 : pastille sur les clients qui ont plusieurs factures ici.
+      var _nbFact = _comptes[_depCleFusion(c)] || 1;
+      var _pastilleDouble = (_nbFact > 1)
+        ? ' <span style="font-size:10.5px;font-weight:800;color:#8A5200;background:#FFF3E0;'
+          + 'border:1.5px solid #E58A00;border-radius:20px;padding:2px 8px;white-space:nowrap;">'
+          + '&#128279; ' + _nbFact + ' factures</span>'
+        : '';
+      h += '<div class="dep-cli" style="cursor:pointer;'
+        +     (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : '') + '" onclick="'+clic+'">'
+        +   '<div class="dep-cli-n">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))+' '+drapeauCli+_pastilleDouble
         +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
         +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')+'</div>'
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">'
