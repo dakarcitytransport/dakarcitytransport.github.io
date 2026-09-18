@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.31.0';
+var DEP_VERSION = 'v1.32.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1443,18 +1443,40 @@ function _depEstFusionnee(c){
   return !!(c && c.fusionneeDans && c.fusionneeDans.clientId);
 }
 
-// Les fiches regroupables avec celle-ci : même personne, même container,
-// pas déjà regroupées, et pas elle-même.
+// v1.32.0 : reconnaître la même personne malgré la façon d'écrire son
+// numéro. "+33 6 11 22 33 44", "06 11 22 33 44" et "0611223344" sont le
+// même client : on ne compare que les 9 derniers chiffres. Sans numéro,
+// on retombe sur le nom. Cette clé ne sert QU'au regroupement — la réf.
+// client (CL-0231) garde la sienne, sinon tous les numéros bougeraient.
+function _depCleFusion(c){
+  var d = String((c && c.tel) || '').replace(/\D/g, '');
+  if(d.length >= 9) return 'tel:' + d.slice(-9);
+  var prenom = (c && c.prenom) || '';
+  var nom = (c && c.nom) || (c && c.name) || '';
+  var n = (prenom + '_' + nom).trim().toLowerCase();
+  try{ n = n.normalize('NFD').replace(/[̀-ͯ]/g, ''); }catch(e){}
+  return n ? 'nom:' + n : '';
+}
+
+// Les fiches regroupables avec celle-ci : même personne, pas déjà
+// regroupée, et pas elle-même.
+//
+// v1.32.0 : le container n'est plus exigé. Exiger que les deux fiches
+// soient déjà dans le même départ faisait disparaître le bouton dans le
+// cas le plus courant — la collecte du jour n'est pas encore rattachée à
+// un container quand on s'aperçoit du doublon (retour de Cobey du
+// 18/09/2026 : "j'ai pas trouvé le bouton"). La modale affiche le
+// container de chaque candidate et signale ceux qui diffèrent.
 function _depFichesFusionnables(clientId, c){
-  if(!c || !c.departId || _depEstFusionnee(c)) return [];
-  var cle = _depCleContact(c);
+  if(!c || _depEstFusionnee(c)) return [];
+  var cle = _depCleFusion(c);
+  if(!cle) return [];
   var out = [];
   try{
     tousLesClients().forEach(function(x){
       if(x.clientId === clientId) return;
-      if(!x.c || x.c.departId !== c.departId) return;
-      if(_depEstFusionnee(x.c)) return;
-      if(_depCleContact(x.c) !== cle) return;
+      if(!x.c || _depEstFusionnee(x.c)) return;
+      if(_depCleFusion(x.c) !== cle) return;
       out.push(x);
     });
   }catch(e){}
@@ -8321,15 +8343,26 @@ window.depOuvrirFusionFacture = function(){
     if(box) box.innerHTML = '<div style="text-align:center;color:#888;font-size:13px;padding:18px;">'
       + 'Aucune autre facture de <strong>' + esc(c.name||'') + '</strong> dans ce container.</div>';
   } else if(box){
+    var nomDepart = function(did){
+      if(!did) return 'pas encore dans un container';
+      var d = (window.departsData||{})[did];
+      return d ? (d.nom || 'container') : 'container inconnu';
+    };
     box.innerHTML = cands.map(function(x){
       var col = (window.collectes||[]).find(function(k){ return k.id === x.collecteId; });
       var nbL = (_depLignesColis(x.c)||[]).length;
-      return '<div class="dep-cli-card" style="cursor:pointer;border-left:4px solid #E58A00;"'
+      // v1.32.0 : on montre le container de chaque facture, et on alerte
+      // quand ce n'est pas le même que celui de la facture principale.
+      var memeDep = (x.c.departId || '') === (c.departId || '');
+      return '<div class="dep-cli-card" style="cursor:pointer;border-left:4px solid #E58A00;margin-bottom:8px;"'
         + ' onclick="depConfirmerFusionFacture(\''+x.collecteId+'\',\''+x.clientId+'\')">'
         + '<div style="font-weight:800;font-size:13.5px;color:#111;">Collecte du ' + esc((col&&col.date)||'—') + '</div>'
         + '<div style="font-size:12px;color:#666;margin-top:3px;">'
         +   (x.c.nbColis||1) + ' colis &middot; ' + nbL + ' ligne' + (nbL>1?'s':'')
         +   ' &middot; <strong>' + (parseFloat(x.c.prix)||0) + ' &euro;</strong></div>'
+        + '<div style="font-size:11.5px;margin-top:4px;color:' + (memeDep ? '#4a8a63' : '#B45309') + ';font-weight:700;">'
+        +   (memeDep ? '&#128230; ' : '&#9888;&#65039; ') + esc(nomDepart(x.c.departId))
+        +   (memeDep ? '' : ' &mdash; pas le m&ecirc;me que celui-ci') + '</div>'
         + '</div>';
     }).join('');
   }
@@ -8378,6 +8411,10 @@ window.depConfirmerFusionFacture = function(colIdSrc, clientIdSrc){
     .concat(apport.versements);
   principale.fusionDe = (Array.isArray(principale.fusionDe) ? principale.fusionDe : []).concat([apport]);
   if(source.aPhotoColis) principale.aPhotoColis = true;
+  // v1.32.0 : si la facture principale n'est pas encore rattachée à un
+  // container, elle prend celui de la facture absorbée — sinon la facture
+  // regroupée disparaîtrait des deux listes à la fois.
+  if(!principale.departId && source.departId) principale.departId = source.departId;
 
   var hist = Array.isArray(principale.hist) ? principale.hist.slice() : [];
   hist.push({ q: apport.par, ts: apport.le, type: 'modif',
@@ -8395,7 +8432,8 @@ window.depConfirmerFusionFacture = function(colIdSrc, clientIdSrc){
   _depEcrireClient({ collecteId: colId, clientId: ctx.clientId }, {
     colisDetail: principale.colisDetail, colis: principale.colis, nbColis: principale.nbColis,
     prix: principale.prix, prixADefinir: false, versements: principale.versements,
-    fusionDe: principale.fusionDe, aPhotoColis: !!principale.aPhotoColis, hist: hist
+    fusionDe: principale.fusionDe, aPhotoColis: !!principale.aPhotoColis,
+    departId: principale.departId || null, hist: hist
   });
   _depEcrireClient({ collecteId: colIdSrc, clientId: clientIdSrc }, {
     fusionneeDans: source.fusionneeDans, hist: histS
