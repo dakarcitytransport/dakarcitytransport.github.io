@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.30.0';
+var DEP_VERSION = 'v1.31.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1422,6 +1422,55 @@ function _depCleContact(c){
   return (prenom+'_'+nom).toLowerCase();
 }
 
+/* ═══════════ REGROUPER DEUX FACTURES — v1.31.0 ═══════════
+   Un client peut confier des colis à la ramasse du premier dimanche du
+   mois, puis à celle du troisième. Deux collectes, donc deux fiches,
+   donc deux factures — alors que tout part dans le même container et
+   qu'il faut lui remettre UNE facture (retour de l'équipe DCT du
+   18/09/2026).
+
+   Principe : on part de la fiche qu'on a sous les yeux, qui devient la
+   principale et garde son numéro de facture. Elle absorbe l'autre :
+   lignes de colis mises bout à bout, montants et colis additionnés,
+   versements repris, photos réunies. La fiche absorbée n'est pas
+   supprimée — elle porte un renvoi vers la principale, disparaît des
+   listes et des totaux du départ, et garde de quoi défaire le
+   regroupement à l'identique.
+   ═══════════════════════════════════════════════════════ */
+
+// Une fiche absorbée par une autre ne compte plus nulle part.
+function _depEstFusionnee(c){
+  return !!(c && c.fusionneeDans && c.fusionneeDans.clientId);
+}
+
+// Les fiches regroupables avec celle-ci : même personne, même container,
+// pas déjà regroupées, et pas elle-même.
+function _depFichesFusionnables(clientId, c){
+  if(!c || !c.departId || _depEstFusionnee(c)) return [];
+  var cle = _depCleContact(c);
+  var out = [];
+  try{
+    tousLesClients().forEach(function(x){
+      if(x.clientId === clientId) return;
+      if(!x.c || x.c.departId !== c.departId) return;
+      if(_depEstFusionnee(x.c)) return;
+      if(_depCleContact(x.c) !== cle) return;
+      out.push(x);
+    });
+  }catch(e){}
+  return out;
+}
+
+// Toutes les fiches dont cette facture porte les colis — la principale
+// d'abord. Sert à réunir les photos sans les recopier.
+function _depIdsPhotosFacture(clientId, c){
+  var ids = [clientId];
+  if(c && Array.isArray(c.fusionDe)){
+    c.fusionDe.forEach(function(f){ if(f && f.clientId) ids.push(f.clientId); });
+  }
+  return ids;
+}
+
 // Renvoie (et attribue si besoin) la réf. client pour une clé de contact.
 // Compteur simple = nombre de réfs déjà attribuées + 1 (pas de retour en
 // arrière si une réf est supprimée entretemps — les numéros ne sont pas
@@ -1724,7 +1773,8 @@ function tousLesClients(){
 function compteursDepart(departId){
   var n = 0, euros = 0;
   tousLesClients().forEach(function(x){
-    if(x.c.departId === departId){
+    // v1.31.0 : ne compter qu'une fois une facture regroupee.
+    if(x.c.departId === departId && !_depEstFusionnee(x.c)){
       n++;
       euros += (parseFloat(x.c.prix) || 0);
     }
@@ -3169,6 +3219,25 @@ function injecterEcrans(){
     +   '<button class="btn-sm btn-green-sm" onclick="depConfirmerRouvrirFiche()">&#128275; Modifier quand m&ecirc;me</button>'
     + '</div></div></div>';
   document.body.appendChild(m8b);
+
+  /* ---- Modale (v1.31.0) : regrouper deux factures d'un même client
+     partant dans le même container (voir depOuvrirFusionFacture). ---- */
+  var m8c = document.createElement('div');
+  m8c.className = 'modal-overlay';
+  m8c.id = 'modal-dep-fusion';
+  m8c.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">&#128279;</div>'
+    + '<div class="modal-confirm-title">Regrouper les factures</div>'
+    + '<div id="dep-fusion-titre" style="font-size:13.5px;color:#333;margin:4px 0 12px;line-height:1.5;"></div>'
+    + '<div id="dep-fusion-liste" style="text-align:left;max-height:40vh;overflow:auto;margin-bottom:14px;"></div>'
+    + '<div style="font-size:12px;color:var(--text3);background:#F7F8FA;border-radius:8px;'
+    +   'padding:9px 11px;margin-bottom:14px;line-height:1.5;text-align:left;">'
+    +   'Les colis, les montants, les versements et les photos seront r&eacute;unis sur '
+    +   'cette facture-ci, qui garde son num&eacute;ro. Le regroupement se d&eacute;fait.</div>'
+    + '<div class="modal-confirm-btns" style="grid-template-columns:1fr;">'
+    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-fusion\')">Annuler</button>'
+    + '</div></div></div>';
+  document.body.appendChild(m8c);
 
   /* ---- Modale (v1.19.41) : ajouter une note sur la fiche client — la
      note n'est plus un champ figé mais un événement daté, qui vient
@@ -5268,7 +5337,11 @@ window.depDetail = function(id, gardeFiltres){
   // départ restent visibles et modifiables ci-dessous.
   h += '<div class="dep-sec" style="border-top:none;padding-top:0;margin-top:4px;">'+(estDepot ? 'Clients en attente' : 'Clients de ce d&eacute;part')+'</div>';
 
-  var tousAffiches = clients.concat(clientsDepot).concat(clientsFrance);
+  // v1.31.0 : une fiche absorbee par une autre (voir
+  // depConfirmerFusionFacture) ne s'affiche plus ici — ses colis et son
+  // montant sont desormais portes par la facture principale.
+  var tousAffiches = clients.concat(clientsDepot).concat(clientsFrance)
+    .filter(function(x){ return !_depEstFusionnee(x.c); });
 
   // v1.19.41 : filtres cumulables — retour de Cobey du 24/08/2026. Payé =
   // colis ET livraison intégralement réglés (depCalculerPaiementCombine) ;
@@ -8177,6 +8250,24 @@ function depRenderFicheLecture(colId, clientId, depot){
         + '<button class="btn btn-gray" style="margin-top:8px;background:#FFF8E1;border-color:#F0E2A0;color:#8A7300;" '
         + 'onclick="depRouvrirFicheTerminee()">&#128275; Modifier quand m&ecirc;me la facture</button>'
       : '<button class="btn btn-green" style="margin-top:4px;" onclick="depModifierFicheActuelle()">&#9999;&#65039; Modifier la fiche</button>';
+
+    // v1.31.0 : regrouper avec une autre facture du même client dans ce
+    // container — ou défaire un regroupement déjà fait.
+    if(!depot && c){
+      if(Array.isArray(c.fusionDe) && c.fusionDe.length){
+        act.innerHTML += '<div class="dep-alert" style="margin-top:10px;background:#FFF3E0;border-color:#E58A00;color:#8A5200;">'
+          + '&#128279; Facture regroup&eacute;e &mdash; ' + c.fusionDe.length + ' autre'
+          + (c.fusionDe.length > 1 ? 's' : '') + ' collecte'
+          + (c.fusionDe.length > 1 ? 's' : '') + ' incluse'
+          + (c.fusionDe.length > 1 ? 's' : '') + '.</div>'
+          + '<button class="btn btn-gray" style="margin-top:8px;" onclick="depAnnulerFusionFacture()">'
+          + '&#8617;&#65039; S&eacute;parer la derni&egrave;re</button>';
+      }
+      if(_depFichesFusionnables(clientId, c).length){
+        act.innerHTML += '<button class="btn btn-gray" style="margin-top:8px;background:#FFF3E0;border-color:#E58A00;color:#8A5200;" '
+          + 'onclick="depOuvrirFusionFacture()">&#128279; Regrouper avec une autre facture</button>';
+      }
+    }
   }
 }
 
@@ -8216,6 +8307,158 @@ window.depModifierFicheActuelle = function(force){
    au dernier moment, une remise convenue après coup). Plutôt que de
    retirer le verrou pour tout le monde, on le rend franchissable : une
    confirmation qui dit ce qu'on fait, et une trace nominative. */
+/* ─── Regrouper : la modale de choix ─── */
+window.depOuvrirFusionFacture = function(){
+  var ctx = _depFicheLectureCtx;
+  if(!ctx || !ctx.clientId || ctx.depot){ toast('⚠️ Indisponible ici.'); return; }
+  var colId = ctx.colId || window.currentCollecteId;
+  var c = ((window.clientsParCollecte||{})[colId] || {})[ctx.clientId];
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+
+  var cands = _depFichesFusionnables(ctx.clientId, c);
+  var box = $('dep-fusion-liste');
+  if(!cands.length){
+    if(box) box.innerHTML = '<div style="text-align:center;color:#888;font-size:13px;padding:18px;">'
+      + 'Aucune autre facture de <strong>' + esc(c.name||'') + '</strong> dans ce container.</div>';
+  } else if(box){
+    box.innerHTML = cands.map(function(x){
+      var col = (window.collectes||[]).find(function(k){ return k.id === x.collecteId; });
+      var nbL = (_depLignesColis(x.c)||[]).length;
+      return '<div class="dep-cli-card" style="cursor:pointer;border-left:4px solid #E58A00;"'
+        + ' onclick="depConfirmerFusionFacture(\''+x.collecteId+'\',\''+x.clientId+'\')">'
+        + '<div style="font-weight:800;font-size:13.5px;color:#111;">Collecte du ' + esc((col&&col.date)||'—') + '</div>'
+        + '<div style="font-size:12px;color:#666;margin-top:3px;">'
+        +   (x.c.nbColis||1) + ' colis &middot; ' + nbL + ' ligne' + (nbL>1?'s':'')
+        +   ' &middot; <strong>' + (parseFloat(x.c.prix)||0) + ' &euro;</strong></div>'
+        + '</div>';
+    }).join('');
+  }
+  var t = $('dep-fusion-titre');
+  if(t) t.innerHTML = 'Regrouper avec une autre facture de <strong>' + esc(c.name||'') + '</strong>';
+  openModal('modal-dep-fusion');
+};
+
+/* ─── Regrouper : l'opération ─── */
+window.depConfirmerFusionFacture = function(colIdSrc, clientIdSrc){
+  closeModal('modal-dep-fusion');
+  var ctx = _depFicheLectureCtx;
+  if(!ctx) return;
+  var colId = ctx.colId || window.currentCollecteId;
+  var principale = ((window.clientsParCollecte||{})[colId] || {})[ctx.clientId];
+  var source = ((window.clientsParCollecte||{})[colIdSrc] || {})[clientIdSrc];
+  if(!principale || !source){ toast('⚠️ Fiche introuvable.'); return; }
+  if(_depEstFusionnee(source)){ toast('⚠️ Cette facture est déjà regroupée.'); return; }
+
+  var u = window.currentUser || {};
+  var colSrc = (window.collectes||[]).find(function(k){ return k.id === colIdSrc; });
+
+  // Ce que la source apporte — conservé tel quel pour pouvoir défaire.
+  var apport = {
+    colId: colIdSrc, clientId: clientIdSrc,
+    nom: source.name || '',
+    dateCollecte: (colSrc && colSrc.date) || '',
+    prix: parseFloat(source.prix) || 0,
+    nbColis: parseInt(source.nbColis, 10) || 1,
+    colis: source.colis || '',
+    colisDetail: _depLignesColis(source),
+    versements: Array.isArray(source.versements) ? source.versements.slice() : [],
+    le: Date.now(), par: u.name || u.id || ''
+  };
+
+  var lignes = _depLignesColis(principale).concat(apport.colisDetail);
+  principale.colisDetail = lignes;
+  principale.prix = _depTotalColis({ colisDetail: lignes });
+  principale.prixADefinir = false;
+  principale.nbColis = lignes.reduce(function(s,l){ return s + (parseFloat(l.qte)||0); }, 0) || 1;
+  principale.colis = lignes.map(function(l){
+    var deja = /^\s*\d/.test(l.nom || '');
+    return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
+  }).join(', ');
+  principale.versements = (Array.isArray(principale.versements) ? principale.versements : [])
+    .concat(apport.versements);
+  principale.fusionDe = (Array.isArray(principale.fusionDe) ? principale.fusionDe : []).concat([apport]);
+  if(source.aPhotoColis) principale.aPhotoColis = true;
+
+  var hist = Array.isArray(principale.hist) ? principale.hist.slice() : [];
+  hist.push({ q: apport.par, ts: apport.le, type: 'modif',
+    a: 'a regroup&eacute; la facture de la collecte du <strong>' + esc(apport.dateCollecte)
+       + '</strong> (' + apport.nbColis + ' colis, ' + apport.prix + ' &euro;) dans celle-ci' });
+  principale.hist = hist;
+
+  source.fusionneeDans = { colId: colId, clientId: ctx.clientId };
+  var histS = Array.isArray(source.hist) ? source.hist.slice() : [];
+  histS.push({ q: apport.par, ts: apport.le, type: 'modif',
+    a: 'a regroup&eacute; cette facture dans celle de la collecte du <strong>'
+       + esc(((window.collectes||[]).find(function(k){ return k.id === colId; })||{}).date || '—') + '</strong>' });
+  source.hist = histS;
+
+  _depEcrireClient({ collecteId: colId, clientId: ctx.clientId }, {
+    colisDetail: principale.colisDetail, colis: principale.colis, nbColis: principale.nbColis,
+    prix: principale.prix, prixADefinir: false, versements: principale.versements,
+    fusionDe: principale.fusionDe, aPhotoColis: !!principale.aPhotoColis, hist: hist
+  });
+  _depEcrireClient({ collecteId: colIdSrc, clientId: clientIdSrc }, {
+    fusionneeDans: source.fusionneeDans, hist: histS
+  });
+  try{ sauvegarder(); }catch(e){}
+  try{
+    depActivite('&#128279;', 'a regroup&eacute; deux factures de <strong>' + esc(principale.name||'')
+      + '</strong> &mdash; ' + principale.nbColis + ' colis, ' + principale.prix + ' &euro;');
+  }catch(e){}
+
+  toast('🔗 Factures regroupées — ' + principale.nbColis + ' colis, ' + principale.prix + ' €');
+  try{ openClientFiche(ctx.clientId, ctx.retour); }catch(e){}
+};
+
+/* ─── Défaire un regroupement ─── */
+window.depAnnulerFusionFacture = function(){
+  var ctx = _depFicheLectureCtx;
+  if(!ctx) return;
+  var colId = ctx.colId || window.currentCollecteId;
+  var principale = ((window.clientsParCollecte||{})[colId] || {})[ctx.clientId];
+  if(!principale || !Array.isArray(principale.fusionDe) || !principale.fusionDe.length) return;
+
+  var apport = principale.fusionDe[principale.fusionDe.length - 1];
+  var source = ((window.clientsParCollecte||{})[apport.colId] || {})[apport.clientId];
+
+  // On retire exactement ce que cette fiche avait apporté : autant de
+  // lignes que rendues, prises à la fin, puis on recalcule le reste.
+  var lignes = _depLignesColis(principale);
+  var n = (apport.colisDetail || []).length;
+  if(n && lignes.length >= n) lignes = lignes.slice(0, lignes.length - n);
+  principale.colisDetail = lignes;
+  principale.prix = _depTotalColis({ colisDetail: lignes });
+  principale.nbColis = lignes.reduce(function(s,l){ return s + (parseFloat(l.qte)||0); }, 0) || 1;
+  principale.colis = lignes.map(function(l){
+    var deja = /^\s*\d/.test(l.nom || '');
+    return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
+  }).join(', ');
+  var nbV = (apport.versements || []).length;
+  if(nbV && Array.isArray(principale.versements) && principale.versements.length >= nbV){
+    principale.versements = principale.versements.slice(0, principale.versements.length - nbV);
+  }
+  principale.fusionDe = principale.fusionDe.slice(0, -1);
+
+  var u = window.currentUser || {};
+  var hist = Array.isArray(principale.hist) ? principale.hist.slice() : [];
+  hist.push({ q: u.name || u.id || '', ts: Date.now(), type: 'modif',
+    a: 'a s&eacute;par&eacute; la facture de la collecte du <strong>' + esc(apport.dateCollecte) + '</strong>' });
+  principale.hist = hist;
+
+  _depEcrireClient({ collecteId: colId, clientId: ctx.clientId }, {
+    colisDetail: principale.colisDetail, colis: principale.colis, nbColis: principale.nbColis,
+    prix: principale.prix, versements: principale.versements,
+    fusionDe: principale.fusionDe.length ? principale.fusionDe : null, hist: hist
+  });
+  if(source){
+    source.fusionneeDans = null;
+    _depEcrireClient({ collecteId: apport.colId, clientId: apport.clientId }, { fusionneeDans: null });
+  }
+  try{ sauvegarder(); }catch(e){}
+  toast('↩️ Factures séparées');
+  try{ openClientFiche(ctx.clientId, ctx.retour); }catch(e){}
+};
+
 window.depRouvrirFicheTerminee = function(){
   var ctx = _depFicheLectureCtx;
   if(!ctx || !ctx.clientId) return;
@@ -8584,14 +8827,24 @@ function _depChargerPhotosFiche(clientId, c, boxId){
     return;
   }
   box.innerHTML = '<div style="text-align:center;color:#aaa;font-size:12.5px;padding:6px 0 10px;">Chargement…</div>';
-  db.ref('dct_photos_colis/'+clientId).once('value', function(snap){
+  // v1.31.0 : une facture regroupée porte aussi les photos des collectes
+  // absorbées — elles restent à leur place dans Firebase, on les lit
+  // simplement toutes (voir _depIdsPhotosFacture).
+  var ids = _depIdsPhotosFacture(clientId, c);
+  Promise.all(ids.map(function(pid){
+    return db.ref('dct_photos_colis/'+pid).once('value')
+      .then(function(sn){ return sn.val() || {}; })
+      .catch(function(){ return {}; });
+  })).then(function(lots){
     // le client a pu changer d'écran / rouvrir une autre fiche entretemps
     // — uniquement pertinent pour l'affichage sur la fiche elle-même,
     // l'accès rapide (modale) n'est pas concerné par currentClientId.
     if(idBox === 'e-photos-box' && window.currentClientId && window.currentClientId !== clientId) return;
     box = $(idBox); if(!box) return; // la modale a pu être fermée entretemps
-    var v = snap.val() || {};
-    var arr = Object.keys(v).map(function(k){ return v[k]; }).filter(function(p){ return p && p.d; });
+    var arr = [];
+    lots.forEach(function(v){
+      Object.keys(v).forEach(function(k){ if(v[k] && v[k].d) arr.push(v[k]); });
+    });
     arr.sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
     _depRenderPhotosLecture(box, arr);
   });
