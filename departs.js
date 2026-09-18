@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.41.0';
+var DEP_VERSION = 'v1.42.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1438,6 +1438,7 @@ function _depRenderLignes(){
     });
     var _lots = _depLignesEdit.filter(function(l){ return l.lot; });
     var _unites = _lots.reduce(function(s2,l){ return s2 + (parseFloat(l.qte)||0); }, 0);
+    var _etqLots = _lots.reduce(function(s2,l){ return s2 + (parseInt(l.nbLot,10)||1); }, 0);
     h += '</tbody></table></div>'
       +  '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 12px;'
       +  'background:#d4f0e0;border:1.5px solid #009A44;border-radius:10px;">'
@@ -1448,8 +1449,8 @@ function _depRenderLignes(){
           ? '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border:1.5px solid #E58A00;'
             + 'border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5;">'
             + '&#128230; ' + _lots.length + ' lot' + (_lots.length>1?'s':'') + ' &mdash; ' + _unites
-            + ' unit&eacute;s factur&eacute;es, ' + _lots.length + ' &eacute;tiquette'
-            + (_lots.length>1?'s':'') + ' &agrave; imprimer.</div>'
+            + ' unit&eacute;' + (_unites>1?'s':'') + ' factur&eacute;' + (_unites>1?'es':'e') + ', '
+            + _etqLots + ' &eacute;tiquette' + (_etqLots>1?'s':'') + ' &agrave; imprimer.</div>'
           : '<div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.4;">'
             + '&#128230; Touchez l\'ic&ocirc;ne d\'une ligne pour en faire un <strong>lot</strong> : '
             + 'plusieurs unit&eacute;s factur&eacute;es, un seul colis &agrave; &eacute;tiqueter.</div>');
@@ -2488,6 +2489,13 @@ function injecterEcrans(){
   +       '<div class="fg"><label class="fl">Code postal</label><input class="fi" id="dp-cp" placeholder="93300" maxlength="5"></div>'
   +       '<div class="fg"><label class="fl">Ville</label><input class="fi" id="dp-ville" placeholder="Aubervilliers"></div>'
   +     '</div>'
+  // v1.25.5 : le detail ligne par ligne, comme a l'inscription, a la
+  // collecte et sur la fiche. Sans lui, un colis ajoute depuis ce
+  // formulaire ne ressortait pas sur la facture (retour de Cobey du
+  // 16/09/2026). v1.42.0 : place avant le recapitulatif qu'il alimente.
+  +     '<div class="dep-sec">D&eacute;tail des colis</div>'
+  +     '<div id="dp-lignes" style="margin-bottom:14px;"></div>'
+  +     '<div class="dep-sec">R&eacute;capitulatif</div>'
   +     '<div class="fg"><label class="fl">Description du colis</label><textarea class="fi" id="dp-colis" rows="3" placeholder="ex: 2 valises + 1 carton..." style="resize:none;"></textarea></div>'
   // v1.21.6 : "Nombre de colis" — même champ numérique qu'à l'inscription
   // collecte (voir injecterChampsClient) et à la validation (dv-nb), mais
@@ -2498,12 +2506,6 @@ function injecterEcrans(){
   // v1.19.55 : "Prix à définir sur place" retiré de ce parcours (retour de
   // Cobey du 28/08/2026) — au dépôt direct, le prix est acté immédiatement,
   // contrairement à la collecte du dimanche.
-  // v1.25.5 : le detail ligne par ligne, comme a l'inscription, a la
-  // collecte et sur la fiche. Sans lui, un colis ajoute depuis ce
-  // formulaire ne ressortait pas sur la facture (retour de Cobey du
-  // 16/09/2026).
-  +     '<div class="dep-sec">D&eacute;tail des colis</div>'
-  +     '<div id="dp-lignes" style="margin-bottom:14px;"></div>'
   +     '<div class="fg"><label class="fl">Prix (&euro;)</label><input class="fi" id="dp-prix" placeholder="100" type="number" min="0" style="font-size:20px;font-weight:700;text-align:center;padding:14px;"></div>'
   +     '<div id="dp-prix-note" style="display:none;font-size:11.5px;color:var(--text3);margin:-10px 0 14px;line-height:1.5;">'
   +       '&#8505;&#65039; Total calcul&eacute; sur le d&eacute;tail des colis. Pour le changer, modifiez le prix de l\'article concern&eacute; ci-dessus.</div>'
@@ -2914,7 +2916,9 @@ function injecterEcrans(){
   +     '<div style="width:60px;"></div>'
   +   '</div>'
   +   '<div class="content">'
-  +     '<div class="dep-sec">Colis</div>'
+  +     '<div class="dep-sec">D&eacute;tail des colis</div>'
+  +     '<div id="dv-lignes" style="margin-bottom:14px;"></div>'
+  +     '<div class="dep-sec">R&eacute;capitulatif</div>'
   // v1.21.0 : "Nombre de colis" modifiable ici, au moment de la ramasse —
   // c'est là qu'on sait réellement combien de colis le client confie (il
   // peut en ajouter/retirer par rapport à l'inscription), et c'est cette
@@ -2922,13 +2926,6 @@ function injecterEcrans(){
   // l'étiquette (voir depOuvrirEtiquette).
   +     '<div class="fg"><label class="fl">Nombre de colis</label><input class="fi" id="dv-nb" type="number" min="1" value="1" style="font-size:18px;font-weight:700;text-align:center;"></div>'
   +     '<div class="fg"><textarea class="fi" id="dv-colis" rows="3" placeholder="ex: 2 valises + 1 carton..." style="resize:none;"></textarea></div>'
-
-  // v1.25.0 : le detail ligne par ligne. Une ligne = un article, avec son
-  // prix ; le nombre de colis et le montant de la facture se deduisent des
-  // lignes. Un prix change ici (remise) reste propre a ce client : le
-  // catalogue Prix articles n'est jamais touche.
-  +     '<div class="dep-sec">D&eacute;tail des colis</div>'
-  +     '<div id="dv-lignes" style="margin-bottom:14px;"></div>'
 
   +     '<div class="dep-sec">Prix (&euro;)</div>'
   +     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">'
@@ -3916,14 +3913,19 @@ function injecterChampsClient(){
         + '<input class="fi" id="f-nb" type="number" min="1" value="1" style="font-size:18px;font-weight:700;text-align:center;">';
       blocColisF.parentNode.insertBefore(nbF, blocColisF);
     }
-    // v1.25.0 : le detail ligne par ligne, juste apres la description —
-    // un article par ligne avec son prix. Le nombre de colis, la
-    // description et le prix se recalculent depuis les lignes.
+    // v1.25.0 : le detail ligne par ligne — un article par ligne avec son
+    // prix. Le nombre de colis, la description et le prix s'en deduisent.
+    // v1.42.0 : il passe AVANT eux. On lisait d'abord "Nombre de colis",
+    // un champ qu'on ne remplit plus soi-meme, avant meme d'avoir saisi
+    // quoi que ce soit (retour de Cobey du 19/09/2026). On saisit d'abord,
+    // on lit le resultat ensuite.
     if(blocColisF && blocColisF.parentNode && !$('f-lignes')){
       var lgF = document.createElement('div');
-      lgF.innerHTML = '<div class="dep-sec">D&eacute;tail des colis</div>'
-        + '<div id="f-lignes" style="margin-bottom:14px;"></div>';
-      blocColisF.parentNode.insertBefore(lgF, blocColisF.nextSibling);
+      lgF.innerHTML = '<div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">D&eacute;tail des colis</div>'
+        + '<div id="f-lignes" style="margin-bottom:14px;"></div>'
+        + '<div class="dep-sec">R&eacute;capitulatif</div>';
+      var avant = $('f-nb') ? ($('f-nb').closest ? $('f-nb').closest('.fg') : null) : null;
+      blocColisF.parentNode.insertBefore(lgF, avant || blocColisF);
     }
   }
 
@@ -10090,10 +10092,12 @@ function injecterChampsFiche(){
   if(champColisE && !$('e-lignes')){
     var blocColisE = champColisE.closest ? champColisE.closest('.fg') : champColisE.parentNode;
     if(blocColisE && blocColisE.parentNode){
+      // v1.42.0 : le détail avant le récapitulatif, comme partout ailleurs.
       var lgE = document.createElement('div');
-      lgE.innerHTML = '<div class="dep-sec">D&eacute;tail des colis</div>'
-        + '<div id="e-lignes" style="margin-bottom:14px;"></div>';
-      blocColisE.parentNode.insertBefore(lgE, blocColisE.nextSibling);
+      lgE.innerHTML = '<div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">D&eacute;tail des colis</div>'
+        + '<div id="e-lignes" style="margin-bottom:14px;"></div>'
+        + '<div class="dep-sec">R&eacute;capitulatif</div>';
+      blocColisE.parentNode.insertBefore(lgE, blocColisE);
     }
   }
 }
