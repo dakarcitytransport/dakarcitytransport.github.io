@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.38.0';
+var DEP_VERSION = 'v1.39.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1031,8 +1031,10 @@ function _depLignesColis(c){
     var lignes = d.map(function(l){
       var qte = parseFloat(l.qte) || 1;
       var pu  = parseFloat(l.pu)  || 0;
-      return { nom:(l.nom||'Colis'), qte:qte, pu:pu,
-               total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
+      var o = { nom:(l.nom||'Colis'), qte:qte, pu:pu,
+                total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
+      if(l.lot) o.lot = true;
+      return o;
     });
     // v1.25.4 : le detail saisi fait foi sur les prix. La v1.25.2 le
     // jetait au profit d'une moyenne des que le prix global de la fiche
@@ -1068,8 +1070,8 @@ function _depDetailConcorde(lignes, c){
   if(attendus.length !== lignes.length) return false;
   var nbFiche = parseInt(c.nbColis, 10) || 0;
   if(nbFiche){
-    var nbLignes = lignes.reduce(function(s, l){ return s + (l.qte || 0); }, 0);
-    if(nbLignes !== nbFiche) return false;
+    // v1.39.0 : compte physique — un lot vaut un colis, pas sa quantité.
+    if(_depNbPhysique(lignes) !== nbFiche) return false;
   }
   return attendus.every(function(it, i){
     return _depNomEgal(it.nom, lignes[i].nom);
@@ -1092,9 +1094,12 @@ function _depLignesRecollees(lignes, c){
     var ref = connus[_depCleNom(it.nom)];
     if(ref){
       var t = Math.round(ref.pu * it.qte * 100) / 100;
-      return { nom:it.nom, qte:it.qte, pu:ref.pu, total:t };
+      var o = { nom:it.nom, qte:it.qte, pu:ref.pu, total:t };
+      if(it.lot || ref.lot) o.lot = true;
+      return o;
     }
     var neuf = { nom:it.nom, qte:it.qte, pu:0, total:0 };
+    if(it.lot) neuf.lot = true;
     restants.push(neuf);
     return neuf;
   });
@@ -1143,10 +1148,18 @@ function _depItemsDescription(texte, nbColis){
     // libelles qui commencent par un nombre faisant partie du nom
     // ("270 L de gasoil") : on n'y voit une quantite que s'il reste bien
     // du texte derriere.
-    var q = 1, nom = m;
-    var mm = m.match(/^(\d+)\s*(?:x|×)?\s+(.+)$/);
-    if(mm && mm[2].trim()){ q = parseInt(mm[1], 10) || 1; nom = mm[2].trim(); }
-    items.push({ nom:nom, qte:q, brut:m });
+    var q = 1, nom = m, estLot = false;
+    // v1.39.0 : "lot de 10 Palette" — le libellé qu'écrit le récapitulatif
+    // pour une ligne marquée lot. Sans ça, la description ne concordait
+    // plus avec le détail et la facture repartait d'une reconstitution.
+    var ml = m.match(/^lots?\s+de\s+(\d+)\s+(.+)$/i);
+    if(ml && ml[2].trim()){
+      q = parseInt(ml[1], 10) || 1; nom = ml[2].trim(); estLot = true;
+    } else {
+      var mm = m.match(/^(\d+)\s*(?:x|×)?\s+(.+)$/);
+      if(mm && mm[2].trim()){ q = parseInt(mm[1], 10) || 1; nom = mm[2].trim(); }
+    }
+    items.push({ nom:nom, qte:q, brut:m, lot:estLot });
   });
 
   // Un nombre en tete n'est une quantite que si le compte tombe juste :
@@ -1154,9 +1167,9 @@ function _depItemsDescription(texte, nbColis){
   // colis. Quand le total ne colle pas au nombre de colis de la fiche, on
   // revient a un article par element.
   var nbFiche = parseInt(nbColis, 10) || 0;
-  var sommeLue = items.reduce(function(s, i){ return s + i.qte; }, 0);
+  var sommeLue = _depNbPhysique(items);
   if(nbFiche > 0 && sommeLue > nbFiche){
-    items.forEach(function(i){ i.qte = 1; if(i.brut) i.nom = i.brut; });
+    items.forEach(function(i){ i.qte = 1; i.lot = false; if(i.brut) i.nom = i.brut; });
   }
   return items;
 }
@@ -1173,8 +1186,10 @@ function _depLignesDepuisTexte(texte, nbColis, total){
       ? Math.round((total - cumul) * 100) / 100
       : Math.round(parColis * it.qte * 100) / 100;
     cumul += mtt;
-    return { nom:it.nom, qte:it.qte,
-             pu:Math.round(mtt / it.qte * 100) / 100, total:mtt };
+    var o = { nom:it.nom, qte:it.qte,
+              pu:Math.round(mtt / it.qte * 100) / 100, total:mtt };
+    if(it.lot) o.lot = true;
+    return o;
   });
 }
 
@@ -1236,23 +1251,43 @@ window.depEditerLignes = function(containerId, lignes, onChange){
   _depLignesSuivi = (typeof onChange === 'function') ? onChange : null;
   _depLignesEdit  = (lignes || []).map(function(l){
     var qte = parseFloat(l.qte) || 1, pu = parseFloat(l.pu) || 0;
-    return { nom:(l.nom||'Colis'), qte:qte, pu:pu,
-             total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
+    var o = { nom:(l.nom||'Colis'), qte:qte, pu:pu,
+              total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
+    if(l.lot) o.lot = true;
+    return o;
   });
   _depRenderLignes();
 };
 
 window.depLignesValeur = function(){
   return _depLignesEdit.map(function(l){
-    return { nom:l.nom, qte:l.qte, pu:l.pu, total:l.total };
+    var o = { nom:l.nom, qte:l.qte, pu:l.pu, total:l.total };
+    if(l.lot) o.lot = true;   // v1.39.0 : un seul colis physique
+    return o;
   });
 };
 
 function _depLignesTotal(){
   return _depLignesEdit.reduce(function(s, l){ return s + (l.total||0); }, 0);
 }
+/* v1.39.0 — Le lot : plusieurs articles, un seul colis physique.
+   Un client confie 10 palettes. C'est facturé 10, mais ça part comme UN
+   lot : une seule étiquette, un seul colis dans le container (retour de
+   l'équipe DCT du 18/09/2026 : "éviter d'imprimer 10 colis, mais on doit
+   savoir que dans ce lot il y a 10 quantités").
+
+   La quantité reste celle de la ligne — c'est elle qui fait le prix. Seul
+   le décompte des colis change : une ligne marquée lot en vaut un. */
+function _depNbPhysique(lignes){
+  return (lignes || []).reduce(function(s, l){
+    var q = parseFloat(l.qte) || 0;
+    return s + (l.lot ? 1 : q);
+  }, 0);
+}
+window._depNbPhysique = _depNbPhysique;
+
 function _depLignesNbColis(){
-  return _depLignesEdit.reduce(function(s, l){ return s + (l.qte||0); }, 0);
+  return _depNbPhysique(_depLignesEdit);
 }
 
 // Themes et produits du catalogue, tries.
@@ -1316,10 +1351,11 @@ function _depRenderLignes(){
       +  '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">'
       +  '<thead><tr style="background:#f2f3f5;">'
       +    '<th style="text-align:left;padding:7px 8px;font-weight:700;">Article</th>'
-      +    '<th style="width:52px;padding:7px 4px;font-weight:700;">Qté</th>'
-      +    '<th style="width:64px;padding:7px 4px;font-weight:700;">P.U.</th>'
-      +    '<th style="width:64px;padding:7px 4px;font-weight:700;">Total</th>'
-      +    '<th style="width:34px;"></th></tr></thead><tbody>';
+      +    '<th style="width:46px;padding:7px 4px;font-weight:700;">Qté</th>'
+      +    '<th style="width:58px;padding:7px 4px;font-weight:700;">P.U.</th>'
+      +    '<th style="width:56px;padding:7px 4px;font-weight:700;">Total</th>'
+      +    '<th style="width:38px;padding:7px 2px;font-weight:700;" title="Un seul colis physique">Lot</th>'
+      +    '<th style="width:32px;"></th></tr></thead><tbody>';
     _depLignesEdit.forEach(function(l, i){
       h += '<tr style="border-top:1px solid #eee;">'
         +   '<td style="padding:6px 8px;">'+esc(l.nom)+'</td>'
@@ -1328,16 +1364,32 @@ function _depRenderLignes(){
         +   '<td style="padding:4px 2px;"><input type="number" min="0" value="'+l.pu+'" onchange="depLignePu('+i+',this.value)"'
         +     ' style="width:100%;border:1px solid #ddd;border-radius:6px;padding:5px 3px;text-align:center;font-size:12.5px;font-family:var(--font);"></td>'
         +   '<td style="padding:6px 4px;text-align:center;font-weight:800;color:#006b2d;">'+l.total+'</td>'
+        +   '<td style="padding:4px 2px;text-align:center;"><span onclick="depLigneLot('+i+')"'
+        +     ' title="' + (l.lot ? 'Lot : 1 seule étiquette' : 'Compter chaque unité') + '"'
+        +     ' style="display:inline-block;border-radius:6px;padding:4px 6px;font-size:13px;cursor:pointer;'
+        +       (l.lot ? 'background:#FFF3E0;border:1.5px solid #E58A00;' : 'background:#f2f2f2;border:1.5px solid #ddd;opacity:.5;')
+        +     '">&#128230;</span></td>'
         +   '<td style="padding:4px 2px;text-align:center;"><span onclick="depLigneSupprimer('+i+')"'
         +     ' style="display:inline-block;background:#fde0e0;color:#992020;border-radius:6px;padding:4px 7px;font-size:11px;font-weight:800;cursor:pointer;">✕</span></td>'
         + '</tr>';
     });
+    var _lots = _depLignesEdit.filter(function(l){ return l.lot; });
+    var _unites = _lots.reduce(function(s2,l){ return s2 + (parseFloat(l.qte)||0); }, 0);
     h += '</tbody></table></div>'
       +  '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 12px;'
       +  'background:#d4f0e0;border:1.5px solid #009A44;border-radius:10px;">'
       +    '<span style="font-size:12.5px;font-weight:700;color:#006b2d;">'+_depLignesNbColis()+' colis</span>'
       +    '<span style="font-size:19px;font-weight:800;color:#006b2d;">'+_depLignesTotal()+' €</span>'
-      +  '</div>';
+      +  '</div>'
+      +  (_lots.length
+          ? '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border:1.5px solid #E58A00;'
+            + 'border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5;">'
+            + '&#128230; ' + _lots.length + ' lot' + (_lots.length>1?'s':'') + ' &mdash; ' + _unites
+            + ' unit&eacute;s factur&eacute;es, ' + _lots.length + ' &eacute;tiquette'
+            + (_lots.length>1?'s':'') + ' &agrave; imprimer.</div>'
+          : '<div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.4;">'
+            + '&#128230; Touchez l\'ic&ocirc;ne d\'une ligne pour en faire un <strong>lot</strong> : '
+            + 'plusieurs unit&eacute;s factur&eacute;es, un seul colis &agrave; &eacute;tiqueter.</div>');
   }
   box.innerHTML = h;
   if(_depLignesSuivi){
@@ -1379,6 +1431,13 @@ window.depLignePu = function(i, v){
   var l = _depLignesEdit[i]; if(!l) return;
   l.pu = Math.max(0, parseFloat(v) || 0);
   l.total = Math.round(l.qte * l.pu * 100) / 100;
+  _depRenderLignes();
+};
+
+window.depLigneLot = function(i){
+  var l = _depLignesEdit[i]; if(!l) return;
+  l.lot = !l.lot;
+  if(!l.lot) delete l.lot;
   _depRenderLignes();
 };
 
@@ -6581,8 +6640,12 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     return lg.map(function(l, i){
       var pu  = indefini ? 'à définir' : (l.pu + ' €');
       var mtt = indefini ? 'à définir' : (l.total + ' €');
-      return '<tr><td>'+(i+1)+'</td><td>'+esc(l.nom)+'</td><td>'+l.qte+'</td>'
-           + '<td>colis</td><td>'+esc(pu)+'</td><td>'+esc(mtt)+'</td></tr>';
+      // v1.39.0 : un lot est facturé à la quantité mais voyage en un seul
+      // colis — la facture le dit, sinon le client compterait ses colis
+      // et ne trouverait pas son compte.
+      var nom = esc(l.nom) + (l.lot ? ' <span style="font-size:9.5px;">(lot de ' + l.qte + ')</span>' : '');
+      return '<tr><td>'+(i+1)+'</td><td>'+nom+'</td><td>'+l.qte+'</td>'
+           + '<td>'+(l.lot ? 'lot' : 'colis')+'</td><td>'+esc(pu)+'</td><td>'+esc(mtt)+'</td></tr>';
     }).join('');
   }
   var totalLivraison = c.livraisonDakar ? (parseFloat(c.prixLivraison) || 0) : 0;
@@ -8473,7 +8536,7 @@ window.depChoisirFusion = function(colIdSrc, clientIdSrc){
 
   var lg = _depLignesColis(principale).concat(_depLignesColis(source));
   var total = _depTotalColis({ colisDetail: lg });
-  var nbColis = lg.reduce(function(s,l){ return s + (parseFloat(l.qte)||0); }, 0) || 1;
+  var nbColis = _depNbPhysique(lg) || 1;
   var nbVers = (Array.isArray(principale.versements) ? principale.versements.length : 0)
              + (Array.isArray(source.versements) ? source.versements.length : 0);
 
@@ -8538,7 +8601,7 @@ window.depConfirmerFusionFacture = function(colIdSrc, clientIdSrc){
   principale.colisDetail = lignes;
   principale.prix = _depTotalColis({ colisDetail: lignes });
   principale.prixADefinir = false;
-  principale.nbColis = lignes.reduce(function(s,l){ return s + (parseFloat(l.qte)||0); }, 0) || 1;
+  principale.nbColis = _depNbPhysique(lignes) || 1;
   principale.colis = lignes.map(function(l){
     var deja = /^\s*\d/.test(l.nom || '');
     return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
@@ -8598,7 +8661,7 @@ window.depAnnulerFusionFacture = function(){
   if(n && lignes.length >= n) lignes = lignes.slice(0, lignes.length - n);
   principale.colisDetail = lignes;
   principale.prix = _depTotalColis({ colisDetail: lignes });
-  principale.nbColis = lignes.reduce(function(s,l){ return s + (parseFloat(l.qte)||0); }, 0) || 1;
+  principale.nbColis = _depNbPhysique(lignes) || 1;
   principale.colis = lignes.map(function(l){
     var deja = /^\s*\d/.test(l.nom || '');
     return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
@@ -8847,6 +8910,7 @@ function _depDepotLignesMaj(total, nbColis, lignes){
   var colisEl = $('dp-colis');
   if(colisEl){
     colisEl.value = lignes.map(function(l){
+      if(l.lot) return 'lot de ' + l.qte + ' ' + l.nom;
       var deja = /^\s*\d/.test(l.nom || '');
       return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
     }).join(', ');
@@ -9939,6 +10003,7 @@ function _depFicheLignesMaj(total, nbColis, lignes){
   var colisEl = $('e-colis');
   if(colisEl){
     colisEl.value = lignes.map(function(l){
+      if(l.lot) return 'lot de ' + l.qte + ' ' + l.nom;
       var deja = /^\s*\d/.test(l.nom || '');
       return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
     }).join(', ');
@@ -10139,6 +10204,7 @@ function _depInscriptionLignesMaj(total, nbColis, lignes){
   var colisEl = $('f-colis');
   if(colisEl){
     colisEl.value = lignes.map(function(l){
+      if(l.lot) return 'lot de ' + l.qte + ' ' + l.nom;
       var deja = /^\s*\d/.test(l.nom || '');
       return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
     }).join(', ');
@@ -10299,6 +10365,7 @@ function _depValiderLignesMaj(total, nbColis, lignes){
     colisEl.value = lignes.map(function(l){
       // Les fiches d'avant les lignes ont leur quantite dans le libelle
       // ("2 valises") : on ne la remet pas devant une deuxieme fois.
+      if(l.lot) return 'lot de ' + l.qte + ' ' + l.nom;
       var deja = /^\s*\d/.test(l.nom || '');
       return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
     }).join(', ');
@@ -11541,7 +11608,7 @@ function greffer(){
           // v1.26.1 : et sur le nombre de colis. Cette fiche n'a pas de
           // champ "Nombre de colis" — sans ca, ajouter une ligne ici
           // laissait la facture a "1 colis" avec trois lignes dessous.
-          extras.nbColis = lgE.reduce(function(s, l){ return s + (parseFloat(l.qte) || 0); }, 0) || 1;
+          extras.nbColis = window._depNbPhysique(lgE) || 1;
         }
       }catch(eLg2){}
 
