@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.43.0';
+var DEP_VERSION = 'v1.43.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3922,7 +3922,7 @@ function injecterChampsClient(){
     // on lit le resultat ensuite.
     if(blocColisF && blocColisF.parentNode && !$('f-lignes')){
       var lgF = document.createElement('div');
-      lgF.innerHTML = '<div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">D&eacute;tail des colis</div>'
+      lgF.innerHTML = '<div class="dep-sec">D&eacute;tail des colis</div>'
         + '<div id="f-lignes" style="margin-bottom:14px;"></div>'
         + '<div class="dep-sec">R&eacute;capitulatif</div>';
       var avant = $('f-nb') ? ($('f-nb').closest ? $('f-nb').closest('.fg') : null) : null;
@@ -10095,7 +10095,7 @@ function injecterChampsFiche(){
     if(blocColisE && blocColisE.parentNode){
       // v1.42.0 : le détail avant le récapitulatif, comme partout ailleurs.
       var lgE = document.createElement('div');
-      lgE.innerHTML = '<div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">D&eacute;tail des colis</div>'
+      lgE.innerHTML = '<div class="dep-sec">D&eacute;tail des colis</div>'
         + '<div id="e-lignes" style="margin-bottom:14px;"></div>'
         + '<div class="dep-sec">R&eacute;capitulatif</div>';
       blocColisE.parentNode.insertBefore(lgE, blocColisE);
@@ -10123,7 +10123,7 @@ function _depInjecterLignesFrance(){
   var nbEl = $('fa-nb');
   var rangee = nbEl && nbEl.closest ? nbEl.closest('.form-row') : null;
   var bloc = document.createElement('div');
-  bloc.innerHTML = '<div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">D&eacute;tail des colis</div>'
+  bloc.innerHTML = '<div class="dep-sec">D&eacute;tail des colis</div>'
     + '<div id="fa-lignes" style="margin-bottom:14px;"></div>'
     + '<div class="dep-sec">R&eacute;capitulatif</div>';
   blocColis.parentNode.insertBefore(bloc, rangee || blocColis);
