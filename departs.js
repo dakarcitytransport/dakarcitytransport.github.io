@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.40.0';
+var DEP_VERSION = 'v1.41.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1400,7 +1400,7 @@ function _depRenderLignes(){
       +    '<th style="width:46px;padding:7px 4px;font-weight:700;">Qté</th>'
       +    '<th style="width:58px;padding:7px 4px;font-weight:700;">P.U.</th>'
       +    '<th style="width:56px;padding:7px 4px;font-weight:700;">Total</th>'
-      +    '<th style="width:44px;padding:7px 2px;font-weight:700;" title="Un lot = un seul colis. Le chiffre dessous = paquets filmés.">Lot</th>'
+      +    '<th style="width:38px;padding:7px 2px;font-weight:700;" title="Regrouper cette ligne en un seul colis">Lot</th>'
       +    '<th style="width:32px;"></th></tr></thead><tbody>';
     _depLignesEdit.forEach(function(l, i){
       h += '<tr style="border-top:1px solid #eee;">'
@@ -1414,17 +1414,27 @@ function _depRenderLignes(){
         +     ' title="' + (l.lot ? 'Lot : un seul colis' : 'Compter chaque unité') + '"'
         +     ' style="display:inline-block;border-radius:6px;padding:4px 6px;font-size:13px;cursor:pointer;'
         +       (l.lot ? 'background:#FFF3E0;border:1.5px solid #E58A00;' : 'background:#f2f2f2;border:1.5px solid #ddd;opacity:.5;')
-        +     '">&#128230;</span>'
-        +     (l.lot
-              ? '<div style="margin-top:3px;"><input type="number" min="1" max="50" value="'+(parseInt(l.nbLot,10)||1)+'"'
-                + ' onchange="depLigneNbLot('+i+',this.value)" title="Nombre de paquets filmés"'
-                + ' style="width:100%;border:1.5px solid #E58A00;border-radius:6px;padding:3px 1px;text-align:center;'
-                + 'font-size:11.5px;font-weight:800;color:#8A5200;background:#FFF9F0;font-family:var(--font);"></div>'
-              : '')
-        +   '</td>'
+        +     '">&#128230;</span></td>'
         +   '<td style="padding:4px 2px;text-align:center;"><span onclick="depLigneSupprimer('+i+')"'
         +     ' style="display:inline-block;background:#fde0e0;color:#992020;border-radius:6px;padding:4px 7px;font-size:11px;font-weight:800;cursor:pointer;">✕</span></td>'
         + '</tr>';
+      // v1.41.0 : la case du nombre de paquets était un chiffre muet dans
+      // le tableau, qu'on confondait avec la quantité — on y saisissait
+      // "10" en croyant écrire 10 cartons (retour de Cobey du
+      // 19/09/2026). Elle devient une ligne en toutes lettres, sous
+      // l'article, qui dit exactement ce qu'elle compte.
+      if(l.lot){
+        h += '<tr style="background:#FFF9F0;"><td colspan="6" style="padding:7px 8px;border-top:1px dashed #E58A00;">'
+          +   '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11.5px;color:#8A5200;font-weight:700;">'
+          +     '<span>&#128230; Lot &mdash; compte pour <strong>1 colis</strong>, film&eacute; en</span>'
+          +     '<input type="number" min="1" max="50" value="'+(parseInt(l.nbLot,10)||1)+'"'
+          +       ' onchange="depLigneNbLot('+i+',this.value)"'
+          +       ' style="width:52px;border:1.5px solid #E58A00;border-radius:6px;padding:4px 2px;text-align:center;'
+          +       'font-size:12.5px;font-weight:800;color:#8A5200;background:#fff;font-family:var(--font);margin:0;">'
+          +     '<span>paquet' + ((parseInt(l.nbLot,10)||1) > 1 ? 's' : '') + ' &rarr; '
+          +       (parseInt(l.nbLot,10)||1) + ' &eacute;tiquette' + ((parseInt(l.nbLot,10)||1) > 1 ? 's' : '') + '</span>'
+          +   '</div></td></tr>';
+      }
     });
     var _lots = _depLignesEdit.filter(function(l){ return l.lot; });
     var _unites = _lots.reduce(function(s2,l){ return s2 + (parseFloat(l.qte)||0); }, 0);
@@ -9001,7 +9011,7 @@ function _depDepotLignesMaj(total, nbColis, lignes){
   var colisEl = $('dp-colis');
   if(colisEl){
     colisEl.value = lignes.map(function(l){
-      if(l.lot) return 'lot de ' + l.qte + ' ' + l.nom;
+      if(l.lot) return (l.qte > 1 ? ('lot de ' + l.qte + ' ') : '') + l.nom;
       var deja = /^\s*\d/.test(l.nom || '');
       return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
     }).join(', ');
@@ -10094,7 +10104,7 @@ function _depFicheLignesMaj(total, nbColis, lignes){
   var colisEl = $('e-colis');
   if(colisEl){
     colisEl.value = lignes.map(function(l){
-      if(l.lot) return 'lot de ' + l.qte + ' ' + l.nom;
+      if(l.lot) return (l.qte > 1 ? ('lot de ' + l.qte + ' ') : '') + l.nom;
       var deja = /^\s*\d/.test(l.nom || '');
       return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
     }).join(', ');
@@ -10295,7 +10305,7 @@ function _depInscriptionLignesMaj(total, nbColis, lignes){
   var colisEl = $('f-colis');
   if(colisEl){
     colisEl.value = lignes.map(function(l){
-      if(l.lot) return 'lot de ' + l.qte + ' ' + l.nom;
+      if(l.lot) return (l.qte > 1 ? ('lot de ' + l.qte + ' ') : '') + l.nom;
       var deja = /^\s*\d/.test(l.nom || '');
       return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
     }).join(', ');
@@ -10456,7 +10466,7 @@ function _depValiderLignesMaj(total, nbColis, lignes){
     colisEl.value = lignes.map(function(l){
       // Les fiches d'avant les lignes ont leur quantite dans le libelle
       // ("2 valises") : on ne la remet pas devant une deuxieme fois.
-      if(l.lot) return 'lot de ' + l.qte + ' ' + l.nom;
+      if(l.lot) return (l.qte > 1 ? ('lot de ' + l.qte + ' ') : '') + l.nom;
       var deja = /^\s*\d/.test(l.nom || '');
       return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
     }).join(', ');
