@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.39.0';
+var DEP_VERSION = 'v1.40.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1033,7 +1033,7 @@ function _depLignesColis(c){
       var pu  = parseFloat(l.pu)  || 0;
       var o = { nom:(l.nom||'Colis'), qte:qte, pu:pu,
                 total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
-      if(l.lot) o.lot = true;
+      if(l.lot){ o.lot = true; o.nbLot = parseInt(l.nbLot,10) || 1; }
       return o;
     });
     // v1.25.4 : le detail saisi fait foi sur les prix. La v1.25.2 le
@@ -1253,7 +1253,7 @@ window.depEditerLignes = function(containerId, lignes, onChange){
     var qte = parseFloat(l.qte) || 1, pu = parseFloat(l.pu) || 0;
     var o = { nom:(l.nom||'Colis'), qte:qte, pu:pu,
               total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
-    if(l.lot) o.lot = true;
+    if(l.lot){ o.lot = true; o.nbLot = parseInt(l.nbLot,10) || 1; }
     return o;
   });
   _depRenderLignes();
@@ -1262,7 +1262,7 @@ window.depEditerLignes = function(containerId, lignes, onChange){
 window.depLignesValeur = function(){
   return _depLignesEdit.map(function(l){
     var o = { nom:l.nom, qte:l.qte, pu:l.pu, total:l.total };
-    if(l.lot) o.lot = true;   // v1.39.0 : un seul colis physique
+    if(l.lot){ o.lot = true; o.nbLot = parseInt(l.nbLot,10) || 1; }
     return o;
   });
 };
@@ -1285,6 +1285,52 @@ function _depNbPhysique(lignes){
   }, 0);
 }
 window._depNbPhysique = _depNbPhysique;
+
+// Le nombre d'ETIQUETTES : un lot filmé en 3 paquets en demande 3, même
+// s'il ne compte que pour un colis. C'est au dépôt qu'on le sait, d'où le
+// champ "Paquets" sur la ligne (l.nbLot).
+function _depNbEtiquettes(lignes){
+  return (lignes || []).reduce(function(s, l){
+    var q = parseFloat(l.qte) || 0;
+    return s + (l.lot ? (parseInt(l.nbLot, 10) || 1) : q);
+  }, 0);
+}
+window._depNbEtiquettes = _depNbEtiquettes;
+
+/* Le plan d'étiquettes d'un client : une entrée par étiquette à coller.
+   Un colis simple donne une étiquette par unité. Un lot donne autant
+   d'étiquettes qu'il a de paquets filmés, toutes au MÊME rang de colis —
+   trois paquets d'un même lot, c'est un seul colis dans l'envoi, et
+   celui qui décharge à Dakar doit pouvoir le comprendre (demande de
+   l'équipe DCT du 18/09/2026). */
+function _depPlanEtiquettes(c){
+  var lignes = _depLignesColis(c);
+  var total = _depNbPhysique(lignes) || 1;
+  var plan = [], rang = 0;
+  lignes.forEach(function(l){
+    if(l.lot){
+      rang++;
+      var m = parseInt(l.nbLot, 10) || 1;
+      for(var k = 1; k <= m; k++){
+        plan.push({ rang:rang, total:total, lotIdx:k, lotTotal:m,
+                    contenu:(l.qte + ' ' + (l.nom || '')) });
+      }
+    } else {
+      var q = parseInt(l.qte, 10) || 1;
+      for(var j = 0; j < q; j++){
+        rang++;
+        plan.push({ rang:rang, total:total, contenu:(l.nom || '') });
+      }
+    }
+  });
+  // Fiche sans détail : on retombe sur le comptage d'avant.
+  if(!plan.length){
+    var n = parseInt(c && c.nbColis, 10) || 1;
+    for(var z = 1; z <= n; z++) plan.push({ rang:z, total:n, contenu:'' });
+  }
+  return plan;
+}
+window._depPlanEtiquettes = _depPlanEtiquettes;
 
 function _depLignesNbColis(){
   return _depNbPhysique(_depLignesEdit);
@@ -1354,7 +1400,7 @@ function _depRenderLignes(){
       +    '<th style="width:46px;padding:7px 4px;font-weight:700;">Qté</th>'
       +    '<th style="width:58px;padding:7px 4px;font-weight:700;">P.U.</th>'
       +    '<th style="width:56px;padding:7px 4px;font-weight:700;">Total</th>'
-      +    '<th style="width:38px;padding:7px 2px;font-weight:700;" title="Un seul colis physique">Lot</th>'
+      +    '<th style="width:44px;padding:7px 2px;font-weight:700;" title="Un lot = un seul colis. Le chiffre dessous = paquets filmés.">Lot</th>'
       +    '<th style="width:32px;"></th></tr></thead><tbody>';
     _depLignesEdit.forEach(function(l, i){
       h += '<tr style="border-top:1px solid #eee;">'
@@ -1365,10 +1411,17 @@ function _depRenderLignes(){
         +     ' style="width:100%;border:1px solid #ddd;border-radius:6px;padding:5px 3px;text-align:center;font-size:12.5px;font-family:var(--font);"></td>'
         +   '<td style="padding:6px 4px;text-align:center;font-weight:800;color:#006b2d;">'+l.total+'</td>'
         +   '<td style="padding:4px 2px;text-align:center;"><span onclick="depLigneLot('+i+')"'
-        +     ' title="' + (l.lot ? 'Lot : 1 seule étiquette' : 'Compter chaque unité') + '"'
+        +     ' title="' + (l.lot ? 'Lot : un seul colis' : 'Compter chaque unité') + '"'
         +     ' style="display:inline-block;border-radius:6px;padding:4px 6px;font-size:13px;cursor:pointer;'
         +       (l.lot ? 'background:#FFF3E0;border:1.5px solid #E58A00;' : 'background:#f2f2f2;border:1.5px solid #ddd;opacity:.5;')
-        +     '">&#128230;</span></td>'
+        +     '">&#128230;</span>'
+        +     (l.lot
+              ? '<div style="margin-top:3px;"><input type="number" min="1" max="50" value="'+(parseInt(l.nbLot,10)||1)+'"'
+                + ' onchange="depLigneNbLot('+i+',this.value)" title="Nombre de paquets filmés"'
+                + ' style="width:100%;border:1.5px solid #E58A00;border-radius:6px;padding:3px 1px;text-align:center;'
+                + 'font-size:11.5px;font-weight:800;color:#8A5200;background:#FFF9F0;font-family:var(--font);"></div>'
+              : '')
+        +   '</td>'
         +   '<td style="padding:4px 2px;text-align:center;"><span onclick="depLigneSupprimer('+i+')"'
         +     ' style="display:inline-block;background:#fde0e0;color:#992020;border-radius:6px;padding:4px 7px;font-size:11px;font-weight:800;cursor:pointer;">✕</span></td>'
         + '</tr>';
@@ -1437,7 +1490,15 @@ window.depLignePu = function(i, v){
 window.depLigneLot = function(i){
   var l = _depLignesEdit[i]; if(!l) return;
   l.lot = !l.lot;
-  if(!l.lot) delete l.lot;
+  if(!l.lot){ delete l.lot; delete l.nbLot; }
+  else if(!l.nbLot) l.nbLot = 1;   // un seul paquet tant que rien n'est filmé
+  _depRenderLignes();
+};
+
+// Le nombre de paquets filmés d'un lot — saisi au dépôt, quand on sait.
+window.depLigneNbLot = function(i, v){
+  var l = _depLignesEdit[i]; if(!l || !l.lot) return;
+  l.nbLot = Math.min(50, Math.max(1, parseInt(v, 10) || 1));
   _depRenderLignes();
 };
 
@@ -2779,6 +2840,7 @@ function injecterEcrans(){
   // depRenderEtiquettes.
   +     '.etq-parcours{font-size:13px;font-weight:800;color:#fff;padding:3px 10px;border-radius:20px;flex-shrink:0;letter-spacing:.02em;}'
   +     '.etq-compte{font-size:13px;font-weight:800;background:#006b2d;color:#fff;padding:3px 9px;border-radius:20px;flex-shrink:0;}'
+  +     '.etq-lot{font-size:15px;font-weight:800;background:#E58A00;color:#fff;text-align:center;border-radius:6px;padding:7px 10px;margin-bottom:6px;letter-spacing:.01em;}'
   +     '.etq-numero{font-size:19px;font-weight:800;letter-spacing:.02em;color:#111;text-align:center;background:#f7f7f7;border-radius:6px;padding:10px;margin-bottom:6px;}'
   +     '.etq-dest{text-align:center;font-size:13px;font-weight:700;color:#333;margin-bottom:10px;}'
   // v1.19.29 : QR sur l'étiquette (voir depRenderEtiquettes) — absent
@@ -6896,7 +6958,15 @@ window.depOuvrirEtiquette = function(){
   // (voir champ "Nombre de colis", inscription + validation) au lieu d'un
   // "1" fixe — l'info existe déjà, plus besoin de la redemander à chaque
   // fois (retour de Cobey du 06/09/2026).
-  var inp = $('dep-etq-nb'); if(inp) inp.value = c.nbColis || 1;
+  // v1.40.0 : le nombre d'étiquettes, lots compris — un lot filmé en
+  // trois paquets en demande trois, alors qu'il ne compte que pour un
+  // colis (voir _depNbEtiquettes).
+  var nEtq = c.nbColis || 1;
+  try{
+    var lgEtq = _depLignesColis(c);
+    if(lgEtq.length) nEtq = _depNbEtiquettes(lgEtq) || nEtq;
+  }catch(e){}
+  var inp = $('dep-etq-nb'); if(inp) inp.value = nEtq;
   openModal('modal-dep-etiquette-nb');
 };
 
@@ -6927,7 +6997,15 @@ window.depGenererEtiquettes = function(){
   if(n > 50) n = 50; // garde-fou raisonnable
 
   closeModal('modal-dep-etiquette-nb');
-  depRenderEtiquettes(c, ctx, n);
+  // v1.40.0 : le plan ne sert que si le nombre demandé est bien celui
+  // qu'il prévoit. Si l'utilisateur force un autre nombre, on lui rend la
+  // main et on imprime N étiquettes simples, comme avant.
+  var plan = null;
+  try{
+    var pl = _depPlanEtiquettes(c);
+    if(pl.length === n) plan = pl;
+  }catch(e){}
+  depRenderEtiquettes(c, ctx, n, plan);
   goTo('s-etiquette');
 };
 
@@ -6981,7 +7059,7 @@ function _depMasquerAdresse(adr){
   return mots[0] + (mots.length > 1 ? ' ***' : '');
 }
 
-function depRenderEtiquettes(c, ctx, n){
+function depRenderEtiquettes(c, ctx, n, plan){
   var d = (window.departsData || {})[c.departId] || {};
   var pInfo = DEP_PAYS_DEST[depPaysDepart(d)] || {};
   var ddmmyy = '';
@@ -7024,6 +7102,18 @@ function depRenderEtiquettes(c, ctx, n){
     // et affiche à la place quelque chose d'utile en plus. Repli sur i si
     // jamais aucun numéro de place n'a encore été posé (ancienne fiche).
     var numEtq = refClient + '-' + (ddmmyy || 'XXXXXX') + '-' + (c.rangDepart || i);
+    // v1.40.0 : quand un plan d'étiquettes existe (voir _depPlanEtiquettes),
+    // c'est lui qui donne le compteur — un lot filmé en plusieurs paquets
+    // porte le même rang de colis sur chacun de ses paquets.
+    var _e = plan ? plan[i-1] : null;
+    var _compte = _e ? (_e.rang + '/' + _e.total) : (i + '/' + n);
+    // "LOT 1/1" ne veut rien dire : un lot d'un seul paquet s'écrit
+    // simplement "LOT".
+    var _bandeauLot = (_e && _e.lotIdx)
+      ? '<div class="etq-lot">&#128230; LOT'
+        + (_e.lotTotal > 1 ? (' ' + _e.lotIdx + '/' + _e.lotTotal) : '')
+        + (_e.contenu ? ' &middot; ' + esc(_e.contenu) : '') + '</div>'
+      : '';
     pages += ''
       + '<div class="etq-page">'
       +   '<div class="etq-doc">'
@@ -7033,8 +7123,9 @@ function depRenderEtiquettes(c, ctx, n){
       +         '<img class="etq-logo" src="'+DEP_LOGO_B64+'" alt="Dakar City Transport">'
       +         '<div class="etq-marque">DAKAR CITY TRANSPORT</div>'
       +         '<div class="etq-parcours" style="background:'+couleurParcours+';">'+esc(prefixeParcours)+'</div>'
-      +         '<div class="etq-compte">'+i+'/'+n+'</div>'
+      +         '<div class="etq-compte">'+_compte+'</div>'
       +       '</div>'
+      +       _bandeauLot
       +       '<div class="etq-numero">'+esc(numEtq)+'</div>'
       // v1.19.30 : DEP_PAYS_NOM_PLAIN (texte brut) au lieu de pInfo.nom
       // (qui contient des entités HTML du genre "S&eacute;n&eacute;gal",
@@ -13671,16 +13762,37 @@ window.depOuvrirImpressionToutesEtiquettesCamion = function(k){
     var c = clients[id];
     if(!c) return;
     if(!c.departId || c.departId === DEP_ID_DEPOT || !(window.departsData||{})[c.departId]) return;
-    items.push({ id: id, c: c, n: c.nbColis || 1 });
+    // v1.40.0 : le plan dit combien d'étiquettes ce client demande —
+    // lots filmés compris — et ce que chacune porte.
+    var plan = null, nEtq = c.nbColis || 1;
+    try{
+      plan = _depPlanEtiquettes(c);
+      if(plan && plan.length) nEtq = plan.length; else plan = null;
+    }catch(e){ plan = null; }
+    items.push({ id: id, c: c, n: nEtq, plan: plan });
   });
   if(!items.length){ toast('⚠️ Aucun client de ce camion n\'est rattaché à un départ pour l\'instant.'); return; }
   window._depImprimerToutesEtiquettesCtx = { camion: k, items: items };
   var total = items.reduce(function(s, it){ return s + it.n; }, 0);
   var detail = items.map(function(it){ return it.n; }).join(' + ');
+  // v1.40.0 : combien de lots dans le tas, et en combien de paquets.
+  var lots = [];
+  items.forEach(function(it){
+    (it.plan || []).forEach(function(e){
+      if(e.lotIdx === 1) lots.push(e.lotTotal);
+    });
+  });
   var texte = $('dep-etq-camion-texte');
   if(texte){
     texte.innerHTML = '<strong>' + total + ' &eacute;tiquette' + (total > 1 ? 's' : '') + '</strong> seront g&eacute;n&eacute;r&eacute;es'
-      + ' (' + esc(detail) + ' pour ' + items.length + ' client' + (items.length > 1 ? 's' : '') + '), dans l\'ordre de la tourn&eacute;e.';
+      + ' (' + esc(detail) + ' pour ' + items.length + ' client' + (items.length > 1 ? 's' : '') + '), dans l\'ordre de la tourn&eacute;e.'
+      + (lots.length
+          ? '<div style="margin-top:8px;font-size:12.5px;color:#8A5200;background:#FFF3E0;border:1.5px solid #E58A00;'
+            + 'border-radius:8px;padding:8px 10px;line-height:1.5;">&#128230; dont <strong>' + lots.length + ' lot'
+            + (lots.length > 1 ? 's' : '') + '</strong> &mdash; ' + lots.join(' + ') + ' paquet'
+            + (lots.reduce(function(a,b){ return a+b; }, 0) > 1 ? 's' : '') + ' film&eacute;'
+            + (lots.reduce(function(a,b){ return a+b; }, 0) > 1 ? 's' : '') + '.</div>'
+          : '');
   }
   openModal('modal-dep-etq-camion-confirm');
 };
@@ -13708,7 +13820,7 @@ function _depRenderEtiquettesMultiples(items){
   var qrJobs = [];
   var giIndex = 0;
   items.forEach(function(item){
-    var c = item.c, n = item.n, id = item.id;
+    var c = item.c, n = item.n, id = item.id, plan = item.plan;
     var ctx = { collecteId: window.currentCollecteId, clientId: id, depot: false };
     var d = (window.departsData || {})[c.departId] || {};
     var pInfo = DEP_PAYS_DEST[depPaysDepart(d)] || {};
@@ -13745,8 +13857,13 @@ function _depRenderEtiquettesMultiples(items){
         +         '<img class="etq-logo" src="'+DEP_LOGO_B64+'" alt="Dakar City Transport">'
         +         '<div class="etq-marque">DAKAR CITY TRANSPORT</div>'
         +         '<div class="etq-parcours" style="background:'+couleurParcours+';">'+esc(prefixeParcours)+'</div>'
-        +         '<div class="etq-compte">'+i+'/'+n+'</div>'
+        +         '<div class="etq-compte">'+(plan && plan[i-1] ? (plan[i-1].rang + '/' + plan[i-1].total) : (i + '/' + n))+'</div>'
         +       '</div>'
+        +       ((plan && plan[i-1] && plan[i-1].lotIdx)
+                  ? ('<div class="etq-lot">&#128230; LOT'
+                     + (plan[i-1].lotTotal > 1 ? (' ' + plan[i-1].lotIdx + '/' + plan[i-1].lotTotal) : '')
+                     + (plan[i-1].contenu ? ' &middot; ' + esc(plan[i-1].contenu) : '') + '</div>')
+                  : '')
         +       '<div class="etq-numero">'+esc(numEtq)+'</div>'
         +       '<div class="etq-dest">'+(pInfo.drapeau||'')+' '+esc(DEP_PAYS_NOM_PLAIN[depPaysDepart(d)] || pInfo.nom || '')+'</div>'
         +       '<div class="etq-qr-wrap"><canvas id="'+canvasId+'" width="180" height="180"></canvas></div>'
