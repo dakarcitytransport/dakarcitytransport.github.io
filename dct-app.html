@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.66.0';
+var APP_VERSION = 'v3.67.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -8202,6 +8202,25 @@ function _rafraichirCarte(){
 var _mapSelection = [];
 var _finTimestamps = {}; // {collecteId_truckKey_clientId: timestamp}
 var _mapInstance = null;
+
+/* v3.67.0 — La carte suit l'ordre de la feuille de route.
+   La feuille de route classe les arrêts par heure fixée, puis par ordre
+   d'affectation. La carte, elle, traçait la ligne dans l'ordre brut de
+   truck.clients : dès qu'on posait des heures, les flèches du trajet ne
+   correspondaient plus à la tournée réellement prévue (retour de
+   l'équipe DCT du 18/09/2026). Une seule fonction donne désormais
+   l'ordre aux deux. */
+function _ordreTournee(truck){
+  if(!truck || !truck.clients) return [];
+  var hours = truck.hours || {};
+  return truck.clients.slice().sort(function(a,b){
+    var ha = hours[a], hb = hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return truck.clients.indexOf(a) - truck.clients.indexOf(b);
+  });
+}
 var _mapMarkers = {};
 var _mapPolyline = null; // Ligne de trajet
 var _mapPolylines = {}; // Tracés permanents par camion
@@ -8398,7 +8417,7 @@ function _ouvrirCarteModal(){
               var tk = trksExist[k];
               var tc3 = getTc(k);
               if(!tk.clients || tk.clients.length < 2) return;
-              var pts3 = tk.clients.map(function(id){
+              var pts3 = _ordreTournee(tk).map(function(id){
                 return _mapMarkers[id] ? _mapMarkers[id].getLatLng() : null;
               }).filter(Boolean);
               if(pts3.length < 2) return;
@@ -9225,7 +9244,7 @@ function _redessinerTraceCamion(truckKey){
 
   // Redessiner le tracé si au moins 2 clients restants
   if(truck.clients.length < 2) return;
-  var pts = truck.clients.map(function(id){
+  var pts = _ordreTournee(truck).map(function(id){
     return _mapMarkers[id] ? _mapMarkers[id].getLatLng() : null;
   }).filter(Boolean);
   if(pts.length < 2) return;
@@ -9559,8 +9578,8 @@ function validerCarteSelection(){
       _mapPolylines[truckKey].forEach(function(l){ try{l.remove();}catch(e){} });
     }
     _mapPolylines[truckKey] = [];
-    // Construire les points du tracé (ordre dans truck.clients)
-    var pts2 = truck.clients.map(function(id){
+    // Construire les points du tracé — même ordre que la feuille de route
+    var pts2 = _ordreTournee(truck).map(function(id){
       return _mapMarkers[id] ? _mapMarkers[id].getLatLng() : null;
     }).filter(Boolean);
     if(pts2.length > 1){

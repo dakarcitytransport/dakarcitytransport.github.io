@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.29.0';
+var DEP_VERSION = 'v1.30.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -11431,6 +11431,7 @@ function greffer(){
       try{ _depSimplifierBoutonsCarte(k); }catch(e){ console.error('departs: simplification boutons carte', e); }
       try{ _depAjouterBadgeAcompteCamion(k); }catch(e){ console.error('departs: badge acompte (camion)', e); }
       try{ _depAjouterBoutonsExtraCamionValide(k); }catch(e){ console.error('departs: boutons extra (photos/observation)', e); }
+      try{ _depAjouterObservationAvantCollecte(k); }catch(e){ console.error('departs: observation avant collecte', e); }
       try{ _depAfficherFinanceExtra(k); }catch(e){ console.error('departs: finance extra (camion)', e); }
       try{ _depInjecterBoutonEtiquettesCamion(k); }catch(e){ console.error('departs: bouton étiquettes camion', e); }
     };
@@ -12893,6 +12894,66 @@ function _depAfficherFinanceExtra(k){
    correspondance carte↔client que _depAjouterFactureCamionValide (mêmes
    cartes .route-card.done, même filtre "validated").
    ───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+   v1.30.0. L'OBSERVATION AVANT LA COLLECTE
+   ─────────────────────────────────────────────
+   Les boutons Photos/Observation n'existaient que sur les cartes déjà
+   validées (voir _depAjouterBoutonsExtraCamionValide juste en dessous).
+   Or une observation sert précisément AVANT de se déplacer : "bâtiment
+   sans ascenseur", "vérifier les dimensions", "appeler en arrivant" —
+   elle est saisie à l'inscription et le collaborateur ne la voyait
+   jamais au moment utile (retour de l'équipe DCT du 18/09/2026).
+
+   On ajoute donc le seul bouton Observation sur les cartes pas encore
+   traitées. Les photos, elles, n'ont pas de sens avant la collecte :
+   elles se prennent au ramassage.
+   ───────────────────────────────────────────── */
+function _depAjouterObservationAvantCollecte(k){
+  var trks = getTrucks(), tk = trks[k];
+  if(!tk || !tk.clients || !tk.clients.length) return;
+  var hours = tk.hours || {};
+  var sorted = tk.clients.slice().sort(function(a,b){
+    var ha = hours[a], hb = hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return tk.clients.indexOf(a) - tk.clients.indexOf(b);
+  });
+  var clients = getClients() || {};
+  // L'arrêt de Chartres n'a pas la classe .route-card : la correspondance
+  // carte↔client reste donc un simple index, comme ailleurs.
+  var cartes = document.querySelectorAll('#camion-route .route-card');
+  for(var i = 0; i < sorted.length; i++){
+    var carte = cartes[i];
+    if(!carte) continue;
+    // Les cartes validées ont déjà leur rangée Photos + Observation.
+    if(carte.classList.contains('done')) continue;
+    if(carte.querySelector('.dep-obs-avant')) continue;
+    var c = clients[sorted[i]];
+    if(!c) continue;
+    var act = carte.querySelector('.route-actions');
+    if(!act) continue;
+
+    (function(cid, fiche){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dep-obs-avant';
+      var aUneObs = false;
+      try{ aUneObs = _depObservationsListe(fiche).length > 0; }catch(e){}
+      b.style.cssText = 'width:100%;padding:8px;border-radius:10px;font-size:12px;font-weight:800;'
+        + 'cursor:pointer;font-family:var(--font);margin-bottom:7px;'
+        + (aUneObs ? 'background:#FFF3E0;color:#B45309;border:2px solid #E58A00;'
+                   : 'background:#F0F0F0;color:#555;border:2px solid #bbb;');
+      b.innerHTML = aUneObs ? '&#9888;&#65039; Observation &agrave; lire' : '&#128221; Observation';
+      b.onclick = function(e){
+        if(e) e.stopPropagation();
+        depOuvrirObservation(window.currentCollecteId || '', cid);
+      };
+      act.parentNode.insertBefore(b, act);
+    })(sorted[i], c);
+  }
+}
+
 function _depAjouterBoutonsExtraCamionValide(k){
   var trks = getTrucks(), tk = trks[k];
   if(!tk) return;
