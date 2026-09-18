@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.35.0';
+var DEP_VERSION = 'v1.36.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1458,17 +1458,23 @@ function _depCleFusion(c){
   return n ? 'nom:' + n : '';
 }
 
-// Les fiches regroupables avec celle-ci : même personne, pas déjà
-// regroupée, et pas elle-même.
-//
-// v1.32.0 : le container n'est plus exigé. Exiger que les deux fiches
-// soient déjà dans le même départ faisait disparaître le bouton dans le
-// cas le plus courant — la collecte du jour n'est pas encore rattachée à
-// un container quand on s'aperçoit du doublon (retour de Cobey du
-// 18/09/2026 : "j'ai pas trouvé le bouton"). La modale affiche le
-// container de chaque candidate et signale ceux qui diffèrent.
+/* Les fiches regroupables avec celle-ci : même personne, MÊME CONTAINER,
+   pas déjà regroupée, et pas elle-même.
+
+   v1.32.0 avait retiré la condition du container pour que le bouton
+   apparaisse plus souvent. Mauvaise correction : elle faisait remonter
+   des fiches jamais rattachées à un container — des inscriptions restées
+   en plan — qu'on risquait d'ajouter par erreur à une facture (retour de
+   Cobey du 18/09/2026 : "on doit réunir les clients qui sont dans le
+   même conteneur, c'est pas possible").
+
+   v1.36.0 rétablit la règle. Le vrai motif du bouton absent était
+   ailleurs : le numéro de téléphone devait être écrit à l'identique, ce
+   que _depCleFusion corrige. Et pour trouver les doublons sans ouvrir
+   chaque fiche, le container les signale lui-même (voir la pastille
+   "🔗 N factures" dans depDetail). */
 function _depFichesFusionnables(clientId, c){
-  if(!c || _depEstFusionnee(c)) return [];
+  if(!c || !c.departId || _depEstFusionnee(c)) return [];
   var cle = _depCleFusion(c);
   if(!cle) return [];
   var out = [];
@@ -1476,6 +1482,7 @@ function _depFichesFusionnables(clientId, c){
     tousLesClients().forEach(function(x){
       if(x.clientId === clientId) return;
       if(!x.c || _depEstFusionnee(x.c)) return;
+      if(x.c.departId !== c.departId) return;   // même container, sans exception
       if(_depCleFusion(x.c) !== cle) return;
       out.push(x);
     });
@@ -8381,9 +8388,9 @@ window.depOuvrirFusionFacture = function(){
     box.innerHTML = cands.map(function(x){
       var col = (window.collectes||[]).find(function(k){ return k.id === x.collecteId; });
       var nbL = (_depLignesColis(x.c)||[]).length;
-      // v1.32.0 : on montre le container de chaque facture, et on alerte
-      // quand ce n'est pas le même que celui de la facture principale.
-      var memeDep = (x.c.departId || '') === (c.departId || '');
+      // v1.36.0 : toutes les candidates sont dans ce container — on le
+      // rappelle simplement, sans alerte, puisqu'il n'y a plus d'écart
+      // possible.
       // v1.35.0 : la collecte d'origine peut ne plus figurer dans la liste
       // (archivée, supprimée) alors que la fiche du client, elle, est
       // restée. Un tiret ne disait rien — on affiche alors la date
@@ -8403,9 +8410,8 @@ window.depOuvrirFusionFacture = function(){
         + '<div style="font-size:12px;color:#666;margin-top:3px;">'
         +   (x.c.nbColis||1) + ' colis &middot; ' + nbL + ' ligne' + (nbL>1?'s':'')
         +   ' &middot; <strong>' + (parseFloat(x.c.prix)||0) + ' &euro;</strong></div>'
-        + '<div style="font-size:11.5px;margin-top:4px;color:' + (memeDep ? '#4a8a63' : '#B45309') + ';font-weight:700;">'
-        +   (memeDep ? '&#128230; ' : '&#9888;&#65039; ') + esc(nomDepart(x.c.departId))
-        +   (memeDep ? '' : ' &mdash; pas le m&ecirc;me que celui-ci') + '</div>'
+        + '<div style="font-size:11.5px;margin-top:4px;color:#4a8a63;font-weight:700;">'
+        +   '&#128230; ' + esc(nomDepart(x.c.departId)) + '</div>'
         + '</div>';
     }).join('');
   }
@@ -8517,10 +8523,6 @@ window.depConfirmerFusionFacture = function(colIdSrc, clientIdSrc){
     .concat(apport.versements);
   principale.fusionDe = (Array.isArray(principale.fusionDe) ? principale.fusionDe : []).concat([apport]);
   if(source.aPhotoColis) principale.aPhotoColis = true;
-  // v1.32.0 : si la facture principale n'est pas encore rattachée à un
-  // container, elle prend celui de la facture absorbée — sinon la facture
-  // regroupée disparaîtrait des deux listes à la fois.
-  if(!principale.departId && source.departId) principale.departId = source.departId;
 
   var hist = Array.isArray(principale.hist) ? principale.hist.slice() : [];
   hist.push({ q: apport.par, ts: apport.le, type: 'modif',
