@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.37.0';
+var DEP_VERSION = 'v1.38.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -11855,6 +11855,7 @@ function greffer(){
       try{ _depAjouterBadgeAcompteCamion(k); }catch(e){ console.error('departs: badge acompte (camion)', e); }
       try{ _depAjouterBoutonsExtraCamionValide(k); }catch(e){ console.error('departs: boutons extra (photos/observation)', e); }
       try{ _depAjouterObservationAvantCollecte(k); }catch(e){ console.error('departs: observation avant collecte', e); }
+      try{ _depAlerterArretsSansHeure(k); }catch(e){ console.error('departs: arrets sans heure', e); }
       try{ _depAfficherFinanceExtra(k); }catch(e){ console.error('departs: finance extra (camion)', e); }
       try{ _depInjecterBoutonEtiquettesCamion(k); }catch(e){ console.error('departs: bouton étiquettes camion', e); }
     };
@@ -13331,6 +13332,54 @@ function _depAfficherFinanceExtra(k){
    traitées. Les photos, elles, n'ont pas de sens avant la collecte :
    elles se prennent au ramassage.
    ───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+   v1.38.0. LES ARRÊTS SANS HEURE PASSENT EN FIN DE TOURNÉE
+   ─────────────────────────────────────────────
+   Un client affecté à un camion arrive sans heure (voir affecter(),
+   index.html) et se range donc après tous ceux qui en ont une — quelle
+   que soit sa position géographique. Un client ajouté la veille au soir,
+   en plein Paris, se retrouvait ainsi en dernier derrière trois arrêts
+   dans le 91 : aller-retour garanti (retour de Cobey du 18/09/2026,
+   tournée d'Issyaka).
+
+   On ne réordonne rien tout seul — l'heure appartient à celui qui
+   organise sa tournée. Mais on le dit clairement, là où il le verra.
+   ───────────────────────────────────────────── */
+function _depAlerterArretsSansHeure(k){
+  var trks = getTrucks(), tk = trks[k];
+  if(!tk || !tk.clients || tk.clients.length < 2) return;
+  var route = $('camion-route');
+  if(!route || $('dep-sans-heure')) return;
+
+  var hours = tk.hours || {};
+  var avec = 0, sans = [];
+  tk.clients.forEach(function(id){
+    if(hours[id]) avec++; else sans.push(id);
+  });
+  // Rien à signaler si personne n'a d'heure (l'ordre d'affectation fait
+  // alors foi partout) ou si tout le monde en a une.
+  if(!avec || !sans.length) return;
+
+  var clients = getClients() || {};
+  var noms = sans.map(function(id){
+    var c = clients[id];
+    return c ? (c.name || ((c.prenom||'') + ' ' + (c.nom||''))) : '';
+  }).filter(Boolean);
+
+  var div = document.createElement('div');
+  div.id = 'dep-sans-heure';
+  div.style.cssText = 'background:#FFF3E0;border:1.5px solid #E58A00;border-radius:10px;'
+    + 'padding:11px 13px;margin-bottom:12px;font-size:12.5px;color:#8A5200;line-height:1.55;';
+  div.innerHTML = '<strong>&#9200; ' + sans.length + ' arr&ecirc;t' + (sans.length>1?'s':'')
+    + ' sans heure</strong> &mdash; ' + (sans.length>1 ? 'ils passent' : 'il passe')
+    + ' en fin de tourn&eacute;e, apr&egrave;s tous les autres.'
+    + (noms.length ? '<div style="margin-top:4px;font-weight:700;">' + esc(noms.join(', ')) + '</div>' : '')
+    + '<div style="margin-top:5px;">'
+    + (sans.length>1 ? 'Fixez-leur une heure pour les remettre' : 'Fixez-lui une heure pour le remettre')
+    + ' &agrave; la bonne place, sur la feuille de route comme sur la carte.</div>';
+  route.insertBefore(div, route.firstChild);
+}
+
 function _depAjouterObservationAvantCollecte(k){
   var trks = getTrucks(), tk = trks[k];
   if(!tk || !tk.clients || !tk.clients.length) return;
