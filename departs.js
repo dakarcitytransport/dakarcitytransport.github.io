@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.36.0';
+var DEP_VERSION = 'v1.37.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5469,14 +5469,26 @@ window.depDetail = function(id, gardeFiltres){
       // est ouvert pour un client".
       var drapeauCli = (DEP_PAYS_DEST[depPaysFiche(c)] || {}).drapeau || '';
       // v1.33.0 : pastille sur les clients qui ont plusieurs factures ici.
+      // v1.37.0 : et mention sur ceux dont la facture EST un regroupement
+      // — une fois regroupée elle redevient unique, donc la pastille
+      // orange disparaît et plus rien ne disait que c'en était une
+      // (retour de Cobey du 18/09/2026). Verte, elle : c'est un état
+      // réglé, pas quelque chose à traiter.
       var _nbFact = _comptes[_depCleFusion(c)] || 1;
-      var _pastilleDouble = (_nbFact > 1)
-        ? ' <span style="font-size:10.5px;font-weight:800;color:#8A5200;background:#FFF3E0;'
+      var _nbFus = (Array.isArray(c.fusionDe) ? c.fusionDe.length : 0);
+      var _pastilleDouble = '';
+      if(_nbFus){
+        _pastilleDouble = ' <span style="font-size:10.5px;font-weight:800;color:#006b2d;background:#EAF7EE;'
+          + 'border:1.5px solid #00b34e;border-radius:20px;padding:2px 8px;white-space:nowrap;">'
+          + '&#128279; Regroup&eacute;e &middot; ' + (_nbFus + 1) + ' collectes</span>';
+      } else if(_nbFact > 1){
+        _pastilleDouble = ' <span style="font-size:10.5px;font-weight:800;color:#8A5200;background:#FFF3E0;'
           + 'border:1.5px solid #E58A00;border-radius:20px;padding:2px 8px;white-space:nowrap;">'
-          + '&#128279; ' + _nbFact + ' factures</span>'
-        : '';
+          + '&#128279; ' + _nbFact + ' factures</span>';
+      }
       h += '<div class="dep-cli" style="cursor:pointer;'
-        +     (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : '') + '" onclick="'+clic+'">'
+        +     (_nbFus ? 'border-left:4px solid #00b34e;' : (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : ''))
+        +     '" onclick="'+clic+'">'
         +   '<div class="dep-cli-n">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))+' '+drapeauCli+_pastilleDouble
         +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
         +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')+'</div>'
@@ -7613,6 +7625,18 @@ function depRenderFacture(c){
   h += kv('T&eacute;l&eacute;phone', _depLienTel(c.tel, c.tel || '—'));
   h += kv('Colis', esc(c.colis || '—'));
   h += kv('Nombre de colis', String(c.nbColis || 1));
+  // v1.37.0 : dire sur la facture elle-même qu'elle réunit plusieurs
+  // collectes, et lesquelles — sinon rien ne distingue une facture
+  // regroupée d'une facture ordinaire (retour de Cobey du 18/09/2026).
+  if(Array.isArray(c.fusionDe) && c.fusionDe.length){
+    h += kv('Factures regroup&eacute;es',
+      '<span style="color:#006b2d;font-weight:800;">&#128279; ' + (c.fusionDe.length + 1) + ' collectes</span>'
+      + '<div style="font-size:11.5px;color:var(--text3);margin-top:3px;line-height:1.5;">'
+      +   c.fusionDe.map(function(f){
+            return esc(f.dateCollecte || 'collecte') + ' &middot; ' + (f.nbColis||1) + ' colis &middot; ' + (f.prix||0) + ' &euro;';
+          }).join('<br>')
+      + '</div>');
+  }
 
   if(c.destinataireNom || c.destinataireTel){
     h += kv('Destinataire', esc(c.destinataireNom || '—')
