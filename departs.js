@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.33.0';
+var DEP_VERSION = 'v1.34.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3252,11 +3252,11 @@ function injecterEcrans(){
     + '<div class="modal-confirm-title">Regrouper les factures</div>'
     + '<div id="dep-fusion-titre" style="font-size:13.5px;color:#333;margin:4px 0 12px;line-height:1.5;"></div>'
     + '<div id="dep-fusion-liste" style="text-align:left;max-height:40vh;overflow:auto;margin-bottom:14px;"></div>'
-    + '<div style="font-size:12px;color:var(--text3);background:#F7F8FA;border-radius:8px;'
+    + '<div id="dep-fusion-pied" style="font-size:12px;color:var(--text3);background:#F7F8FA;border-radius:8px;'
     +   'padding:9px 11px;margin-bottom:14px;line-height:1.5;text-align:left;">'
     +   'Les colis, les montants, les versements et les photos seront r&eacute;unis sur '
     +   'cette facture-ci, qui garde son num&eacute;ro. Le regroupement se d&eacute;fait.</div>'
-    + '<div class="modal-confirm-btns" style="grid-template-columns:1fr;">'
+    + '<div class="modal-confirm-btns" id="dep-fusion-btns" style="grid-template-columns:1fr;">'
     +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-fusion\')">Annuler</button>'
     + '</div></div></div>';
   document.body.appendChild(m8c);
@@ -8384,9 +8384,12 @@ window.depOuvrirFusionFacture = function(){
       // v1.32.0 : on montre le container de chaque facture, et on alerte
       // quand ce n'est pas le même que celui de la facture principale.
       var memeDep = (x.c.departId || '') === (c.departId || '');
+      // v1.34.0 : une collecte peut ne plus exister (archivée) — on écrit
+      // alors "Autre collecte" plutôt qu'un tiret énigmatique.
+      var libCol = (col && col.date) ? ('Collecte du ' + esc(col.date)) : 'Autre collecte';
       return '<div class="dep-cli-card" style="cursor:pointer;border-left:4px solid #E58A00;margin-bottom:8px;"'
-        + ' onclick="depConfirmerFusionFacture(\''+x.collecteId+'\',\''+x.clientId+'\')">'
-        + '<div style="font-weight:800;font-size:13.5px;color:#111;">Collecte du ' + esc((col&&col.date)||'—') + '</div>'
+        + ' onclick="depChoisirFusion(\''+x.collecteId+'\',\''+x.clientId+'\')">'
+        + '<div style="font-weight:800;font-size:13.5px;color:#111;">' + libCol + '</div>'
         + '<div style="font-size:12px;color:#666;margin-top:3px;">'
         +   (x.c.nbColis||1) + ' colis &middot; ' + nbL + ' ligne' + (nbL>1?'s':'')
         +   ' &middot; <strong>' + (parseFloat(x.c.prix)||0) + ' &euro;</strong></div>'
@@ -8397,8 +8400,71 @@ window.depOuvrirFusionFacture = function(){
     }).join('');
   }
   var t = $('dep-fusion-titre');
-  if(t) t.innerHTML = 'Regrouper avec une autre facture de <strong>' + esc(c.name||'') + '</strong>';
+  if(t){
+    t.innerHTML = 'Regrouper avec une autre facture de <strong>' + esc(c.name||'') + '</strong>'
+      + (cands.length ? '<div style="font-size:12.5px;color:#8A5200;font-weight:700;margin-top:8px;">'
+          + '&#128071; Appuyez sur la facture &agrave; regrouper</div>' : '');
+  }
+  var pied = $('dep-fusion-pied');
+  if(pied) pied.style.display = 'block';
+  // La modale sert aux deux étapes : on la remet dans l'état "choix".
+  var btns = $('dep-fusion-btns');
+  if(btns){
+    btns.style.gridTemplateColumns = '1fr';
+    btns.innerHTML = '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-fusion\')">Annuler</button>';
+  }
   openModal('modal-dep-fusion');
+};
+
+/* v1.34.0 — Une étape de confirmation avant de regrouper.
+   Taper une facture dans la liste la regroupait sur-le-champ : rien ne
+   disait ce qu'on allait obtenir, et la modale n'offrait qu'un bouton
+   "Annuler", ce qui laissait croire qu'il fallait encore valider quelque
+   part (retour de Cobey du 18/09/2026). On montre donc d'abord le
+   résultat — colis, montant, versements, photos — et on demande un
+   "Confirmer" franc. */
+window.depChoisirFusion = function(colIdSrc, clientIdSrc){
+  var ctx = _depFicheLectureCtx;
+  if(!ctx) return;
+  var colId = ctx.colId || window.currentCollecteId;
+  var principale = ((window.clientsParCollecte||{})[colId] || {})[ctx.clientId];
+  var source = ((window.clientsParCollecte||{})[colIdSrc] || {})[clientIdSrc];
+  if(!principale || !source){ toast('⚠️ Fiche introuvable.'); return; }
+
+  var lg = _depLignesColis(principale).concat(_depLignesColis(source));
+  var total = _depTotalColis({ colisDetail: lg });
+  var nbColis = lg.reduce(function(s,l){ return s + (parseFloat(l.qte)||0); }, 0) || 1;
+  var nbVers = (Array.isArray(principale.versements) ? principale.versements.length : 0)
+             + (Array.isArray(source.versements) ? source.versements.length : 0);
+
+  var t = $('dep-fusion-titre');
+  if(t) t.innerHTML = 'Facture de <strong>' + esc(principale.name||'') + '</strong> apr&egrave;s regroupement';
+  var box = $('dep-fusion-liste');
+  if(box){
+    box.innerHTML = '<div style="background:#EAF7EE;border:1.5px solid #00b34e;border-radius:10px;padding:12px;">'
+      + '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">'
+      +   '<span style="color:#006b2d;font-weight:700;">Colis</span>'
+      +   '<strong style="color:#006b2d;">' + nbColis + '</strong></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">'
+      +   '<span style="color:#006b2d;font-weight:700;">Montant</span>'
+      +   '<strong style="font-size:17px;color:#006b2d;">' + total + ' &euro;</strong></div>'
+      + (nbVers ? '<div style="display:flex;justify-content:space-between;font-size:13px;">'
+      +   '<span style="color:#006b2d;font-weight:700;">Versements repris</span>'
+      +   '<strong style="color:#006b2d;">' + nbVers + '</strong></div>' : '')
+      + '</div>'
+      + '<div style="font-size:12.5px;color:#555;margin-top:10px;line-height:1.55;">'
+      +   'Le d&eacute;tail des ' + lg.length + ' lignes et toutes les photos des deux collectes '
+      +   'seront r&eacute;unis sur cette facture, qui garde son num&eacute;ro.</div>';
+  }
+  var pied = $('dep-fusion-pied');
+  if(pied) pied.style.display = 'none';
+  var btns = $('dep-fusion-btns');
+  if(btns){
+    btns.style.gridTemplateColumns = '1fr 1fr';
+    btns.innerHTML = '<button class="btn-sm btn-gray-sm" onclick="depOuvrirFusionFacture()">&larr; Retour</button>'
+      + '<button class="btn-sm btn-green-sm" onclick="depConfirmerFusionFacture(\''+colIdSrc+'\',\''+clientIdSrc+'\')">'
+      + '&#128279; Confirmer</button>';
+  }
 };
 
 /* ─── Regrouper : l'opération ─── */
