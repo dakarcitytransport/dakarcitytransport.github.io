@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.48.0';
+var DEP_VERSION = 'v1.49.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -540,6 +540,13 @@ var STATUTS_DEPART = {
   arrive      : {label:'Arrivé à Dakar', bg:'#D4F0E0', color:'#006b2d', dot:'#009A44'},
   cloture     : {label:'Clôturé',        bg:'#EDEDED', color:'#777777', dot:'#999999'}
 };
+// v1.49.0 : un container malien ne s'arrête pas à Dakar — sa dernière
+// étape est le dépôt de Bamako. Le statut est le même, seul le mot change.
+function depStatutLabel(d){
+  var st = STATUTS_DEPART[(d && d.statut) || 'preparation'] || STATUTS_DEPART.preparation;
+  if(d && d.statut === 'arrive' && depPaysDepart(d) === 'ML') return 'Arrivé à Bamako';
+  return st.label;
+}
 var ORDRE_STATUTS = ['preparation','parti','arrive','cloture'];
 
 // v1.19.72 : SUIVI TRANSPORT — étapes précises du parcours d'un container,
@@ -5153,7 +5160,7 @@ window.depRenderListe = function(){
     h += '<div class="dep-card" style="border-left-color:'+st.dot+';" onclick="depDetail(\''+d._id+'\')">'
       +   '<div class="dep-card-top">'
       +     '<div class="dep-nom">'+esc(d.nom||'Sans nom')+'</div>'
-      +     '<div class="dep-badge" style="background:'+st.bg+';color:'+st.color+';">'+st.label+'</div>'
+      +     '<div class="dep-badge" style="background:'+st.bg+';color:'+st.color+';">'+depStatutLabel(d)+'</div>'
       +   '</div>'
       +   '<div class="dep-meta">'
       +     '<span>&#128197; <b>'+dateFr(d.dateDepart)+'</b></span>'
@@ -5259,9 +5266,16 @@ window.depEnregistrer = function(){
   var obj = {
     dateDepart        : date,
     dateArriveePrevue : arrivee || '',
-    ouvertInscription : !!_depFormOuvert,
-    statut            : _depFormCloture ? 'cloture' : 'preparation'
+    ouvertInscription : !!_depFormOuvert
   };
+  // v1.49.0 : ce formulaire ne décide que de la clôture. Il écrivait
+  // "preparation" dès qu'elle n'était pas cochée — corriger la date d'un
+  // container déjà parti le ramenait donc en préparation, et le
+  // reproposait à l'inscription. Hors clôture, le statut vient du suivi
+  // transport (voir _depStatutSelonEtapes).
+  var dEnCours = (_depEditId ? (window.departsData||{})[_depEditId] : null) || {};
+  obj.statut = _depFormCloture ? 'cloture'
+    : (_depStatutSelonEtapes({ etapesTransport: dEnCours.etapesTransport }) || 'preparation');
 
   // v1.18.0 : le statut du départ (préparation/parti/arrivé/clôturé) n'avait
   // aucun historique — juste la valeur courante. On trace chaque changement
@@ -5361,9 +5375,66 @@ window.depEtapeSuivante = function(){
   db.ref('departs/'+id+'/etapesTransport').update(maj).then(function(){
     toast('✅ ' + prochaine.label);
     depActivite('🚚', 'a validé l\'étape « ' + esc(prochaine.label) + ' » pour <strong>' + esc(d.nom||'') + '</strong>');
+    // v1.49.0 : le suivi entraîne le statut du container.
+    if(d.etapesTransport) d.etapesTransport[prochaine.key] = maj[prochaine.key];
+    else d.etapesTransport = maj;
+    _depMajStatutDepuisEtapes(id);
     depRenderEtapesTransportEcran(id);
   }).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé')); });
 };
+
+/* v1.49.0 — Le suivi transport pilote le statut du container.
+   « Parti » et « Arrivé à Dakar » existaient depuis toujours (libellés,
+   couleurs, ORDRE_STATUTS) mais rien ne les posait : le formulaire ne
+   proposait que « En préparation » ou « Clôturé ». Un container pouvait
+   donc avoir quitté Mitry et rester affiché « En préparation » — et, plus
+   gênant, rester proposé à l'inscription de nouveaux clients (retour de
+   Cobey du 19/09/2026 sur le container Mali).
+   C'est désormais le suivi, déjà tenu à jour pour le client, qui fait foi.
+   « Clôturé » reste à part : c'est la fermeture administrative, décidée à
+   la main, et elle ne se laisse jamais écraser par une étape. */
+function _depStatutSelonEtapes(d){
+  if(!d || d.statut === 'cloture') return null;
+  var fait = d.etapesTransport || {};
+  var estFait = function(k){ return !!(fait[k] && fait[k].fait); };
+  if(estFait('arrivee_depot')) return 'arrive';
+  if(estFait('depart_mitry'))  return 'parti';
+  return 'preparation';
+}
+
+function _depMajStatutDepuisEtapes(id){
+  var d = (window.departsData||{})[id];
+  if(!d) return;
+  var vise = _depStatutSelonEtapes(d);
+  if(!vise || vise === (d.statut || 'preparation')) return;
+  var u = window.currentUser || {};
+  var hist = Array.isArray(d.histStatut) ? d.histStatut.slice() : [];
+  hist.push({ statut: vise, ts: Date.now(), q: u.name || u.id || '' });
+  d.statut = vise;
+  d.histStatut = hist;
+  // Un container parti n'accepte plus de nouveau colis : il disparaît des
+  // départs proposés à l'inscription (voir departsDisponibles).
+  var maj = { statut: vise, histStatut: hist };
+  if(vise !== 'preparation'){
+    // On note que c'est le départ qui a fermé les inscriptions, pour
+    // pouvoir les rouvrir si l'étape était une fausse manœuvre — sans
+    // jamais rouvrir un container que quelqu'un avait fermé à la main.
+    if(d.ouvertInscription){ maj.fermeParEtape = true; d.fermeParEtape = true; }
+    d.ouvertInscription = false;
+    maj.ouvertInscription = false;
+  } else if(d.fermeParEtape){
+    d.ouvertInscription = true;  maj.ouvertInscription = true;
+    d.fermeParEtape = null;      maj.fermeParEtape = null;
+  }
+  if(window.db && window.firebaseReady){
+    db.ref('departs/'+id).update(maj).catch(function(e){
+      console.error('departs: statut depuis les étapes', e);
+    });
+  }
+  var lib = depStatutLabel(d);
+  toast('📦 Container « ' + lib + ' »');
+  depActivite('&#128230;', 'le container <strong>'+esc(d.nom||'')+'</strong> passe en <strong>'+esc(lib)+'</strong>');
+}
 
 window.depEtapeAnnuler = function(){
   if(!estDirection()) return;
@@ -5378,6 +5449,10 @@ window.depEtapeAnnuler = function(){
   if(!confirm('Annuler l\'étape « ' + derniere.label + ' » ?')) return;
   db.ref('departs/'+id+'/etapesTransport/'+derniere.key).remove().then(function(){
     toast('↩️ Étape annulée');
+    // v1.49.0 : le statut recule avec l'étape — une étape validée par
+    // erreur ne doit pas laisser le container fermé à l'inscription.
+    if(d.etapesTransport) delete d.etapesTransport[derniere.key];
+    _depMajStatutDepuisEtapes(id);
     depRenderEtapesTransportEcran(id);
   }).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'annulation refusée')); });
 };
@@ -5517,7 +5592,7 @@ window.depDetail = function(id, gardeFiltres){
   } else {
     h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
       +   '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
-      +     '<div class="dep-badge" style="background:'+st.bg+';color:'+st.color+';">'+st.label+'</div>'
+      +     '<div class="dep-badge" style="background:'+st.bg+';color:'+st.color+';">'+depStatutLabel(d)+'</div>'
       +     (ouvert ? '<div class="dep-badge" style="background:var(--green-light);color:var(--green-dark);">&#9679; Ouvert &agrave; l\'inscription</div>'
                     : '<div class="dep-badge" style="background:#EDEDED;color:#777;">Ferm&eacute; &agrave; l\'inscription</div>')
       +   '</div>'
@@ -10048,7 +10123,7 @@ window.depOuvrirHistoriqueContact = function(){
       h += '<div class="dep-card" style="border-left-color:'+(st ? st.dot : '#ccc')+';">'
         +   '<div class="dep-card-top">'
         +     '<div class="dep-nom">'+(d ? esc(d.nom||'D&eacute;part') : 'Pas encore rattach&eacute; &agrave; un d&eacute;part')+'</div>'
-        +     (st ? ('<div class="dep-badge" style="background:'+st.bg+';color:'+st.color+';">'+st.label+'</div>') : '')
+        +     (st ? ('<div class="dep-badge" style="background:'+st.bg+';color:'+st.color+';">'+depStatutLabel(d)+'</div>') : '')
         +   '</div>'
         +   '<div style="font-size:12px;color:#999;margin:-4px 0 6px;">'+origine+'</div>'
         +   '<div class="dep-meta">'
