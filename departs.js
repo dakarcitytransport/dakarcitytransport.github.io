@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.50.1';
+var DEP_VERSION = 'v1.50.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14348,6 +14348,7 @@ function _depCarteDessiner(){
   }
 
   _depCarteRenderListe(tk, ordre, valides, cls);
+  _depCarteBornes();
 
   // Les points : coordonnées déjà connues sinon géocodage, une seule fois.
   var pts = [], restants = ordre.length;
@@ -14370,6 +14371,49 @@ function _depCarteDessiner(){
   });
 }
 
+/* v1.50.2 — Le départ et l'arrivée, comme sur la carte du Dispatch.
+   Un camion ne part pas du premier client : il part d'Emerainville et
+   rentre à Mitry-Mory. Sans ces deux bornes, le trajet affiché ne
+   ressemble pas à la vraie journée (retour de Cobey du 19/09/2026).
+   Mêmes adresses et mêmes repères que la carte d'ensemble, pour que les
+   deux racontent la même chose. */
+var DEP_CARTE_DEPART  = { lib:'Emerainville', cp:'77184', secours:[48.7739, 2.6158] };
+var DEP_CARTE_ARRIVEE = { lib:'21 rue Gay Lussac, Mitry-Mory', cp:'77290', secours:[48.9906, 2.6153] };
+var _depCarteBorneCoords = { depart:null, arrivee:null };
+var _depCarteDerniersPts = [];   // pour retracer quand une borne arrive
+
+function _depCarteBorne(cle, conf, html, titre){
+  var poser = function(lat, lng){
+    if(!_depCarteMap) return;
+    var ll = (lat && lng) ? [lat, lng] : conf.secours;
+    _depCarteBorneCoords[cle] = ll;
+    // Le géocodage des bornes est asynchrone : quand il répond après les
+    // clients, le trajet est déjà tracé — on le refait avec la borne.
+    if(_depCarteDerniersPts.length) _depCarteTracer(_depCarteDerniersPts.slice());
+    var mk = L.marker(ll, { icon: L.divIcon({ className:'', html:html, iconAnchor:[35,16] }),
+                            zIndexOffset: 1000 }).addTo(_depCarteMap);
+    if(mk.bindPopup) mk.bindPopup('<b>'+titre+'</b><br>'+esc(conf.lib)+' '+esc(conf.cp));
+    _depCarteMarqueurs['__'+cle] = mk;
+  };
+  if(_depCarteBorneCoords[cle]){ poser(_depCarteBorneCoords[cle][0], _depCarteBorneCoords[cle][1]); return; }
+  if(typeof window._geocodeAdresse === 'function'){
+    window._geocodeAdresse(conf.lib, conf.cp, poser);
+  } else poser(null, null);
+}
+
+function _depCarteBornes(){
+  _depCarteBorne('depart', DEP_CARTE_DEPART,
+    '<div style="background:#00c853;color:#003d00;border-radius:10px;padding:5px 12px;font-size:12px;'
+    + 'font-weight:800;border:3px solid #00e676;box-shadow:0 2px 10px rgba(0,200,83,.5);'
+    + 'white-space:nowrap;letter-spacing:.5px;">&#128666; D&Eacute;PART</div>',
+    '&#128666; Point de d&eacute;part');
+  _depCarteBorne('arrivee', DEP_CARTE_ARRIVEE,
+    '<div style="background:#d50000;color:#fff;text-shadow:0 0 4px #000,0 0 4px #000;border-radius:10px;'
+    + 'padding:5px 12px;font-size:12px;font-weight:800;border:3px solid #ff5252;'
+    + 'box-shadow:0 2px 10px rgba(213,0,0,.5);white-space:nowrap;letter-spacing:.5px;">&#127937; ARRIV&Eacute;E</div>',
+    '&#127937; Point d\'arriv&eacute;e');
+}
+
 function _depCarteMarqueur(id, c, lat, lng, rang, fait){
   var couleur = fait ? '#006b2d' : '#E58A00';
   var ic = L.divIcon({
@@ -14386,13 +14430,19 @@ function _depCarteMarqueur(id, c, lat, lng, rang, fait){
 
 function _depCarteTracer(pts){
   pts.sort(function(a,b){ return a.i - b.i; });
+  _depCarteDerniersPts = pts.slice();
   var coords = pts.map(function(p){ return [p.lat, p.lng]; });
+  // v1.50.2 : la journée commence à Emerainville et finit à Mitry-Mory —
+  // le trajet part donc du dépôt et y revient.
+  var tout = coords.slice();
+  if(_depCarteBorneCoords.depart)  tout.unshift(_depCarteBorneCoords.depart);
+  if(_depCarteBorneCoords.arrivee) tout.push(_depCarteBorneCoords.arrivee);
   if(_depCarteTrace){ try{ _depCarteTrace.remove(); }catch(e){} _depCarteTrace = null; }
-  if(coords.length > 1){
-    _depCarteTrace = L.polyline(coords, {color:'#1a237e', weight:3.5, opacity:.85}).addTo(_depCarteMap);
+  if(tout.length > 1){
+    _depCarteTrace = L.polyline(tout, {color:'#1a237e', weight:3.5, opacity:.85}).addTo(_depCarteMap);
   }
-  if(coords.length){
-    try{ _depCarteMap.fitBounds(L.latLngBounds(coords), {padding:[40,40], maxZoom:14}); }catch(e){}
+  if(tout.length){
+    try{ _depCarteMap.fitBounds(L.latLngBounds(tout), {padding:[40,40], maxZoom:14}); }catch(e){}
   }
 }
 
