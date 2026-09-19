@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.51.0';
+var DEP_VERSION = 'v1.52.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8521,11 +8521,43 @@ function depRenderSuivi(c, collecteId, boxId){
    puis bouton "Modifier" pour ouvrir le vrai formulaire.
    ───────────────────────────────────────────── */
 
+/* v1.52.0 — Retrouver un client, même hors de la collecte ouverte.
+   La fiche ne cherchait que dans clientsParCollecte[collecte courante].
+   Or un container mélange les collectes : consulter un client venu d'une
+   autre collecte bascule la collecte courante (voir depOuvrirFicheClient),
+   et la fiche suivante ouverte depuis la liste ne trouvait plus personne.
+   Elle sortait alors sans rien écrire, pendant que l'appli affichait
+   quand même l'écran : d'où une fiche vide, ou pire, le nom du client
+   consulté juste avant (retour d'Ablaye du 19/09/2026). */
+function _depTrouverClient(colId, clientId){
+  var parCol = window.clientsParCollecte || {};
+  if((parCol[colId] || {})[clientId]) return { colId: colId, c: parCol[colId][clientId] };
+  var cles = Object.keys(parCol);
+  for(var i = 0; i < cles.length; i++){
+    if((parCol[cles[i]] || {})[clientId]) return { colId: cles[i], c: parCol[cles[i]][clientId] };
+  }
+  return null;
+}
+
 function depRenderFicheLecture(colId, clientId, depot){
-  var c = depot ? (window.depotClients||{})[clientId] : ((window.clientsParCollecte||{})[colId]||{})[clientId];
+  var c;
+  if(depot){
+    c = (window.depotClients||{})[clientId];
+  } else {
+    var trouve = _depTrouverClient(colId, clientId);
+    if(trouve){ c = trouve.c; colId = trouve.colId; window.currentCollecteId = colId; }
+  }
   var box = $('dep-ficheL-content');
   var titre = $('dep-ficheL-nom');
-  if(!c || !box) return;
+  // Rien à afficher : on le dit, plutôt que de laisser l'écran précédent
+  // sous un titre qui ne lui correspond pas.
+  if(!c){
+    if(box) box.innerHTML = '<div class="dep-vide" style="padding:30px 18px;">Fiche introuvable.<br>'
+      + 'Revenez en arrière et r&eacute;essayez.</div>';
+    if(titre) titre.textContent = 'Fiche client';
+    return false;
+  }
+  if(!box) return false;
   // v1.20.13 : mémorisé pour les boutons d'action plus bas (Modifier/
   // Photo/Note) — voir _depFicheLectureCtx.
   _depFicheLectureCtx = { colId: colId, clientId: clientId, depot: !!depot,
@@ -8683,6 +8715,7 @@ function depRenderFicheLecture(colId, clientId, depot){
       }
     }
   }
+  return true;
 }
 
 // Bouton "✏️ Modifier la fiche" de l'écran de lecture — lève la garde et
@@ -12043,9 +12076,11 @@ function greffer(){
       // tapant "✏️ Modifier la fiche" — retour de Cobey du 23/08/2026.
       try{ _depAppliquerGardeFiche(true); }catch(e2){ console.error('departs: garde fiche', e2); }
       try{
-        var colId = window.currentCollecteId;
-        depRenderFicheLecture(colId, id);
-        goTo('s-dep-fiche-lecture');
+        // v1.52.0 : on ne bascule sur l'écran de lecture que s'il a
+        // vraiment de quoi l'afficher — sinon on y arrivait sur le
+        // contenu du client précédent.
+        if(depRenderFicheLecture(window.currentCollecteId, id)) goTo('s-dep-fiche-lecture');
+        else toast('⚠️ Fiche introuvable, réessayez.');
       }catch(e3){ console.error('departs: fiche lecture', e3); }
     };
     window.openClientFiche._depPatch = true;
