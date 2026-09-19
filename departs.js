@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.52.0';
+var DEP_VERSION = 'v1.52.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8529,9 +8529,18 @@ function depRenderSuivi(c, collecteId, boxId){
    Elle sortait alors sans rien écrire, pendant que l'appli affichait
    quand même l'écran : d'où une fiche vide, ou pire, le nom du client
    consulté juste avant (retour d'Ablaye du 19/09/2026). */
+var _depColListe = '';   // collecte de la dernière liste de clients dessinée
+
 function _depTrouverClient(colId, clientId){
   var parCol = window.clientsParCollecte || {};
-  if((parCol[colId] || {})[clientId]) return { colId: colId, c: parCol[colId][clientId] };
+  // Dans l'ordre : la collecte demandée, puis celle de la liste d'où l'on
+  // vient de cliquer, et seulement ensuite les autres. Les identifiants
+  // de client ne sont pas garantis uniques d'une collecte à l'autre —
+  // mieux vaut donc ne balayer au hasard qu'en dernier recours.
+  var essais = [colId, _depColListe].filter(Boolean);
+  for(var e = 0; e < essais.length; e++){
+    if((parCol[essais[e]] || {})[clientId]) return { colId: essais[e], c: parCol[essais[e]][clientId] };
+  }
   var cles = Object.keys(parCol);
   for(var i = 0; i < cles.length; i++){
     if((parCol[cles[i]] || {})[clientId]) return { colId: cles[i], c: parCol[cles[i]][clientId] };
@@ -12852,6 +12861,11 @@ function greffer(){
   if(typeof window.renderClientsTab === 'function' && !window.renderClientsTab._depPatch){
     var origRenderClientsTab = window.renderClientsTab;
     window.renderClientsTab = function(){
+      // v1.52.1 : la collecte dont cette liste vient d'être dessinée. Les
+      // lignes ouvrent la fiche par le seul identifiant du client ; si la
+      // collecte courante a changé entre-temps, c'est ici qu'on retrouve
+      // la bonne (voir _depTrouverClient).
+      _depColListe = window.currentCollecteId || '';
       origRenderClientsTab.apply(this, arguments);
       try{ _depAjouterDrapeauxCollecte(); }catch(e){ console.error('departs: drapeaux clients collecte', e); }
     };
