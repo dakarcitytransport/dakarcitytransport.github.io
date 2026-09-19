@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.47.0';
+var DEP_VERSION = 'v1.47.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9588,16 +9588,21 @@ function _depFicheParcours(src){
    leur ordre d'arrivée réel, et il est écrit sur leur fiche — pour que le
    numéro affiché soit bien celui qui partira sur l'étiquette. Une seule
    passe par container et par session : une fois posé, il ne bouge plus. */
-var _depRangsRattrapes = {};
 function _depRattraperRangs(liste, departId){
   if(!departId || departId === DEP_ID_DEPOT) return;
-  if(_depRangsRattrapes[departId]) return;
   if(!window.db || !window.firebaseReady) return;
+  // Un seul poste distribue les numéros. À plusieurs, deux personnes
+  // ouvrant le container au même instant donneraient le même numéro à
+  // deux clients — et les étiquettes sont déjà imprimées.
+  if(!estDirection()) return;
 
   var sansRang = (liste || []).filter(function(x){
     return x.c && !(x.c.rangDepartId === departId && x.c.rangDepart);
   });
-  if(!sansRang.length){ _depRangsRattrapes[departId] = true; return; }
+  // Rien à faire : surtout, on ne touche à aucun numéro déjà posé —
+  // _depAssignerRangDepart les laisse intacts, et un client retiré du
+  // container ne renumérote personne.
+  if(!sansRang.length) return;
 
   // Le compteur du container peut être en retard sur les numéros déjà
   // posés (fiche reprise d'un autre container, compteur jamais initialisé).
@@ -9631,7 +9636,6 @@ function _depRattraperRangs(liste, departId){
                         collecteId: x.collecteId || '', clientId: x.clientId },
       { rangDepart: x.c.rangDepart || null, rangDepartId: x.c.rangDepartId || null });
   });
-  _depRangsRattrapes[departId] = true;
 }
 
 // Le numéro de place d'un client dans CE container — celui de l'étiquette.
