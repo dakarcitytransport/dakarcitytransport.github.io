@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.52.1';
+var DEP_VERSION = 'v1.53.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9546,7 +9546,12 @@ window.depEnregistrerDepot = function(){
   var u = window.currentUser || {};
 
   var existant = _depDepotEditId ? ((window.depotClients||{})[_depDepotEditId]) : null;
-  var id = _depDepotEditId || ('D'+(Date.now()%999999));
+  // v1.53.0 : identifiant unique vérifié (voir _idUnique) — l'ancien
+  // compteur repartait à zéro toutes les 16 minutes et deux fiches
+  // pouvaient se retrouver avec le même.
+  var id = _depDepotEditId || (typeof window._idUnique === 'function'
+    ? window._idUnique('D', window.depotClients)
+    : ('D' + Date.now().toString(36).toUpperCase()));
 
   var fiche = {
     civilite: civ, prenom: prenom, nom: nom, name: _composeNom(civ, prenom, nom),

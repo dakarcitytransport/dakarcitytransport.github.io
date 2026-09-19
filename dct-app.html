@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.70.2';
+var APP_VERSION = 'v3.71.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -7936,7 +7936,7 @@ function saveClientConfirme(){
   var colis=(document.getElementById('f-colis')||{}).value||'';
   var prix=parseFloat((document.getElementById('f-prix')||{}).value)||0;
   var dept=cp.substring(0,2);
-  var id='C'+(Date.now()%999999);
+  var id=_nouvelIdClient();
   var collab=COLLABS.find(function(c){return c.name===currentUser.name;})||COLLABS[0];
   if(!clientsParCollecte[currentCollecteId])clientsParCollecte[currentCollecteId]={};
   clientsParCollecte[currentCollecteId][id]={name:_composeNom(_civDct.f,prenom,nom),civilite:_civDct.f,prenom:prenom,nom:nom,tel:tel.trim(),tel2:tel2,adresse:adresse.trim(),infos:infos,ville:ville.trim(),cp:cp,dept:dept,colis:colis.trim(),prix:prix,bg:collab.bg,color:collab.color,by:currentUser.name};
@@ -8792,6 +8792,33 @@ function filtrerRecherche(q){
 }
 
 // FICHE CLIENT
+/* v3.71.0 — Un identifiant qui ne peut pas retomber sur un autre.
+   Les identifiants de client et de dépôt étaient fabriqués avec
+   'C' + (Date.now() % 999999) : ce compteur repart à zéro toutes les
+   16 minutes environ, si bien que deux fiches créées à ce rythme
+   pouvaient recevoir le même identifiant — et la seconde écrasait
+   silencieusement la première.
+   On garde le préfixe (rien ne lit le reste), mais on prend l'horloge
+   entière, une part de hasard, et on vérifie que l'identifiant est
+   réellement libre avant de le rendre. */
+function _idUnique(prefixe, pris){
+  var base = Date.now().toString(36).toUpperCase();
+  for(var n = 0; n < 100; n++){
+    var id = prefixe + base + Math.random().toString(36).slice(2,6).toUpperCase();
+    if(!pris || !pris[id]) return id;
+  }
+  return prefixe + base + String(Date.now()) + Math.floor(Math.random()*1e6);
+}
+// Un client peut être copié d'une collecte à l'autre : l'identifiant doit
+// être libre partout, pas seulement dans la collecte en cours.
+function _nouvelIdClient(){
+  var pris = {};
+  Object.keys(clientsParCollecte || {}).forEach(function(k){
+    Object.keys(clientsParCollecte[k] || {}).forEach(function(i){ pris[i] = 1; });
+  });
+  return _idUnique('C', pris);
+}
+
 function openClientFiche(id,retour){
   currentClientId=id;clientRetour=retour||'s-collecte';
   var bk=document.getElementById('client-back');if(bk)bk.onclick=function(){goTo(clientRetour);};
@@ -10683,7 +10710,7 @@ function _appliquerReport(colIdDest){
   if(!clientsParCollecte[colIdDest]) clientsParCollecte[colIdDest] = {};
   // Lire le client depuis la collecte d'origine (pas currentCollecteId qui a changé)
   var clientOrigine = (clientsParCollecte[colIdOrigine]||{})[_plusClientId];
-  var newId = 'C'+(Date.now()%999999);
+  var newId = _nouvelIdClient();
   if(clientOrigine){
     clientsParCollecte[colIdDest][newId] = Object.assign({}, clientOrigine);
     // Ajouter dans assigned comme un client normal (non affecté)
