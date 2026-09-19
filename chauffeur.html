@@ -123,15 +123,10 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
         <a id="ch-waze" href="#" target="_blank" style="flex:1;text-align:center;text-decoration:none;background:#fff;border:1.5px solid #e08e0b;color:#92400e;border-radius:9px;padding:11px 6px;font-size:12.5px;font-weight:800;">🧭 Itinéraire</a>
       </div>
 
-      <label>Coche ce que tu charges</label>
+      <label>Les colis à charger — un par un</label>
       <div id="ch-liste" style="margin-bottom:16px;"></div>
 
-      <div class="sub" style="text-align:left;margin-bottom:4px;" id="ch-photo-sous">Aucune photo prise.</div>
-      <div class="vignettes" id="ch-vignettes"></div>
-      <input type="file" id="ch-input" accept="image/*" capture="environment" hidden onchange="photoChartresChoisie(this)">
-      <button class="btn act-recup" style="margin-bottom:9px;" onclick="document.getElementById('ch-input').click()">📷 <span id="ch-btn-txt">Photo du chargement</span></button>
-
-      <button class="btn btn-green" style="margin-bottom:9px;" onclick="validerChartres()">✓ Valider le chargement</button>
+      <button class="btn btn-green" style="margin-bottom:9px;" onclick="terminerChartres()">✓ J'ai fini à Chartres</button>
       <div class="retour" onclick="fermerChartres()">← Retour à la tournée</div>
     </div>
   </div>
@@ -176,7 +171,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.5.0';
+var CHAUFFEUR_VERSION = 'v1.5.1';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -257,8 +252,7 @@ var CHARTRES_TEL = '07 66 76 44 93';
 
 var lotChartres = null;      // { camion, heure, fait, ... } ou null
 var colisChartres = [];      // [{id, ...fiche}] des colis en attente là-bas
-var chartresCoches = [];     // ids que le chauffeur déclare charger
-var photosChartres = [];
+var chartresEnCours = false; // le client ouvert à l'écran photo vient de Chartres
 
 /* ═══════════ DÉTAIL DES COLIS — v1.2.0 ═══════════
    Le client confie parfois un colis de plus au moment du ramassage : le
@@ -293,7 +287,8 @@ function lignesDepuisFiche(c){
     });
   }
   var total = parseFloat(c.prix) || 0;
-  var nb = parseInt(c.nbColis, 10) || 1;
+  // France & Europe nomme ce champ `nb`.
+  var nb = parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 1;
   if(!c.colis && !total) return [];
 
   var items = [];
@@ -517,7 +512,9 @@ function dessinerArretChartres(){
   var box = $('tr-chartres');
   if(!box) return;
   if(!arretChartresActif() || !colisChartres.length){ box.innerHTML = ''; return; }
-  var colis = colisChartres.reduce(function(s, c){ return s + (parseInt(c.nb, 10) || 1); }, 0);
+  var restants = colisChartres.filter(function(c){ return !chartresTraite(c); });
+  var colis = restants.reduce(function(s, c){ return s + (parseInt(c.nb, 10) || 1); }, 0);
+  var faits = colisChartres.length - restants.length;
   box.innerHTML = '<div onclick="ouvrirChartres()" style="background:#fffaf0;border:2px solid #e08e0b;'
     +   'border-radius:12px;padding:13px 14px;margin-bottom:10px;cursor:pointer;">'
     +   '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
@@ -526,15 +523,17 @@ function dessinerArretChartres(){
     +   '</div>'
     +   '<div style="font-size:12px;color:#92400e;margin-top:4px;line-height:1.5;">' + esc(adresseChartres()) + '</div>'
     +   '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:9px;">'
-    +     '<div style="font-size:13px;font-weight:800;color:#111;">' + colisChartres.length + ' client'
-    +       (colisChartres.length > 1 ? 's' : '') + ' · ' + colis + ' colis</div>'
+    +     '<div style="font-size:13px;font-weight:800;color:#111;">'
+    +       (restants.length
+            ? (restants.length + ' client' + (restants.length > 1 ? 's' : '') + ' · ' + colis + ' colis à charger')
+            : 'Tout est traité')
+    +       (faits ? ('<span style="font-weight:700;color:#006b2d;"> · ' + faits + ' fait' + (faits > 1 ? 's' : '') + '</span>') : '')
+    +     '</div>'
     +     '<div style="font-size:12.5px;font-weight:700;color:#92400e;">Ouvrir →</div>'
     +   '</div></div>';
 }
 
 function ouvrirChartres(){
-  chartresCoches = colisChartres.map(function(c){ return c.id; });  // tout coché par défaut
-  photosChartres = [];
   var a = $('ch-adresse'); if(a) a.textContent = adresseChartres() + (CHARTRES_CONTACT ? (' · 👤 ' + CHARTRES_CONTACT) : '');
   var t = $('ch-tel');
   if(t){
@@ -544,7 +543,6 @@ function ouvrirChartres(){
   var w = $('ch-waze');
   if(w) w.href = 'https://waze.com/ul?q=' + encodeURIComponent((CHARTRES_RUE + ' ' + CHARTRES_VILLE).replace(/[—–·]/g, ' ')) + '&navigate=yes';
   dessinerListeChartres();
-  dessinerPhotosChartres();
   $('ecran-tournee').hidden = true;
   $('ecran-chartres').hidden = false;
   window.scrollTo(0, 0);
@@ -554,116 +552,168 @@ function fermerChartres(){
   $('ecran-tournee').hidden = false;
 }
 
+function clientChartres(id){
+  return colisChartres.filter(function(c){ return c.id === id; })[0] || null;
+}
+
+/* Clôture d'un colis de Chartres : même geste que pour un client de la
+   tournée, mais les écritures partent vers France & Europe. Le colis
+   quitte Chartres pour Mitry-Mory, ses photos rejoignent celles que
+   l'appli DCT attend sur sa fiche (france_photos + nbPhotos). */
+function _executerClotureChartres(){
+  var id = clientCourantPhoto;
+  var c = clientChartres(id);
+  if(!c){ fermerEcranPhoto(); return; }
+  var qui = ctx.nom || 'Chauffeur externe', now = Date.now();
+  var photos = photosCourantes.slice();
+  var lignes = lignesColis.slice();
+
+  Promise.all(photos.map(function(p){
+    return db.ref('france_photos/' + id).push().set(p);
+  })).then(function(){
+    var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+    hist.push({ q: qui, a: 'a chargé le colis à Chartres → Mitry-Mory', ts: now });
+    var maj = {};
+    maj['clients/' + id + '/lieu'] = 'mitry';
+    maj['clients/' + id + '/statut'] = 'mitry';
+    maj['clients/' + id + '/mitryTs'] = now;
+    maj['clients/' + id + '/mitryPar'] = qui;
+    maj['clients/' + id + '/collecteId'] = ctx.collecteId || '';
+    maj['clients/' + id + '/mitryCamion'] = ctx.camion || '';
+    maj['clients/' + id + '/nbPhotos'] = (parseInt(c.nbPhotos, 10) || 0) + photos.length;
+    maj['clients/' + id + '/nonChargeExterne'] = null;
+    // Le chauffeur a pu corriger le détail des colis sur place — sans prix,
+    // comme partout sur cette page : c'est DCT qui chiffre. On ne trace le
+    // changement que s'il y en a vraiment un, sinon le suivi se remplit de
+    // lignes qui ne disent rien.
+    var avant = lignesDepuisFiche(c);
+    var bouge = avant.length !== lignes.length || avant.some(function(l, i){
+      return l.nom !== lignes[i].nom || l.qte !== lignes[i].qte;
+    });
+    if(lignes.length && bouge){
+      var n = lignes.reduce(function(s, l){ return s + (parseInt(l.qte, 10) || 1); }, 0) || 1;
+      maj['clients/' + id + '/colisDetail'] = lignes;
+      maj['clients/' + id + '/colis'] = resumeLignes();
+      maj['clients/' + id + '/nb'] = n;
+      maj['clients/' + id + '/nbColis'] = n;
+      hist.push({ q: qui, a: 'a mis à jour le détail des colis au chargement — <strong>' + n + ' colis</strong>', ts: now, type: 'colis' });
+    }
+    maj['clients/' + id + '/hist'] = hist;
+
+    // La copie locale suit, pour que la liste se redessine juste.
+    c.lieu = 'mitry'; c.statut = 'mitry'; c.hist = hist;
+    c.nbPhotos = (parseInt(c.nbPhotos, 10) || 0) + photos.length;
+    delete c.nonChargeExterne;
+    if(lignes.length && bouge){ c.colisDetail = lignes; c.colis = resumeLignes(); c.nb = maj['clients/' + id + '/nb']; }
+
+    return db.ref('france').update(maj);
+  }).then(function(){
+    _activiteExterne('🏭', 'Le chauffeur <strong>' + esc(qui) + '</strong> a chargé les colis de <strong>'
+      + esc(nomChartres(c)) + '</strong> à Chartres → Mitry-Mory');
+    fermerEcranPhoto();
+    dessinerArretChartres();
+  }).catch(function(e){
+    console.error('chauffeur: clôture colis Chartres', e);
+    alert('Erreur de connexion, réessaie.');
+  });
+}
+// Un colis de Chartres est traité quand il est parti à Mitry, ou quand le
+// chauffeur a dit pourquoi il ne le prend pas.
+function chartresTraite(c){
+  return c.lieu === 'mitry' || !!c.nonChargeExterne;
+}
+
+/* Chaque client a sa carte, comme un client d'Île-de-France : son nom, ses
+   colis, sa photo et sa propre validation. Le lot ne se valide plus d'un
+   bloc — un chauffeur qui charge deux clients doit pouvoir photographier
+   les colis de chacun (retour de Cobey du 19/09/2026). */
 function dessinerListeChartres(){
   var box = $('ch-liste');
   if(!box) return;
+  if(!colisChartres.length){
+    box.innerHTML = '<div style="text-align:center;color:#999;font-size:13px;padding:18px 0;">Plus rien à charger ici.</div>';
+    return;
+  }
   box.innerHTML = colisChartres.map(function(c){
-    var on = chartresCoches.indexOf(c.id) >= 0;
-    return '<div onclick="basculerChartres(\'' + c.id + '\')" style="background:' + (on ? '#f2fbf5' : '#fff')
-      + ';border:1.5px solid ' + (on ? '#00b34e' : 'var(--border)') + ';border-radius:10px;padding:11px 12px;'
-      + 'margin-bottom:8px;display:flex;gap:11px;align-items:center;cursor:pointer;">'
-      + '<div style="width:22px;height:22px;border-radius:6px;flex-shrink:0;border:2px solid '
-      +   (on ? '#00b34e' : '#ccc') + ';background:' + (on ? '#00b34e' : '#fff')
-      +   ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">'
-      +   (on ? '✓' : '') + '</div>'
-      + '<div style="flex:1;min-width:0;">'
-      +   '<div style="font-size:14px;font-weight:700;">' + esc(nomChartres(c)) + '</div>'
-      +   '<div style="font-size:12px;color:#777;margin-top:2px;">' + (parseInt(c.nb, 10) || 1) + ' colis'
+    var pris = (c.lieu === 'mitry');
+    var laisse = !pris && !!c.nonChargeExterne;
+    var cls = pris ? 'client fait' : (laisse ? 'client refuse' : 'client');
+    var h = '<div class="' + cls + '">'
+      + '<div class="client-top"><div>'
+      +   '<div class="client-nom">' + esc(nomChartres(c)) + '</div>'
+      +   '<div class="client-colis">📦 ' + (parseInt(c.nb, 10) || 1) + ' colis'
       +     (c.colis ? (' · ' + esc(c.colis)) : '') + '</div>'
-      + '</div></div>';
+      + '</div>'
+      + (pris ? '<span class="badge-fait">✓ Chargé</span>'
+             : (laisse ? '<span class="badge-refus">✕ Laissé</span>' : ''))
+      + '</div>';
+    if(!pris && !laisse){
+      h += '<div class="actions">'
+        +    '<button type="button" class="act act-recup" style="flex:2;" onclick="ouvrirEcranPhoto(\'' + c.id + '\', true)">📷 Chargé (photo)</button>'
+        +    '<button type="button" class="act act-refus" style="flex:1;" onclick="laisserChartres(\'' + c.id + '\')">✕</button>'
+        +  '</div>';
+    } else if(pris){
+      h += '<div class="cloture-note">Chargé · ' + (c.nbPhotos || 0) + ' photo'
+        + ((c.nbPhotos || 0) > 1 ? 's' : '') + ' jointe' + ((c.nbPhotos || 0) > 1 ? 's' : '') + '</div>';
+    } else {
+      h += '<div class="refus-note">' + esc((c.nonChargeExterne || {}).motif || 'Non chargé') + '</div>';
+    }
+    return h + '</div>';
   }).join('');
 }
 
-function basculerChartres(id){
-  var i = chartresCoches.indexOf(id);
-  if(i >= 0) chartresCoches.splice(i, 1); else chartresCoches.push(id);
-  dessinerListeChartres();
-}
-
-function dessinerPhotosChartres(){
-  var s = $('ch-photo-sous');
-  if(s) s.textContent = photosChartres.length
-    ? (photosChartres.length + ' photo' + (photosChartres.length > 1 ? 's' : '') + ' prise' + (photosChartres.length > 1 ? 's' : ''))
-    : 'Aucune photo prise. Une photo au moins est obligatoire.';
-  var v = $('ch-vignettes');
-  if(v) v.innerHTML = photosChartres.map(function(p){
-    return '<div class="photo-vignette"><img src="' + p.d + '"></div>';
-  }).join('');
-  var b = $('ch-btn-txt');
-  if(b) b.textContent = photosChartres.length ? 'Ajouter une photo' : 'Photo du chargement';
-}
-
-function photoChartresChoisie(input){
-  var f = input.files && input.files[0];
-  input.value = '';
-  if(!f) return;
-  if(photosChartres.length >= PHOTO_MAX){ alert(PHOTO_MAX + ' photos maximum.'); return; }
-  compresserPhoto(f, function(data){
-    if(!data){ alert('Photo illisible, réessaie.'); return; }
-    photosChartres.push({ q: (ctx.nom || 'Chauffeur externe'), uid: '', ts: Date.now(), d: data });
-    dessinerPhotosChartres();
+// Le colis reste à Chartres : on note pourquoi, comme pour un client non
+// ramassé. Il reparaîtra au prochain passage.
+function laisserChartres(id){
+  var c = clientChartres(id);
+  if(!c) return;
+  var motif = prompt('Pourquoi le colis de ' + nomChartres(c) + ' n\'est-il pas chargé ?\n\n(ex : introuvable, camion plein, trop volumineux)');
+  if(motif === null) return;
+  motif = String(motif).trim();
+  if(motif.length < 2){ alert('Indique une raison, même courte.'); return; }
+  var qui = ctx.nom || 'Chauffeur externe', now = Date.now();
+  var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+  hist.push({ q: qui, a: 'n\'a pas chargé le colis à Chartres — ' + motif, ts: now });
+  var maj = {};
+  maj['clients/' + id + '/nonChargeExterne'] = { ts: now, par: qui, motif: motif };
+  maj['clients/' + id + '/hist'] = hist;
+  db.ref('france').update(maj).then(function(){
+    c.nonChargeExterne = { ts: now, par: qui, motif: motif };
+    c.hist = hist;
+    dessinerListeChartres();
+    dessinerArretChartres();
+    _activiteExterne('⚠️', 'Le chauffeur <strong>' + esc(qui) + '</strong> n\'a pas chargé le colis de <strong>'
+      + esc(nomChartres(c)) + '</strong> à Chartres — ' + esc(motif));
+  }).catch(function(e){
+    console.error('chauffeur: colis laissé à Chartres', e);
+    alert('Erreur de connexion, réessaie.');
   });
 }
 
-function validerChartres(){
-  if(!photosChartres.length){ alert('📷 Prends au moins une photo du chargement avant de valider.'); return; }
-  var pris = colisChartres.filter(function(c){ return chartresCoches.indexOf(c.id) >= 0; });
-  var laisses = colisChartres.filter(function(c){ return chartresCoches.indexOf(c.id) < 0; });
-  if(!pris.length && !confirm('Tu ne charges aucun colis. Valider quand même le passage ?')) return;
-
-  var nbColis = pris.reduce(function(s, c){ return s + (parseInt(c.nb, 10) || 1); }, 0);
-  var msg = 'Valider le passage à Chartres ?\n\n'
-    + (pris.length ? (pris.length + ' client(s) · ' + nbColis + ' colis chargés :\n'
-        + pris.map(function(c){ return '· ' + nomChartres(c); }).join('\n') + '\n') : 'Aucun colis chargé.\n')
-    + (laisses.length ? ('\n' + laisses.length + ' reste(nt) à Chartres :\n'
-        + laisses.map(function(c){ return '· ' + nomChartres(c); }).join('\n') + '\n') : '');
+// L'arrêt se referme quand le chauffeur repart. Ce qu'il n'a pas traité
+// reste à Chartres pour le prochain passage.
+function terminerChartres(){
+  var restants = colisChartres.filter(function(c){ return !chartresTraite(c); });
+  var pris = colisChartres.filter(function(c){ return c.lieu === 'mitry'; });
+  var msg = 'Quitter Chartres ?\n\n'
+    + pris.length + ' client(s) chargé(s).\n'
+    + (restants.length ? (restants.length + ' colis non traité(s) resteront sur place :\n'
+        + restants.map(function(c){ return '· ' + nomChartres(c); }).join('\n') + '\n') : '');
   if(!confirm(msg)) return;
 
   var qui = ctx.nom || 'Chauffeur externe', now = Date.now(), maj = {};
-  pris.forEach(function(c){
-    var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
-    hist.push({ q: qui, a: 'a chargé le colis à Chartres → Mitry-Mory', ts: now });
-    maj['clients/' + c.id + '/lieu'] = 'mitry';
-    maj['clients/' + c.id + '/statut'] = 'mitry';
-    maj['clients/' + c.id + '/mitryTs'] = now;
-    maj['clients/' + c.id + '/mitryPar'] = qui;
-    maj['clients/' + c.id + '/collecteId'] = ctx.collecteId || '';
-    maj['clients/' + c.id + '/mitryCamion'] = ctx.camion || '';
-    maj['clients/' + c.id + '/hist'] = hist;
-  });
-  laisses.forEach(function(c){
-    var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
-    hist.push({ q: qui, a: 'n\'a pas été chargé à Chartres', ts: now });
-    maj['clients/' + c.id + '/hist'] = hist;
-  });
   maj['lots/' + ctx.collecteId + '/fait'] = true;
   maj['lots/' + ctx.collecteId + '/faitTs'] = now;
   maj['lots/' + ctx.collecteId + '/faitPar'] = qui;
   maj['lots/' + ctx.collecteId + '/pris'] = pris.length;
-
-  // Les photos du chargement vont sur chaque colis chargé, là où DCT les
-  // attend (france_photos), avec le compteur que lit le contrôle photo.
-  var ecrits = pris.map(function(c){
-    var n = 0;
-    return Promise.all(photosChartres.map(function(p){
-      return db.ref('france_photos/' + c.id).push().set(p).then(function(){ n++; });
-    })).then(function(){
-      return db.ref('france/clients/' + c.id + '/nbPhotos')
-        .set((parseInt(c.nbPhotos, 10) || 0) + photosChartres.length);
-    });
-  });
-
-  Promise.all(ecrits).then(function(){
-    return db.ref('france').update(maj);
-  }).then(function(){
-    _activiteExterne('🏭', 'Le chauffeur <strong>' + esc(qui) + '</strong> a chargé <strong>'
-      + nbColis + ' colis</strong> à Chartres (' + pris.length + ' client'
-      + (pris.length > 1 ? 's' : '') + ')'
-      + (laisses.length ? (', ' + laisses.length + ' laissé' + (laisses.length > 1 ? 's' : '') + ' sur place') : ''));
+  db.ref('france').update(maj).then(function(){
+    _activiteExterne('🏭', 'Le chauffeur <strong>' + esc(qui) + '</strong> a terminé l\'arrêt de Chartres — '
+      + pris.length + ' client' + (pris.length > 1 ? 's' : '') + ' chargé' + (pris.length > 1 ? 's' : '')
+      + (restants.length ? (', ' + restants.length + ' laissé' + (restants.length > 1 ? 's' : '') + ' sur place') : ''));
     fermerChartres();
-    alert('✅ Chargement enregistré. Merci !');
+    alert('✅ Arrêt de Chartres terminé. Merci !');
   }).catch(function(e){
-    console.error('chauffeur: validation Chartres', e);
+    console.error('chauffeur: fin arrêt Chartres', e);
     alert('Erreur de connexion, réessaie.');
   });
 }
@@ -817,25 +867,33 @@ function revenirSurClient(id){
 }
 
 // ---- Récupéré : photo(s), détail des colis, puis clôture ----
-function ouvrirEcranPhoto(id){
+// v1.5.1 : le même écran sert aux clients d'Île-de-France et à ceux de
+// Chartres. Seules changent la fiche d'où l'on part et la destination des
+// écritures — le geste du chauffeur, lui, est identique.
+function ouvrirEcranPhoto(id, chartres){
   clientCourantPhoto = id;
+  chartresEnCours = !!chartres;
   photosCourantes = [];
-  var c = clientsTournee.find(function(x){ return x.id === id; });
-  $('ph-nom').textContent = c ? c.name : '';
+  var c = chartres ? clientChartres(id) : clientsTournee.find(function(x){ return x.id === id; });
+  $('ph-nom').textContent = c ? (chartres ? nomChartres(c) : c.name) : '';
   // v1.2.0 : le détail des colis déjà enregistré par DCT, prêt à être
   // complété si le client en confie un de plus.
   lignesColis = lignesDepuisFiche(c);
   dessinerLignesColis();
   $('ecran-tournee').hidden = true;
+  $('ecran-chartres').hidden = true;
   $('ecran-photo').hidden = false;
   redessinerVignettes();
 }
 
 function fermerEcranPhoto(){
+  var versChartres = chartresEnCours;
   clientCourantPhoto = null;
+  chartresEnCours = false;
   photosCourantes = [];
   $('ecran-photo').hidden = true;
-  $('ecran-tournee').hidden = false;
+  if(versChartres){ dessinerListeChartres(); $('ecran-chartres').hidden = false; }
+  else $('ecran-tournee').hidden = false;
 }
 
 function redessinerVignettes(){
@@ -876,6 +934,7 @@ function terminerRecuperation(){
 }
 
 function _executerCloture(){
+  if(chartresEnCours){ _executerClotureChartres(); return; }
   var id = clientCourantPhoto;
   var ts = Date.now();
   var mapPhotos = {};
