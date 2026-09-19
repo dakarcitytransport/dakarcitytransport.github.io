@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.45.0';
+var DEP_VERSION = 'v1.46.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5632,16 +5632,32 @@ window.depDetail = function(id, gardeFiltres){
   } else if(!affiches.length){
     h += '<div class="dep-vide" style="padding:28px 16px;">Aucun client ne correspond &agrave; ces filtres.</div>';
   } else {
-    affiches.sort(function(a,b){ return String(a.c.name||'').localeCompare(String(b.c.name||'')); });
+    /* v1.46.0 — Du plus récent au plus ancien, avec le numéro de place.
+       La liste était rangée par ordre alphabétique : impossible de voir
+       qui vient d'entrer dans le container, ni quelle place chacun y
+       occupe (demande de Cobey du 19/09/2026). Le numéro de place est le
+       rang attribué à l'entrée dans CE container (_depAssignerRangDepart),
+       celui-là même qui est imprimé sur l'étiquette. Le dernier entré
+       porte le plus grand numéro : il passe donc en tête. Les fiches
+       d'avant les rangs n'en ont pas — elles ferment la liste, par nom. */
+    affiches.sort(function(a,b){
+      var ra = (a.c.rangDepartId === id) ? (parseInt(a.c.rangDepart, 10) || 0) : 0;
+      var rb = (b.c.rangDepartId === id) ? (parseInt(b.c.rangDepart, 10) || 0) : 0;
+      if(ra !== rb) return rb - ra;
+      return String(a.c.name||'').localeCompare(String(b.c.name||''));
+    });
     affiches.forEach(function(x){
       var c = x.c;
-      // v1.19.67 : Déplacer/Détacher s'appuient sur des fonctions propres à
-      // la Collecte/au Dépôt direct (pas encore adaptées à France & Europe),
-      // on les masque simplement pour ces clients-là pour l'instant.
-      // v1.20.10 : Dépôt direct récupère Déplacer/Détacher, absents jusqu'ici
-      // alors que visibles pour les autres parcours (retour de Cobey du
+      // v1.19.67 : Déplacer/Détacher s'appuyaient sur des fonctions propres
+      // à la Collecte/au Dépôt direct, d'où leur absence pour France &
+      // Europe.
+      // v1.20.10 : Dépôt direct les récupère (retour de Cobey du
       // 03/09/2026).
-      var peutBouger = (d.statut === 'preparation') && !x.france;
+      // v1.46.0 : France & Europe aussi — un client de ce parcours n'avait
+      // que "Facture" et "Photos" là où les autres en ont quatre (retour de
+      // Cobey du 19/09/2026 : "les clients France & Europe n'ont pas les
+      // mêmes boutons que dépôt direct").
+      var peutBouger = (d.statut === 'preparation');
       // v1.19.44 : "Détacher" n'a pas de sens depuis le Dépôt lui-même —
       // le client y est déjà "détaché", seul "Déplacer" (vers un vrai
       // container) reste utile ici.
@@ -5681,7 +5697,8 @@ window.depDetail = function(id, gardeFiltres){
       h += '<div class="dep-cli" style="cursor:pointer;'
         +     (_nbFus ? 'border-left:4px solid #00b34e;' : (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : ''))
         +     '" onclick="'+clic+'">'
-        +   '<div class="dep-cli-n">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))+' '+drapeauCli+_pastilleDouble
+        +   '<div class="dep-cli-n">'+_depPastilleRang(c, id)
+        +     esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))+' '+drapeauCli+_pastilleDouble
         +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
         +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')+'</div>'
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">'
@@ -5701,11 +5718,11 @@ window.depDetail = function(id, gardeFiltres){
               + '<button class="dep-cli-btn" style="background:#F3EFFF;border-color:#D9C8F5;color:#6d28d9;" '
                 + 'onclick="event.stopPropagation();depOuvrirPhotosRapide(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">&#128247; Photos</button>'
               + (peutBouger
-                ? '<button class="dep-cli-btn" onclick="event.stopPropagation();depOuvrirMove(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+')">D&eacute;placer</button>'
+                ? '<button class="dep-cli-btn" onclick="event.stopPropagation();depOuvrirMove(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">D&eacute;placer</button>'
                 : '')
               + (peutDetacher
                 ? '<button class="dep-cli-btn" style="background:#FDEDED;border-color:#F5C6C6;color:#992020;" '
-                  + 'onclick="event.stopPropagation();depDetacherClient(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+')">D&eacute;tacher</button>'
+                  + 'onclick="event.stopPropagation();depDetacherClient(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">D&eacute;tacher</button>'
                 : '')
             + '</div>'
         + '</div>';
@@ -9545,15 +9562,40 @@ window.depSupprimerDepot = function(){
    11. CHANGER UN CLIENT DE DÉPART  (direction seulement)
    ───────────────────────────────────────────── */
 
-window.depOuvrirMove = function(collecteId, clientId, depot){
+/* v1.46.0 — La fiche d'un client, quel que soit son parcours.
+   Déplacer et Détacher ne savaient lire que la Collecte et le Dépôt
+   direct ; un client France & Europe restait donc coincé dans son
+   container. L'écriture, elle, sait déjà viser les trois sources
+   (_depEcrireFacture). */
+function _depFicheParcours(src){
+  if(!src) return null;
+  if(src.france) return ((window.franceData||{}).clients||{})[src.clientId];
+  if(src.depot)  return (window.depotClients||{})[src.clientId];
+  return ((window.clientsParCollecte||{})[src.collecteId]||{})[src.clientId];
+}
+
+// Le numéro de place d'un client dans CE container — celui de l'étiquette.
+function _depPastilleRang(c, departId){
+  if(!c || c.rangDepartId !== departId) return '';
+  var n = parseInt(c.rangDepart, 10) || 0;
+  if(!n) return '';
+  return '<span title="Place dans le container" style="display:inline-block;min-width:22px;text-align:center;'
+    + 'font-size:11px;font-weight:800;color:#1a1a2e;background:#EDEFF3;border:1.5px solid var(--border);'
+    + 'border-radius:20px;padding:1px 7px;margin-right:6px;font-variant-numeric:tabular-nums;">'
+    + 'N&deg;' + n + '</span>';
+}
+
+window.depOuvrirMove = function(collecteId, clientId, depot, france){
   if(!estDirection()){ toast('🔒 Seul Issyaka peut changer un client de départ.'); return; }
-  var c = depot ? (window.depotClients||{})[clientId] : ((window.clientsParCollecte||{})[collecteId]||{})[clientId];
+  var src = { collecteId:collecteId, clientId:clientId, depot:!!depot, france:!!france };
+  var c = _depFicheParcours(src);
   if(!c){ toast('⚠️ Client introuvable.'); return; }
 
-  _depMoveClient = { collecteId:collecteId, clientId:clientId, depot:!!depot, nom:(c.name||''), departId:(c.departId||'') };
+  _depMoveClient = { collecteId:collecteId, clientId:clientId, depot:!!depot, france:!!france,
+                     nom:_depNomFiche(c), departId:(c.departId||'') };
 
   var info = $('dep-move-info');
-  if(info) info.innerHTML = '<b>'+esc(c.name||'')+'</b><br>Actuellement dans : '+esc(nomDepart(c.departId)||'aucun d&eacute;part');
+  if(info) info.innerHTML = '<b>'+esc(_depNomFiche(c))+'</b><br>Actuellement dans : '+esc(nomDepart(c.departId)||'aucun d&eacute;part');
 
   // Uniquement les départs en préparation, sauf celui d'origine
   var opts = tousLesDeparts().filter(function(d){
@@ -9581,7 +9623,7 @@ window.depConfirmerMove = function(){
   if(!vers){ toast('⚠️ Choisissez un départ.'); return; }
 
   var mv = _depMoveClient;
-  var c = mv.depot ? (window.depotClients||{})[mv.clientId] : ((window.clientsParCollecte||{})[mv.collecteId]||{})[mv.clientId];
+  var c = _depFicheParcours(mv);
   if(!c){ toast('⚠️ Client introuvable.'); return; }
 
   // Le client existe-t-il déjà dans le départ de destination ?
@@ -9617,9 +9659,11 @@ window.depConfirmerMove = function(){
   // quel si jamais le client est un jour rerattaché à ce même départ.
   _depAssignerRangDepart(c, vers);
 
-  if(mv.depot) _depEcrireClient({ depot:true, clientId: mv.clientId }, { departId: vers, rangDepart: c.rangDepart || null, rangDepartId: c.rangDepartId || null, historiqueDepart: hist });
-  else try{ sauvegarder(); }catch(e){}
-  depActivite('&#128666;', 'a d&eacute;plac&eacute; <strong>'+esc(c.name||'')+'</strong> vers <strong>'+esc(nomDepart(vers))+'</strong>');
+  if(mv.depot || mv.france){
+    _depEcrireFacture({ depot:!!mv.depot, france:!!mv.france, clientId: mv.clientId },
+      { departId: vers, rangDepart: c.rangDepart || null, rangDepartId: c.rangDepartId || null, historiqueDepart: hist });
+  } else try{ sauvegarder(); }catch(e){}
+  depActivite('&#128666;', 'a d&eacute;plac&eacute; <strong>'+esc(_depNomFiche(c))+'</strong> vers <strong>'+esc(nomDepart(vers))+'</strong>');
 
   closeModal('modal-dep-move');
   toast('✅ Client déplacé');
@@ -9634,19 +9678,20 @@ window.depConfirmerMove = function(){
    l'affectation se fera client par client, au moment de la facture.
    ───────────────────────────────────────────── */
 
-window.depDetacherClient = function(collecteId, clientId, depot){
+window.depDetacherClient = function(collecteId, clientId, depot, france){
   if(!estDirection()){ toast('🔒 Seul Issyaka peut détacher un client.'); return; }
-  var c = depot ? (window.depotClients||{})[clientId] : ((window.clientsParCollecte||{})[collecteId]||{})[clientId];
+  var c = _depFicheParcours({ collecteId:collecteId, clientId:clientId, depot:!!depot, france:!!france });
   if(!c){ toast('⚠️ Client introuvable.'); return; }
 
-  _depDetachClient = { collecteId:collecteId, clientId:clientId, depot:!!depot, nom:(c.name||''), departId:(c.departId||'') };
+  _depDetachClient = { collecteId:collecteId, clientId:clientId, depot:!!depot, france:!!france,
+                       nom:_depNomFiche(c), departId:(c.departId||'') };
 
   var info = $('dep-dc-info');
   // v1.19.44 : le client ne redevient plus "sans départ" (nulle part,
   // aucun moyen de le retrouver) — il est placé dans le Dépôt (en
   // attente), en attente d'un nouveau container (retour de Cobey du
   // 24/08/2026, voir DEP_ID_DEPOT).
-  if(info) info.innerHTML = '<b>'+esc(c.name||'')+'</b> sera retir&eacute; de <b>'+esc(nomDepart(c.departId))+'</b> '
+  if(info) info.innerHTML = '<b>'+esc(_depNomFiche(c))+'</b> sera retir&eacute; de <b>'+esc(nomDepart(c.departId))+'</b> '
     + 'et plac&eacute; au <b>D&eacute;p&ocirc;t</b>, en attente d\'un nouveau d&eacute;part.';
 
   openModal('modal-dep-detach-client');
@@ -9655,7 +9700,7 @@ window.depDetacherClient = function(collecteId, clientId, depot){
 window.depConfirmerDetacherClient = function(){
   if(!_depDetachClient) return;
   var dc = _depDetachClient;
-  var c = dc.depot ? (window.depotClients||{})[dc.clientId] : ((window.clientsParCollecte||{})[dc.collecteId]||{})[dc.clientId];
+  var c = _depFicheParcours(dc);
   if(!c){ toast('⚠️ Client introuvable.'); return; }
 
   var u = window.currentUser || {};
@@ -9666,9 +9711,11 @@ window.depConfirmerDetacherClient = function(){
   c.departId = DEP_ID_DEPOT; // v1.19.44 : au Dépôt, plus "nulle part"
   c.historiqueDepart = hist;
 
-  if(dc.depot) _depEcrireClient({ depot:true, clientId: dc.clientId }, { departId: DEP_ID_DEPOT, historiqueDepart: hist });
-  else try{ sauvegarder(); }catch(e){}
-  depActivite('&#8617;', 'a d&eacute;tach&eacute; <strong>'+esc(c.name||'')+'</strong> du d&eacute;part <strong>'+esc(nomDepart(ancienDepart))+'</strong> (plac&eacute; au D&eacute;p&ocirc;t)');
+  if(dc.depot || dc.france){
+    _depEcrireFacture({ depot:!!dc.depot, france:!!dc.france, clientId: dc.clientId },
+      { departId: DEP_ID_DEPOT, historiqueDepart: hist });
+  } else try{ sauvegarder(); }catch(e){}
+  depActivite('&#8617;', 'a d&eacute;tach&eacute; <strong>'+esc(_depNomFiche(c))+'</strong> du d&eacute;part <strong>'+esc(nomDepart(ancienDepart))+'</strong> (plac&eacute; au D&eacute;p&ocirc;t)');
 
   closeModal('modal-dep-detach-client');
   toast('✅ Client détaché');

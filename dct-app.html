@@ -3475,7 +3475,7 @@ function _htmlPoste(){
 //  RAMASSAGE FRANCE — écrans DCT (v3.0.1)
 // ═══════════════════════════════════════════════════════════
 var franceTab   = 'clients';
-var franceFiltre= 'attente';   // attente | planifie | ramasse | chartres | historique
+var franceFiltre= 'tous';      // tous | chartres  (v3.68.0)
 var franceRegion= '';          // '' = toutes
 var franceDept  = '';
 var franceClientId = null;
@@ -3491,7 +3491,7 @@ var FR_STATUTS = {
 };
 
 function ouvrirFrance(){
-  franceTab='clients'; franceFiltre='attente'; franceRegion=''; franceDept='';
+  franceTab='clients'; franceFiltre='tous'; franceRegion=''; franceDept='';
   currentCollecteFrId='';
   var q=document.getElementById('fr-q'); if(q) q.value='';
   var a=document.getElementById('fr-av');
@@ -3545,13 +3545,12 @@ function _frResteChartres(c){ return c && c.lieu==='chartres' && c.statut!=='par
 // Un colis déjà arrivé à Mitry sous l'ancien modèle est simplement ramassé.
 function _frEstRamasse(c){ return c.statut==='ramasse' || c.lieu==='mitry'; }
 
+// v3.68.0 : un seul écran, les clients en cours. Un colis facturé est
+// parti dans son container : on le retrouve dans le container, plus dans
+// une liste de suivi à part.
 function _frDansFiltre(c){
-  if(franceFiltre==='chartres')   return _frResteChartres(c);
-  if(franceFiltre==='historique') return c.statut==='parti';
+  if(franceFiltre==='chartres') return _frResteChartres(c);
   if(_frResteChartres(c)) return false;
-  if(franceFiltre==='attente')  return c.statut==='attente';
-  if(franceFiltre==='planifie') return c.statut==='planifie';
-  if(franceFiltre==='ramasse')  return _frEstRamasse(c) && c.statut!=='parti';
   return c.statut!=='parti';
 }
 function _joursDepuis(ts){
@@ -3595,16 +3594,17 @@ function renderFrance(){
     box.innerHTML=html; return;
   }
 
-  // Puces de statut
-  html+='<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;">'
-     + _frPuce('attente','En attente',cpt.attente,'#009A44')
-     + _frPuce('planifie','Planifiés',cpt.planifie,'#1a237e')
-     + _frPuce('ramasse','Ramassés',cpt.ramasse,'#006b2d')
-     // v3.68.0 : « Historique » était le mot du parcours Danny Diop, où le
-     // colis sortait du suivi sans container. Comme à Paris, un colis
-     // facturé entre dans un container — c'est ce que dit l'onglet.
-     + (_peutGererFrance() ? _frPuce('historique','📦 Dans un container',cptH,'#006b2d') : '')
-     + '</div>';
+  // v3.68.0 : la ligne de puces (En attente / Planifiés / Ramassés /
+  // Historique) servait à suivre le travail de Danny Diop. Ce suivi n'a
+  // plus d'objet : un colis facturé part dans un container et se retrouve
+  // là, comme à Paris. On affiche donc simplement les clients en cours,
+  // chacun avec son badge de statut (retour de Cobey du 19/09/2026).
+  // Seul Chartres garde son entrée, le temps d'écouler le stock.
+  if(franceFiltre==='chartres'){
+    html+='<div onclick="setFranceFiltre(\'tous\')" style="display:inline-block;font-size:12px;font-weight:700;'
+       +  'color:#92400e;background:#fef3c7;border:1.5px solid #fcd34d;border-radius:18px;'
+       +  'padding:6px 12px;margin-bottom:12px;cursor:pointer;">&larr; Tous les clients</div>';
+  }
 
   // Bloc Chartres, uniquement s'il y a du stock
   if(cpt.chartres>0 && franceFiltre!=='chartres'){
@@ -3633,20 +3633,14 @@ function renderFrance(){
        +  'color:#006b2d;cursor:pointer;margin:2px 2px 6px;">'+(tout?'Tout décocher':'Tout cocher')+'</div>';
   }
 
-  var _lib = franceFiltre==='historique' ? 'Historique'
-           : franceFiltre==='chartres' ? 'À récupérer à Chartres'
-           : (FR_STATUTS[franceFiltre]||FR_STATUTS.attente).lib;
+  var _lib = franceFiltre==='chartres' ? 'À récupérer à Chartres' : 'Clients en cours';
   var _tot=_totalPrix(liste.map(function(x){ return x._id; }));
-  if(franceFiltre==='attente') html+=_bandeauAnciennete(liste);
+  if(franceFiltre!=='chartres') html+=_bandeauAnciennete(liste);
   html+='<div class="slabel"><span>'+_lib+' · '+liste.length+' client'+(liste.length>1?'s':'')+'</span>'
       + (_montantsVisibles()&&_tot?('<span style="color:#006b2d;">'+_tot+' €</span>'):'')+'</div>';
-  var _finHtml = (franceFiltre==='historique' && _peutGererFrance() && liste.length)
-    ? ('<div onclick="viderHistorique()" style="text-align:center;background:#fff;border:1.5px solid #c0392b;'
-      +'color:#992020;border-radius:var(--radius);padding:12px;font-size:12.5px;font-weight:800;'
-      +'cursor:pointer;margin:14px 0 6px;">🗑️ Vider tout l\'historique · '+liste.length+' fiche'+(liste.length>1?'s':'')+'</div>')
-    : '';
-  html+= liste.length ? (liste.map(_frCarte).join('')+_finHtml)
-       : _frVide(franceFiltre==='attente'?'Aucun client en attente.<br>Inscrivez le premier avec le bouton en bas.':'Aucun client ici pour le moment.');
+  html+= liste.length ? liste.map(_frCarte).join('')
+       : _frVide(franceFiltre==='chartres'?'Plus rien à Chartres.'
+           :'Aucun client en cours.<br>Inscrivez le premier avec le bouton en bas.');
   box.innerHTML=html;
   _majBarreFrance();
 }
@@ -3655,12 +3649,6 @@ function _frVide(txt){
   return '<div style="text-align:center;color:#aaa;padding:36px 20px;font-size:13.5px;line-height:1.6;"><div style="font-size:34px;margin-bottom:10px;">📦</div>'+txt+'</div>';
 }
 
-function _frPuce(id,lib,n,col){
-  var on=(franceFiltre===id);
-  return '<span onclick="setFranceFiltre(\''+id+'\')" style="font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:18px;white-space:nowrap;cursor:pointer;'
-       + (on?('background:'+col+';color:#fff;border:1.5px solid '+col+';'):'background:#fff;border:1.5px solid var(--border);color:#555;')
-       + '">'+lib+' · '+n+'</span>';
-}
 function setFranceFiltre(f){ franceFiltre=f; franceRegion=''; franceDept=''; dannySel=[]; renderFrance(); }
 function setFranceRegion(r){ franceRegion=(franceRegion===r?'':r); franceDept=''; renderFrance(); }
 function setFranceDept(d){ franceDept=(franceDept===d?'':d); renderFrance(); }
@@ -4064,13 +4052,13 @@ function _peutGererFrance(){
 }
 function _selectionPossible(){
   if(!_peutGererFrance() || franceTab!=='clients') return false;
-  return franceFiltre==='attente' || franceFiltre==='planifie' || franceFiltre==='historique';
+  return franceFiltre==='tous';
 }
-// v3.58.0 : sur les planifiés, la sélection sert à confirmer le ramassage
-// (l'ancien « déclarer partis pour Dakar » n'existe plus).
-function _selectionDepart(){ return _selectionPossible() && franceFiltre==='planifie'; }
-// Vrai quand elle sert à faire le ménage dans les dossiers clos.
-function _selectionSuppression(){ return _selectionPossible() && franceFiltre==='historique'; }
+// v3.68.0 : cocher des clients ne sert plus qu'à monter une tournée. Le
+// ramassage se confirme sur la feuille de route (il ouvre l'écran Valider),
+// et il n'y a plus de dossiers clos à supprimer en lot.
+function _selectionDepart(){ return false; }
+function _selectionSuppression(){ return false; }
 
 function toggleSelAdmin(id){
   var i=dannySel.indexOf(id);
@@ -12233,10 +12221,9 @@ function _redessinerTraceFr(){
   _poserFleches(pts, '#009A44');
 }
 
-// La sélection n'est proposée qu'à ceux qui peuvent créer une tournée,
-// et seulement sur les clients qui attendent.
+// La sélection n'est proposée qu'à ceux qui peuvent créer une tournée.
 function _carteSelectionPossible(){
-  if(_carteFrMode!=='suivi' || franceFiltre!=='attente') return false;
+  if(_carteFrMode!=='suivi' || franceFiltre!=='tous') return false;
   if(_vueAdmin) return false;
   return _peutGererFrance() || (currentUser && currentUser.role==='responsable');
 }
@@ -12351,11 +12338,10 @@ function _majBarreCarteFr(){
   }
 }
 
-// Danny ouvre la carte depuis son vivier. On force le filtre sur les
-// clients en attente : c'est exactement ce que son écran lui montre,
-// et c'est la condition pour pouvoir composer une tournée au doigt.
+// La carte se compose sur les clients en cours — la condition pour
+// pouvoir monter une tournée au doigt.
 function ouvrirCarteDanny(){
-  franceFiltre='attente';
+  franceFiltre='tous';
   ouvrirCarteFrance('suivi');
 }
 
