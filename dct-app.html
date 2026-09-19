@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.69.0';
+var APP_VERSION = 'v3.69.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6478,6 +6478,9 @@ function _renderDepot(){
 // son téléphone et l'itinéraire. Mitry-Mory est l'entrepôt DCT, le
 // chauffeur le connaît — on ne lui invente pas d'adresse.
 function _ficheDepotFrance(){
+  // Pas d'adresse connue : rien à afficher. La fiche apparaîtra d'elle-même
+  // le jour où CHARTRES_RUE sera renseignée.
+  if(!CHARTRES_RUE) return '';
   var q=encodeURIComponent(_gpsChartres());
   var tel=String(CHARTRES_TEL||'').replace(/\s/g,'');
   return '<div style="background:#fff;border:1.5px solid #fcd34d;border-left-width:4px;border-radius:var(--radius);'
@@ -10332,16 +10335,16 @@ function ouvrirModalWaze(url, adresse, clientId){
 // range dans l'ordre de passage avec les clients.
 var CHARTRES_ID='__chartres__';
 
-// Adresse de l'entrepôt du partenaire — donnée par Cobey le 19/09/2026
-// (carte de visite Pneu Clean Services / SiliGom). « Chartres » reste le
-// nom d'usage de ce dépôt dans toute l'appli et dans les fiches déjà
-// enregistrées ; l'adresse réelle, elle, est celle-ci, et c'est elle qui
-// part dans le GPS.
-var CHARTRES_RUE = 'ZA Chanchany — Rte des Estreys';
-var CHARTRES_VILLE = '43000 Espaly-Saint-Marcel';
-var CHARTRES_SOCIETE = 'Pneu Clean Services';
-var CHARTRES_CONTACT = 'Mickaël Mathieu';
-var CHARTRES_TEL = '06 48 29 65 85';
+// Adresse de l'entrepôt du partenaire. Tant qu'elle n'est pas connue, on
+// n'affiche que la ville, et la fiche du lieu sur l'écran de dépôt du
+// chauffeur reste masquée (voir _ficheDepotFrance) : mieux vaut pas
+// d'adresse qu'une adresse inventée dans un GPS. Pour la renseigner, il
+// suffit de remplir les cinq constantes ci-dessous.
+var CHARTRES_RUE = '';
+var CHARTRES_VILLE = '28000 Chartres';
+var CHARTRES_SOCIETE = '';
+var CHARTRES_CONTACT = '';
+var CHARTRES_TEL = '';
 function _adresseChartres(){
   return (CHARTRES_RUE ? (CHARTRES_RUE+' · ') : '') + CHARTRES_VILLE;
 }
