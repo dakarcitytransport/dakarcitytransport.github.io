@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.68.0';
+var APP_VERSION = 'v3.69.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6450,6 +6450,11 @@ function _renderDepot(){
   var liste=_aDeclarer();
   var h='<div style="background:#e8eaf6;border:1.5px solid #c5cae9;border-radius:var(--radius);padding:11px 13px;margin-bottom:12px;font-size:12.5px;color:#1a237e;line-height:1.5;">'
       + '📦 <b>Coche les colis, puis choisis l\'entrepôt.</b><br>Tu peux faire deux fois : une passe pour Mitry, une pour Chartres.</div>';
+  // v3.69.0 : l'adresse du dépôt partenaire manquait — le chauffeur devait
+  // la demander (carte de visite transmise par Cobey le 19/09/2026). Elle
+  // est ici, avec le contact et l'itinéraire, juste avant les boutons qui
+  // déclarent le dépôt.
+  h+=_ficheDepotFrance();
   if(!liste.length){
     h+='<div style="text-align:center;color:#aaa;padding:36px 20px;">Tout est déclaré.</div>';
   } else {
@@ -6469,6 +6474,28 @@ function _renderDepot(){
   var i=document.getElementById('pd-info');
   if(i) i.innerHTML='<b style="color:#111;">'+_depotSel.length+' client'+(_depotSel.length>1?'s':'')+'</b> · '+colis+' colis';
 }
+// Où livrer, en clair : l'adresse du dépôt partenaire, qui l'accueille,
+// son téléphone et l'itinéraire. Mitry-Mory est l'entrepôt DCT, le
+// chauffeur le connaît — on ne lui invente pas d'adresse.
+function _ficheDepotFrance(){
+  var q=encodeURIComponent(_gpsChartres());
+  var tel=String(CHARTRES_TEL||'').replace(/\s/g,'');
+  return '<div style="background:#fff;border:1.5px solid #fcd34d;border-left-width:4px;border-radius:var(--radius);'
+    +   'padding:12px 13px;margin-bottom:12px;">'
+    +   '<div style="font-size:13px;font-weight:800;color:#92400e;">📍 Chartres — '+CHARTRES_SOCIETE+'</div>'
+    +   '<div style="font-size:12.5px;color:#444;margin-top:5px;line-height:1.5;">'+_adresseChartres()+'</div>'
+    +   (CHARTRES_CONTACT?('<div style="font-size:12px;color:var(--text3);margin-top:3px;">👤 '+CHARTRES_CONTACT+'</div>'):'')
+    +   '<div style="display:flex;gap:8px;margin-top:10px;">'
+    +     (tel?('<a href="tel:'+tel+'" style="flex:1;text-align:center;text-decoration:none;background:#EAF7EE;'
+    +       'border:1.5px solid #C8E6D0;color:#006b2d;border-radius:10px;padding:10px 6px;font-size:12.5px;'
+    +       'font-weight:700;">📞 '+CHARTRES_TEL+'</a>'):'')
+    +     '<a href="https://waze.com/ul?q='+q+'&navigate=yes" target="_blank" '
+    +       'style="flex:1;text-align:center;text-decoration:none;background:#fff;border:1.5px solid #e08e0b;'
+    +       'color:#92400e;border-radius:10px;padding:10px 6px;font-size:12.5px;font-weight:700;">🧭 Itinéraire</a>'
+    +   '</div>'
+    + '</div>';
+}
+
 function _toggleDepot(id){
   var i=_depotSel.indexOf(id);
   if(i>=0) _depotSel.splice(i,1); else _depotSel.push(id);
@@ -6888,7 +6915,7 @@ function _htmlArretChartres(k){
    +   'border-radius:10px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;">'
    +   (_heureChartres()?('🕐 '+_heureChartres()+' · modifier'):'🕐 Fixer l\'heure')+'</div>'
    + '<div style="display:flex;gap:7px;margin-top:11px;">'
-   +   '<a href="https://waze.com/ul?q='+encodeURIComponent(_adresseChartres().replace(' · ',' '))+'&navigate=yes" target="_blank" onclick="event.stopPropagation();" style="flex:1;text-align:center;text-decoration:none;background:#fff;border:1.5px solid #e08e0b;color:#92400e;border-radius:10px;padding:11px 6px;font-size:12.5px;font-weight:700;">🧭 Itinéraire</a>'
+   +   '<a href="https://waze.com/ul?q='+encodeURIComponent(_gpsChartres())+'&navigate=yes" target="_blank" onclick="event.stopPropagation();" style="flex:1;text-align:center;text-decoration:none;background:#fff;border:1.5px solid #e08e0b;color:#92400e;border-radius:10px;padding:11px 6px;font-size:12.5px;font-weight:700;">🧭 Itinéraire</a>'
    +   '<div onclick="event.stopPropagation();validerLotChartres()" style="flex:1;text-align:center;background:#009A44;color:#fff;border-radius:10px;padding:11px 6px;font-size:12.5px;font-weight:800;cursor:pointer;">✓ Valider le lot</div>'
    + '</div>'
    + '</div>';
@@ -10305,13 +10332,24 @@ function ouvrirModalWaze(url, adresse, clientId){
 // range dans l'ordre de passage avec les clients.
 var CHARTRES_ID='__chartres__';
 
-// Adresse de l'entrepôt du partenaire. Tant que Danny ne l'a pas
-// donnée, on n'affiche que la ville : mieux vaut pas d'adresse
-// qu'une adresse inventée dans un GPS.
-var CHARTRES_RUE = '';
-var CHARTRES_VILLE = '28000 Chartres';
+// Adresse de l'entrepôt du partenaire — donnée par Cobey le 19/09/2026
+// (carte de visite Pneu Clean Services / SiliGom). « Chartres » reste le
+// nom d'usage de ce dépôt dans toute l'appli et dans les fiches déjà
+// enregistrées ; l'adresse réelle, elle, est celle-ci, et c'est elle qui
+// part dans le GPS.
+var CHARTRES_RUE = 'ZA Chanchany — Rte des Estreys';
+var CHARTRES_VILLE = '43000 Espaly-Saint-Marcel';
+var CHARTRES_SOCIETE = 'Pneu Clean Services';
+var CHARTRES_CONTACT = 'Mickaël Mathieu';
+var CHARTRES_TEL = '06 48 29 65 85';
 function _adresseChartres(){
   return (CHARTRES_RUE ? (CHARTRES_RUE+' · ') : '') + CHARTRES_VILLE;
+}
+// La même adresse, mais telle qu'un GPS l'accepte : ni séparateur « · »
+// ni tiret cadratin, qui la font échouer sur Waze.
+function _gpsChartres(){
+  return ((CHARTRES_RUE ? (CHARTRES_RUE+' ') : '') + CHARTRES_VILLE)
+    .replace(/[—–·]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function _heureChartres(){
