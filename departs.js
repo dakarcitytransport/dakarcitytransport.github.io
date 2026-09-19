@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.49.0';
+var DEP_VERSION = 'v1.50.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -12439,6 +12439,8 @@ function greffer(){
       try{ _depAlerterArretsSansHeure(k); }catch(e){ console.error('departs: arrets sans heure', e); }
       try{ _depAfficherFinanceExtra(k); }catch(e){ console.error('departs: finance extra (camion)', e); }
       try{ _depInjecterBoutonEtiquettesCamion(k); }catch(e){ console.error('departs: bouton étiquettes camion', e); }
+      // v1.50.0 : chaque camion a sa carte — voir depCarteCamion.
+      try{ _depInjecterBoutonCarteCamion(k); }catch(e){ console.error('departs: bouton carte camion', e); }
     };
     window.renderCamion._depPatch = true;
   }
@@ -14239,6 +14241,310 @@ function _depInjecterBoutonEtiquettesCamion(k){
   btn.innerHTML = '&#127991;&#65039; Imprimer toutes les &eacute;tiquettes du camion';
   btn.onclick = function(){ depOuvrirImpressionToutesEtiquettesCamion(window.currentCamion || k); };
   slabel.parentNode.insertBefore(btn, slabel);
+}
+
+/* ═════════ v1.50.0 — LA CARTE D'UN CAMION ═════════
+   Le Dispatch a sa carte d'ensemble, où l'on affecte les clients aux
+   camions. Une fois en tournée, ce n'est plus la bonne vue : le
+   collecteur veut voir SON trajet, vérifier qu'il tient la route, et
+   corriger sans rentrer au dépôt (demande de Cobey du 19/09/2026 :
+   « chaque camion a sa carte »).
+
+   Celle-ci ne montre donc que les clients de ce camion, numérotés dans
+   l'ordre de passage réel (_ordreTournee : les heures d'abord, puis
+   l'ordre d'affectation) et reliés par le trajet. Vert = déjà ramassé.
+   Toucher un point ouvre ses actions : monter ou descendre dans la
+   tournée, fixer l'heure, ouvrir la fiche, ou sortir du camion. */
+function _depInjecterBoutonCarteCamion(k){
+  var screen = $('s-camion');
+  if(!screen || $('dep-btn-carte-camion')) return;
+  var slabel = screen.querySelector('.slabel');
+  if(!slabel || !slabel.parentNode) return;
+  var btn = document.createElement('button');
+  btn.id = 'dep-btn-carte-camion';
+  btn.type = 'button';
+  btn.style.cssText = 'width:100%;padding:12px;background:#e8eaf6;color:#1a237e;'
+    + 'border:2px solid #1a237e;border-radius:10px;font-size:13.5px;font-weight:800;'
+    + 'cursor:pointer;font-family:var(--font);margin-bottom:10px;';
+  btn.innerHTML = '&#128506;&#65039; Voir le trajet de ce camion';
+  btn.onclick = function(){ depCarteCamion(window.currentCamion || k); };
+  slabel.parentNode.insertBefore(btn, slabel);
+}
+
+var _depCarteCamionK = '';
+var _depCarteMap = null;
+var _depCarteMarqueurs = {};
+var _depCarteTrace = null;
+
+window.depCarteCamion = function(k){
+  var trks = getTrucks(), tk = trks[k];
+  if(!tk){ toast('⚠️ Camion introuvable.'); return; }
+  if(!(tk.clients||[]).length){ toast('⚠️ Aucun client dans ce camion.'); return; }
+  _depCarteCamionK = k;
+
+  var m = $('modal-dep-carte-camion');
+  if(m) m.remove();
+  m = document.createElement('div');
+  m.id = 'modal-dep-carte-camion';
+  m.style.cssText = 'position:fixed;inset:0;background:#fff;z-index:9999;display:flex;flex-direction:column;';
+  m.innerHTML =
+      '<div style="background:#1a237e;color:#fff;padding:13px 15px;display:flex;align-items:center;'
+    +   'justify-content:space-between;gap:10px;flex-shrink:0;">'
+    +   '<div><div style="font-size:14.5px;font-weight:800;">&#128506;&#65039; ' + esc(tk.name || 'Camion') + '</div>'
+    +     '<div id="dep-carte-sous" style="font-size:11.5px;opacity:.85;margin-top:2px;"></div></div>'
+    +   '<button onclick="depFermerCarteCamion()" style="background:rgba(255,255,255,.2);color:#fff;'
+    +     'border:none;border-radius:8px;padding:8px 13px;font-size:13px;font-weight:700;cursor:pointer;'
+    +     'font-family:var(--font);flex-shrink:0;">&#10005; Fermer</button>'
+    + '</div>'
+    + '<div style="background:#e8eaf6;padding:7px 14px;font-size:11px;color:#1a237e;font-weight:600;flex-shrink:0;">'
+    +   '&#128072; Touchez un point pour le d&eacute;placer dans la tourn&eacute;e &middot; '
+    +   '<span style="color:#006b2d;">&#9679;</span> ramass&eacute; &middot; '
+    +   '<span style="color:#E58A00;">&#9679;</span> &agrave; faire</div>'
+    + '<div id="dep-carte-map" style="flex:1;min-height:0;"></div>'
+    + '<div id="dep-carte-liste" style="background:#fff;border-top:2px solid var(--border);'
+    +   'max-height:38vh;overflow-y:auto;padding:10px 12px;flex-shrink:0;"></div>';
+  document.body.appendChild(m);
+
+  if(typeof window._chargerLeaflet === 'function'){
+    window._chargerLeaflet(function(){ _depCarteDessiner(); });
+  } else {
+    _depCarteDessiner();
+  }
+};
+
+window.depFermerCarteCamion = function(){
+  var m = $('modal-dep-carte-camion');
+  if(m) m.remove();
+  _depCarteMap = null; _depCarteMarqueurs = {}; _depCarteTrace = null;
+  try{ renderCamion(_depCarteCamionK); }catch(e){}
+};
+
+// L'ordre de passage du camion, tel que la feuille de route l'affiche.
+function _depCarteOrdre(tk){
+  if(typeof window._ordreTournee === 'function') return window._ordreTournee(tk);
+  return (tk.clients || []).slice();
+}
+
+function _depCarteDessiner(){
+  var trks = getTrucks(), tk = trks[_depCarteCamionK];
+  if(!tk || !window.L) return;
+  var cls = getClients() || {};
+  var ordre = _depCarteOrdre(tk);
+  var valides = tk.validated || [];
+
+  var el = $('dep-carte-map');
+  if(!el) return;
+  if(!_depCarteMap){
+    _depCarteMap = L.map(el, {zoomControl:true}).setView([48.8566, 2.3522], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    }).addTo(_depCarteMap);
+  }
+
+  var sous = $('dep-carte-sous');
+  if(sous){
+    var faits = ordre.filter(function(id){ return valides.indexOf(id) !== -1; }).length;
+    sous.textContent = ordre.length + ' arrêt' + (ordre.length>1?'s':'') + ' · ' + faits + ' ramassé' + (faits>1?'s':'');
+  }
+
+  _depCarteRenderListe(tk, ordre, valides, cls);
+
+  // Les points : coordonnées déjà connues sinon géocodage, une seule fois.
+  var pts = [], restants = ordre.length;
+  if(!restants) return;
+  ordre.forEach(function(id, i){
+    var c = cls[id];
+    if(!c){ restants--; return; }
+    var poser = function(lat, lng){
+      restants--;
+      if(lat && lng){
+        pts.push({ i:i, id:id, lat:lat, lng:lng });
+        _depCarteMarqueur(id, c, lat, lng, i + 1, valides.indexOf(id) !== -1);
+      }
+      if(restants <= 0) _depCarteTracer(pts);
+    };
+    if(c.lat && c.lng){ poser(c.lat, c.lng); return; }
+    if(typeof window._geocodeClientFr === 'function'){
+      window._geocodeClientFr(c, function(lat, lng){ poser(lat, lng); });
+    } else { poser(null, null); }
+  });
+}
+
+function _depCarteMarqueur(id, c, lat, lng, rang, fait){
+  var couleur = fait ? '#006b2d' : '#E58A00';
+  var ic = L.divIcon({
+    className: '',
+    html: '<div style="background:'+couleur+';color:#fff;width:28px;height:28px;border-radius:50%;'
+      + 'display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;'
+      + 'border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4);font-family:var(--font);">'+rang+'</div>',
+    iconSize: [28,28], iconAnchor: [14,14]
+  });
+  var mk = L.marker([lat,lng], {icon:ic}).addTo(_depCarteMap);
+  mk.on('click', function(){ depCarteActions(id); });
+  _depCarteMarqueurs[id] = mk;
+}
+
+function _depCarteTracer(pts){
+  pts.sort(function(a,b){ return a.i - b.i; });
+  var coords = pts.map(function(p){ return [p.lat, p.lng]; });
+  if(_depCarteTrace){ try{ _depCarteTrace.remove(); }catch(e){} _depCarteTrace = null; }
+  if(coords.length > 1){
+    _depCarteTrace = L.polyline(coords, {color:'#1a237e', weight:3.5, opacity:.85}).addTo(_depCarteMap);
+  }
+  if(coords.length){
+    try{ _depCarteMap.fitBounds(L.latLngBounds(coords), {padding:[40,40], maxZoom:14}); }catch(e){}
+  }
+}
+
+// La même tournée, en liste, sous la carte : c'est là qu'on lit l'ordre.
+function _depCarteRenderListe(tk, ordre, valides, cls){
+  var box = $('dep-carte-liste');
+  if(!box) return;
+  var hours = tk.hours || {};
+  box.innerHTML = ordre.map(function(id, i){
+    var c = cls[id] || {};
+    var fait = valides.indexOf(id) !== -1;
+    return '<div onclick="depCarteActions(\''+id+'\')" style="display:flex;gap:10px;align-items:center;'
+      + 'padding:9px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer;">'
+      + '<div style="background:'+(fait?'#006b2d':'#E58A00')+';color:#fff;width:24px;height:24px;'
+      +   'border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;'
+      +   'font-weight:800;flex-shrink:0;">'+(i+1)+'</div>'
+      + '<div style="flex:1;min-width:0;">'
+      +   '<div style="font-size:13.5px;font-weight:700;color:var(--text);">'+esc(c.name||'')+'</div>'
+      +   '<div style="font-size:11.5px;color:var(--text3);">'
+      +     (hours[id] ? ('🕐 '+esc(hours[id])+' · ') : '')
+      +     esc([c.adresse, c.cp, c.ville].filter(Boolean).join(', ') || 'adresse inconnue') + '</div>'
+      + '</div>'
+      + (fait ? '<span style="font-size:11px;font-weight:800;color:#006b2d;flex-shrink:0;">✓</span>' : '')
+      + '</div>';
+  }).join('');
+}
+
+/* Les actions d'un arrêt. Tout passe par les fonctions de l'appli —
+   l'ordre et l'heure vivent sur le camion, pas sur une copie à part. */
+window.depCarteActions = function(id){
+  var trks = getTrucks(), tk = trks[_depCarteCamionK];
+  if(!tk) return;
+  var c = (getClients()||{})[id] || {};
+  var ordre = _depCarteOrdre(tk);
+  var pos = ordre.indexOf(id);
+
+  var m = $('modal-dep-carte-actions');
+  if(m) m.remove();
+  m = document.createElement('div');
+  m.id = 'modal-dep-carte-actions';
+  m.className = 'modal-overlay open';
+  m.style.cssText = 'align-items:center;z-index:10000;';
+  m.innerHTML = '<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
+    + '<div style="font-size:16px;font-weight:800;color:#1a1a2e;">'+esc(c.name||'')+'</div>'
+    + '<div style="font-size:12.5px;color:#666;margin:4px 0 14px;line-height:1.5;">'
+    +   'Arrêt ' + (pos+1) + ' sur ' + ordre.length
+    +   ((tk.hours||{})[id] ? (' · 🕐 ' + esc(tk.hours[id])) : ' · sans heure') + '</div>'
+    + '<div style="display:grid;gap:8px;">'
+    +   '<div style="display:flex;gap:8px;">'
+    +     '<button class="btn-sm btn-gray-sm" style="flex:1;'+(pos<=0?'opacity:.4;':'')+'" '
+    +       'onclick="depCarteDeplacer(\''+id+'\',-1)">&#9650; Monter</button>'
+    +     '<button class="btn-sm btn-gray-sm" style="flex:1;'+(pos>=ordre.length-1?'opacity:.4;':'')+'" '
+    +       'onclick="depCarteDeplacer(\''+id+'\',1)">&#9660; Descendre</button>'
+    +   '</div>'
+    +   '<button class="btn-sm" style="background:#fff3e0;color:#92400e;border:1.5px solid #e08e0b;" '
+    +     'onclick="depCarteHeure(\''+id+'\')">&#128336; Fixer l\'heure de passage</button>'
+    +   '<button class="btn-sm btn-green-sm" onclick="depCarteFiche(\''+id+'\')">&#128196; Ouvrir la fiche</button>'
+    +   '<button class="btn-sm" style="background:#FDEDED;color:#992020;border:1.5px solid #F5C6C6;" '
+    +     'onclick="depCarteSortir(\''+id+'\')">&#10005; Sortir de ce camion</button>'
+    +   '<button class="btn-sm btn-gray-sm" onclick="depCarteFermerActions()">Annuler</button>'
+    + '</div></div>';
+  document.body.appendChild(m);
+};
+window.depCarteFermerActions = function(){
+  var m = $('modal-dep-carte-actions'); if(m) m.remove();
+};
+
+/* Monter ou descendre un arrêt. L'ordre d'une tournée est porté par les
+   heures quand il y en a (voir _ordreTournee) : déplacer un client
+   revient donc à échanger sa place avec son voisin — la liste
+   d'affectation quand aucun des deux n'a d'heure, les heures sinon. */
+window.depCarteDeplacer = function(id, sens){
+  var trks = getTrucks(), tk = trks[_depCarteCamionK];
+  if(!tk) return;
+  var ordre = _depCarteOrdre(tk);
+  var i = ordre.indexOf(id), j = i + sens;
+  if(i < 0 || j < 0 || j >= ordre.length){ depCarteFermerActions(); return; }
+  var voisin = ordre[j];
+  tk.hours = tk.hours || {};
+  var hA = tk.hours[id] || '', hB = tk.hours[voisin] || '';
+
+  if(hA && hB){
+    tk.hours[id] = hB; tk.hours[voisin] = hA;
+  } else if(hA || hB){
+    // Un seul des deux porte une heure : la lui retirer le ferait
+    // basculer en fin de tournée. On l'échange, et celui qui n'en avait
+    // pas hérite de l'heure — c'est bien lui qui passe à cette place.
+    tk.hours[id] = hB; tk.hours[voisin] = hA;
+    if(!tk.hours[id]) delete tk.hours[id];
+    if(!tk.hours[voisin]) delete tk.hours[voisin];
+    var l1 = (tk.clients||[]).indexOf(id), l2 = (tk.clients||[]).indexOf(voisin);
+    if(l1 >= 0 && l2 >= 0){ tk.clients[l1] = voisin; tk.clients[l2] = id; }
+  } else {
+    var p1 = (tk.clients||[]).indexOf(id), p2 = (tk.clients||[]).indexOf(voisin);
+    if(p1 >= 0 && p2 >= 0){ tk.clients[p1] = voisin; tk.clients[p2] = id; }
+  }
+
+  try{ sauvegarder(); }catch(e){}
+  var nom = ((getClients()||{})[id]||{}).name || '';
+  depActivite('&#128506;&#65039;', 'a d&eacute;plac&eacute; <strong>'+esc(nom)+'</strong> dans la tourn&eacute;e de <strong>'+esc(tk.name||'')+'</strong>');
+  depCarteFermerActions();
+  _depCarteRafraichir();
+};
+
+window.depCarteHeure = function(id){
+  depCarteFermerActions();
+  if(typeof window.ouvrirModalHeure !== 'function'){ toast('⚠️ Indisponible ici.'); return; }
+  // La modale d'heure de l'appli écrit sur le camion puis redessine la
+  // feuille de route ; on se remet à jour quand elle se referme.
+  window.ouvrirModalHeure(id, _depCarteCamionK);
+  _depCarteSurveillerHeure();
+};
+function _depCarteSurveillerHeure(){
+  var n = 0;
+  var t = setInterval(function(){
+    var mo = document.getElementById('modal-heure');
+    var ouverte = mo && mo.className.indexOf('open') !== -1;
+    if(!ouverte || ++n > 240){ clearInterval(t); if(!ouverte) _depCarteRafraichir(); }
+  }, 250);
+}
+
+window.depCarteFiche = function(id){
+  depCarteFermerActions();
+  depFermerCarteCamion();
+  try{ depOuvrirFicheClient(window.currentCollecteId, id); }
+  catch(e){ console.error('departs: fiche depuis la carte', e); }
+};
+
+window.depCarteSortir = function(id){
+  var trks = getTrucks(), tk = trks[_depCarteCamionK];
+  if(!tk) return;
+  var c = (getClients()||{})[id] || {};
+  if(!confirm('Sortir ' + (c.name||'ce client') + ' de ' + (tk.name||'ce camion') + ' ?\n\n'
+    + 'Il restera dans la collecte, simplement sans camion.')) return;
+  tk.clients = (tk.clients || []).filter(function(x){ return x !== id; });
+  if(tk.hours) delete tk.hours[id];
+  var asgn = (typeof getAssigned === 'function') ? getAssigned() : null;
+  if(asgn) asgn[id] = null;
+  try{ sauvegarder(); }catch(e){}
+  depActivite('&#8617;', 'a sorti <strong>'+esc(c.name||'')+'</strong> de <strong>'+esc(tk.name||'')+'</strong>');
+  depCarteFermerActions();
+  if(!(tk.clients||[]).length){ toast('✅ Client sorti — le camion est vide.'); depFermerCarteCamion(); return; }
+  _depCarteRafraichir();
+};
+
+// Redessine points, trajet et liste après un changement.
+function _depCarteRafraichir(){
+  Object.keys(_depCarteMarqueurs).forEach(function(id){
+    try{ _depCarteMarqueurs[id].remove(); }catch(e){}
+  });
+  _depCarteMarqueurs = {};
+  _depCarteDessiner();
 }
 
 window._depImprimerToutesEtiquettesCtx = null;
