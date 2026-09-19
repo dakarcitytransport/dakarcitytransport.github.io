@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.46.0';
+var DEP_VERSION = 'v1.47.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5627,6 +5627,13 @@ window.depDetail = function(id, gardeFiltres){
     return true;
   });
 
+  // v1.47.0 : les fiches entrées dans ce container avant que les numéros
+  // de place existent n'en ont jamais reçu — elles s'affichaient sans
+  // numéro à côté des autres (retour de Cobey du 19/09/2026). On leur en
+  // attribue un, dans leur ordre d'arrivée, une fois pour toutes : c'est
+  // le même numéro qui partira ensuite sur leur étiquette.
+  _depRattraperRangs(tousAffiches, id);
+
   if(!tousAffiches.length){
     h += '<div class="dep-vide" style="padding:28px 16px;">Aucun client rattach&eacute; pour l\'instant.</div>';
   } else if(!affiches.length){
@@ -9572,6 +9579,59 @@ function _depFicheParcours(src){
   if(src.france) return ((window.franceData||{}).clients||{})[src.clientId];
   if(src.depot)  return (window.depotClients||{})[src.clientId];
   return ((window.clientsParCollecte||{})[src.collecteId]||{})[src.clientId];
+}
+
+/* v1.47.0 — Rattrapage des numéros de place manquants.
+   Le numéro est posé à l'entrée dans le container (_depAssignerRangDepart),
+   mécanique arrivée après coup : les fiches plus anciennes, et notamment
+   celles du Dépôt direct, n'en ont pas. Elles en reçoivent un ici, dans
+   leur ordre d'arrivée réel, et il est écrit sur leur fiche — pour que le
+   numéro affiché soit bien celui qui partira sur l'étiquette. Une seule
+   passe par container et par session : une fois posé, il ne bouge plus. */
+var _depRangsRattrapes = {};
+function _depRattraperRangs(liste, departId){
+  if(!departId || departId === DEP_ID_DEPOT) return;
+  if(_depRangsRattrapes[departId]) return;
+  if(!window.db || !window.firebaseReady) return;
+
+  var sansRang = (liste || []).filter(function(x){
+    return x.c && !(x.c.rangDepartId === departId && x.c.rangDepart);
+  });
+  if(!sansRang.length){ _depRangsRattrapes[departId] = true; return; }
+
+  // Le compteur du container peut être en retard sur les numéros déjà
+  // posés (fiche reprise d'un autre container, compteur jamais initialisé).
+  // On le remet au-dessus du plus grand numéro en place, sinon le
+  // rattrapage distribuerait des numéros déjà utilisés.
+  var maxRang = 0;
+  (liste || []).forEach(function(x){
+    if(x.c && x.c.rangDepartId === departId){
+      var r = parseInt(x.c.rangDepart, 10) || 0;
+      if(r > maxRang) maxRang = r;
+    }
+  });
+  var dep = (window.departsData || {})[departId];
+  if(dep && (parseInt(dep.prochainRang, 10) || 0) <= maxRang){
+    dep.prochainRang = maxRang + 1;
+    try{ window.db.ref('departs/'+departId+'/prochainRang').set(dep.prochainRang); }
+    catch(e){ console.error('departs: recalage compteur rang', e); }
+  }
+
+  // Leur ordre d'arrivée, au mieux de ce que porte chaque fiche.
+  sansRang.sort(function(a, b){
+    var ta = a.c.partiTs || a.c.ramasseTs || a.c.creeTs || 0;
+    var tb = b.c.partiTs || b.c.ramasseTs || b.c.creeTs || 0;
+    if(ta !== tb) return ta - tb;
+    return String(a.c.name||'').localeCompare(String(b.c.name||''));
+  });
+
+  sansRang.forEach(function(x){
+    _depAssignerRangDepart(x.c, departId);
+    _depEcrireFacture({ depot: !!x.depot, france: !!x.france,
+                        collecteId: x.collecteId || '', clientId: x.clientId },
+      { rangDepart: x.c.rangDepart || null, rangDepartId: x.c.rangDepartId || null });
+  });
+  _depRangsRattrapes[departId] = true;
 }
 
 // Le numéro de place d'un client dans CE container — celui de l'étiquette.
