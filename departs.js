@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.50.2';
+var DEP_VERSION = 'v1.51.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14446,11 +14446,45 @@ function _depCarteTracer(pts){
   }
 }
 
+/* v1.51.0 — Placer un client entre deux autres.
+   « Monter / Descendre » ne voulait rien dire sur une carte : on croyait
+   que ça déplaçait le point vers le haut de l'écran, et il fallait
+   plusieurs allers-retours pour insérer quelqu'un au bon endroit (retour
+   de Cobey du 19/09/2026). Le vrai besoin est celui d'une collecte en
+   cours : un client à glisser entre deux arrêts déjà placés.
+   On touche donc le client, puis directement l'endroit où il doit
+   passer — un emplacement entre chaque arrêt, en toutes lettres. */
+var _depCarteInsereId = '';
+
+window.depCarteDeplacerMode = function(id){
+  depCarteFermerActions();
+  _depCarteInsereId = id;
+  _depCarteRafraichirListe();
+  var box = $('dep-carte-liste');
+  if(box) box.scrollTop = 0;
+};
+window.depCarteDeplacerAnnuler = function(){
+  _depCarteInsereId = '';
+  _depCarteRafraichirListe();
+};
+function _depCarteRafraichirListe(){
+  var trks = getTrucks(), tk = trks[_depCarteCamionK];
+  if(!tk) return;
+  var valides = tk.validated || [];
+  _depCarteRenderListe(tk, _depCarteOrdre(tk), valides, getClients() || {});
+}
+
 // La même tournée, en liste, sous la carte : c'est là qu'on lit l'ordre.
 function _depCarteRenderListe(tk, ordre, valides, cls){
   var box = $('dep-carte-liste');
   if(!box) return;
   var hours = tk.hours || {};
+
+  if(_depCarteInsereId){
+    _depCarteRenderInsertion(box, tk, ordre, cls, hours);
+    return;
+  }
+
   box.innerHTML = ordre.map(function(id, i){
     var c = cls[id] || {};
     var fait = valides.indexOf(id) !== -1;
@@ -14469,6 +14503,135 @@ function _depCarteRenderListe(tk, ordre, valides, cls){
       + '</div>';
   }).join('');
 }
+
+/* La liste en mode placement : chaque intervalle devient un emplacement
+   qu'on touche. « Avant Fatou », « Entre Fatou et Amadou », « Après
+   Awa » — on lit où le client va passer, on n'a rien à déduire. */
+function _depCarteRenderInsertion(box, tk, ordre, cls, hours){
+  var idBouge = _depCarteInsereId;
+  var nomBouge = (cls[idBouge] || {}).name || '';
+  var visibles = ordre.filter(function(x){ return x !== idBouge; });
+  var nom = function(id){ return (cls[id] || {}).name || ''; };
+
+  var emplacement = function(pos, libelle){
+    return '<div onclick="depCarteInsererA(' + pos + ')" style="display:flex;align-items:center;gap:8px;'
+      + 'background:#e8f7ee;border:1.5px dashed #00b34e;border-radius:9px;padding:9px 11px;'
+      + 'margin:5px 0;cursor:pointer;">'
+      + '<span style="font-size:14px;">&#11015;</span>'
+      + '<span style="font-size:12.5px;font-weight:700;color:#006b2d;">' + libelle + '</span></div>';
+  };
+
+  var h = '<div style="background:#1a237e;color:#fff;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'
+    + '<div style="font-size:13px;font-weight:800;">&#8597; O&ugrave; placer ' + esc(nomBouge) + ' ?</div>'
+    + '<div style="font-size:11.5px;opacity:.85;margin-top:2px;">Touchez l\'emplacement voulu.</div>'
+    + '<div onclick="depCarteDeplacerAnnuler()" style="margin-top:8px;text-align:center;background:rgba(255,255,255,.18);'
+    + 'border-radius:8px;padding:7px;font-size:12px;font-weight:700;cursor:pointer;">&#10005; Annuler</div></div>';
+
+  h += emplacement(0, visibles.length ? ('En premier, avant ' + esc(nom(visibles[0]))) : 'Premier arrêt');
+
+  visibles.forEach(function(id, i){
+    var c = cls[id] || {};
+    h += '<div style="display:flex;gap:10px;align-items:center;padding:7px 4px;opacity:.75;">'
+      + '<div style="background:#bbb;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;'
+      +   'align-items:center;justify-content:center;font-size:11.5px;font-weight:800;flex-shrink:0;">'+(i+1)+'</div>'
+      + '<div style="flex:1;min-width:0;">'
+      +   '<div style="font-size:13px;font-weight:700;">'+esc(c.name||'')+'</div>'
+      +   '<div style="font-size:11px;color:var(--text3);">'
+      +     (hours[id] ? ('🕐 '+esc(hours[id])+' · ') : '')
+      +     esc([c.adresse, c.cp, c.ville].filter(Boolean).join(', ')) + '</div>'
+      + '</div></div>';
+    h += (i < visibles.length - 1)
+      ? emplacement(i + 1, 'Entre ' + esc(nom(id)) + ' et ' + esc(nom(visibles[i+1])))
+      : emplacement(i + 1, 'En dernier, après ' + esc(nom(id)));
+  });
+
+  box.innerHTML = h;
+}
+
+/* Poser le client à la place choisie.
+   L'ordre d'une tournée suit les heures quand il y en a (_ordreTournee) :
+   glisser quelqu'un entre deux arrêts qui ont la leur ne peut donc pas se
+   faire en bougeant une liste — il lui faut une heure entre les deux. On
+   la calcule, au milieu de ses nouveaux voisins ; sans heure autour, c'est
+   l'ordre d'affectation qui porte la place. */
+function _depMinutes(h){
+  var m = String(h||'').match(/^(\d{1,2})[h:](\d{2})$/);
+  return m ? (parseInt(m[1],10)*60 + parseInt(m[2],10)) : null;
+}
+// À la minute : arrondir à 5 minutes retombait sur l'heure du voisin
+// quand deux arrêts sont rapprochés, et les deux clients se retrouvaient
+// à la même heure — donc dans un ordre indécidable.
+function _depHeureTexte(min){
+  min = Math.max(0, Math.min(24*60-1, Math.round(min)));
+  var hh = Math.floor(min/60), mm = min%60;
+  return (hh<10?'0':'')+hh + 'h' + (mm<10?'0':'')+mm;
+}
+
+// Pousse d'autant de minutes le voisin d'après et tous ceux qui suivent,
+// pour dégager la place où intercaler un arrêt.
+function _depDecalerSuivants(tk, visibles, pos, minutes){
+  for(var i = pos; i < visibles.length; i++){
+    var m = _depMinutes(tk.hours[visibles[i]]);
+    if(m === null) break;
+    tk.hours[visibles[i]] = _depHeureTexte(m + minutes);
+  }
+}
+
+window.depCarteInsererA = function(pos){
+  var id = _depCarteInsereId;
+  var trks = getTrucks(), tk = trks[_depCarteCamionK];
+  if(!id || !tk){ depCarteDeplacerAnnuler(); return; }
+  var cls = getClients() || {};
+  var visibles = _depCarteOrdre(tk).filter(function(x){ return x !== id; });
+  var avant = pos > 0 ? visibles[pos-1] : null;
+  var apres = pos < visibles.length ? visibles[pos] : null;
+
+  tk.hours = tk.hours || {};
+  var hA = avant ? _depMinutes(tk.hours[avant]) : null;
+  var hB = apres ? _depMinutes(tk.hours[apres]) : null;
+
+  if(hA !== null && hB !== null){
+    // Entre deux horaires : au milieu. S'il n'y a pas une minute libre
+    // entre les deux, on décale le voisin d'après et tous ceux qui
+    // suivent — sinon deux clients partageraient la même heure, et leur
+    // ordre ne voudrait plus rien dire.
+    if(hB - hA < 2){
+      _depDecalerSuivants(tk, visibles, pos, hA + 2 - hB);
+      hB = _depMinutes(tk.hours[apres]);
+    }
+    tk.hours[id] = _depHeureTexte((hA + hB) / 2);
+  } else if(hA !== null){
+    tk.hours[id] = _depHeureTexte(hA + 15);
+  } else if(hB !== null){
+    tk.hours[id] = _depHeureTexte(Math.max(0, hB - 15));
+  } else {
+    // Personne n'a d'heure autour : c'est la liste qui fait l'ordre. Le
+    // client garde-t-il la sienne ? Non — les arrêts qui ont une heure
+    // passent avant les autres, il remonterait aussitôt en tête.
+    var perdue = tk.hours[id];
+    delete tk.hours[id];
+    if(perdue) toast('🕐 ' + ((cls[id]||{}).name || '') + ' n\'a plus d\'heure (' + perdue + ') — ses voisins n\'en ont pas.');
+  }
+
+  // La liste d'affectation porte l'ordre des arrêts sans heure : on y
+  // remet le client à sa place, pour que les deux disent la même chose.
+  var liste = (tk.clients || []).filter(function(x){ return x !== id; });
+  var ancre = apres ? liste.indexOf(apres) : liste.length;
+  if(ancre < 0) ancre = liste.length;
+  liste.splice(ancre, 0, id);
+  tk.clients = liste;
+
+  try{ sauvegarder(); }catch(e){}
+  var nomC = (cls[id]||{}).name || '';
+  var ou = apres ? ('avant ' + ((cls[apres]||{}).name || ''))
+                 : (avant ? ('après ' + ((cls[avant]||{}).name || '')) : 'en premier');
+  depActivite('&#128506;&#65039;', 'a plac&eacute; <strong>'+esc(nomC)+'</strong> ' + esc(ou)
+    + ' dans la tourn&eacute;e de <strong>'+esc(tk.name||'')+'</strong>');
+  toast('✅ ' + nomC + ' placé ' + ou + (tk.hours[id] ? (' · 🕐 ' + tk.hours[id]) : ''));
+
+  _depCarteInsereId = '';
+  _depCarteRafraichir();
+};
 
 /* Les actions d'un arrêt. Tout passe par les fonctions de l'appli —
    l'ordre et l'heure vivent sur le camion, pas sur une copie à part. */
@@ -14494,12 +14657,8 @@ window.depCarteActions = function(id){
     +   'Arrêt ' + (pos+1) + ' sur ' + ordre.length
     +   ((tk.hours||{})[id] ? (' · 🕐 ' + esc(tk.hours[id])) : ' · sans heure') + '</div>'
     + '<div style="display:grid;gap:8px;">'
-    +   '<div style="display:flex;gap:8px;">'
-    +     '<button class="btn-sm btn-gray-sm" style="flex:1;'+(pos<=0?'opacity:.4;':'')+'" '
-    +       'onclick="depCarteDeplacer(\''+id+'\',-1)">&#9650; Monter</button>'
-    +     '<button class="btn-sm btn-gray-sm" style="flex:1;'+(pos>=ordre.length-1?'opacity:.4;':'')+'" '
-    +       'onclick="depCarteDeplacer(\''+id+'\',1)">&#9660; Descendre</button>'
-    +   '</div>'
+    +   '<button class="btn-sm" style="background:#e8eaf6;color:#1a237e;border:1.5px solid #1a237e;" '
+    +     'onclick="depCarteDeplacerMode(\''+id+'\')">&#8597; Placer entre deux clients</button>'
     +   '<button class="btn-sm" style="background:#fff3e0;color:#92400e;border:1.5px solid #e08e0b;" '
     +     'onclick="depCarteHeure(\''+id+'\')">&#128336; Fixer l\'heure de passage</button>'
     +   '<button class="btn-sm btn-green-sm" onclick="depCarteFiche(\''+id+'\')">&#128196; Ouvrir la fiche</button>'
@@ -14511,43 +14670,6 @@ window.depCarteActions = function(id){
 };
 window.depCarteFermerActions = function(){
   var m = $('modal-dep-carte-actions'); if(m) m.remove();
-};
-
-/* Monter ou descendre un arrêt. L'ordre d'une tournée est porté par les
-   heures quand il y en a (voir _ordreTournee) : déplacer un client
-   revient donc à échanger sa place avec son voisin — la liste
-   d'affectation quand aucun des deux n'a d'heure, les heures sinon. */
-window.depCarteDeplacer = function(id, sens){
-  var trks = getTrucks(), tk = trks[_depCarteCamionK];
-  if(!tk) return;
-  var ordre = _depCarteOrdre(tk);
-  var i = ordre.indexOf(id), j = i + sens;
-  if(i < 0 || j < 0 || j >= ordre.length){ depCarteFermerActions(); return; }
-  var voisin = ordre[j];
-  tk.hours = tk.hours || {};
-  var hA = tk.hours[id] || '', hB = tk.hours[voisin] || '';
-
-  if(hA && hB){
-    tk.hours[id] = hB; tk.hours[voisin] = hA;
-  } else if(hA || hB){
-    // Un seul des deux porte une heure : la lui retirer le ferait
-    // basculer en fin de tournée. On l'échange, et celui qui n'en avait
-    // pas hérite de l'heure — c'est bien lui qui passe à cette place.
-    tk.hours[id] = hB; tk.hours[voisin] = hA;
-    if(!tk.hours[id]) delete tk.hours[id];
-    if(!tk.hours[voisin]) delete tk.hours[voisin];
-    var l1 = (tk.clients||[]).indexOf(id), l2 = (tk.clients||[]).indexOf(voisin);
-    if(l1 >= 0 && l2 >= 0){ tk.clients[l1] = voisin; tk.clients[l2] = id; }
-  } else {
-    var p1 = (tk.clients||[]).indexOf(id), p2 = (tk.clients||[]).indexOf(voisin);
-    if(p1 >= 0 && p2 >= 0){ tk.clients[p1] = voisin; tk.clients[p2] = id; }
-  }
-
-  try{ sauvegarder(); }catch(e){}
-  var nom = ((getClients()||{})[id]||{}).name || '';
-  depActivite('&#128506;&#65039;', 'a d&eacute;plac&eacute; <strong>'+esc(nom)+'</strong> dans la tourn&eacute;e de <strong>'+esc(tk.name||'')+'</strong>');
-  depCarteFermerActions();
-  _depCarteRafraichir();
 };
 
 window.depCarteHeure = function(id){
