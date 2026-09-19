@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.71.0';
+var APP_VERSION = 'v3.72.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -7424,10 +7424,14 @@ function _ouvrirModalPinCollab(collab, bloque, isFirstTime){
   var sous = document.getElementById('collab-pin-sous-titre');
   var btn = document.getElementById('collab-pin-btn');
   if(bloque){
+    // v3.72.0 : le champ était masqué sur un profil bloqué — le code de
+    // maintenance, qui existe précisément pour rouvrir une porte fermée,
+    // devenait donc impossible à saisir au moment où il sert. Il reste
+    // seul accepté ici : le PIN habituel, lui, ne rouvre rien.
     if(titre) titre.textContent = '🔒 Profil bloqué';
-    if(sous) sous.textContent = "Trop de tentatives. Contactez l'administrateur.";
-    if(inp) inp.style.display = 'none';
-    if(btn) btn.style.display = 'none';
+    if(sous) sous.textContent = "Trop de tentatives. Entrez le code de maintenance, ou voyez avec l'administration.";
+    if(inp){ inp.style.display = 'block'; inp.placeholder = '••••••'; }
+    if(btn){ btn.style.display = 'block'; btn.textContent = '🗝️ Code de maintenance'; }
     _pinAction = 'blocked';
   } else if(isFirstTime){
     if(titre) titre.textContent = '🔐 Créer votre PIN';
@@ -7450,6 +7454,26 @@ function _ouvrirModalPinCollab(collab, bloque, isFirstTime){
 function collab_pin_action(){
   if(_pinAction === 'create') _creerPinCollab();
   else if(_pinAction === 'login') _validerPinCollab();
+  else if(_pinAction === 'blocked') _debloquerParMaintenance();
+}
+
+// Profil bloqué : seul le code de maintenance rouvre, et il lève aussi le
+// blocage — sinon il faudrait le retaper à chaque connexion.
+function _debloquerParMaintenance(){
+  var pin = String((document.getElementById('collab-pin-input')||{}).value||'');
+  var id  = (document.getElementById('collab-pin-id')||{}).value||'';
+  var err = document.getElementById('collab-pin-error');
+  if(!_estPassePartout(pin)){
+    if(err){ err.textContent = '❌ Ce n\'est pas le code de maintenance.'; err.style.display = 'block'; }
+    var i0 = document.getElementById('collab-pin-input'); if(i0) i0.value = '';
+    return;
+  }
+  localStorage.setItem('dct_pin_attempts_'+id, '0');
+  if(db && firebaseReady){ try{ db.ref('dct_config/pins_blocked/'+id).remove(); }catch(e){} }
+  closeModal('modal-collab-pin');
+  var vip = getProfil(id);
+  _journalPassePartout(id, (vip||{}).name||id);
+  if(vip) finalisLogin(vip);
 }
 
 function _creerPinCollab(){
@@ -7512,7 +7536,17 @@ function _validerPinCollab(){
       if(btn) btn.textContent = '✅ Créer mon PIN';
       return;
     }
-    if(pin === stored){
+    // v3.72.0 : comparaison en texte des deux côtés. La saisie est
+    // toujours une chaîne ; un PIN enregistré comme nombre — ce qui
+    // arrive dès qu'il est posé ailleurs que par cet écran — ne lui était
+    // alors JAMAIS égal, et le bon code était refusé sans rien expliquer
+    // (retour de Cobey du 19/09/2026, plus moyen d'ouvrir son profil).
+    // Les espaces éventuels tombent au passage.
+    if(String(stored).trim() === String(pin).trim()){
+      // Tant qu'on y est, on le réécrit au propre pour les fois suivantes.
+      if(typeof stored !== 'string'){
+        try{ db.ref('dct_config/pins/'+id).set(String(stored).trim()); }catch(ePin){}
+      }
       localStorage.setItem('dct_pin_attempts_'+id, '0');
       closeModal('modal-collab-pin');
       var collab = getProfil(id);
