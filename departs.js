@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.47.1';
+var DEP_VERSION = 'v1.48.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1994,9 +1994,13 @@ function compteursDepart(departId){
       euros += (parseFloat(x.c.prix) || 0);
     }
   });
+  // v1.48.0 : une facture regroupée ne comptait qu'une fois côté Collecte,
+  // mais deux fois pour le Dépôt direct et France & Europe — le total
+  // annoncé en haut du container dépassait alors le nombre de fiches
+  // réellement listées en dessous.
   Object.keys(window.depotClients||{}).forEach(function(id){
     var c = window.depotClients[id];
-    if(c && c.departId === departId){
+    if(c && c.departId === departId && !_depEstFusionnee(c)){
       n++;
       euros += (parseFloat(c.prix) || 0);
     }
@@ -2005,7 +2009,7 @@ function compteursDepart(departId){
   // containers que Collecte/Dépôt (voir depValiderFactureFinaleFrance).
   Object.keys((window.franceData||{}).clients || {}).forEach(function(id){
     var c = window.franceData.clients[id];
-    if(c && c.departId === departId){
+    if(c && c.departId === departId && !_depEstFusionnee(c)){
       n++;
       euros += (parseFloat(c.prix) || 0);
     }
