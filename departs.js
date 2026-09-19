@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.44.0';
+var DEP_VERSION = 'v1.45.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2043,6 +2043,10 @@ function nomDepart(id){
   var d = (window.departsData||{})[id];
   return d ? d.nom : '';
 }
+// Exposé : la carte d'un client France & Europe affiche le nom de son
+// container (voir _frCarte dans dct-app.html), et l'hôte ne voit pas
+// l'intérieur de ce module.
+window._depNomDepart = nomDepart;
 
 // v1.20.29 : numéro de place du client dans ce départ (container) — utilisé
 // sur l'étiquette colis (voir depRenderEtiquettes) à la place du numéro de
@@ -8194,8 +8198,11 @@ window.depValiderFactureFinaleFrance = function(){
   var maj = { factureValidee: true, hist: hist };
 
   if(c.statut !== 'parti'){
+    // v1.45.0 : le container est normalement déjà choisi à l'écran Valider,
+    // comme à Paris. Le sélecteur de la facture ne sert plus que de
+    // rattrapage pour les fiches qui n'y sont pas passées.
     var sel = $('dep-fr-depart');
-    var departId = sel ? sel.value : '';
+    var departId = (sel && sel.value) || c.departId || '';
     if(!departId){ toast('⚠️ Choisissez un départ.'); return; }
     if(!window.db || !window.firebaseReady){ toast('❌ Connexion Firebase indisponible.'); return; }
 
@@ -10581,7 +10588,7 @@ function _depValiderLignesMaj(total, nbColis, lignes){
 
   // Un client dont le prix reste "a definir" et dont les lignes ne valent
   // rien encore garde son affichage d'attente.
-  var fiche = (typeof getClients === 'function') ? (getClients()[ctx.clientId] || {}) : {};
+  var fiche = _depFicheValider(ctx) || {};
   if(total <= 0 && fiche.prixADefinir && ctx.prixModifie == null) return;
 
   ctx.prixModifie = total;
@@ -10600,16 +10607,37 @@ function _depValiderLignesMaj(total, nbColis, lignes){
   if(note) note.style.display = lignes.length ? 'block' : 'none';
 }
 
-window.depOuvrirValidation = function(id, tk, name, prix){
-  var fiche = (typeof getClients === 'function') ? getClients()[id] : null;
+/* v1.45.0 — France & Europe prend le parcours de la Collecte Paris.
+   La fiche d'un client France vit dans franceData.clients, pas dans la
+   collecte : c'est la seule différence. Tout l'écran Valider, lui, est le
+   même — photo, détail des colis, prix, destinataire, container. */
+function _depFicheValider(ctx){
+  if(!ctx) return null;
+  if(ctx.france) return ((window.franceData||{}).clients||{})[ctx.clientId];
+  return (typeof getClients === 'function') ? getClients()[ctx.clientId] : null;
+}
+function _depNomFiche(c, secours){
+  if(!c) return secours || '';
+  return c.name || ((c.prenom||'') + ' ' + (c.nom||'')).trim() || secours || '';
+}
+
+window.depOuvrirValidation = function(id, tk, name, prix, opts){
+  var estFrance = !!(opts && opts.france);
+  var fiche = estFrance
+    ? ((window.franceData||{}).clients||{})[id]
+    : ((typeof getClients === 'function') ? getClients()[id] : null);
   if(!fiche){ toast('⚠️ Client introuvable.'); return; }
 
-  _depValiderCtx = { collecteId: window.currentCollecteId, clientId: id, tk: tk, prixModifie: null, photos: [] };
+  _depValiderCtx = { france: estFrance,
+                     retour: (opts && opts.retour) || (estFrance ? 's-france' : 's-camion'),
+                     collecteId: estFrance ? '' : window.currentCollecteId,
+                     clientId: id, tk: tk, prixModifie: null, photos: [] };
 
-  var titre = $('dv-titre'); if(titre) titre.textContent = 'Valider — ' + (fiche.name || name || '');
+  var titre = $('dv-titre'); if(titre) titre.textContent = 'Valider — ' + _depNomFiche(fiche, name);
 
   var colisEl = $('dv-colis'); if(colisEl) colisEl.value = fiche.colis || '';
-  var nbEl = $('dv-nb'); if(nbEl) nbEl.value = fiche.nbColis || 1;
+  // France & Europe nomme ce champ `nb` (voir _depLignesColis).
+  var nbEl = $('dv-nb'); if(nbEl) nbEl.value = fiche.nbColis || fiche.nb || 1;
 
   var pay = depCalculerPaiement(fiche);
   var pAff = $('dv-prix-affiche');
@@ -10671,8 +10699,9 @@ window.depOuvrirValidation = function(id, tk, name, prix){
 };
 
 window.depValiderAnnuler = function(){
+  var ret = (_depValiderCtx && _depValiderCtx.retour) || 's-camion';
   _depValiderCtx = null;
-  goTo('s-camion');
+  goTo(ret);
 };
 
 window.depValiderModifierPrix = function(){
@@ -10846,7 +10875,7 @@ window.depValiderConfirmer = function(){
   var ctx = _depValiderCtx;
   if(!ctx){ toast('⚠️ Rien à valider.'); return; }
 
-  var fiche = ((window.clientsParCollecte||{})[ctx.collecteId]||{})[ctx.clientId];
+  var fiche = _depFicheValider(ctx);
   if(!fiche){ toast('⚠️ Client introuvable.'); return; }
 
   var selDepart = $('dv-depart');
@@ -10887,7 +10916,11 @@ window.depValiderConfirmer = function(){
   var colisEl = $('dv-colis');
   if(colisEl) fiche.colis = colisEl.value.trim();
   var nbEl = $('dv-nb');
-  if(nbEl) fiche.nbColis = parseInt(nbEl.value, 10) || 1;
+  if(nbEl){
+    fiche.nbColis = parseInt(nbEl.value, 10) || 1;
+    // France & Europe lit `nb` partout ailleurs : on tient les deux.
+    if(ctx.france) fiche.nb = fiche.nbColis;
+  }
 
   // v1.25.0 : on garde le detail ligne par ligne sur la fiche — c'est lui
   // que la facture imprime ensuite, une ligne par article.
@@ -10951,6 +10984,14 @@ window.depValiderConfirmer = function(){
   // les versements (v1.16.4) — ne dépend pas du seul sauvegarder()
   // débounced (800ms) qui pouvait se faire écraser par la resynchronisation
   // temps réel avant d'avoir vraiment persisté.
+  // v1.45.0 : France & Europe passe par la même écriture ciblée, vers
+  // france/clients/<id> au lieu de dct/clients/<collecte>/<id>. Le
+  // ramassage est acté ici, comme le camion l'est côté Paris.
+  if(ctx.france){
+    _depValiderConfirmerFrance(ctx, fiche);
+    return;
+  }
+
   _depEcrireClient({ collecteId: ctx.collecteId, clientId: ctx.clientId }, {
     colis: fiche.colis,
     nbColis: fiche.nbColis || 1,
@@ -10995,6 +11036,81 @@ window.depValiderConfirmer = function(){
   }
   _depValiderCtx = null;
 };
+
+/* v1.45.0 — Le même geste, côté France & Europe.
+   Jusqu'ici « Ramassé » ne faisait que poser un statut : pas de photo, pas
+   de détail des colis, pas de destinataire, pas de container. Le colis
+   partait ensuite par deux chemins différents, dont un — hérité du
+   parcours Danny Diop — qui l'envoyait à l'historique sans container.
+   On fait désormais comme à Paris : ramassage → facture → container. */
+function _depValiderConfirmerFrance(ctx, fiche){
+  var u = window.currentUser || {}, now = Date.now();
+
+  // Le ramassage est acté ici, exactement comme le camion l'est à Paris.
+  var dejaRamasse = (fiche.statut === 'ramasse' || fiche.statut === 'parti');
+  fiche.statut = (fiche.statut === 'parti') ? 'parti' : 'ramasse';
+  if(!dejaRamasse){
+    fiche.ramassePar = u.name || '';
+    fiche.ramasseTs  = now;
+  }
+
+  _depEcrireFacture({ france: true, clientId: ctx.clientId }, {
+    colis: fiche.colis,
+    nb: fiche.nbColis || 1,
+    nbColis: fiche.nbColis || 1,
+    colisDetail: fiche.colisDetail || null,
+    destinataireNom: fiche.destinataireNom,
+    destinataireTel: fiche.destinataireTel,
+    destinataireTel2: fiche.destinataireTel2 || '',
+    livraisonDakar: !!fiche.livraisonDakar,
+    livraisonAdresse: fiche.livraisonAdresse || '',
+    livraisonVille: fiche.livraisonVille || '',
+    livraisonVilleAutre: fiche.livraisonVilleAutre || '',
+    prixLivraison: fiche.prixLivraison || 0,
+    departId: fiche.departId,
+    rangDepart: fiche.rangDepart || null,
+    rangDepartId: fiche.rangDepartId || null,
+    historiqueDepart: fiche.historiqueDepart || null,
+    prix: fiche.prix,
+    prixADefinir: !!fiche.prixADefinir,
+    aPhotoColis: true,
+    statut: fiche.statut,
+    ramassePar: fiche.ramassePar || '',
+    ramasseTs: fiche.ramasseTs || now,
+    hist: fiche.hist
+  });
+
+  // Le client sort de la liste « à ramasser » de son camion France.
+  try{ _depMarquerRamasseCamionFrance(ctx.clientId); }catch(e){}
+
+  try{
+    depActivite('&#9989;', 'a ramass&eacute; <strong>' + esc(_depNomFiche(fiche)) + '</strong> &mdash; France &amp; Europe');
+  }catch(e){}
+
+  try{
+    depOuvrirFactureFrance(ctx.clientId);
+  }catch(e){
+    console.error('departs: ouverture facture France après validation', e);
+    goTo('s-france');
+  }
+  _depValiderCtx = null;
+}
+
+// Coche le client dans le camion de la collecte France en cours — le
+// pendant de trks[tk].validated côté Paris.
+function _depMarquerRamasseCamionFrance(id){
+  if(typeof window._frCollecteActive !== 'function') return;
+  var r = window._frCollecteActive();
+  if(!r) return;
+  var k = (typeof window._frCamionDuClient === 'function') ? window._frCamionDuClient(id, r) : '';
+  var tk = ((r.trucks || {})[k]);
+  if(!tk) return;
+  tk.validated = tk.validated || [];
+  if(tk.validated.indexOf(id) < 0) tk.validated.push(id);
+  var ir = (tk.refused || []).indexOf(id);
+  if(ir >= 0) tk.refused.splice(ir, 1);
+  if(typeof window._frSauverCollecte === 'function') window._frSauverCollecte(r);
+}
 
 /* ─────────────────────────────────────────────
    12bis. AUTOCOMPLETE — suggestions de contact déjà connu + adresse (v1.19.15)
@@ -12301,17 +12417,38 @@ function greffer(){
           // pour rester cohérent avec le bouton équivalent de la Collecte
           // (retour de Cobey du 29/08/2026 : "il faut une cohérence pour
           // les mêmes actions").
+          // v1.45.0 : le bouton dépendait de `lieu === 'mitry'`, l'étape de
+          // dépôt du parcours Danny Diop — un client ramassé par un poste
+          // chauffeur partenaire n'avait donc aucun bouton, et personne ne
+          // pouvait le facturer. Comme à Paris, un colis ramassé se
+          // facture ; ce sont les chauffeurs qui ramassent, DCT qui chiffre
+          // (demande de Cobey du 19/09/2026).
           var cFiche = ((window.franceData||{}).clients||{})[window.franceClientId];
-          if(cFiche && typeof _peutGererFrance === 'function' && _peutGererFrance()
-             && (cFiche.lieu === 'mitry' || cFiche.statut === 'parti')){
-            var bFact = document.createElement('button');
-            bFact.className = 'btn';
-            bFact.style.cssText = 'background:#1a237e;color:#fff;';
-            bFact.innerHTML = '🧾 Facture';
+          if(cFiche && typeof _peutGererFrance === 'function' && _peutGererFrance()){
             var idFiche = window.franceClientId;
-            bFact.onclick = function(){ depOuvrirFactureFrance(idFiche); };
-            var premierBtn = box.querySelector('button');
-            if(premierBtn) box.insertBefore(bFact, premierBtn); else box.appendChild(bFact);
+            var dejaFacture = (cFiche.statut === 'parti' || cFiche.factureValidee || !!cFiche.departId);
+            var estRamasse  = (cFiche.statut === 'ramasse' || cFiche.lieu === 'mitry');
+            var bFact = null;
+            if(dejaFacture){
+              bFact = document.createElement('button');
+              bFact.className = 'btn';
+              bFact.style.cssText = 'background:#1a237e;color:#fff;';
+              bFact.innerHTML = '🧾 Facture';
+              bFact.onclick = function(){ depOuvrirFactureFrance(idFiche); };
+            } else if(estRamasse){
+              bFact = document.createElement('button');
+              bFact.className = 'btn';
+              bFact.style.cssText = 'background:#006b2d;color:#fff;';
+              bFact.innerHTML = '✅ Valider &amp; facturer';
+              bFact.onclick = function(){
+                depOuvrirValidation(idFiche, '', _depNomFiche(cFiche), 0,
+                  { france: true, retour: 's-france-client' });
+              };
+            }
+            if(bFact){
+              var premierBtn = box.querySelector('button');
+              if(premierBtn) box.insertBefore(bFact, premierBtn); else box.appendChild(bFact);
+            }
           }
         }
       }catch(e){ console.error('departs: retrait photos fiche france', e); }
@@ -12546,6 +12683,26 @@ function greffer(){
       return origSelectionPossible.apply(this, arguments);
     };
     window._selectionPossible._depPatch = true;
+  }
+
+  /* --- Q2 (v1.45.0). « ✅ Ramassé » de la feuille de route France & Europe.
+     Il ne faisait que poser un statut : aucune photo, aucun détail de
+     colis, aucun destinataire, aucun container — tout cela restait à
+     faire plus tard, à la main, par deux chemins différents (dont un,
+     hérité du parcours Danny Diop, qui envoyait le colis à l'historique
+     sans container du tout).
+     Il ouvre désormais le même écran Valider que la Collecte Paris, qui
+     enchaîne sur la facture, puis sur le container : un seul chemin, les
+     mêmes étapes, le même écran (demande de Cobey du 19/09/2026 :
+     « exactement comme le parcours Paris »). --- */
+  if(typeof window.validerArretFrance === 'function' && !window.validerArretFrance._depPatch){
+    window.validerArretFrance = function(id){
+      var c = ((window.franceData||{}).clients||{})[id];
+      if(!c){ toast('⚠️ Client introuvable.'); return; }
+      depOuvrirValidation(id, window._frCamion || '', _depNomFiche(c), 0,
+        { france: true, retour: 's-fr-camion' });
+    };
+    window.validerArretFrance._depPatch = true;
   }
 
   /* --- R (v1.19.71). Notifications "nouveau client" pour Danny Diop (et
