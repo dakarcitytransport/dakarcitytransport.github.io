@@ -1612,7 +1612,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.72.0';
+var APP_VERSION = 'v3.72.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -13057,12 +13057,61 @@ function renderAdminEquipe(){
     sec.appendChild(row);
   });
 
-  // Admin toujours en dernier
-  var adminRow = document.createElement('div');
-  adminRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;background:#1a1a2e;border-radius:10px;margin-bottom:16px;border-left:4px solid #fff;opacity:0.85;';
-  adminRow.innerHTML = '<div style="width:40px;height:40px;border-radius:50%;background:#333;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:2px solid #fff;flex-shrink:0;">AD</div>'
-    +'<div style="flex:1;"><div style="font-weight:800;font-size:14px;color:#fff;">Administrateur</div><div style="font-size:11px;color:#aaa;">Toujours en dernier · 🔒</div></div>';
-  sec.appendChild(adminRow);
+  /* v3.72.1 — Les administrateurs aussi.
+     Cette place ne montrait qu'une ligne figée, sans aucun bouton : un
+     administrateur qui perdait son code n'avait donc AUCUN moyen de le
+     remettre à zéro, alors que c'est possible pour tout le monde
+     d'autre (retour de Cobey du 19/09/2026, resté dehors de son propre
+     profil). Ils ont maintenant les mêmes boutons — sauf désactiver et
+     supprimer, qui fermeraient la porte pour de bon. */
+  var admins = COLLABS.filter(function(c){ return c.admin; });
+  if(admins.length){
+    var titreA = document.createElement('div');
+    titreA.style.cssText = 'font-size:15px;font-weight:800;color:#1a1a2e;margin:20px 0 12px;';
+    titreA.textContent = '🔐 Administrateurs';
+    sec.appendChild(titreA);
+
+    admins.forEach(function(c){
+      var realIdxA = COLLABS.indexOf(c);
+      var ligne = document.createElement('div');
+      ligne.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;'
+        + 'border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:8px;border-left:4px solid '+c.color+';';
+
+      var avA = document.createElement('div');
+      avA.style.cssText = 'width:40px;height:40px;border-radius:50%;background:'+c.bg+';color:'+c.color
+        + ';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:2px solid '+c.color+';flex-shrink:0;';
+      avA.textContent = c.id;
+      ligne.appendChild(avA);
+
+      var infoA = document.createElement('div');
+      infoA.style.cssText = 'flex:1;min-width:0;';
+      infoA.innerHTML = '<div style="font-weight:800;font-size:14px;color:#111;">'+c.name+'</div>'
+        + '<div style="font-size:11px;color:#888;">ID : '+c.id+' · Administrateur</div>';
+      ligne.appendChild(infoA);
+
+      var bEdit = document.createElement('button');
+      bEdit.textContent = '✏️';
+      bEdit.title = 'Renommer';
+      bEdit.style.cssText = 'padding:6px 10px;background:#fff8e1;color:#e65100;border:1.5px solid #e65100;border-radius:8px;font-size:13px;cursor:pointer;font-family:var(--font);';
+      (function(ri){ bEdit.onclick = function(){ _ouvrirModifierCollab(ri); }; })(realIdxA);
+      ligne.appendChild(bEdit);
+
+      var bPin = document.createElement('button');
+      bPin.textContent = '🔑';
+      bPin.title = 'Réinitialiser le PIN';
+      bPin.style.cssText = 'padding:6px 10px;background:#e8eaf6;color:#283593;border:1.5px solid #283593;border-radius:8px;font-size:13px;cursor:pointer;font-family:var(--font);';
+      (function(cid, cname){ bPin.onclick = function(){ _confirmerResetPin(cid, cname); }; })(c.id, c.name);
+      ligne.appendChild(bPin);
+
+      sec.appendChild(ligne);
+    });
+
+    var noteA = document.createElement('div');
+    noteA.style.cssText = 'font-size:11.5px;color:#888;line-height:1.5;margin:-2px 0 16px;';
+    noteA.textContent = 'Un administrateur ne peut être ni désactivé ni supprimé : il resterait '
+      + 'définitivement dehors. Le 🔑 remet son code à zéro — il en choisira un nouveau à sa prochaine connexion.';
+    sec.appendChild(noteA);
+  }
 
   // Formulaire ajout
   var PALETTE = [
