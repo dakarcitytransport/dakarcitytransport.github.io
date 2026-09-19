@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.50.0';
+var DEP_VERSION = 'v1.50.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14433,8 +14433,11 @@ window.depCarteActions = function(id){
   if(m) m.remove();
   m = document.createElement('div');
   m.id = 'modal-dep-carte-actions';
-  m.className = 'modal-overlay open';
-  m.style.cssText = 'align-items:center;z-index:10000;';
+  // La classe qui rend une modale visible ici est "show" (voir openModal),
+  // pas "open" : avec "open" elle s'ouvrait sans jamais s'afficher. Et son
+  // z-index doit passer devant la carte plein écran, qui est à 9999.
+  m.className = 'modal-overlay show';
+  m.style.cssText = 'align-items:center;z-index:10000;display:flex;';
   m.innerHTML = '<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
     + '<div style="font-size:16px;font-weight:800;color:#1a1a2e;">'+esc(c.name||'')+'</div>'
     + '<div style="font-size:12.5px;color:#666;margin:4px 0 14px;line-height:1.5;">'
