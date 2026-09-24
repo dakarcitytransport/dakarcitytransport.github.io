@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.83.0';
+var DEP_VERSION = 'v1.84.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2071,9 +2071,20 @@ function tousLesClients(){
 // 24/09/2026 : "savoir combien on a reçu sur combien, idem pour la
 // caisse des livraisons".
 function compteursDepart(departId){
+  /* v1.84.0 — colisTrop / livTrop : l'argent enregistré en trop.
+
+     Une fiche où le versé dépasse le prix ne doit pas exister : un
+     client paie ce qu'il doit, rien de plus (Cobey, 24/09/2026). Quand
+     ça arrive, c'est une fiche mal remplie — un versement livraison
+     tapé dans la case colis, un acompte pris avant que le prix ne soit
+     fixé, un prix baissé après coup.
+
+     Sans ce compteur, ça restait invisible : « reste dû » plafonne à
+     zéro par client, donc le trop-perçu de l'un ne se voyait qu'en
+     comparant deux totaux à la main, ce que Cobey a fini par faire. */
   var r = { clients:0, euros:0,
-            colisTotal:0, colisPaye:0, colisDu:0,
-            livTotal:0,   livPaye:0,   livDu:0,
+            colisTotal:0, colisPaye:0, colisDu:0, colisTrop:0, colisTropNb:0,
+            livTotal:0,   livPaye:0,   livDu:0,   livTrop:0,   livTropNb:0,
             livClients:0 };
 
   function ajouter(c){
@@ -2084,9 +2095,13 @@ function compteursDepart(departId){
     r.euros += (parseFloat(c.prix) || 0);
     var pc = depCalculerPaiement(c);
     r.colisTotal += pc.total; r.colisPaye += pc.paye; r.colisDu += pc.reste;
+    var tc = _depTropVerse(pc);
+    if(tc > 0){ r.colisTrop += tc; r.colisTropNb++; }
     var pl = depCalculerPaiementLivraison(c);
     if(pl.total > 0) r.livClients++;
     r.livTotal += pl.total;   r.livPaye += pl.paye;   r.livDu += pl.reste;
+    var tl = _depTropVerse(pl);
+    if(tl > 0){ r.livTrop += tl; r.livTropNb++; }
   }
 
   tousLesClients().forEach(function(x){ ajouter(x.c); });
@@ -2103,9 +2118,16 @@ function compteursDepart(departId){
 
   // Les additions d'euros traînent des restes binaires (surtout après une
   // conversion FCFA) — on arrondit une seule fois, à la fin.
-  ['euros','colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
+  ['euros','colisTotal','colisPaye','colisDu','colisTrop','livTotal','livPaye','livDu','livTrop']
     .forEach(function(k){ r[k] = depArrondi2(r[k]); });
   return r;
+}
+
+// Ce qu'une fiche porte en trop : le versé moins le facturé, jamais
+// négatif. Zéro sur une fiche normale.
+function _depTropVerse(p){
+  if(!p) return 0;
+  return depArrondi2(Math.max(0, (p.paye || 0) - (p.total || 0)));
 }
 
 // v1.59.0 — Taper une case RESTE DÛ n'ouvre pas un nouvel écran : la
@@ -2182,6 +2204,41 @@ function _depBlocCaisse(cp){
         ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;">'
           + cp.livClients + ' client' + (cp.livClients>1?'s ont':' a') + ' demand&eacute; la livraison.</div>'
         : '')
+    /* v1.84.0 — L'alerte trop-versé, sous les deux caisses.
+       N'apparaît que s'il y a vraiment quelque chose à corriger : sur un
+       container sain, rien ne s'affiche. */
+    + _depAlerteTrop(cp, 'colis')
+    + _depAlerteTrop(cp, 'livraison')
+    + '</div>';
+}
+
+/* v1.84.0 — « Il y a de l'argent en trop sur des fiches. »
+
+   Cobey, le 24/09/2026, en comparant deux chiffres à la main : « je
+   soustrais le montant facturé au montant reçu, le chiffre en rouge ne
+   correspond pas à l'écart, pourquoi ? » Puis, quand je lui ai parlé de
+   trop-perçu : « un client paye ce qu'il doit, il n'y a pas de
+   surplus ». Il a raison — donc quand l'écart existe, c'est une fiche à
+   corriger, et l'application doit dire laquelle plutôt que de laisser
+   faire des soustractions à la main. */
+function _depAlerteTrop(cp, quoi){
+  var liv = (quoi === 'livraison');
+  var trop = liv ? cp.livTrop : cp.colisTrop;
+  var nb   = liv ? cp.livTropNb : cp.colisTropNb;
+  if(!(trop > 0)) return '';
+  var cle = 'trop-' + quoi;
+  var actif = (_depFiltreDu === cle);
+  return '<div onclick="depVoirRestants(\'' + cle + '\')" '
+    + 'style="cursor:pointer;margin-top:10px;background:#FFF3E0;border:1.5px solid '
+    +   (actif ? '#E58A00' : '#F5C377') + ';border-radius:10px;padding:9px 11px;'
+    +   'display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+    + '<div style="font-size:11.5px;font-weight:700;color:#8A5200;line-height:1.4;">'
+    +   '&#9888;&#65039; <b>' + _depEuros(trop) + ' &euro;</b> enregistr&eacute;s en trop sur <b>'
+    +   nb + '</b> fiche' + (nb>1?'s':'') + (liv ? ' (livraison)' : ' (colis)')
+    +   '<br><span style="font-weight:600;opacity:.85;">Le vers&eacute; d&eacute;passe le prix&nbsp;: &agrave; v&eacute;rifier.</span></div>'
+    + '<div style="flex:none;background:#fff;border:1.5px solid #F5C377;border-radius:20px;'
+    +   'padding:5px 11px;font-size:11px;font-weight:800;color:#8A5200;white-space:nowrap;">'
+    +   (actif ? '&#10003; AFFICH&Eacute;ES' : '&#128071; VOIR LESQUELLES') + '</div>'
     + '</div>';
 }
 
@@ -16533,30 +16590,53 @@ window.depRapfinContainer = function(id){
   // La liste nominative n'apparaît qu'ici, et seulement si on a tapé
   // l'une des deux cases RESTE DÛ.
   if(_depFiltreDu !== 'tous'){
-    var estLiv = (_depFiltreDu === 'livraison');
+    // v1.84.0 : deux listes possibles maintenant — ceux qui doivent
+    // encore, et les fiches où l'argent enregistré dépasse le prix.
+    var estTrop = (_depFiltreDu.indexOf('trop-') === 0);
+    var estLiv = estTrop ? (_depFiltreDu === 'trop-livraison') : (_depFiltreDu === 'livraison');
+    var paiementDe = function(c){
+      return estLiv ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
+    };
     var restants = _depToutesLesFiches()
       .filter(function(x){
         if(!x.c || x.c.departId !== id || _depEstFusionnee(x.c)) return false;
-        return (estLiv ? depCalculerPaiementLivraison(x.c) : depCalculerPaiement(x.c)).reste > 0;
+        var p = paiementDe(x.c);
+        return estTrop ? (_depTropVerse(p) > 0) : (p.reste > 0);
       })
       .map(function(x){
-        x.p = estLiv ? depCalculerPaiementLivraison(x.c) : depCalculerPaiement(x.c);
+        x.p = paiementDe(x.c);
+        x.trop = _depTropVerse(x.p);
         return x;
       })
-      .sort(function(a, b){ return b.p.reste - a.p.reste; });   // le plus gros dû en tête
+      .sort(function(a, b){                       // le plus gros écart en tête
+        return estTrop ? (b.trop - a.trop) : (b.p.reste - a.p.reste);
+      });
 
-    h += '<div id="dep-rf-c-restants" style="background:#FDEDED;border:1.5px solid #F5C6C6;'
-      +   'border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;'
-      +   'align-items:center;justify-content:space-between;gap:10px;">'
-      +   '<div style="font-size:12.5px;font-weight:700;color:#992020;line-height:1.35;">'
-      +     (estLiv ? '&#128666;' : '&#128230;') + ' <b>' + restants.length + '</b> client'
-      +     (restants.length>1?'s':'') + ' doi' + (restants.length>1?'vent':'t') + ' encore <b>'
-      +     (estLiv ? cp.livDu : cp.colisDu) + ' &euro;</b> '
-      +     (estLiv ? 'de livraison' : 'sur les colis') + '</div>'
-      +   '<div onclick="depVoirRestants(\'tous\')" style="flex:none;cursor:pointer;background:#fff;'
-      +     'border:1.5px solid #F5C6C6;border-radius:20px;padding:5px 11px;font-size:11.5px;'
-      +     'font-weight:800;color:#992020;white-space:nowrap;">&#10005; Fermer</div>'
-      + '</div>';
+    h += estTrop
+      ? ('<div id="dep-rf-c-restants" style="background:#FFF3E0;border:1.5px solid #F5C377;'
+        +   'border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;'
+        +   'align-items:center;justify-content:space-between;gap:10px;">'
+        +   '<div style="font-size:12.5px;font-weight:700;color:#8A5200;line-height:1.35;">'
+        +     '&#9888;&#65039; <b>' + restants.length + '</b> fiche' + (restants.length>1?'s':'')
+        +     ' avec <b>' + _depEuros(estLiv ? cp.livTrop : cp.colisTrop) + ' &euro;</b> en trop '
+        +     (estLiv ? 'sur la livraison' : 'sur les colis')
+        +     '<br><span style="font-weight:600;opacity:.85;">Ouvrez la facture pour corriger le versement.</span></div>'
+        +   '<div onclick="depVoirRestants(\'tous\')" style="flex:none;cursor:pointer;background:#fff;'
+        +     'border:1.5px solid #F5C377;border-radius:20px;padding:5px 11px;font-size:11.5px;'
+        +     'font-weight:800;color:#8A5200;white-space:nowrap;">&#10005; Fermer</div>'
+        + '</div>')
+      : ('<div id="dep-rf-c-restants" style="background:#FDEDED;border:1.5px solid #F5C6C6;'
+        +   'border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;'
+        +   'align-items:center;justify-content:space-between;gap:10px;">'
+        +   '<div style="font-size:12.5px;font-weight:700;color:#992020;line-height:1.35;">'
+        +     (estLiv ? '&#128666;' : '&#128230;') + ' <b>' + restants.length + '</b> client'
+        +     (restants.length>1?'s':'') + ' doi' + (restants.length>1?'vent':'t') + ' encore <b>'
+        +     (estLiv ? cp.livDu : cp.colisDu) + ' &euro;</b> '
+        +     (estLiv ? 'de livraison' : 'sur les colis') + '</div>'
+        +   '<div onclick="depVoirRestants(\'tous\')" style="flex:none;cursor:pointer;background:#fff;'
+        +     'border:1.5px solid #F5C6C6;border-radius:20px;padding:5px 11px;font-size:11.5px;'
+        +     'font-weight:800;color:#992020;white-space:nowrap;">&#10005; Fermer</div>'
+        + '</div>');
 
     restants.forEach(function(x){
       var c = x.c;
@@ -16568,17 +16648,23 @@ window.depRapfinContainer = function(id){
         +     (x.src === 'france' ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')
         +   '</div>'
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-        +     '<span><b style="color:#B3261E;">reste ' + x.p.reste + ' &euro;</b>'
-        +       '<span style="color:var(--text3);"> sur ' + x.p.total + ' &euro;</span>'
-        +       (x.p.paye > 0 ? '<span style="color:var(--text3);"> &middot; ' + x.p.paye + ' &euro; d&eacute;j&agrave; vers&eacute;s</span>' : '')
-        +       '</span>'
+        +     (estTrop
+            ? ('<span><b style="color:#8A5200;">' + _depEuros(x.trop) + ' &euro; en trop</b>'
+               + '<span style="color:var(--text3);"> &middot; factur&eacute; ' + x.p.total
+               + ' &euro;, vers&eacute; ' + x.p.paye + ' &euro;</span></span>')
+            : ('<span><b style="color:#B3261E;">reste ' + x.p.reste + ' &euro;</b>'
+               + '<span style="color:var(--text3);"> sur ' + x.p.total + ' &euro;</span>'
+               + (x.p.paye > 0 ? '<span style="color:var(--text3);"> &middot; ' + x.p.paye + ' &euro; d&eacute;j&agrave; vers&eacute;s</span>' : '')
+               + '</span>'))
         +     '<span onclick="event.stopPropagation();">' + _depLienTelIcone(c.tel) + '</span>'
         +   '</div>'
         +   '<div class="dep-cli-btns" style="margin-top:10px;">'
         +     '<button class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
         +       'onclick="event.stopPropagation();depRapfinOuvrirFacture(\''
         +       x.src + '\',\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\')">'
-        +       '&#129534; Facture &middot; encaisser</button>'
+        // v1.84.0 : sur une fiche en trop, il n'y a rien à encaisser —
+        // il y a un versement à reprendre.
+        +       '&#129534; Facture &middot; ' + (estTrop ? 'corriger' : 'encaisser') + '</button>'
         +     '<button class="dep-cli-btn" onclick="event.stopPropagation();depRapfinOuvrirFiche(\''
         +       x.src + '\',\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\')">'
         +       '&#128196; Fiche</button>'

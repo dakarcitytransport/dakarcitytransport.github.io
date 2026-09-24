@@ -233,6 +233,28 @@ nombre de containers, est remontée sous la ligne Recettes. Le bloc
 Dépenses reste : lui a bien deux sources à détailler, camions et
 dépenses fixes, dont la somme fait le total affiché plus haut.
 
+### ~~L'argent enregistré en trop~~
+**Fait le 24/09 (v1.84.0).** Cobey, en vérifiant un container à la
+main : « je soustrais le montant facturé au montant reçu, le chiffre en
+rouge ne correspond pas à l'écart, pourquoi ? » Puis, quand j'ai parlé de
+trop-perçu : « un client paye ce qu'il doit, il n'y a pas de surplus ».
+
+Il a raison, et c'est tout le problème. Le « reste dû » se calcule fiche
+par fiche et ne descend jamais sous zéro : le trop-versé d'un client
+n'annule pas la dette d'un autre — heureusement. Mais du coup il
+n'apparaissait nulle part, et ne se devinait qu'en comparant deux totaux
+à la main.
+
+Chaque caisse d'un container affiche maintenant, **et seulement s'il y a
+lieu**, un bandeau orange : « ⚠️ 534 € enregistrés en trop sur 3 fiches
+— le versé dépasse le prix ». On le touche, on obtient les noms, le
+détail (facturé / versé / écart) et l'accès direct à la facture pour
+corriger. Un container sain n'affiche rien.
+
+C'est presque toujours une erreur de saisie : un versement livraison tapé
+dans la case colis, un acompte pris avant que le prix soit fixé, un prix
+baissé après un paiement.
+
 ### Container
 Total payé et total dû.
 
