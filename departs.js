@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.61.0';
+var DEP_VERSION = 'v1.62.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14661,14 +14661,31 @@ function _depTotalDepenses(colId, camion){
   }, 0));
 }
 
-// Ce que le camion a réellement collecté — même calcul que la ligne
-// "✅ Collecté" du natif, relu ici pour pouvoir en retrancher les frais.
+// Ce que le camion a ramassé — même calcul que la ligne "✅ Collecté" du
+// natif (getTruckCollected), relu ici pour pouvoir en retrancher les
+// frais. Attention au mot : c'est le montant FACTURÉ des clients
+// ramassés, pas l'argent rentré.
 function _depCollecteDuCamion(tk){
   var total = 0;
   var cls = (window.clientsParCollecte || {})[window.currentCollecteId] || {};
   (tk && Array.isArray(tk.validated) ? tk.validated : []).forEach(function(id){
     var c = cls[id];
     if(c) total += (parseFloat(c.prix) || 0);
+  });
+  return depArrondi2(total);
+}
+
+// v1.62.0 — L'argent réellement rentré sur cette tournée : la somme des
+// versements des clients ramassés. Rien ne le disait sur l'écran camion,
+// où "Collecté" ne parle que des colis pris en charge (retour de Cobey
+// du 24/09/2026). Caisse colis uniquement : la livraison s'encaisse à
+// Dakar, dans sa propre caisse (voir depCalculerPaiementLivraison).
+function _depEncaisseDuCamion(tk){
+  var total = 0;
+  var cls = (window.clientsParCollecte || {})[window.currentCollecteId] || {};
+  (tk && Array.isArray(tk.validated) ? tk.validated : []).forEach(function(id){
+    var c = cls[id];
+    if(c) total += depCalculerPaiement(c).paye;
   });
   return depArrondi2(total);
 }
@@ -14715,6 +14732,36 @@ function _depMajBlocDepensesCamion(k){
   if(!box) return;
   var trks = getTrucks(), tk = trks[k];
 
+  // v1.62.0 : l'encaissé réel, toujours affiché — c'est une information
+  // qui manquait, indépendamment des dépenses.
+  var rowE = $('dep-finance-encaisse');
+  if(!rowE){
+    rowE = document.createElement('div');
+    rowE.id = 'dep-finance-encaisse';
+    rowE.className = 'finance-row';
+    rowE.style.cssText = 'margin-top:4px;';
+  }
+  var enc = _depEncaisseDuCamion(tk);
+  var ramasse = _depCollecteDuCamion(tk);
+  rowE.innerHTML = '<span class="finance-label">&#128181; Encaiss&eacute; aupr&egrave;s des clients</span>'
+    + '<span class="finance-val" style="color:#006b2d;">' + _depEuros(enc) + ' &euro;</span>';
+  box.appendChild(rowE);
+  if(ramasse > enc){
+    var rowR = $('dep-finance-adu');
+    if(!rowR){
+      rowR = document.createElement('div');
+      rowR.id = 'dep-finance-adu';
+      rowR.className = 'finance-row';
+      rowR.style.cssText = 'margin-top:4px;';
+    }
+    rowR.innerHTML = '<span class="finance-label">&#8987; Encore d&ucirc; par les clients ramass&eacute;s</span>'
+      + '<span class="finance-val" style="color:#B3261E;">' + _depEuros(depArrondi2(ramasse - enc)) + ' &euro;</span>';
+    box.appendChild(rowR);
+  } else {
+    var vieuxR = $('dep-finance-adu');
+    if(vieuxR && vieuxR.parentNode) vieuxR.parentNode.removeChild(vieuxR);
+  }
+
   var rowD = $('dep-finance-depenses');
   var rowN = $('dep-finance-net');
   if(tot <= 0){
@@ -14732,14 +14779,15 @@ function _depMajBlocDepensesCamion(k){
     + '<span class="finance-val" style="color:#B3261E;">&minus; ' + _depEuros(tot) + ' &euro;</span>';
   box.appendChild(rowD);
 
-  var net = depArrondi2(_depCollecteDuCamion(tk) - tot);
+  var net = depArrondi2(ramasse - tot);
   if(!rowN){
     rowN = document.createElement('div');
     rowN.id = 'dep-finance-net';
     rowN.className = 'finance-row';
     rowN.style.cssText = 'margin-top:4px;padding-top:7px;border-top:1.5px solid var(--border);';
   }
-  rowN.innerHTML = '<span class="finance-label" style="font-weight:800;">&#9989; Gain net du camion</span>'
+  rowN.innerHTML = '<span class="finance-label" style="font-weight:800;">&#9989; Gain net du camion'
+    + '<span style="font-weight:600;color:#999;"> (sur le ramass&eacute;)</span></span>'
     + '<span class="finance-val" style="font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">'
     + _depEuros(net) + ' &euro;</span>';
   box.appendChild(rowN);
