@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.57.0';
+var DEP_VERSION = 'v1.58.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -720,6 +720,9 @@ var _depDetailId = null;        // départ affiché en détail
 // ouverture d'un départ (voir depDetail).
 var _depFiltrePaye = 'tous';       // 'tous' | 'paye' | 'non_paye'
 var _depFiltreLivraison = 'tous';  // 'tous' | 'avec' | 'sans'
+// v1.58.0 : filtre « qui doit encore », posé en tapant l'une des deux
+// cases RESTE DÛ de la caisse du container (voir depVoirRestants).
+var _depFiltreDu = 'tous';         // 'tous' | 'colis' | 'livraison'
 var _depDetailRecherche = '';      // v1.19.57 : recherche expéditeur/destinataire du carré Départ
 var _depMoveClient = null;      // { collecteId, clientId, nom, departId }
 var _depPret = false;
@@ -2080,6 +2083,34 @@ function compteursDepart(departId){
   return r;
 }
 
+// v1.58.0 — Ce que ce client-là doit encore, sur la caisse en cours de
+// dépouillement. N'apparaît que sous ce filtre : hors de là, la ligne
+// reste comme avant.
+function _depResteLigne(c){
+  if(_depFiltreDu === 'tous') return '';
+  var p = (_depFiltreDu === 'livraison')
+    ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
+  if(p.reste <= 0) return '';
+  return ' &middot; <b style="color:#B3261E;">reste ' + p.reste + ' &euro;</b>'
+    + (p.paye > 0 ? ' <span style="color:#888;">(' + p.paye + ' &euro; d&eacute;j&agrave; vers&eacute;s)</span>' : '');
+}
+
+// v1.58.0 — Taper une case RESTE DÛ n'ouvre pas un nouvel écran : on
+// filtre la liste déjà présente, juste en dessous, et on l'amène sous
+// les yeux. Les autres filtres repartent à zéro pour ne pas se
+// contredire entre eux.
+window.depVoirRestants = function(quoi){
+  _depFiltreDu = quoi;
+  if(quoi !== 'tous'){ _depFiltrePaye = 'tous'; _depFiltreLivraison = 'tous'; }
+  if(!_depDetailId) return;
+  depDetail(_depDetailId, true);
+  if(quoi === 'tous') return;
+  try{
+    var cible = $('dep-d-bandeau-du');
+    if(cible && cible.scrollIntoView) cible.scrollIntoView({ behavior:'smooth', block:'start' });
+  }catch(e){}
+};
+
 /* v1.57.0 — Le total facturé n'a pas à être vert.
    Le vert, dans toute l'appli, veut dire « c'est encaissé ». Écrit en
    vert, le total du container laissait croire que les 18 696 € étaient
@@ -2122,8 +2153,14 @@ function _depMiniCaisse(cp){
 // rouge ce qui manque, et au-dessus « reçus sur » pour lire d'un coup
 // où on en est.
 function _depBlocCaisse(cp){
-  function ligne(titre, icone, total, paye, du, teinte){
+  function ligne(titre, icone, total, paye, du, teinte, cle){
     var pct = total > 0 ? Math.round((paye / total) * 100) : 0;
+    // v1.58.0 : la case rouge devient un bouton — elle sort la liste des
+    // clients qui doivent encore quelque chose sur CETTE caisse-là
+    // (demande de Cobey du 24/09/2026 : "je clique et je vois tous les
+    // clients qui n'ont pas encore payé, ça me permet de vérifier vite").
+    var tapable = du > 0;
+    var actif = (_depFiltreDu === cle);
     return '<div style="margin-top:12px;">'
       + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px;">'
       +   '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;">'
@@ -2141,9 +2178,16 @@ function _depBlocCaisse(cp){
       +   '<div style="background:'+teinte.okBg+';border-radius:10px;padding:9px 4px;">'
       +     '<div style="font-size:17px;font-weight:800;color:'+teinte.okFg+';">'+paye+' &euro;</div>'
       +     '<div style="font-size:9.5px;font-weight:800;color:'+teinte.okFg+';opacity:.75;">PAY&Eacute;</div></div>'
-      +   '<div style="background:'+(du > 0 ? '#FBE3E3' : '#F2F2F2')+';border-radius:10px;padding:9px 4px;">'
+      +   '<div style="background:'+(du > 0 ? '#FBE3E3' : '#F2F2F2')+';border-radius:10px;padding:9px 4px;'
+      +     (tapable ? 'cursor:pointer;box-shadow:inset 0 0 0 ' + (actif ? '2.5px' : '1.5px') + ' #E9A9A9;' : '') + '"'
+      +     (tapable ? ' onclick="depVoirRestants(\''+cle+'\')"' : '') + '>'
       +     '<div style="font-size:17px;font-weight:800;color:'+(du > 0 ? '#B3261E' : '#999')+';">'+du+' &euro;</div>'
-      +     '<div style="font-size:9.5px;font-weight:800;color:'+(du > 0 ? '#B3261E' : '#999')+';opacity:.75;">RESTE D&Ucirc;</div></div>'
+      +     '<div style="font-size:9.5px;font-weight:800;color:'+(du > 0 ? '#B3261E' : '#999')+';opacity:.75;">RESTE D&Ucirc;</div>'
+      +     (tapable
+          ? '<div style="font-size:9.5px;font-weight:800;color:#B3261E;margin-top:4px;">'
+            + (actif ? '&#10003; LISTE AFFICH&Eacute;E' : '&#128071; VOIR QUI DOIT') + '</div>'
+          : '')
+      +   '</div>'
       + '</div>'
       + '</div>';
   }
@@ -2155,9 +2199,9 @@ function _depBlocCaisse(cp){
     + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;">'
     +   'Les colis et les livraisons sont deux caisses s&eacute;par&eacute;es.</div>'
     + ligne('COLIS', '&#128230;', cp.colisTotal, cp.colisPaye, cp.colisDu,
-            { okBg:'#D4F0E0', okFg:'#006b2d' })
+            { okBg:'#D4F0E0', okFg:'#006b2d' }, 'colis')
     + ligne('LIVRAISON &agrave; Dakar', '&#128666;', cp.livTotal, cp.livPaye, cp.livDu,
-            { okBg:'#D9EEF7', okFg:'#0b5d78' })
+            { okBg:'#D9EEF7', okFg:'#0b5d78' }, 'livraison')
     + (cp.livClients
         ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;">'
           + cp.livClients + ' client' + (cp.livClients>1?'s ont':' a') + ' demand&eacute; la livraison.</div>'
@@ -5674,6 +5718,7 @@ window.depDetailRetour = function(){
   // le dépouillement en cours.
   _depFiltrePaye = 'tous';
   _depFiltreLivraison = 'tous';
+  _depFiltreDu = 'tous';
   _depDetailRecherche = '';
   var rechD = $('dep-d-recherche'); if(rechD) rechD.value = '';
   if(_depDetailId === DEP_ID_DEPOT){ goTo('s-departs-pays'); depRenderDepartsPaysChoix(); return; }
@@ -5692,7 +5737,10 @@ window.depDetail = function(id, gardeFiltres){
   // dépouiller la même liste (retour de Cobey du 18/09/2026). Ils ne
   // repartent plus que sur un autre départ, ou quand on quitte vraiment
   // celui-ci par son bouton retour (voir depDetailRetour).
-  if(id !== _depDetailId){ _depFiltrePaye = 'tous'; _depFiltreLivraison = 'tous'; _depDetailRecherche = ''; }
+  if(id !== _depDetailId){
+    _depFiltrePaye = 'tous'; _depFiltreLivraison = 'tous';
+    _depFiltreDu = 'tous';   _depDetailRecherche = '';
+  }
   _depDetailId = id;
   // v1.19.57 : barre de recherche par expéditeur/destinataire, en dehors de
   // dep-d-content (voir template) pour ne pas perdre le focus à chaque
@@ -5819,6 +5867,29 @@ window.depDetail = function(id, gardeFiltres){
   // colis ET livraison intégralement réglés (depCalculerPaiementCombine) ;
   // tout le reste (y compris un acompte partiel) compte comme "non payé",
   // volontairement binaire pour rester lisible sur le container.
+  // v1.58.0 : bandeau du filtre « qui doit encore », posé depuis la case
+  // RESTE DÛ de la caisse. Il dit combien de clients et combien d'euros,
+  // et porte la sortie — sans lui, on ne saurait pas pourquoi la liste
+  // est courte.
+  if(_depFiltreDu !== 'tous' && tousAffiches.length){
+    var _estLiv = (_depFiltreDu === 'livraison');
+    var _nDu = tousAffiches.filter(function(x){
+      return (_estLiv ? depCalculerPaiementLivraison(x.c) : depCalculerPaiement(x.c)).reste > 0;
+    }).length;
+    var _totDu = _estLiv ? cp.livDu : cp.colisDu;
+    h += '<div id="dep-d-bandeau-du" style="background:#FDEDED;border:1.5px solid #F5C6C6;border-radius:12px;'
+      +   'padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;'
+      +   'justify-content:space-between;gap:10px;">'
+      +   '<div style="font-size:12.5px;font-weight:700;color:#992020;line-height:1.35;">'
+      +     (_estLiv ? '&#128666;' : '&#128230;') + ' <b>' + _nDu + '</b> client' + (_nDu>1?'s':'')
+      +     ' doi' + (_nDu>1?'vent':'t') + ' encore <b>' + _totDu + ' &euro;</b> '
+      +     (_estLiv ? 'de livraison' : 'sur les colis') + '</div>'
+      +   '<div onclick="depVoirRestants(\'tous\')" style="flex:none;cursor:pointer;background:#fff;'
+      +     'border:1.5px solid #F5C6C6;border-radius:20px;padding:5px 11px;font-size:11.5px;'
+      +     'font-weight:800;color:#992020;white-space:nowrap;">&#10005; Tout voir</div>'
+      + '</div>';
+  }
+
   if(tousAffiches.length){
     var chip = function(actif, label, onclick){
       return '<div class="dep-chip'+(actif?' on':'')+'" onclick="'+onclick+'">'+label+'</div>';
@@ -5848,6 +5919,11 @@ window.depDetail = function(id, gardeFiltres){
       if(_depFiltreLivraison === 'avec' && !avecLiv) return false;
       if(_depFiltreLivraison === 'sans' && avecLiv) return false;
     }
+    // v1.58.0 : caisse par caisse — un client peut avoir soldé ses colis
+    // et devoir encore sa livraison, ou l'inverse. Le filtre "Non payés"
+    // ci-dessus, lui, additionne les deux (depCalculerPaiementCombine).
+    if(_depFiltreDu === 'colis'     && depCalculerPaiement(c).reste <= 0) return false;
+    if(_depFiltreDu === 'livraison' && depCalculerPaiementLivraison(c).reste <= 0) return false;
     if(qDetail){
       var exp = (c.name || ((c.prenom||'')+' '+(c.nom||''))).toLowerCase();
       var dest = (c.destinataireNom||'').toLowerCase();
@@ -5939,7 +6015,11 @@ window.depDetail = function(id, gardeFiltres){
         +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')+'</div>'
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">'
         +     '<span>'+(c.prixADefinir ? '&agrave; d&eacute;finir' : ((parseFloat(c.prix)||0)+' &euro;'))
-        +       (c.livraisonDakar ? ' &middot; &#128666; livraison' : '')+'</span>'
+        +       (c.livraisonDakar ? ' &middot; &#128666; livraison' : '')
+                // v1.58.0 : quand on dépouille une caisse, chaque ligne dit
+                // ce que CE client doit encore — sinon il faut ouvrir les
+                // fiches une par une, ce qu'on cherchait justement à éviter.
+        +       _depResteLigne(c) + '</span>'
         +     _depLienTelIcone(c.tel)
         +   '</div>'
         +   '<div class="dep-cli-btns" style="margin-top:12px;">'
@@ -5974,6 +6054,9 @@ window.depDetail = function(id, gardeFiltres){
 window.depFiltrerDetail = function(type, valeur){
   if(type === 'paye') _depFiltrePaye = valeur;
   else if(type === 'livraison') _depFiltreLivraison = valeur;
+  // v1.58.0 : les pastilles reprennent la main sur le filtre « qui doit
+  // encore » — deux filtrages de paiement à la fois ne se lisent pas.
+  _depFiltreDu = 'tous';
   if(_depDetailId) depDetail(_depDetailId, true);
 };
 
