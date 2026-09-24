@@ -6,6 +6,23 @@ avant de commencer.
 
 ---
 
+## Règle de rédaction (Cobey, 24/09/2026)
+
+> « Je te dis juste des consignes, à titre informatif. Tu n'es pas obligé
+> de tout remettre sur l'application. »
+
+Une consigne dit **pourquoi** construire quelque chose. Elle n'a pas à
+être recopiée à l'écran. Pas de phrase d'introduction qui répète la
+raison d'être d'un écran à ceux qui s'en servent déjà tous les jours.
+
+Une seule exception, validée le 24/09 : une phrase qui **explique
+pourquoi un chiffre affiché n'est pas celui qu'on attendrait** reste
+utile. Les quatre encore en place sont les deux caisses séparées, la
+livraison hors bénéfice, le périmètre du Bilan, et le Mali affrété par
+un prestataire.
+
+---
+
 ## 1 · Droits et profils
 
 - ~~**Ablaye** passe administrateur, comme Issyaka.~~
