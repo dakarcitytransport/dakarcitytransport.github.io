@@ -1625,7 +1625,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.76.0';
+var APP_VERSION = 'v3.77.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -1916,6 +1916,30 @@ function getAssigned(){
 function isLocked(){
   var c=collectes.find(function(x){return x.id===currentCollecteId;});
   return c&&c.statut==='terminee';
+}
+
+/* v3.77.0 — Le verrou d'une collecte clôturée ne s'applique plus à la
+   direction, sur les données d'un CLIENT.
+
+   Une collecte terminée gelait la fiche de tous ses clients. À l'usage,
+   il faut toujours pouvoir corriger quelque chose : un numéro faux, une
+   adresse, un prix renégocié, une erreur de saisie repérée trop tard
+   (retour de Cobey du 24/09/2026 : « un client a toujours besoin d'être
+   modifié pour X raison »).
+
+   Le verrou reste entier pour les collecteurs — c'est lui qui empêche
+   de toucher à une tournée déjà classée — et il reste entier pour tout
+   le monde sur le déroulé de la collecte lui-même (ajouter un camion,
+   clôturer, valider un dispatch) : seules les données du client
+   s'ouvrent. */
+function isLockedClient(){
+  // estDirection() vit dans le module départs, qui l'expose sous
+  // window._estDirection. Si le module n'est pas encore chargé, on garde
+  // le verrou : mieux vaut bloquer une seconde de trop qu'ouvrir à tort.
+  try{
+    if(typeof window._estDirection === 'function' && window._estDirection()) return false;
+  }catch(e){}
+  return isLocked();
 }
 
 // PERSISTANCE
@@ -8744,7 +8768,7 @@ function renderCollecteContent(){
 
 // ONGLET CLIENTS
 function renderClientsTab(){
-  var locked=isLocked(),cls=getClients();
+  var locked=isLockedClient(),cls=getClients();
   var nb=Object.keys(cls).length;
   var total=Object.values(cls).reduce(function(s,c){return s+(c.prix||0);},0);
   var depts=new Set(Object.values(cls).map(function(c){return c.dept;})).size;
@@ -8898,7 +8922,7 @@ function openClientFiche(id,retour){
   _civDct.e = clientData.civilite || '';
   _renderCivDct('e');
   var ds=document.getElementById('delete-sub');if(ds)ds.textContent='Supprimer '+c.name+' ?';
-  var locked=isLocked();
+  var locked=isLockedClient();
   var lb=document.getElementById('client-locked-banner');if(lb)lb.style.display=locked?'flex':'none';
   var ca=document.getElementById('client-actions');if(ca)ca.style.display=locked?'none':'block';
   ['e-prenom','e-nom','e-tel','e-tel2','e-adresse','e-ville','e-cp','e-colis','e-prix'].forEach(function(fid){

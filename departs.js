@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.77.0';
+var DEP_VERSION = 'v1.78.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8989,8 +8989,10 @@ function depRenderFicheLecture(colId, clientId, depot){
 
   // v1.20.13 : le Dépôt direct n'a pas de collecte à clôturer — pas de
   // verrou pour ces fiches-là.
+  // v1.78.0 : la direction n'est plus gardée par une collecte clôturée
+  // (voir isLockedClient dans dct-app.html).
   var loc = false;
-  try{ loc = !depot && isLocked(); }catch(e2){}
+  try{ loc = !depot && (typeof isLockedClient === 'function' ? isLockedClient() : isLocked()); }catch(e2){}
   var act = $('dep-ficheL-actions');
   if(act){
     // v1.26.1 : une collecte terminée n'enferme plus la facture. Le
@@ -9040,7 +9042,7 @@ window.depModifierFicheActuelle = function(force){
     return;
   }
   var loc = false;
-  try{ loc = isLocked(); }catch(e){}
+  try{ loc = (typeof isLockedClient === 'function' ? isLockedClient() : isLocked()); }catch(e){}
   // v1.26.1 : `force` vient de depConfirmerRouvrirFiche, jamais d'un
   // simple clic — le verrou ne se lève que par le chemin explicite.
   if(loc && !force) return;
