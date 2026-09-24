@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.79.0';
+var DEP_VERSION = 'v1.80.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16775,8 +16775,17 @@ window.depRenderRapfinBilan = function(){
     +   'padding:16px;margin-bottom:14px;">'
     + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
     +   'margin-bottom:6px;">&#128666; LIVRAISON &Agrave; DAKAR &mdash; CAISSE S&Eacute;PAR&Eacute;E</div>'
+    /* v1.80.0 : le total facturé manquait de ce côté-ci — la livraison
+       a droit à la même lecture que les colis (retour de Cobey du
+       24/09/2026). */
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
-    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Encaiss&eacute;</span>'
+    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Total factur&eacute;'
+    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">pay&eacute; et non pay&eacute;</span></span>'
+    +   '<b style="font-size:19px;color:var(--text);">' + _depEuros(b.livTotal) + ' &euro;</b>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
+    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Encaiss&eacute;'
+    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">r&eacute;ellement rentr&eacute;</span></span>'
     +   '<b style="font-size:19px;color:#0b5d78;">' + _depEuros(b.livPaye) + ' &euro;</b>'
     + '</div>'
     + (b.livDu > 0
