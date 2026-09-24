@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.82.0';
+var DEP_VERSION = 'v1.83.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16803,7 +16803,13 @@ window.depRenderRapfinBilan = function(){
     + '</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
     +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Recettes'
-    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">r&eacute;ellement encaiss&eacute;</span></span>'
+    /* v1.83.0 : « réellement encaissé » gagne la provenance, reprise du
+       bloc « Recettes des colis » supprimé plus bas — il répétait mot
+       pour mot ce chiffre-ci (repéré par Cobey le 24/09/2026 : « la
+       ligne recette des colis n'est pas en doublon avec la recette plus
+       haut ? »). Elle l'était : même variable, affichée deux fois. */
+    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">r&eacute;ellement encaiss&eacute;'
+    +       ' &middot; hors livraison &middot; ' + b.g.nb + ' container' + (b.g.nb>1?'s':'') + '</span></span>'
     +   '<b style="font-size:19px;color:#006b2d;">' + _depEuros(b.recettes) + ' &euro;</b>'
     + '</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
@@ -16853,15 +16859,18 @@ window.depRenderRapfinBilan = function(){
     +   'et son d&eacute;compte se fera dans son propre espace.</div>'
     + '</div>';
 
-  // ── D'où viennent les recettes ──
-  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Recettes des colis</div>'
-    + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
-    + ligne('&#128230; Colis encaiss&eacute;s sur les containers', b.recettes, '#006b2d',
-            'hors livraison &middot; ' + b.g.nb + ' container' + (b.g.nb>1?'s':''))
-    + '</div>';
+  /* v1.83.0 — Plus de bloc « Recettes des colis ».
+     Il n'avait qu'une ligne, et cette ligne affichait le même chiffre
+     que « Recettes » en tête d'écran. Un détail qui répète son total
+     n'explique rien : sa seule information utile (hors livraison, et le
+     nombre de containers) est remontée sous la ligne Recettes.
+
+     Le bloc « Dépenses » ci-dessous, lui, reste : il a bien deux
+     sources à détailler, camions et dépenses fixes, dont la somme fait
+     le total affiché plus haut. */
 
   // ── D'où viennent les dépenses ──
-  h += '<div class="dep-sec">D&eacute;penses</div>'
+  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">D&eacute;penses</div>'
     + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
     + ligne('&#128666; D&eacute;penses des camions', b.camions, '#B3261E',
             'carburant, d&eacute;jeuner, autres')

@@ -221,6 +221,18 @@ que ses dépenses propres, avec l'explication à l'écran.
 
 Le container affiche alors son **résultat** : encaissé − dépenses.
 
+### ~~Le doublon du Bilan~~
+**Réglé le 24/09 (v1.83.0).** Le bloc « Recettes des colis », en bas du
+Bilan, n'avait qu'une ligne — et cette ligne affichait exactement le même
+chiffre que « Recettes » en tête d'écran (repéré par Cobey). Le bénéfice,
+lui, n'a jamais compté cet argent deux fois : c'était l'affichage qui se
+répétait.
+
+Le bloc est retiré. Sa seule information utile, « hors livraison » et le
+nombre de containers, est remontée sous la ligne Recettes. Le bloc
+Dépenses reste : lui a bien deux sources à détailler, camions et
+dépenses fixes, dont la somme fait le total affiché plus haut.
+
 ### Container
 Total payé et total dû.
 
