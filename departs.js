@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.64.0';
+var DEP_VERSION = 'v1.65.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3458,11 +3458,11 @@ function injecterEcrans(){
   mRep.id = 'modal-dep-reprise';
   mRep.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
     + '<div class="modal-emoji">&#128260;</div>'
-    + '<div class="modal-confirm-title">Reprise &mdash; application 360</div>'
+    + '<div class="modal-confirm-title">Report &mdash; application 360</div>'
     + '<div style="font-size:12.5px;color:#555;margin:8px 0 14px;text-align:left;line-height:1.45;">'
-    +   'Les recettes et les d&eacute;penses d&eacute;j&agrave; faites sur l\'ancienne application. '
-    +   'Elles s\'ajoutent &agrave; ce que DCT calcule ici, pour que le b&eacute;n&eacute;fice reparte du bon endroit '
-    +   'au lieu de z&eacute;ro.</div>'
+    +   'Le dernier chiffre &agrave; date de l\'ancienne application, arr&ecirc;t&eacute; une fois pour toutes. '
+    +   'Il s\'ajoute &agrave; ce que DCT calcule ici : le b&eacute;n&eacute;fice repart du bon endroit, '
+    +   'et tout ce qui vient ensuite se cumule dans cette application.</div>'
     + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">RECETTES D&Eacute;J&Agrave; ENCAISS&Eacute;ES</div>'
     + '<input class="fi" id="dep-rep-recettes" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" style="margin-bottom:11px;">'
     + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">D&Eacute;PENSES D&Eacute;J&Agrave; FAITES</div>'
@@ -16521,12 +16521,15 @@ function _depLibellePosteFixe(cle){
    compte, y compris si elle remet les montants à zéro. On teste donc la
    présence de l'objet en base, pas celle de ses montants.
 
-   Les dépenses de 360 étaient encore incomplètes le jour du relevé —
-   d'où la mention portée par la date d'arrêté, visible sur le bilan. */
+   360 est arrêtée : ces deux montants sont son dernier chiffre à date et
+   ne bougeront plus. Tout ce qui vient après se cumule ici (confirmé par
+   Cobey le 24/09/2026). Le bouton Reprise ne sert donc qu'à corriger le
+   relevé lui-même — les dépenses de 360 étaient encore incomplètes au
+   moment où il a été pris. */
 var DEP_REPRISE_360 = {
   recettes : 84120,
   depenses : 12895,
-  note     : '24/09/2026 — dépenses encore incomplètes'
+  note     : '24/09/2026'
 };
 
 function _depReprise(){
@@ -16591,6 +16594,14 @@ function _depBilanFinancier(){
   };
 }
 
+// Le report de 360 est un solde de clôture : il ne bouge plus, et on le
+// dit sous chacune de ses deux lignes.
+function _depSousTitreReprise(rep){
+  return 'dernier chiffre &agrave; date'
+    + (rep.note ? ', arr&ecirc;t&eacute; au ' + esc(rep.note) : '')
+    + ' &middot; ne bouge plus';
+}
+
 window.depOuvrirRapfinBilan = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   goTo('s-rapfin-bilan');
@@ -16641,8 +16652,7 @@ window.depRenderRapfinBilan = function(){
     + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
     + ligne('&#128230; Encaiss&eacute; sur les containers', b.recDCT, '#006b2d',
             'colis et livraison, ' + b.g.nb + ' container' + (b.g.nb>1?'s':''))
-    + ligne('&#128260; Reprise application 360', b.rep.recettes, '#006b2d',
-            b.rep.note ? ('arr&ecirc;t&eacute; au ' + esc(b.rep.note)) : 'report de l\'ancienne appli')
+    + ligne('&#128260; Report application 360', b.rep.recettes, '#006b2d', _depSousTitreReprise(b.rep))
     + '</div>';
 
   // ── D'où viennent les dépenses ──
@@ -16652,14 +16662,13 @@ window.depRenderRapfinBilan = function(){
             'carburant, d&eacute;jeuner, autres')
     + ligne('&#127968; D&eacute;penses fixes', b.totFixes, '#B3261E',
             b.fixes.length + ' ligne' + (b.fixes.length>1?'s':'') + ' saisie' + (b.fixes.length>1?'s':''))
-    + ligne('&#128260; Reprise application 360', b.rep.depenses, '#B3261E',
-            b.rep.note ? ('arr&ecirc;t&eacute; au ' + esc(b.rep.note)) : 'report de l\'ancienne appli')
+    + ligne('&#128260; Report application 360', b.rep.depenses, '#B3261E', _depSousTitreReprise(b.rep))
     + '</div>';
 
   h += '<button class="btn btn-gray" style="margin-bottom:10px;" onclick="depOuvrirRapfinFixes()">'
     + '&#127968; G&eacute;rer les d&eacute;penses fixes</button>'
     + '<button class="btn btn-gray" style="background:#EDE5FC;border-color:#D9C8F5;color:#6d28d9;" '
-    + 'onclick="depOuvrirReprise()">&#128260; Reprise application 360</button>';
+    + 'onclick="depOuvrirReprise()">&#128260; Report application 360</button>';
 
   box.innerHTML = h;
 };
@@ -16675,8 +16684,9 @@ window.depOuvrirReprise = function(){
   // 360 qui s'affichent : il n'y a qu'à les corriger, pas à les retaper.
   var av = $('dep-rep-avis');
   if(av) av.innerHTML = r.dorigine
-    ? '&#128206; Chiffres relev&eacute;s sur 360 le 24/09/2026, pas encore confirm&eacute;s ici.'
-    : ('&#9989; Enregistr&eacute; le ' + esc(dateHeureFr(r.le)) + (r.par ? ' par ' + esc(r.par) : ''));
+    ? '&#128206; Dernier chiffre &agrave; date de l\'application 360, relev&eacute; le 24/09/2026. '
+      + 'Il ne bouge plus &mdash; ne le corrigez que si le relev&eacute; lui-m&ecirc;me &eacute;tait incomplet.'
+    : ('&#9989; Corrig&eacute; le ' + esc(dateHeureFr(r.le)) + (r.par ? ' par ' + esc(r.par) : ''));
   openModal('modal-dep-reprise');
 };
 
