@@ -32,10 +32,14 @@ avant de commencer.
 
 ## 2 · Améliorations
 
-### Carré Départ
-Afficher côte à côte, avec des couleurs qui les distinguent :
-- total **payé** et total **dû**, hors livraison
-- total **livraison payée** et **livraison due**
+### ~~Carré Départ~~
+**Fait le 24/09 (v1.56.0).** Chaque container porte un encart « Caisse »
+à deux lignes — colis, puis livraison — avec le payé en vert et le
+restant dû en rouge, et « X € reçus sur Y € » au-dessus de chacune. La
+carte du container dans la liste reprend les quatre chiffres en une
+ligne. Les deux caisses n'ont jamais été mélangées : le total affiché en
+haut du container ne compte que les colis (il est d'ailleurs relibellé
+« € COLIS »), la livraison a sa propre caisse depuis la v1.19.22.
 
 ### Lenteur
 Après modification d'une facture, le prix met trop de temps à apparaître

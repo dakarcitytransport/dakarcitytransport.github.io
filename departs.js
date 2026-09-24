@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.55.0';
+var DEP_VERSION = 'v1.56.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2034,37 +2034,120 @@ function tousLesClients(){
   return out;
 }
 
-// Compteurs d'un départ : calculés à la volée, jamais stockés
+// Compteurs d'un départ : calculés à la volée, jamais stockés.
+// `euros` n'a jamais compté que le colis (c.prix) — la livraison a
+// toujours eu sa propre caisse (c.prixLivraison / versementsLivraison,
+// voir depCalculerPaiementLivraison). Les deux ne se mélangent pas.
+// v1.56.0 : on ramène en plus, dans le même passage, ce qui a été
+// encaissé et ce qui reste dû, de chaque côté — demande de Cobey du
+// 24/09/2026 : "savoir combien on a reçu sur combien, idem pour la
+// caisse des livraisons".
 function compteursDepart(departId){
-  var n = 0, euros = 0;
-  tousLesClients().forEach(function(x){
-    // v1.31.0 : ne compter qu'une fois une facture regroupee.
-    if(x.c.departId === departId && !_depEstFusionnee(x.c)){
-      n++;
-      euros += (parseFloat(x.c.prix) || 0);
-    }
-  });
+  var r = { clients:0, euros:0,
+            colisTotal:0, colisPaye:0, colisDu:0,
+            livTotal:0,   livPaye:0,   livDu:0,
+            livClients:0 };
+
+  function ajouter(c){
+    // v1.31.0 : ne compter qu'une fois une facture regroupée — ses colis,
+    // son montant et ses versements sont portés par la principale.
+    if(!c || c.departId !== departId || _depEstFusionnee(c)) return;
+    r.clients++;
+    r.euros += (parseFloat(c.prix) || 0);
+    var pc = depCalculerPaiement(c);
+    r.colisTotal += pc.total; r.colisPaye += pc.paye; r.colisDu += pc.reste;
+    var pl = depCalculerPaiementLivraison(c);
+    if(pl.total > 0) r.livClients++;
+    r.livTotal += pl.total;   r.livPaye += pl.paye;   r.livDu += pl.reste;
+  }
+
+  tousLesClients().forEach(function(x){ ajouter(x.c); });
   // v1.48.0 : une facture regroupée ne comptait qu'une fois côté Collecte,
   // mais deux fois pour le Dépôt direct et France & Europe — le total
   // annoncé en haut du container dépassait alors le nombre de fiches
   // réellement listées en dessous.
-  Object.keys(window.depotClients||{}).forEach(function(id){
-    var c = window.depotClients[id];
-    if(c && c.departId === departId && !_depEstFusionnee(c)){
-      n++;
-      euros += (parseFloat(c.prix) || 0);
-    }
-  });
+  var dep = window.depotClients || {};
+  Object.keys(dep).forEach(function(id){ ajouter(dep[id]); });
   // v1.19.63 : les clients France & Europe partagent désormais les mêmes
   // containers que Collecte/Dépôt (voir depValiderFactureFinaleFrance).
-  Object.keys((window.franceData||{}).clients || {}).forEach(function(id){
-    var c = window.franceData.clients[id];
-    if(c && c.departId === departId && !_depEstFusionnee(c)){
-      n++;
-      euros += (parseFloat(c.prix) || 0);
-    }
-  });
-  return { clients:n, euros:euros };
+  var fr = (window.franceData||{}).clients || {};
+  Object.keys(fr).forEach(function(id){ ajouter(fr[id]); });
+
+  // Les additions d'euros traînent des restes binaires (surtout après une
+  // conversion FCFA) — on arrondit une seule fois, à la fin.
+  ['euros','colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
+    .forEach(function(k){ r[k] = depArrondi2(r[k]); });
+  return r;
+}
+
+// v1.56.0 — La version courte, sur la carte d'un container dans la
+// liste : deux lignes serrées, colis puis livraison, vert/rouge. Rien
+// n'est additionné entre les deux caisses.
+function _depMiniCaisse(cp){
+  function ligne(icone, total, paye, du){
+    if(!total) return '';
+    return '<span style="display:inline-flex;align-items:center;gap:5px;">'
+      + icone
+      + '<b style="color:#006b2d;">'+paye+' &euro;</b>'
+      + '<span style="color:var(--text3);">re&ccedil;us</span>'
+      + (du > 0 ? '<b style="color:#B3261E;margin-left:3px;">'+du+' &euro;</b>'
+                + '<span style="color:var(--text3);">dus</span>'
+                : '<span style="color:#006b2d;margin-left:3px;font-weight:700;">&#10003; sold&eacute;</span>')
+      + '</span>';
+  }
+  var l = ligne('&#128230;', cp.colisTotal, cp.colisPaye, cp.colisDu)
+        + ligne('&#128666;', cp.livTotal,   cp.livPaye,   cp.livDu);
+  if(!l) return '';
+  return '<div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:7px;'
+    + 'font-size:11.5px;font-weight:600;">' + l + '</div>';
+}
+
+// v1.56.0 — L'encart « Caisse » d'un container : deux lignes, deux
+// caisses, jamais additionnées entre elles. Vert ce qui est rentré,
+// rouge ce qui manque, et au-dessus « reçus sur » pour lire d'un coup
+// où on en est.
+function _depBlocCaisse(cp){
+  function ligne(titre, icone, total, paye, du, teinte){
+    var pct = total > 0 ? Math.round((paye / total) * 100) : 0;
+    return '<div style="margin-top:12px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px;">'
+      +   '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;">'
+      +     icone + ' ' + titre + '</div>'
+      +   '<div style="font-size:12px;font-weight:700;color:var(--text3);text-align:right;">'
+      +     (total > 0
+            ? '<b style="color:#006b2d;">' + paye + ' &euro;</b> re&ccedil;us sur ' + total + ' &euro;'
+            : 'Aucun montant')
+      +   '</div>'
+      + '</div>'
+      + '<div style="height:6px;border-radius:4px;background:#EDEDED;overflow:hidden;margin-bottom:8px;">'
+      +   '<div style="height:100%;width:'+pct+'%;background:#009A44;"></div>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">'
+      +   '<div style="background:'+teinte.okBg+';border-radius:10px;padding:9px 4px;">'
+      +     '<div style="font-size:17px;font-weight:800;color:'+teinte.okFg+';">'+paye+' &euro;</div>'
+      +     '<div style="font-size:9.5px;font-weight:800;color:'+teinte.okFg+';opacity:.75;">PAY&Eacute;</div></div>'
+      +   '<div style="background:'+(du > 0 ? '#FBE3E3' : '#F2F2F2')+';border-radius:10px;padding:9px 4px;">'
+      +     '<div style="font-size:17px;font-weight:800;color:'+(du > 0 ? '#B3261E' : '#999')+';">'+du+' &euro;</div>'
+      +     '<div style="font-size:9.5px;font-weight:800;color:'+(du > 0 ? '#B3261E' : '#999')+';opacity:.75;">RESTE D&Ucirc;</div></div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:14px;margin-bottom:14px;">'
+    + '<div style="font-size:12px;font-weight:800;color:var(--text);letter-spacing:.02em;">'
+    +   '&#128176; Caisse de ce container</div>'
+    + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;">'
+    +   'Les colis et les livraisons sont deux caisses s&eacute;par&eacute;es.</div>'
+    + ligne('COLIS', '&#128230;', cp.colisTotal, cp.colisPaye, cp.colisDu,
+            { okBg:'#D4F0E0', okFg:'#006b2d' })
+    + ligne('LIVRAISON &agrave; Dakar', '&#128666;', cp.livTotal, cp.livPaye, cp.livDu,
+            { okBg:'#D9EEF7', okFg:'#0b5d78' })
+    + (cp.livClients
+        ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;">'
+          + cp.livClients + ' client' + (cp.livClients>1?'s ont':' a') + ' demand&eacute; la livraison.</div>'
+        : '')
+    + '</div>';
 }
 
 // Les départs proposés aux collaborateurs à l'inscription
@@ -5210,6 +5293,10 @@ window.depRenderListe = function(){
       +     '<span>&#128100; <b>'+cp.clients+'</b> client'+(cp.clients>1?'s':'')+'</span>'
       +     '<span>&#128176; <b>'+cp.euros+'</b> &euro;</span>'
       +   '</div>'
+      // v1.56.0 : le montant seul ne disait pas ce qui était rentré. On
+      // ajoute l'encaissé et le restant dû, colis et livraison séparés —
+      // le détail complet reste dans le container (voir _depBlocCaisse).
+      +   _depMiniCaisse(cp)
       +   (ouvert
           ? '<div style="margin-top:8px;display:inline-block;background:var(--green-light);color:var(--green-dark);'
             + 'font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;">&#9679; OUVERT &Agrave; L\'INSCRIPTION</div>'
@@ -5629,7 +5716,7 @@ window.depDetail = function(id, gardeFiltres){
       +     '<div><div style="font-size:20px;font-weight:800;color:#252599;">'+cp.clients+'</div>'
       +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">CLIENT'+(cp.clients>1?'S':'')+'</div></div>'
       +     '<div><div style="font-size:20px;font-weight:800;color:#006b2d;">'+cp.euros+'</div>'
-      +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">EUROS</div></div>'
+      +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">&euro; COLIS</div></div>'
       +   '</div>'
       + '</div>';
   } else {
@@ -5643,12 +5730,17 @@ window.depDetail = function(id, gardeFiltres){
     +     '<div><div style="font-size:20px;font-weight:800;color:#252599;">'+cp.clients+'</div>'
     +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">CLIENT'+(cp.clients>1?'S':'')+'</div></div>'
     +     '<div><div style="font-size:20px;font-weight:800;color:#006b2d;">'+cp.euros+'</div>'
-    +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">EUROS</div></div>'
+    +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">&euro; COLIS</div></div>'
     +     '<div><div style="font-size:14px;font-weight:800;color:var(--text);margin-top:4px;">'+dateFr(d.dateArriveePrevue)+'</div>'
     +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">ARRIV&Eacute;E</div></div>'
     +   '</div>'
     + '</div>';
   }
+
+  // v1.56.0 : combien est rentré, combien manque — colis d'un côté,
+  // livraison de l'autre. Le chiffre « EUROS » ci-dessus ne dit que le
+  // montant facturé des colis ; il ne disait pas ce qui était encaissé.
+  h += _depBlocCaisse(cp);
 
   // v1.19.72 : suivi transport (étapes visibles par le client), affiché
   // uniquement pour un vrai container — le Dépôt (DEP_ID_DEPOT) est un
