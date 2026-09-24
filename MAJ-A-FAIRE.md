@@ -143,9 +143,14 @@ dépenses / bénéfice.
 dépenses, bénéfice en tête, puis le détail de chaque côté. Le bénéfice
 suit tout seul.
 
-Les recettes sont l'argent **réellement encaissé** (colis + livraison,
-tous containers). Ce qui reste dû est rappelé à part, en orange, et ne
-compte pas tant qu'il n'est pas versé.
+Les recettes sont l'argent **réellement encaissé sur les colis**, tous
+containers. Ce qui reste dû est rappelé à part, en orange, et ne compte
+pas tant qu'il n'est pas versé.
+
+**La livraison ne rejoint jamais le bénéfice** (v1.70.0 / v1.71.0). Elle
+a son propre bloc sur le Bilan — encaissé, reste dû — et le résultat
+d'un container s'appelle « Résultat colis ». Cet argent se partage avec
+le livreur : son décompte viendra dans l'espace Mamadou.
 
 ### ~~Dépenses fixes, saisies à la main~~
 **Fait le 24/09 (v1.63.0), rattachées au container le même jour

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.70.0';
+var DEP_VERSION = 'v1.71.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16624,10 +16624,15 @@ function _depBilanFinancier(){
   var totFixes = depArrondi2(fixes.reduce(function(s,o){ return s + (parseFloat(o.montant)||0); }, 0));
   var camions = _depTotalDepensesCamions();
 
-  // Recettes = l'argent réellement rentré. Les deux caisses comptent :
-  // un euro de livraison encaissé est un euro de recette.
-  var recettes = depArrondi2(g.colisPaye + g.livPaye);
-  var aEncaisser = depArrondi2(g.colisDu + g.livDu);
+  /* v1.71.0 — La livraison ne rejoint jamais les recettes.
+     C'est une caisse à part depuis toujours (voir
+     depCalculerPaiementLivraison) : encaissée à Dakar, partagée ensuite
+     avec le livreur, elle n'a pas la même vie que le prix du transport.
+     L'additionner ici gonflait le bénéfice d'un argent qui n'est pas
+     entièrement à DCT (consigne de Cobey du 24/09/2026 : « livraison
+     toujours séparée »). Elle a donc son propre bloc, hors bénéfice. */
+  var recettes = g.colisPaye;
+  var aEncaisser = g.colisDu;
   var depenses = depArrondi2(camions + totFixes);
 
   // Le report de 360 ne rejoint que le bénéfice : les recettes et les
@@ -16637,6 +16642,7 @@ function _depBilanFinancier(){
     g: g, rep: rep, fixes: fixes, totFixes: totFixes, camions: camions,
     aEncaisser: aEncaisser,
     recettes: recettes, depenses: depenses,
+    livPaye: g.livPaye, livDu: g.livDu, livTotal: g.livTotal,
     beneficeDCT: beneficeDCT,
     benefice: depArrondi2(beneficeDCT + rep.benefice)
   };
@@ -16667,6 +16673,8 @@ window.depRenderRapfinBilan = function(){
 
   // ── Le bilan, en tête ──
   h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;">'
+    + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
+    +   'margin-bottom:6px;">&#128230; TRANSPORT DES COLIS</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
     +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Recettes</span>'
     +   '<b style="font-size:19px;color:#006b2d;">' + _depEuros(b.recettes) + ' &euro;</b>'
@@ -16692,16 +16700,36 @@ window.depRenderRapfinBilan = function(){
     + (b.aEncaisser > 0
       ? '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border-radius:8px;'
         + 'padding:8px 10px;margin-top:12px;font-weight:600;line-height:1.4;">'
-        + '&#8987; <b>' + _depEuros(b.aEncaisser) + ' &euro;</b> restent &agrave; encaisser chez les clients. '
+        + '&#8987; <b>' + _depEuros(b.aEncaisser) + ' &euro;</b> de colis restent &agrave; encaisser. '
         + 'Ils ne comptent pas dans les recettes tant qu\'ils ne sont pas vers&eacute;s.</div>'
       : '')
     + '</div>';
 
+  /* La livraison, à part — jamais mêlée au bénéfice ci-dessus. */
+  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:16px;margin-bottom:14px;">'
+    + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
+    +   'margin-bottom:6px;">&#128666; LIVRAISON &Agrave; DAKAR &mdash; CAISSE S&Eacute;PAR&Eacute;E</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
+    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Encaiss&eacute;</span>'
+    +   '<b style="font-size:19px;color:#0b5d78;">' + _depEuros(b.livPaye) + ' &euro;</b>'
+    + '</div>'
+    + (b.livDu > 0
+      ? '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
+        + '<span style="font-size:13px;font-weight:700;color:var(--text3);">Reste d&ucirc;</span>'
+        + '<b style="font-size:16px;color:#B3261E;">' + _depEuros(b.livDu) + ' &euro;</b>'
+        + '</div>'
+      : '')
+    + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.45;">'
+    +   'Cet argent n\'entre pas dans le b&eacute;n&eacute;fice ci-dessus : il se partage avec le livreur, '
+    +   'et son d&eacute;compte se fera dans son propre espace.</div>'
+    + '</div>';
+
   // ── D'où viennent les recettes ──
-  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Recettes</div>'
+  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Recettes des colis</div>'
     + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
-    + ligne('&#128230; Encaiss&eacute; sur les containers', b.recettes, '#006b2d',
-            'colis et livraison, ' + b.g.nb + ' container' + (b.g.nb>1?'s':''))
+    + ligne('&#128230; Colis encaiss&eacute;s sur les containers', b.recettes, '#006b2d',
+            'hors livraison &middot; ' + b.g.nb + ' container' + (b.g.nb>1?'s':''))
     + '</div>';
 
   // ── D'où viennent les dépenses ──
@@ -16716,8 +16744,9 @@ window.depRenderRapfinBilan = function(){
 
   h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;'
     +   'margin-bottom:12px;">Les recettes et les d&eacute;penses ne comptent que ce qui passe par '
-    +   'cette application, depuis septembre 2026. Le b&eacute;n&eacute;fice de l\'ancienne '
-    +   'application 360 s\'ajoutera &agrave; part, quand ses comptes seront arr&ecirc;t&eacute;s.</div>'
+    +   'cette application, depuis septembre 2026, et seulement le transport des colis. '
+    +   'Le b&eacute;n&eacute;fice de l\'ancienne application 360 s\'ajoutera &agrave; part, quand ses '
+    +   'comptes seront arr&ecirc;t&eacute;s.</div>'
     + '<button class="btn btn-gray" style="margin-bottom:10px;" onclick="depOuvrirRapfinContainers()">'
     + '&#128230; Voir les containers</button>'
     + '<button class="btn btn-gray" style="background:#EDE5FC;border-color:#D9C8F5;color:#6d28d9;" '
