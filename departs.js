@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.67.0';
+var DEP_VERSION = 'v1.67.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16788,6 +16788,28 @@ window.depEnregistrerReprise = function(){
    répartissent entre deux containers, les frais suivent la même
    répartition, au prorata du nombre de clients : rien n'est compté deux
    fois, et la somme de tous les containers redonne le total du bilan. */
+// Les containers sénégalais servis par TOUTE une collecte, avec le
+// nombre de clients de chacun. Sert de repli quand un camion n'a
+// ramassé que des colis maliens : ses frais restent portés par le
+// Sénégal, à l'échelle de la journée (voir plus bas).
+function _depContainersSNdeCollecte(colId){
+  var cls = (window.clientsParCollecte || {})[colId] || {};
+  var trucks = ((window.dispatchParCollecte || {})[colId] || {}).trucks || {};
+  var parDepart = {}, n = 0;
+  Object.keys(trucks).forEach(function(cam){
+    var tk = trucks[cam] || {};
+    (Array.isArray(tk.validated) ? tk.validated : []).forEach(function(id){
+      var c = cls[id];
+      if(!c || !c.departId) return;
+      var dep = (window.departsData || {})[c.departId];
+      if(dep && depPaysDepart(dep) === 'ML') return;
+      parDepart[c.departId] = (parDepart[c.departId] || 0) + 1;
+      n++;
+    });
+  });
+  return { parDepart: parDepart, n: n };
+}
+
 function _depCamionsParContainer(departId){
   var out = [];
   var src = window.depensesData || {};
@@ -16796,6 +16818,7 @@ function _depCamionsParContainer(departId){
     var cls = (window.clientsParCollecte || {})[colId] || {};
     var trucks = ((window.dispatchParCollecte || {})[colId] || {}).trucks || {};
     var col = (window.collectes || []).find(function(x){ return x.id === colId; }) || {};
+    var snCollecte = null;   // calculé à la demande, une seule fois
     Object.keys(parCamion).forEach(function(cam){
       var lignes = parCamion[cam] || {};
       var total = 0;
@@ -16820,6 +16843,19 @@ function _depCamionsParContainer(departId){
         parDepart[c.departId] = (parDepart[c.departId] || 0) + 1;
         n++;
       });
+      /* v1.67.1 : un camion peut n'avoir ramassé QUE des colis maliens
+         ce jour-là. Ses frais n'avaient alors plus aucun container où se
+         poser : ils restaient dans le total du bilan sans apparaître
+         nulle part, et la somme des containers ne retombait plus dessus.
+         On les reporte sur les containers sénégalais de la même collecte
+         — le même jour, les mêmes camions, comme Cobey l'a formulé. */
+      var repli = false;
+      if(!n){
+        if(!snCollecte) snCollecte = _depContainersSNdeCollecte(colId);
+        parDepart = snCollecte.parDepart;
+        n = snCollecte.n;
+        repli = true;
+      }
       if(!n || !parDepart[departId]) return;
 
       out.push({
@@ -16830,6 +16866,7 @@ function _depCamionsParContainer(departId){
         clients: parDepart[departId],
         clientsTotal: n,
         mali: nMali,
+        repli: repli,
         partiel: (parDepart[departId] < n),
         montant: depArrondi2(total * parDepart[departId] / n),
         montantCamion: depArrondi2(total)
@@ -16938,10 +16975,13 @@ window.depRenderDepensesFixes = function(){
             ? ' <span style="color:#8A5200;">(part de ' + _depEuros(o.montantCamion) + ' &euro;, '
               + 'le camion a rempli plusieurs containers)</span>'
             : '')
-        +   (o.mali
-            ? '<br><span style="color:#8A5200;">dont la tourn&eacute;e de ' + o.mali + ' colis Mali, '
-              + 'port&eacute;e ici &mdash; le container malien est chez le prestataire</span>'
-            : '')
+        +   (o.repli
+            ? '<br><span style="color:#8A5200;">ce camion n\'a ramass&eacute; que des colis Mali &mdash; '
+              + 'ses frais sont port&eacute;s par les containers S&eacute;n&eacute;gal du m&ecirc;me jour</span>'
+            : (o.mali
+              ? '<br><span style="color:#8A5200;">dont la tourn&eacute;e de ' + o.mali + ' colis Mali, '
+                + 'port&eacute;e ici &mdash; le container malien est chez le prestataire</span>'
+              : ''))
         + '</div>'
         + '</div>';
     }).join('');
