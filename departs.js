@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.71.0';
+var DEP_VERSION = 'v1.72.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16331,6 +16331,11 @@ window.depOuvrirRapfinContainers = function(){
   depRenderRapfinContainers();
 };
 
+window.depRapfinFiltrerPays = function(p){
+  _depRapfinPays = p;
+  depRenderRapfinContainers();
+};
+
 window.depRenderRapfinContainers = function(){
   var box = $('dep-rf-cont-liste');
   if(!box) return;
@@ -16344,14 +16349,35 @@ window.depRenderRapfinContainers = function(){
     return;
   }
 
+  // Les onglets de pays. On ne compte que les containers qui portent des
+  // clients — les autres n'apparaissent pas dans la liste non plus.
+  var avecClients = _depRapfinTousLesContainers().filter(function(d){
+    return compteursDepart(d._id).clients > 0;
+  });
+  var nSN = avecClients.filter(function(d){ return depPaysDepart(d) === 'SN'; }).length;
+  var nML = avecClients.filter(function(d){ return depPaysDepart(d) === 'ML'; }).length;
+  var onglet = function(cle, libelle, nb){
+    return '<div class="dep-chip' + (_depRapfinPays === cle ? ' on' : '') + '"'
+      + ' onclick="depRapfinFiltrerPays(\'' + cle + '\')">' + libelle
+      + ' <span style="opacity:.65;">' + nb + '</span></div>';
+  };
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">'
+    + onglet('tous', 'Tous', avecClients.length)
+    + onglet('SN', '&#127480;&#127475; Dakar', nSN)
+    + onglet('ML', '&#127474;&#127473; Mali', nML)
+    + '</div>';
+
   // v1.69.0 : le cumul de tous les containers a été retiré d'ici — le
   // Bilan le donne déjà, et le répéter n'apprenait rien (retour de Cobey
   // du 24/09/2026). Cet écran sert à comparer les containers entre eux,
   // pas à faire la somme.
 
+  var affiches = 0;
   _depRapfinTousLesContainers().forEach(function(d){
     var cp = compteursDepart(d._id);
     if(!cp.clients) return;
+    if(_depRapfinPays !== 'tous' && depPaysDepart(d) !== _depRapfinPays) return;
+    affiches++;
     var estDepot = (d._id === DEP_ID_DEPOT);
     var st = STATUTS_DEPART[d.statut] || STATUTS_DEPART.preparation;
     var pM = DEP_PAYS_DEST[depPaysDepart(d)] || {};
@@ -16373,6 +16399,9 @@ window.depRenderRapfinContainers = function(){
       + '</div>';
   });
 
+  if(!affiches){
+    h += '<div class="dep-vide" style="padding:28px 16px;">Aucun container pour ce pays.</div>';
+  }
   box.innerHTML = h;
 };
 
@@ -16397,7 +16426,11 @@ function _depRapfinDeuxCaisses(cp){
        + ligne('&#128666;', 'Livraison', cp.livTotal,   cp.livPaye,   cp.livDu);
 }
 
-var _depRapfinId = null;   // le container ouvert dans le détail financier
+var _depRapfinId = null;    // le container ouvert dans le détail financier
+// v1.72.0 : onglets de pays sur la liste des containers — 'tous' | 'SN' | 'ML'
+// (demande d'Issyaka relayée par Cobey le 24/09/2026 : « 1 onglet Dakar,
+// 1 onglet Mali pour accéder au conteneur choisi »).
+var _depRapfinPays = 'tous';
 
 window.depRapfinContainer = function(id){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
