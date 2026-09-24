@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.59.0';
+var DEP_VERSION = 'v1.60.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2177,6 +2177,23 @@ function departsDisponibles(pays){
     .sort(function(a,b){ return String(a.dateDepart||'').localeCompare(String(b.dateDepart||'')); });
 }
 
+/* v1.60.0 — Le rang d'un container dans le temps, en un seul nombre.
+   Le tri comparait les dates comme du texte. Ça marche tant que tout est
+   au format "2026-10-05", mais un container d'avant le sélecteur de date
+   porte "05/10/2026" : comparé lettre à lettre, il commence par un "0"
+   et se retrouve systématiquement rejeté en bas de liste, quelle que
+   soit son année. Un container sans date tombait au même endroit.
+   On lit donc la date pour de bon, dans les deux écritures, et on se
+   rabat sur la date de création quand il n'y en a pas. */
+function _depQuandDepart(d){
+  var s = String((d && d.dateDepart) || '').trim();
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);          // 2026-10-05
+  if(m) return Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);        // 05/10/2026
+  if(m) return Date.UTC(+m[3], +m[2] - 1, +m[1]);
+  return (d && d.creeLe) || 0;
+}
+
 // Tous les départs, du plus récent au plus ancien — filtre optionnel par pays.
 function tousLesDeparts(pays){
   var d = window.departsData || {};
@@ -2184,7 +2201,12 @@ function tousLesDeparts(pays){
     .map(function(k){ var o = Object.assign({}, d[k]); o._id = k; return o; })
     .filter(function(o){ return o.special !== 'depot'; }) // v1.19.44
     .filter(function(o){ return !pays || depPaysDepart(o) === pays; })
-    .sort(function(a,b){ return String(b.dateDepart||'').localeCompare(String(a.dateDepart||'')); });
+    .sort(function(a,b){
+      var qa = _depQuandDepart(a), qb = _depQuandDepart(b);
+      if(qa !== qb) return qb - qa;
+      // Même jour de départ : le dernier créé passe devant.
+      return (b.creeLe || 0) - (a.creeLe || 0);
+    });
 }
 
 function nomDepart(id){
@@ -15883,7 +15905,7 @@ window.depRenderRapfinContainers = function(){
       +   (duTot > 0 ? '#B3261E' : '#009A44') + ';" onclick="depRapfinContainer(\''+d._id+'\')">'
       +   '<div class="dep-card-top">'
       +     '<div class="dep-nom">' + (estDepot ? '&#127970;' : (pM.drapeau||''))
-      +       ' ' + esc(estDepot ? 'D&eacute;p&ocirc;t (en attente)' : (d.nom||'Sans nom')) + '</div>'
+      +       ' ' + (estDepot ? 'D&eacute;p&ocirc;t (en attente)' : esc(d.nom||'Sans nom')) + '</div>'
       +     (estDepot
           ? '<div class="dep-badge" style="background:#FFF3D6;color:#8A6100;">Stockage</div>'
           : '<div class="dep-badge" style="background:'+st.bg+';color:'+st.color+';">'+depStatutLabel(d)+'</div>')
