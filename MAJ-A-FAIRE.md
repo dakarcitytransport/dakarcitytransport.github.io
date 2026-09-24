@@ -78,11 +78,21 @@ Trois corrections :
    changé depuis un autre téléphone s'affichait seulement après avoir
    refermé puis rouvert la fiche.
 
-### Suivi du colis
-- Retirer la date affichée à chaque étape.
-- Ne garder que l'arrivée à Dakar et l'arrivée au dépôt, visibles au clic.
-- Afficher la **date d'arrivée estimée au port de Dakar** sur la facture
-  de suivi.
+### ~~Suivi du colis~~
+**Fait le 24/09 (v1.82.0).** La frise « Suivi de votre colis », sur la
+facture envoyée au client, ne porte plus une date à chaque étape.
+
+- L'**arrivée estimée au port de Dakar** s'affiche en clair, dans un
+  encadré sous le titre de la frise. C'est la question qu'on nous pose :
+  elle n'est plus cachée.
+- Les deux seules dates qui comptent pour le client — l'arrivée au port
+  et l'arrivée au dépôt — sont pliées derrière un petit bouton
+  « 📅 Voir la date ». Les autres étapes n'en portent plus du tout.
+- La date d'arrivée estimée vient du container (« Arrivée prévue »),
+  déjà saisie à sa création.
+
+Répercuté dans `facture.html`, la page publique autonome, qui reprend la
+même mise en page.
 
 ---
 
@@ -106,8 +116,15 @@ Trois corrections :
 
 - Pouvoir créer des **factures manuelles** rattachées à un container,
   pour le suivi.
-- **Agrandir le QR code** de l'étiquette.
+- ~~**Agrandir le QR code** de l'étiquette.~~ **Fait le 24/09 (v1.82.0).**
+  De 100 à 168 px à l'écran, et le dessin passe de 180 à 300 px pour
+  rester net à l'impression. Une étiquette se scanne sur un colis posé au
+  sol, souvent de biais et à bout de bras : 100 px, c'était trop juste.
 - Remplacer « Scanner en secours » par le **numéro de client**.
+  **?** Cette mention n'existe nulle part dans l'application. À préciser
+  avec Cobey : s'agit-il de la grande ligne en haut de l'étiquette
+  (`CL-0001-051026-7` = n° client + date de départ + place dans le
+  container), à remplacer par le seul numéro de client ?
 
 ---
 

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.81.0';
+var DEP_VERSION = 'v1.82.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3028,6 +3028,17 @@ function injecterEcrans(){
   +     '.fac-suivi-etape.done .fac-suivi-lbl{color:#006b2d;}'
   +     '.fac-suivi-etape.futur .fac-suivi-lbl{color:#aaa;}'
   +     '.fac-suivi-date{font-size:10.5px;color:#888;margin-top:2px;}'
+  // v1.82.0 : l'arrivée estimée au port, en clair sous le titre de la frise.
+  +     '.fac-suivi-estim{background:#fff;border:1.5px solid #C8E6D0;border-radius:9px;'
+  +       'padding:9px 12px;margin:-6px 0 16px;font-size:11.5px;color:#444;line-height:1.6;}'
+  +     '.fac-suivi-estim strong{color:#006b2d;font-weight:800;}'
+  // v1.82.0 : les deux dates qui comptent, pliées derrière « Voir la date ».
+  +     '.fac-suivi-det{margin-top:4px;}'
+  +     '.fac-suivi-det summary{display:inline-block;cursor:pointer;list-style:none;'
+  +       'font-size:10px;font-weight:800;letter-spacing:.03em;color:#006b2d;'
+  +       'background:#EAF7EF;border:1.5px solid #C8E6D0;border-radius:20px;padding:3px 10px;}'
+  +     '.fac-suivi-det summary::-webkit-details-marker{display:none;}'
+  +     '.fac-suivi-det[open] summary{background:#006b2d;color:#fff;border-color:#006b2d;}'
   +     '.fac-suivi-now-tag{display:inline-block;background:#FFF4E0;color:#a04800;font-size:9.5px;font-weight:800;'
   +       'padding:2px 8px;border-radius:20px;margin-top:4px;letter-spacing:.03em;}'
   +     '.fac-suivi-infos{margin-top:8px;background:#fff;border:1.5px dashed #C8E6D0;border-radius:9px;'
@@ -3111,7 +3122,11 @@ function injecterEcrans(){
   // v1.19.29 : QR sur l'étiquette (voir depRenderEtiquettes) — absent
   // avant, retour de Cobey du 23/08/2026.
   +     '.etq-qr-wrap{text-align:center;margin-bottom:10px;}'
-  +     '.etq-qr-wrap canvas{width:100px;height:100px;border:1.5px solid var(--border);border-radius:6px;}'
+  // v1.82.0 : QR agrandi de 100 à 168 px (retour de Cobey du 22/09). Une
+  // étiquette se scanne sur un colis posé au sol, souvent de biais et à
+  // bout de bras : 100 px, c'était trop juste. Le canvas passe de 180 à
+  // 300 px pour rester net à l'impression.
+  +     '.etq-qr-wrap canvas{width:168px;height:168px;border:1.5px solid var(--border);border-radius:6px;}'
   +     '.etq-sep{border:none;border-top:2px solid #006b2d;margin:8px 0 12px;}'
   +     '.etq-parties{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}'
   +     '.etq-partie-titre{font-size:10px;font-weight:800;letter-spacing:.03em;color:#006b2d;margin-bottom:3px;}'
@@ -7117,23 +7132,38 @@ function depRenderSuiviTransportPublic(c){
   var fait = d.etapesTransport || {};
   var dernierIdx = -1;
   etapes.forEach(function(e, i){ if(fait[e.key] && fait[e.key].fait) dernierIdx = i; });
-  // v1.19.76 : date de la dernière mise à jour connue (celle de la
-  // dernière étape validée) — affichée sur l'étape "en cours" elle-même,
-  // qui n'a pas encore sa propre date puisque justement pas encore
-  // validée (retour de Cobey du 29/08/2026 : "il faut une date également
-  // pour que le client sache à quelle date en est le statut").
-  var derniereMajTs = (dernierIdx >= 0 && fait[etapes[dernierIdx].key]) ? fait[etapes[dernierIdx].key].ts : null;
+
+  /* v1.82.0 — La frise ne porte plus une date à chaque étape.
+
+     Quatre dates empilées noyaient l'essentiel et donnaient au client
+     l'impression d'un décompte à surveiller (retour de Cobey du 22/09).
+     Deux seulement comptent vraiment pour lui : le jour où le colis
+     touche Dakar, et le jour où il est à retirer au dépôt. Elles sont
+     là, mais pliées : on touche « Voir la date » pour les ouvrir.
+
+     L'arrivée estimée au port, elle, reste affichée en clair tout en
+     haut — c'est la question qu'on nous pose, pas celle qu'on cache. */
+  var DATES_VISIBLES = { arrivee_port:1, arrivee_depot:1 };
+
+  var estimee = '';
+  if(d.dateArriveePrevue){
+    estimee = '<div class="fac-suivi-estim">&#9875; Arriv&eacute;e estim&eacute;e au port de Dakar&nbsp;: '
+      + '<strong>' + esc(dateFr(d.dateArriveePrevue)) + '</strong></div>';
+  }
 
   var h = '<div class="fac-suivi">'
-    + '<div class="fac-suivi-titre">&#128205; Suivi de votre colis</div>';
+    + '<div class="fac-suivi-titre">&#128205; Suivi de votre colis</div>'
+    + estimee;
   etapes.forEach(function(e, i){
     var cls = i <= dernierIdx ? 'done' : (i === dernierIdx + 1 ? 'now' : 'futur');
     var sousLigne = '';
-    if(cls === 'done' && fait[e.key] && fait[e.key].ts){
-      sousLigne = '<div class="fac-suivi-date">' + esc(dateHeureFr(fait[e.key].ts)) + '</div>';
-    } else if(cls === 'now'){
-      sousLigne = '<span class="fac-suivi-now-tag">&Eacute;tape en cours</span>'
-        + (derniereMajTs ? '<div class="fac-suivi-date">Depuis le ' + esc(dateHeureFr(derniereMajTs)) + '</div>' : '');
+    if(cls === 'now') sousLigne = '<span class="fac-suivi-now-tag">&Eacute;tape en cours</span>';
+    // La date, pliée, et seulement sur les deux étapes qui comptent.
+    if(DATES_VISIBLES[e.key] && cls === 'done' && fait[e.key] && fait[e.key].ts){
+      sousLigne += '<details class="fac-suivi-det">'
+        + '<summary>&#128197; Voir la date</summary>'
+        + '<div class="fac-suivi-date">' + esc(dateHeureFr(fait[e.key].ts)) + '</div>'
+        + '</details>';
     }
     // v1.19.72 : à "Arrivée au dépôt" (Sénégal uniquement — Cobey n'a pas
     // encore précisé l'équivalent pour le Mali), on affiche l'adresse et le
@@ -7631,7 +7661,7 @@ function depRenderEtiquettes(c, ctx, n, plan){
       // que sur la facture, pour ouvrir directement la fiche du client en
       // scannant le colis (retour de Cobey du 23/08/2026). Dessiné juste
       // après l'injection du HTML, voir la boucle plus bas.
-      +       '<div class="etq-qr-wrap"><canvas id="etq-qr-'+i+'" width="180" height="180"></canvas></div>'
+      +       '<div class="etq-qr-wrap"><canvas id="etq-qr-'+i+'" width="300" height="300"></canvas></div>'
       +       '<hr class="etq-sep">'
       +       '<div class="etq-parties">'
       +         '<div>'
@@ -7677,7 +7707,7 @@ function depRenderEtiquettes(c, ctx, n, plan){
     depGenererQR(ctx, 'etq-qr-' + qi, function(){
       _qrFaits++;
       if(_qrFaits >= _qrTotal) window._depEtiquettesQrPretes = true;
-    }, 180);
+    }, 300);
   }
 }
 
@@ -15638,7 +15668,7 @@ function _depRenderEtiquettesMultiples(items){
                   : '')
         +       '<div class="etq-numero">'+esc(numEtq)+'</div>'
         +       '<div class="etq-dest">'+(pInfo.drapeau||'')+' '+esc(DEP_PAYS_NOM_PLAIN[depPaysDepart(d)] || pInfo.nom || '')+'</div>'
-        +       '<div class="etq-qr-wrap"><canvas id="'+canvasId+'" width="180" height="180"></canvas></div>'
+        +       '<div class="etq-qr-wrap"><canvas id="'+canvasId+'" width="300" height="300"></canvas></div>'
         +       '<hr class="etq-sep">'
         +       '<div class="etq-parties">'
         +         '<div>'
@@ -15672,7 +15702,7 @@ function _depRenderEtiquettesMultiples(items){
   function dessinerSuivant(){
     if(idx2 >= qrJobs.length){ window._depEtiquettesQrPretes = true; return; }
     var job = qrJobs[idx2];
-    depGenererQR(job.ctx, job.canvasId, function(){ idx2++; dessinerSuivant(); }, 180);
+    depGenererQR(job.ctx, job.canvasId, function(){ idx2++; dessinerSuivant(); }, 300);
   }
   if(!qrJobs.length) window._depEtiquettesQrPretes = true;
   else dessinerSuivant();
