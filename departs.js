@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.78.0';
+var DEP_VERSION = 'v1.79.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16737,8 +16737,19 @@ window.depRenderRapfinBilan = function(){
   h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;">'
     + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
     +   'margin-bottom:6px;">&#128230; TRANSPORT DES COLIS</div>'
+    /* v1.79.0 : le total facturé, avant les recettes. Il additionne
+       toutes les factures colis du parc, payées ou non — c'est le
+       chiffre d'affaires ; les recettes juste en dessous ne comptent
+       que ce qui est réellement rentré (demande de Cobey du
+       24/09/2026). */
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
-    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Recettes</span>'
+    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Total factur&eacute;'
+    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">pay&eacute; et non pay&eacute;</span></span>'
+    +   '<b style="font-size:19px;color:var(--text);">' + _depEuros(b.g.colisTotal) + ' &euro;</b>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
+    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Recettes'
+    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">r&eacute;ellement encaiss&eacute;</span></span>'
     +   '<b style="font-size:19px;color:#006b2d;">' + _depEuros(b.recettes) + ' &euro;</b>'
     + '</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
