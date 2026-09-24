@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.54.0';
+var DEP_VERSION = 'v1.55.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -528,11 +528,15 @@ var TAUX_FCFA_EUR = 655.957;
 // et ne se corrige plus qu'en contactant la direction (voir depSupprimerVersement).
 var DEP_VERSEMENT_DELAI_SUPPR = 30 * 60 * 1000;
 
-// Les profils qui pilotent : Issyaka et Cobey.
+// Les profils qui pilotent : Issyaka, Abdoulaye et Cobey.
 // On teste l'identifiant et pas seulement le drapeau, parce que
 // chargerConfigFirebase() remplace le tableau COLLABS par celui
 // stocké dans dct_config/collabs — ce qui effaçait le drapeau.
-var IDS_DIRECTION = ['IS','AD'];
+// v1.55.0 : Abdoulaye (AB) rejoint la direction, aux mêmes conditions
+// qu'Issyaka (demande de Cobey du 24/09/2026) — il garde son profil
+// habituel, son PIN et sa couleur, et voit en plus les carrés DÉPARTS,
+// RÉGLAGES, STATISTIQUES et RAPPORT FINANCIER.
+var IDS_DIRECTION = ['IS','AB','AD'];
 
 var STATUTS_DEPART = {
   preparation : {label:'En préparation', bg:'#FFF4E0', color:'#A04800', dot:'#E58A00'},

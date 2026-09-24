@@ -8,7 +8,12 @@ avant de commencer.
 
 ## 1 · Droits et profils
 
-- **Ablaye** passe administrateur, comme Issyaka.
+- ~~**Ablaye** passe administrateur, comme Issyaka.~~
+  **Fait le 24/09 (v1.55.0).** Abdoulaye (AB) rejoint la direction, aux
+  mêmes conditions qu'Issyaka : il garde son profil, son PIN et sa
+  couleur, et voit en plus DÉPARTS, RAPPORT FINANCIER, STATISTIQUES et
+  RÉGLAGES. Seule la case MAINTENANCE (passe-partout) reste à Cobey —
+  comme pour Issyaka.
 - **Nouveau profil : Aminata**, avec accès à :
   - Devis
   - Articles
