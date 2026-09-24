@@ -138,29 +138,32 @@ L'écran camion affiche désormais **💰 Dépenses de la tournée** et
 `dct_depenses/<collecte>/<camion>`, prêt pour l'écran recettes /
 dépenses / bénéfice.
 
-### Écran recettes / dépenses / bénéfice
-Par container, ou en total, pour chaque poste.
+### ~~Écran recettes / dépenses / bénéfice~~
+**Fait le 24/09 (v1.63.0).** Rapport financier > **Bilan**. Recettes,
+dépenses, bénéfice en tête, puis le détail de chaque côté. Le bénéfice
+suit tout seul.
 
-Exemple donné pour septembre 2026 :
+Les recettes sont l'argent **réellement encaissé** (colis + livraison,
+tous containers). Ce qui reste dû est rappelé à part, en orange, et ne
+compte pas tant qu'il n'est pas versé.
 
-| | |
-|---|---|
-| Recettes | 84 120 € |
-| Dépenses | 12 895 € *(données encore incomplètes)* |
-| **Bénéfice** | **71 225 €** |
-
-Le bénéfice suit les recettes et les dépenses : il monte ou descend.
-
-### Dépenses fixes, saisies à la main
-loyer · dédouanement · container · salaires · location · autres
+### ~~Dépenses fixes, saisies à la main~~
+**Fait le 24/09 (v1.63.0).** Écran dédié depuis le Bilan, six postes :
+loyer · dédouanement · container · salaires · location · autres. Chaque
+ligne est datée et signée.
 
 ### Container
 Total payé et total dû.
 
-### Anciennes données
-Récupérer les données de l'ancienne application.
+### ~~Anciennes données~~
+**Fait le 24/09 (v1.63.0).** Elles viennent de l'application **360**,
+arrêtées au jour J. Plutôt que de les réimporter ligne à ligne, le Bilan
+a un bloc **« Reprise application 360 »** : deux montants (recettes déjà
+encaissées, dépenses déjà faites) et la date d'arrêté. Ils s'ajoutent à
+ce que DCT calcule, donc les comptes continuent au lieu de repartir de
+zéro, et les nouveaux containers viennent s'y cumuler.
 
-**?** Où sont-elles, et que faut-il en reprendre ?
+À faire : Cobey saisit les vrais chiffres de 360 dans ce bloc.
 
 ### Statistiques
 Une case avec des graphiques, pour chaque poste.

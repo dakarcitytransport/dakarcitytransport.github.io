@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.62.0';
+var DEP_VERSION = 'v1.63.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3341,6 +3341,11 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#252599;">CONTAINERS</div>'
   +         '<div class="dep-case-sub" id="dep-rf-sub-cont">&mdash;</div>'
   +       '</div>'
+  +       '<div class="dep-case" style="background:#DDF1E6;" onclick="depOuvrirRapfinBilan()">'
+  +         '<div class="dep-case-ico">&#128202;</div>'
+  +         '<div class="dep-case-tit" style="color:#006b2d;">BILAN</div>'
+  +         '<div class="dep-case-sub" id="dep-rf-sub-bilan">&mdash;</div>'
+  +       '</div>'
   +     '</div>'
   +   '</div>'
   + '</div>'
@@ -3374,6 +3379,47 @@ function injecterEcrans(){
   +   '<div class="content"><div id="dep-rf-c-contenu"></div></div>'
   + '</div>'
 
+  /* ---- ÉCRAN (v1.63.0) : Rapport financier > Bilan — recettes,
+     dépenses, bénéfice. Ce que l'appli calcule elle-même, plus la
+     reprise de l'ancienne application 360 : les comptes ne commencent
+     pas à zéro le jour où l'on change d'outil, ils continuent
+     (demande de Cobey du 24/09/2026). ---- */
+  + '<div class="screen" id="s-rapfin-bilan">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-rapport-financier\')">&larr; Rapport</button>'
+  +     '<div><div class="h-title">Bilan</div>'
+  +     '<div class="h-sub">Recettes, d&eacute;penses, b&eacute;n&eacute;fice</div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="dep-rf-bilan"></div></div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v1.63.0) : les dépenses fixes, saisies à la main —
+     loyer, dédouanement, container, salaires, location, autres. ---- */
+  + '<div class="screen" id="s-rapfin-fixes">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="depOuvrirRapfinBilan()">&larr; Bilan</button>'
+  +     '<div><div class="h-title">D&eacute;penses fixes</div>'
+  +     '<div class="h-sub">Saisies &agrave; la main</div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
+  +       '<div style="font-size:11.5px;font-weight:800;color:var(--text3);margin-bottom:7px;">POSTE</div>'
+  +       '<div id="dep-fx-postes" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>'
+  +       '<div style="font-size:11.5px;font-weight:800;color:var(--text3);margin-bottom:6px;">MONTANT</div>'
+  +       '<input class="fi" id="dep-fx-montant" type="number" inputmode="decimal" min="0" step="0.01" '
+  +         'placeholder="0" style="margin-bottom:12px;">'
+  +       '<div style="font-size:11.5px;font-weight:800;color:var(--text3);margin-bottom:6px;">'
+  +         'PR&Eacute;CISION <span style="font-weight:600;color:#aaa;">(facultatif)</span></div>'
+  +       '<input class="fi" id="dep-fx-note" maxlength="80" placeholder="Septembre 2026, container 12&hellip;" style="margin-bottom:14px;">'
+  +       '<button class="btn btn-green" onclick="depAjouterDepenseFixe()">&#10133; Enregistrer</button>'
+  +     '</div>'
+  +     '<div class="dep-sec">D&eacute;penses fixes enregistr&eacute;es</div>'
+  +     '<div id="dep-fx-liste"></div>'
+  +   '</div>'
+  + '</div>'
+
   /* ---- ÉCRAN (v1.61.0) : les dépenses d'un camion pendant sa collecte.
      Carburant, déjeuner, autres — saisies par le collecteur lui-même,
      horodatées, et déduites du gain du camion (demande de Cobey du
@@ -3405,6 +3451,29 @@ function injecterEcrans(){
   + '</div>';
 
   while(w.firstChild) parent.appendChild(w.firstChild);
+
+  /* ---- Modale (v1.63.0) : la reprise de l'application 360 ---- */
+  var mRep = document.createElement('div');
+  mRep.className = 'modal-overlay';
+  mRep.id = 'modal-dep-reprise';
+  mRep.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">&#128260;</div>'
+    + '<div class="modal-confirm-title">Reprise &mdash; application 360</div>'
+    + '<div style="font-size:12.5px;color:#555;margin:8px 0 14px;text-align:left;line-height:1.45;">'
+    +   'Les recettes et les d&eacute;penses d&eacute;j&agrave; faites sur l\'ancienne application. '
+    +   'Elles s\'ajoutent &agrave; ce que DCT calcule ici, pour que le b&eacute;n&eacute;fice reparte du bon endroit '
+    +   'au lieu de z&eacute;ro.</div>'
+    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">RECETTES D&Eacute;J&Agrave; ENCAISS&Eacute;ES</div>'
+    + '<input class="fi" id="dep-rep-recettes" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" style="margin-bottom:11px;">'
+    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">D&Eacute;PENSES D&Eacute;J&Agrave; FAITES</div>'
+    + '<input class="fi" id="dep-rep-depenses" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" style="margin-bottom:11px;">'
+    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">ARR&Ecirc;T&Eacute; AU</div>'
+    + '<input class="fi" id="dep-rep-note" maxlength="60" placeholder="24/09/2026" style="margin-bottom:14px;">'
+    + '<div class="modal-confirm-btns">'
+    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-reprise\')">Annuler</button>'
+    +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerReprise()">Enregistrer</button>'
+    + '</div></div></div>';
+  document.body.appendChild(mRep);
 
   /* ---- Modale : changer un client de départ ---- */
   var m = document.createElement('div');
@@ -4428,6 +4497,14 @@ function ecouterDeparts(){
         _depMajBlocDepensesCamion(window.currentCamion);
       }
     }catch(e){}
+  });
+
+  // v1.63.0 : la reprise de l'application 360 et les dépenses fixes —
+  // voir Rapport financier > Bilan.
+  db.ref('dct_finance').on('value', function(snap){
+    window.financeData = snap.val() || {};
+    try{ if($('s-rapfin-bilan') && $('s-rapfin-bilan').classList.contains('active')) depRenderRapfinBilan(); }catch(e){}
+    try{ if($('s-rapfin-fixes') && $('s-rapfin-fixes').classList.contains('active')) depRenderDepensesFixes(); }catch(e){}
   });
 
   // v1.19.85 : devis en attente — voir carré DEVIS.
@@ -14635,7 +14712,14 @@ var DEP_TYPES_DEPENSE = [
 // d'un tel formateur jusqu'ici.)
 function _depEuros(n){
   var v = depArrondi2(parseFloat(n) || 0);
-  return (v % 1 === 0) ? String(v) : v.toFixed(2).replace('.', ',');
+  var s = (v % 1 === 0) ? String(v) : v.toFixed(2).replace('.', ',');
+  // v1.63.0 : et les milliers se séparent — « 84 120 € » se lit,
+  // « 84120 € » se déchiffre. Indispensable dès le bilan financier.
+  var neg = s.charAt(0) === '-';
+  if(neg) s = s.slice(1);
+  var parts = s.split(',');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return (neg ? '-' : '') + parts.join(',');
 }
 
 var _depDepenseType = 'carburant';
@@ -14791,6 +14875,23 @@ function _depMajBlocDepensesCamion(k){
     + '<span class="finance-val" style="font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">'
     + _depEuros(net) + ' &euro;</span>';
   box.appendChild(rowN);
+
+  // v1.62.1 : les deux lectures côte à côte, puisque les deux servent —
+  // ce que le camion a produit, et ce qu'il a réellement rapporté
+  // (demande de Cobey du 24/09/2026 : « affiche les deux »).
+  var netEnc = depArrondi2(enc - tot);
+  var rowNE = $('dep-finance-net-encaisse');
+  if(!rowNE){
+    rowNE = document.createElement('div');
+    rowNE.id = 'dep-finance-net-encaisse';
+    rowNE.className = 'finance-row';
+    rowNE.style.cssText = 'margin-top:4px;';
+  }
+  rowNE.innerHTML = '<span class="finance-label" style="font-weight:800;">&#128181; Gain net du camion'
+    + '<span style="font-weight:600;color:#999;"> (sur l\'encaiss&eacute;)</span></span>'
+    + '<span class="finance-val" style="font-weight:800;color:' + (netEnc < 0 ? '#B3261E' : '#006b2d') + ';">'
+    + _depEuros(netEnc) + ' &euro;</span>';
+  box.appendChild(rowNE);
 }
 
 window.depOuvrirDepenses = function(k){
@@ -14835,6 +14936,7 @@ window.depRenderDepenses = function(){
   var tot = _depTotalDepenses(ctx.colId, ctx.camion);
   var collecte = _depCollecteDuCamion(tk);
   var net = depArrondi2(collecte - tot);
+  var netEnc = depArrondi2(_depEncaisseDuCamion(tk) - tot);
 
   var zTot = $('dep-dep-total');
   if(zTot){
@@ -14848,7 +14950,14 @@ window.depRenderDepenses = function(){
       +   '<div><div style="font-size:18px;font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(net) + ' &euro;</div>'
       +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">GAIN NET</div></div>'
       + '</div>'
-      + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:10px;text-align:center;">'
+      + '<div style="margin-top:10px;padding-top:9px;border-top:1.5px solid var(--border);'
+      +   'display:flex;justify-content:space-between;align-items:baseline;gap:8px;">'
+      +   '<span style="font-size:11.5px;font-weight:700;color:var(--text3);">'
+      +     '&#128181; Encaiss&eacute; aupr&egrave;s des clients &minus; d&eacute;penses</span>'
+      +   '<b style="font-size:13.5px;white-space:nowrap;color:' + (netEnc < 0 ? '#B3261E' : '#006b2d') + ';">'
+      +     _depEuros(netEnc) + ' &euro;</b>'
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;text-align:center;">'
       +   liste.length + ' d&eacute;pense' + (liste.length>1?'s':'') + ' enregistr&eacute;e' + (liste.length>1?'s':'')
       +   ' sur cette tourn&eacute;e</div>'
       + '</div>';
@@ -16174,6 +16283,13 @@ window.depOuvrirEspaceRapportFinancier = function(){
         + (du > 0 ? '<b style="color:#B3261E;">' + du + ' &euro;</b> &agrave; encaisser'
                   : '<b style="color:#006b2d;">Tout est encaiss&eacute;</b>');
   }
+  // Aperçu de la case BILAN : le bénéfice, reprise comprise.
+  var sb = $('dep-rf-sub-bilan');
+  if(sb){
+    var b = _depBilanFinancier();
+    sb.innerHTML = 'B&eacute;n&eacute;fice<br><b style="color:'
+      + (b.benefice < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(b.benefice) + ' &euro;</b>';
+  }
   goTo('s-rapport-financier');
 };
 
@@ -16363,6 +16479,278 @@ window.depRapfinContainer = function(id){
   var box = $('dep-rf-c-contenu');
   if(box) box.innerHTML = h;
   goTo('s-rapfin-container');
+};
+
+/* ─────────────────────────────────────────────
+   13ter ter (v1.63.0). RAPPORT FINANCIER > BILAN
+   Recettes, dépenses, bénéfice. Trois sources qui s'additionnent :
+   ce que DCT a encaissé sur ses containers, ce que les camions ont
+   dépensé en tournée (plus les dépenses fixes saisies ici), et la
+   reprise de l'ancienne application 360 — parce que les comptes de
+   l'entreprise ne recommencent pas à zéro le jour où l'on change
+   d'outil (demande de Cobey du 24/09/2026).
+
+   Rangé dans dct_finance : `reprise` pour le report, `fixes/<clé>`
+   pour chaque dépense fixe.
+   ───────────────────────────────────────────── */
+var DEP_POSTES_FIXES = [
+  { cle:'loyer',        icone:'&#127968;', label:'Loyer' },
+  { cle:'dedouanement', icone:'&#128203;', label:'D&eacute;douanement' },
+  { cle:'container',    icone:'&#128230;', label:'Container' },
+  { cle:'salaires',     icone:'&#128100;', label:'Salaires' },
+  { cle:'location',     icone:'&#128666;', label:'Location' },
+  { cle:'autre',        icone:'&#128176;', label:'Autre' }
+];
+var _depPosteFixe = 'loyer';
+
+function _depLibellePosteFixe(cle){
+  var t = DEP_POSTES_FIXES.find(function(x){ return x.cle === cle; });
+  return t ? (t.icone + ' ' + t.label) : '&#128176; Autre';
+}
+
+function _depReprise(){
+  var r = (window.financeData || {}).reprise || {};
+  return {
+    recettes: depArrondi2(parseFloat(r.recettes) || 0),
+    depenses: depArrondi2(parseFloat(r.depenses) || 0),
+    note: r.note || '',
+    par: r.par || '',
+    le: r.le || 0
+  };
+}
+
+function _depDepensesFixes(){
+  var n = (window.financeData || {}).fixes || {};
+  return Object.keys(n)
+    .map(function(k){ var o = Object.assign({}, n[k]); o._id = k; return o; })
+    .sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
+}
+
+// Toutes les dépenses de tournée, toutes collectes et tous camions.
+function _depTotalDepensesCamions(){
+  var t = 0, src = window.depensesData || {};
+  Object.keys(src).forEach(function(colId){
+    var parCamion = src[colId] || {};
+    Object.keys(parCamion).forEach(function(cam){
+      var lignes = parCamion[cam] || {};
+      Object.keys(lignes).forEach(function(k){
+        t += (parseFloat((lignes[k]||{}).montant) || 0);
+      });
+    });
+  });
+  return depArrondi2(t);
+}
+
+// Le bilan complet, en un seul objet.
+function _depBilanFinancier(){
+  var g = _depRapfinTotaux();
+  var rep = _depReprise();
+  var fixes = _depDepensesFixes();
+  var totFixes = depArrondi2(fixes.reduce(function(s,o){ return s + (parseFloat(o.montant)||0); }, 0));
+  var camions = _depTotalDepensesCamions();
+
+  // Recettes = l'argent réellement rentré. Les deux caisses comptent :
+  // un euro de livraison encaissé est un euro de recette.
+  var recDCT = depArrondi2(g.colisPaye + g.livPaye);
+  var aEncaisser = depArrondi2(g.colisDu + g.livDu);
+  var depDCT = depArrondi2(camions + totFixes);
+
+  var recettes = depArrondi2(recDCT + rep.recettes);
+  var depenses = depArrondi2(depDCT + rep.depenses);
+  return {
+    g: g, rep: rep, fixes: fixes, totFixes: totFixes, camions: camions,
+    recDCT: recDCT, depDCT: depDCT, aEncaisser: aEncaisser,
+    recettes: recettes, depenses: depenses,
+    benefice: depArrondi2(recettes - depenses)
+  };
+}
+
+window.depOuvrirRapfinBilan = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  goTo('s-rapfin-bilan');
+  depRenderRapfinBilan();
+};
+
+window.depRenderRapfinBilan = function(){
+  var box = $('dep-rf-bilan');
+  if(!box) return;
+  var b = _depBilanFinancier();
+
+  function ligne(libelle, montant, couleur, sousTitre){
+    return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0;">'
+      + '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">' + libelle
+      +   (sousTitre ? '<br><span style="font-size:11px;color:#aaa;">' + sousTitre + '</span>' : '') + '</span>'
+      + '<b style="font-size:13.5px;white-space:nowrap;color:' + couleur + ';">' + _depEuros(montant) + ' &euro;</b>'
+      + '</div>';
+  }
+
+  var h = '';
+
+  // ── Le bilan, en tête ──
+  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
+    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Recettes</span>'
+    +   '<b style="font-size:19px;color:#006b2d;">' + _depEuros(b.recettes) + ' &euro;</b>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
+    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">D&eacute;penses</span>'
+    +   '<b style="font-size:19px;color:#B3261E;">&minus; ' + _depEuros(b.depenses) + ' &euro;</b>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;'
+    +   'margin-top:6px;border-top:2px solid var(--border);">'
+    +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice</span>'
+    +   '<b style="font-size:24px;color:' + (b.benefice < 0 ? '#B3261E' : '#006b2d') + ';">'
+    +     _depEuros(b.benefice) + ' &euro;</b>'
+    + '</div>'
+    + (b.aEncaisser > 0
+      ? '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border-radius:8px;'
+        + 'padding:8px 10px;margin-top:12px;font-weight:600;line-height:1.4;">'
+        + '&#8987; <b>' + _depEuros(b.aEncaisser) + ' &euro;</b> restent &agrave; encaisser chez les clients. '
+        + 'Ils ne comptent pas dans les recettes tant qu\'ils ne sont pas vers&eacute;s.</div>'
+      : '')
+    + '</div>';
+
+  // ── D'où viennent les recettes ──
+  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Recettes</div>'
+    + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
+    + ligne('&#128230; Encaiss&eacute; sur les containers', b.recDCT, '#006b2d',
+            'colis et livraison, ' + b.g.nb + ' container' + (b.g.nb>1?'s':''))
+    + ligne('&#128260; Reprise application 360', b.rep.recettes, '#006b2d',
+            b.rep.note ? ('arr&ecirc;t&eacute; au ' + esc(b.rep.note)) : 'report de l\'ancienne appli')
+    + '</div>';
+
+  // ── D'où viennent les dépenses ──
+  h += '<div class="dep-sec">D&eacute;penses</div>'
+    + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
+    + ligne('&#128666; D&eacute;penses des camions', b.camions, '#B3261E',
+            'carburant, d&eacute;jeuner, autres')
+    + ligne('&#127968; D&eacute;penses fixes', b.totFixes, '#B3261E',
+            b.fixes.length + ' ligne' + (b.fixes.length>1?'s':'') + ' saisie' + (b.fixes.length>1?'s':''))
+    + ligne('&#128260; Reprise application 360', b.rep.depenses, '#B3261E',
+            b.rep.note ? ('arr&ecirc;t&eacute; au ' + esc(b.rep.note)) : 'report de l\'ancienne appli')
+    + '</div>';
+
+  h += '<button class="btn btn-gray" style="margin-bottom:10px;" onclick="depOuvrirRapfinFixes()">'
+    + '&#127968; G&eacute;rer les d&eacute;penses fixes</button>'
+    + '<button class="btn btn-gray" style="background:#EDE5FC;border-color:#D9C8F5;color:#6d28d9;" '
+    + 'onclick="depOuvrirReprise()">&#128260; Reprise application 360</button>';
+
+  box.innerHTML = h;
+};
+
+/* ─── La reprise de 360 ─── */
+window.depOuvrirReprise = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  var r = _depReprise();
+  var a = $('dep-rep-recettes'); if(a) a.value = r.recettes || '';
+  var d = $('dep-rep-depenses'); if(d) d.value = r.depenses || '';
+  var n = $('dep-rep-note');     if(n) n.value = r.note || '';
+  openModal('modal-dep-reprise');
+};
+
+window.depEnregistrerReprise = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  var u = window.currentUser || {};
+  var obj = {
+    recettes : depArrondi2(parseFloat(($('dep-rep-recettes')||{}).value) || 0),
+    depenses : depArrondi2(parseFloat(($('dep-rep-depenses')||{}).value) || 0),
+    note     : (($('dep-rep-note')||{}).value || '').trim(),
+    le       : Date.now(),
+    par      : u.name || u.id || ''
+  };
+  db.ref('dct_finance/reprise').set(obj).then(function(){
+    closeModal('modal-dep-reprise');
+    toast('✅ Reprise enregistrée');
+  }).catch(function(e){
+    toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé'));
+  });
+};
+
+/* ─── Les dépenses fixes ─── */
+window.depOuvrirRapfinFixes = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  _depPosteFixe = 'loyer';
+  var m = $('dep-fx-montant'); if(m) m.value = '';
+  var n = $('dep-fx-note');    if(n) n.value = '';
+  goTo('s-rapfin-fixes');
+  depRenderDepensesFixes();
+};
+
+window.depChoisirPosteFixe = function(cle){
+  _depPosteFixe = cle;
+  depRenderDepensesFixes();
+};
+
+window.depRenderDepensesFixes = function(){
+  var zp = $('dep-fx-postes');
+  if(zp){
+    zp.innerHTML = DEP_POSTES_FIXES.map(function(t){
+      return '<div class="dep-chip' + (_depPosteFixe === t.cle ? ' on' : '') + '"'
+        + ' onclick="depChoisirPosteFixe(\'' + t.cle + '\')">' + t.icone + ' ' + t.label + '</div>';
+    }).join('');
+  }
+  var box = $('dep-fx-liste');
+  if(!box) return;
+  var liste = _depDepensesFixes();
+  if(!liste.length){
+    box.innerHTML = '<div class="dep-vide" style="padding:28px 16px;">Aucune d&eacute;pense fixe pour l\'instant.</div>';
+    return;
+  }
+  var tot = depArrondi2(liste.reduce(function(s,o){ return s + (parseFloat(o.montant)||0); }, 0));
+  box.innerHTML = '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:baseline;">'
+    +   '<span style="font-size:12.5px;font-weight:700;color:var(--text3);">Total des d&eacute;penses fixes</span>'
+    +   '<b style="font-size:16px;color:#B3261E;">' + _depEuros(tot) + ' &euro;</b>'
+    + '</div>'
+    + liste.map(function(o){
+      return '<div class="dep-cli">'
+        + '<div class="dep-cli-n" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+        +   '<span>' + _depLibellePosteFixe(o.poste) + '</span>'
+        +   '<span style="font-weight:800;color:#B3261E;">' + _depEuros(o.montant) + ' &euro;</span>'
+        + '</div>'
+        + (o.note ? '<div class="dep-cli-s" style="margin-top:2px;">' + esc(o.note) + '</div>' : '')
+        + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;">'
+        +   '<span style="color:var(--text3);">' + esc(dateHeureFr(o.ts||0))
+        +     (o.par ? ' &middot; ' + esc(o.par) : '') + '</span>'
+        +   '<span onclick="depSupprimerDepenseFixe(\'' + o._id + '\')" style="cursor:pointer;color:#992020;'
+        +     'font-weight:800;font-size:11.5px;white-space:nowrap;">&#128465; Retirer</span>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+};
+
+window.depAjouterDepenseFixe = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  var montant = parseFloat(($('dep-fx-montant')||{}).value);
+  if(!montant || montant <= 0){ toast('⚠️ Indiquez un montant.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  var u = window.currentUser || {};
+  var obj = {
+    poste   : _depPosteFixe,
+    montant : depArrondi2(montant),
+    note    : (($('dep-fx-note')||{}).value || '').trim(),
+    ts      : Date.now(),
+    par     : u.name || u.id || '',
+    parId   : u.id || ''
+  };
+  db.ref('dct_finance/fixes').push(obj).then(function(){
+    toast('✅ Dépense fixe enregistrée — ' + _depEuros(obj.montant) + ' €');
+    var m = $('dep-fx-montant'); if(m) m.value = '';
+    var n = $('dep-fx-note');    if(n) n.value = '';
+  }).catch(function(e){
+    toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé'));
+  });
+};
+
+window.depSupprimerDepenseFixe = function(id){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  if(!id || !window.db || !window.firebaseReady) return;
+  db.ref('dct_finance/fixes/' + id).remove().then(function(){
+    toast('🗑 Dépense retirée');
+  }).catch(function(e){
+    toast('❌ Échec : ' + ((e && e.message) || 'suppression refusée'));
+  });
 };
 
 window.depRapfinContainersRetour = function(){
