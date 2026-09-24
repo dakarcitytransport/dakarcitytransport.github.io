@@ -157,9 +157,15 @@ salaires · location · autres. Chaque ligne est datée et signée.
 
 Le même écran **reporte les dépenses des camions** qui ont rempli ce
 container, collecte par collecte. Quand un camion a rempli deux
-containers, ses frais se répartissent au prorata de ses clients : rien
-n'est compté deux fois, et la somme des containers redonne le total du
-bilan.
+containers sénégalais, ses frais se répartissent au prorata de ses
+clients : rien n'est compté deux fois, et la somme des containers
+redonne le total du bilan.
+
+**Le Mali ne porte aucun frais de tournée** (v1.67.0) : ces containers
+sont affrétés par un prestataire, Dakar City ne fait que lui confier des
+clients. Le camion a bien roulé pour ces colis, mais la dépense revient
+au container Sénégal du même camion. Un container malien n'affiche donc
+que ses dépenses propres, avec l'explication à l'écran.
 
 Le container affiche alors son **résultat** : encaissé − dépenses.
 

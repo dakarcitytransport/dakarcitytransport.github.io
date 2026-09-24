@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.66.0';
+var DEP_VERSION = 'v1.67.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16804,10 +16804,19 @@ function _depCamionsParContainer(departId){
 
       var tk = trucks[cam] || {};
       var valides = Array.isArray(tk.validated) ? tk.validated : [];
-      var parDepart = {}, n = 0;
+      var parDepart = {}, n = 0, nMali = 0;
       valides.forEach(function(id){
         var c = cls[id];
         if(!c || !c.departId) return;
+        // v1.67.0 : un container malien n'est pas opéré par DCT — c'est
+        // un prestataire qui l'affrète, Dakar City ne fait que lui
+        // confier les clients (précision de Cobey du 24/09/2026). Il ne
+        // porte donc aucun frais de tournée : le camion a bien roulé
+        // pour ces colis, mais la dépense revient au container Sénégal
+        // du même camion. Ces clients sortent simplement du partage, ce
+        // qui reporte leur part sur les containers sénégalais.
+        var dep = (window.departsData || {})[c.departId];
+        if(dep && depPaysDepart(dep) === 'ML'){ nMali++; return; }
         parDepart[c.departId] = (parDepart[c.departId] || 0) + 1;
         n++;
       });
@@ -16820,6 +16829,7 @@ function _depCamionsParContainer(departId){
         nom: tk.name || 'Camion',
         clients: parDepart[departId],
         clientsTotal: n,
+        mali: nMali,
         partiel: (parDepart[departId] < n),
         montant: depArrondi2(total * parDepart[departId] / n),
         montantCamion: depArrondi2(total)
@@ -16903,11 +16913,18 @@ window.depRenderDepensesFixes = function(){
     + '</div>';
 
   // ── Le report des tournées, en lecture seule ──
+  var estMali = (depPaysDepart(d) === 'ML');
   h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Report des tourn&eacute;es</div>';
-  if(!camions.length){
+  if(estMali){
+    h += '<div class="dep-alert" style="margin-bottom:12px;">&#127474;&#127473; Ce container est affr&eacute;t&eacute; '
+      + 'par un prestataire, pas par Dakar City. Les frais de tourn&eacute;e des colis maliens sont '
+      + 'port&eacute;s par le container S&eacute;n&eacute;gal du m&ecirc;me camion. Seules les d&eacute;penses '
+      + 'saisies ci-dessous lui sont propres.</div>';
+  } else if(!camions.length){
     h += '<div class="dep-vide" style="padding:22px 16px;">Aucune d&eacute;pense de camion rattach&eacute;e '
       + '&agrave; ce container.</div>';
-  } else {
+  }
+  if(!estMali && camions.length){
     h += camions.map(function(o){
       return '<div class="dep-cli">'
         + '<div class="dep-cli-n" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
@@ -16920,6 +16937,10 @@ window.depRenderDepensesFixes = function(){
         +   (o.partiel
             ? ' <span style="color:#8A5200;">(part de ' + _depEuros(o.montantCamion) + ' &euro;, '
               + 'le camion a rempli plusieurs containers)</span>'
+            : '')
+        +   (o.mali
+            ? '<br><span style="color:#8A5200;">dont la tourn&eacute;e de ' + o.mali + ' colis Mali, '
+              + 'port&eacute;e ici &mdash; le container malien est chez le prestataire</span>'
             : '')
         + '</div>'
         + '</div>';
