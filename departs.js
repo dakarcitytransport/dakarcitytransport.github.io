@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.73.0';
+var DEP_VERSION = 'v1.74.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13098,6 +13098,12 @@ function greffer(){
             var depId2 = retour.id;
             btn.textContent = '← Dépôt';
             btn.onclick = function(){ depCarreDepotContainer(depId2); };
+          } else if(retour && retour.type === 'rapfin'){
+            // v1.74.0 : on vient de la liste des impayés du rapport
+            // financier — on y retourne, pas dans le carré Départ.
+            var depId3 = retour.id;
+            btn.textContent = '← Container';
+            btn.onclick = function(){ depRapfinContainer(depId3); };
           } else {
             btn.textContent = '← Suivi';
             btn.onclick = function(){ goTo('s-france'); };
@@ -16498,7 +16504,8 @@ window.depRapfinContainer = function(id){
 
     restants.forEach(function(x){
       var c = x.c;
-      h += '<div class="dep-cli">'
+      h += '<div class="dep-cli" style="cursor:pointer;" onclick="depRapfinOuvrirFiche(\''
+        +   x.src + '\',\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\')">'
         +   '<div class="dep-cli-n">' + _depPastilleRang(c, id)
         +     esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
         +     (x.src === 'depot'  ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
@@ -16509,8 +16516,10 @@ window.depRapfinContainer = function(id){
         +       '<span style="color:var(--text3);"> sur ' + x.p.total + ' &euro;</span>'
         +       (x.p.paye > 0 ? '<span style="color:var(--text3);"> &middot; ' + x.p.paye + ' &euro; d&eacute;j&agrave; vers&eacute;s</span>' : '')
         +       '</span>'
-        +     _depLienTelIcone(c.tel)
+        +     '<span onclick="event.stopPropagation();">' + _depLienTelIcone(c.tel) + '</span>'
         +   '</div>'
+        +   '<div style="font-size:11px;color:var(--text3);font-weight:700;margin-top:5px;">'
+        +     '&#128196; Toucher pour ouvrir la fiche</div>'
         + '</div>';
     });
   }
@@ -16992,6 +17001,36 @@ window.depSupprimerDepenseFixe = function(idLigne){
   }).catch(function(e){
     toast('❌ Échec : ' + ((e && e.message) || 'suppression refusée'));
   });
+};
+
+/* v1.74.0 — Ouvrir la fiche d'un client depuis la liste des impayés.
+   Voir qui doit ne suffit pas : il faut pouvoir entrer dans la fiche
+   pour appeler, encaisser ou vérifier (demande de Cobey du 24/09/2026).
+   Chaque parcours a son propre écran de fiche, d'où l'aiguillage — et
+   le bouton Retour est réécrit pour revenir ici, pas dans le carré
+   Départ où ces fonctions mènent d'ordinaire. */
+window.depRapfinOuvrirFiche = function(src, colId, clientId){
+  var id = _depRapfinId;
+  if(!id) return;
+  var retour = function(){ depRapfinContainer(id); };
+  try{
+    if(src === 'france'){
+      // Ce parcours passe par son propre mécanisme de retour.
+      _depFicheFranceRetour = { type: 'rapfin', id: id };
+      ouvrirFicheFrance(clientId);
+      return;
+    }
+    if(src === 'depot') depOuvrirFicheDepot(id, clientId);
+    else                depOuvrirFicheClient(colId, clientId);
+  }catch(e){
+    console.error('departs: fiche depuis le rapport financier', e);
+    toast('⚠️ Fiche introuvable.');
+    return;
+  }
+  // Ces deux fonctions posent elles-mêmes un retour vers le carré
+  // Départ : on le remplace après coup.
+  var bk = $('client-back');   if(bk) bk.onclick = retour;
+  var cn = $('client-cancel'); if(cn) cn.onclick = retour;
 };
 
 window.depRapfinContainersRetour = function(){
