@@ -173,20 +173,16 @@ Le container affiche alors son **résultat** : encaissé − dépenses.
 Total payé et total dû.
 
 ### ~~Anciennes données~~
-**Fait le 24/09 (v1.63.0).** Elles viennent de l'application **360**,
-arrêtées au jour J. Plutôt que de les réimporter ligne à ligne, le Bilan
-a un bloc **« Reprise application 360 »** : deux montants (recettes déjà
-encaissées, dépenses déjà faites) et la date d'arrêté. Ils s'ajoutent à
-ce que DCT calcule, donc les comptes continuent au lieu de repartir de
-zéro, et les nouveaux containers viennent s'y cumuler.
+**Remis à zéro le 24/09 (v1.68.0).** La nouvelle application repart de
+zéro : ses recettes et ses dépenses ne comptent que ce qui passe par
+elle, depuis septembre 2026.
 
-Les chiffres sont en place (v1.64.0) : **84 120 €** encaissés et
-**12 895 €** dépensés, relevés sur 360 le 24/09/2026 — soit **71 225 €**
-de bénéfice repris. Ce sont les vrais chiffres, pas un exemple.
+De l'application **360**, on ne reprendra **qu'un seul chiffre** : son
+**bénéfice**, quand Issyaka aura arrêté les comptes. Il s'ajoutera au
+bénéfice affiché, et à lui seul — jamais aux recettes ni aux dépenses.
 
-Les dépenses de 360 étaient encore incomplètes ce jour-là : la mention
-est portée sur le bilan, et le montant se corrige depuis le bouton
-Reprise dès que le relevé est complet.
+En attendant, le report est à **0**. Bouton « 🔄 Bénéfice repris de 360 »
+sur le Bilan, un seul champ à remplir le jour venu.
 
 ### Statistiques
 Une case avec des graphiques, pour chaque poste.

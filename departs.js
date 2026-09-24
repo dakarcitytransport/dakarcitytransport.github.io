@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.67.1';
+var DEP_VERSION = 'v1.68.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3456,17 +3456,16 @@ function injecterEcrans(){
   mRep.id = 'modal-dep-reprise';
   mRep.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
     + '<div class="modal-emoji">&#128260;</div>'
-    + '<div class="modal-confirm-title">Report &mdash; application 360</div>'
+    + '<div class="modal-confirm-title">B&eacute;n&eacute;fice repris de 360</div>'
     + '<div style="font-size:12.5px;color:#555;margin:8px 0 14px;text-align:left;line-height:1.45;">'
-    +   'Le dernier chiffre &agrave; date de l\'ancienne application, arr&ecirc;t&eacute; une fois pour toutes. '
-    +   'Il s\'ajoute &agrave; ce que DCT calcule ici : le b&eacute;n&eacute;fice repart du bon endroit, '
-    +   'et tout ce qui vient ensuite se cumule dans cette application.</div>'
-    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">RECETTES D&Eacute;J&Agrave; ENCAISS&Eacute;ES</div>'
-    + '<input class="fi" id="dep-rep-recettes" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" style="margin-bottom:11px;">'
-    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">D&Eacute;PENSES D&Eacute;J&Agrave; FAITES</div>'
-    + '<input class="fi" id="dep-rep-depenses" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" style="margin-bottom:11px;">'
-    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">ARR&Ecirc;T&Eacute; AU</div>'
-    + '<input class="fi" id="dep-rep-note" maxlength="60" placeholder="24/09/2026" style="margin-bottom:14px;">'
+    +   'Cette application compte ses propres recettes et d&eacute;penses depuis septembre 2026. '
+    +   'De l\'ancienne, on ne reprend qu\'un chiffre : son <strong>b&eacute;n&eacute;fice</strong>, '
+    +   'une fois les comptes arr&ecirc;t&eacute;s. Il s\'ajoute au b&eacute;n&eacute;fice affich&eacute; '
+    +   'ici, et &agrave; lui seul. Laissez &agrave; 0 tant que le chiffre n\'est pas connu.</div>'
+    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">B&Eacute;N&Eacute;FICE DE L\'APPLICATION 360</div>'
+    + '<input class="fi" id="dep-rep-benefice" type="number" inputmode="decimal" step="0.01" placeholder="0" style="margin-bottom:11px;">'
+    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">ARR&Ecirc;T&Eacute; AU <span style="font-weight:600;color:#aaa;">(facultatif)</span></div>'
+    + '<input class="fi" id="dep-rep-note" maxlength="60" placeholder="30/09/2026" style="margin-bottom:14px;">'
     + '<div id="dep-rep-avis" style="font-size:11.5px;color:#888;font-weight:600;'
     +   'text-align:left;margin-bottom:12px;line-height:1.4;"></div>'
     + '<div class="modal-confirm-btns">'
@@ -16539,37 +16538,29 @@ function _depLibellePosteFixe(cle){
   return t ? (t.icone + ' ' + t.label) : '&#128176; Autre';
 }
 
-/* Les chiffres relevés sur l'application 360 au 24/09/2026, donnés par
-   Cobey : 84 120 € encaissés, 12 895 € dépensés — soit 71 225 € de
-   bénéfice avant que DCT ne prenne le relais. Ils sont ici, et pas dans
-   Firebase, pour que le bilan soit juste dès le premier affichage, sans
-   aucune saisie.
+/* v1.68.0 — Le report de l'ancienne application 360.
+   On repart de zéro : la nouvelle application commence sa comptabilité
+   en septembre 2026, recettes et dépenses comprises (décision de Cobey
+   du 24/09/2026). Les 84 120 € et 12 895 € relevés le matin même sont
+   donc retirés.
 
-   Ce ne sont qu'une valeur de départ : dès que quelqu'un enregistre la
-   reprise depuis l'écran (depEnregistrerReprise), c'est sa saisie qui
-   compte, y compris si elle remet les montants à zéro. On teste donc la
-   présence de l'objet en base, pas celle de ses montants.
-
-   360 est arrêtée : ces deux montants sont son dernier chiffre à date et
-   ne bougeront plus. Tout ce qui vient après se cumule ici (confirmé par
-   Cobey le 24/09/2026). Le bouton Reprise ne sert donc qu'à corriger le
-   relevé lui-même — les dépenses de 360 étaient encore incomplètes au
-   moment où il a été pris. */
-var DEP_REPRISE_360 = {
-  recettes : 84120,
-  depenses : 12895,
-  note     : '24/09/2026'
-};
-
+   Il ne restera qu'un seul chiffre à reporter, plus tard, quand Issyaka
+   aura arrêté les comptes de 360 : le BÉNÉFICE de l'ancienne appli. Il
+   s'ajoute au bénéfice, et à lui seul — pas aux recettes, pas aux
+   dépenses, qui elles ne comptent que ce qui passe par ici. */
 function _depReprise(){
   var r = (window.financeData || {}).reprise;
   if(!r || typeof r !== 'object'){
-    return { recettes: DEP_REPRISE_360.recettes, depenses: DEP_REPRISE_360.depenses,
-             note: DEP_REPRISE_360.note, par: '', le: 0, dorigine: true };
+    return { benefice: 0, note: '', par: '', le: 0, dorigine: true };
   }
+  /* Les tout premiers enregistrements portaient deux montants, recettes
+     et dépenses. On ne les convertit surtout PAS en bénéfice : la
+     consigne est de repartir de zéro. Un enregistrement d'avant ce
+     changement vaut donc 0, et le chiffre d'Issyaka sera saisi
+     explicitement le jour venu. */
+  var b = (r.benefice !== undefined) ? (parseFloat(r.benefice) || 0) : 0;
   return {
-    recettes: depArrondi2(parseFloat(r.recettes) || 0),
-    depenses: depArrondi2(parseFloat(r.depenses) || 0),
+    benefice: depArrondi2(b),
     note: r.note || '',
     par: r.par || '',
     le: r.le || 0,
@@ -16577,16 +16568,6 @@ function _depReprise(){
   };
 }
 
-/* v1.66.0 — Une dépense fixe appartient à son container.
-   Elles vivaient au niveau du bilan, toutes ensemble : impossible de
-   savoir ce qu'un container avait coûté (demande de Cobey du
-   24/09/2026). Elles sont désormais rangées container par container,
-   dans dct_finance/fixes/<container>/<clé>, et le bilan n'en fait plus
-   que la somme.
-
-   Les quelques lignes saisies avant ce changement étaient posées à plat
-   sous `fixes` : on les reconnaît à leur champ `montant` et on les
-   rattache à « sans container » pour ne rien perdre du total. */
 function _depFixeOrpheline(v){
   return v && typeof v === 'object' && v.montant !== undefined;
 }
@@ -16645,28 +16626,24 @@ function _depBilanFinancier(){
 
   // Recettes = l'argent réellement rentré. Les deux caisses comptent :
   // un euro de livraison encaissé est un euro de recette.
-  var recDCT = depArrondi2(g.colisPaye + g.livPaye);
+  var recettes = depArrondi2(g.colisPaye + g.livPaye);
   var aEncaisser = depArrondi2(g.colisDu + g.livDu);
-  var depDCT = depArrondi2(camions + totFixes);
+  var depenses = depArrondi2(camions + totFixes);
 
-  var recettes = depArrondi2(recDCT + rep.recettes);
-  var depenses = depArrondi2(depDCT + rep.depenses);
+  // Le report de 360 ne rejoint que le bénéfice : les recettes et les
+  // dépenses affichées sont celles de cette application, et d'elle seule.
+  var beneficeDCT = depArrondi2(recettes - depenses);
   return {
     g: g, rep: rep, fixes: fixes, totFixes: totFixes, camions: camions,
-    recDCT: recDCT, depDCT: depDCT, aEncaisser: aEncaisser,
+    aEncaisser: aEncaisser,
     recettes: recettes, depenses: depenses,
-    benefice: depArrondi2(recettes - depenses)
+    beneficeDCT: beneficeDCT,
+    benefice: depArrondi2(beneficeDCT + rep.benefice)
   };
 }
 
 // Le report de 360 est un solde de clôture : il ne bouge plus, et on le
 // dit sous chacune de ses deux lignes.
-function _depSousTitreReprise(rep){
-  return 'dernier chiffre &agrave; date'
-    + (rep.note ? ', arr&ecirc;t&eacute; au ' + esc(rep.note) : '')
-    + ' &middot; ne bouge plus';
-}
-
 window.depOuvrirRapfinBilan = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   goTo('s-rapfin-bilan');
@@ -16698,6 +16675,14 @@ window.depRenderRapfinBilan = function(){
     +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">D&eacute;penses</span>'
     +   '<b style="font-size:19px;color:#B3261E;">&minus; ' + _depEuros(b.depenses) + ' &euro;</b>'
     + '</div>'
+    + (b.rep.benefice
+      ? '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
+        + '<span style="font-size:13px;font-weight:700;color:var(--text3);">'
+        +   '&#128260; B&eacute;n&eacute;fice repris de 360</span>'
+        + '<b style="font-size:16px;color:' + (b.rep.benefice < 0 ? '#B3261E' : '#006b2d') + ';">'
+        +   (b.rep.benefice > 0 ? '+ ' : '') + _depEuros(b.rep.benefice) + ' &euro;</b>'
+        + '</div>'
+      : '')
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;'
     +   'margin-top:6px;border-top:2px solid var(--border);">'
     +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice</span>'
@@ -16715,9 +16700,8 @@ window.depRenderRapfinBilan = function(){
   // ── D'où viennent les recettes ──
   h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Recettes</div>'
     + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
-    + ligne('&#128230; Encaiss&eacute; sur les containers', b.recDCT, '#006b2d',
+    + ligne('&#128230; Encaiss&eacute; sur les containers', b.recettes, '#006b2d',
             'colis et livraison, ' + b.g.nb + ' container' + (b.g.nb>1?'s':''))
-    + ligne('&#128260; Report application 360', b.rep.recettes, '#006b2d', _depSousTitreReprise(b.rep))
     + '</div>';
 
   // ── D'où viennent les dépenses ──
@@ -16728,13 +16712,17 @@ window.depRenderRapfinBilan = function(){
     + ligne('&#127968; D&eacute;penses fixes des containers', b.totFixes, '#B3261E',
             b.fixes.length + ' ligne' + (b.fixes.length>1?'s':'') + ' saisie' + (b.fixes.length>1?'s':'')
             + ' &middot; se g&egrave;rent dans chaque container')
-    + ligne('&#128260; Report application 360', b.rep.depenses, '#B3261E', _depSousTitreReprise(b.rep))
     + '</div>';
 
-  h += '<button class="btn btn-gray" style="margin-bottom:10px;" onclick="depOuvrirRapfinContainers()">'
+  h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;'
+    +   'margin-bottom:12px;">Les recettes et les d&eacute;penses ne comptent que ce qui passe par '
+    +   'cette application, depuis septembre 2026. Le b&eacute;n&eacute;fice de l\'ancienne '
+    +   'application 360 s\'ajoutera &agrave; part, quand ses comptes seront arr&ecirc;t&eacute;s.</div>'
+    + '<button class="btn btn-gray" style="margin-bottom:10px;" onclick="depOuvrirRapfinContainers()">'
     + '&#128230; Voir les containers</button>'
     + '<button class="btn btn-gray" style="background:#EDE5FC;border-color:#D9C8F5;color:#6d28d9;" '
-    + 'onclick="depOuvrirReprise()">&#128260; Report application 360</button>';
+    + 'onclick="depOuvrirReprise()">&#128260; B&eacute;n&eacute;fice repris de 360'
+    + (b.rep.benefice ? ' &middot; ' + _depEuros(b.rep.benefice) + ' &euro;' : '') + '</button>';
 
   box.innerHTML = h;
 };
@@ -16743,16 +16731,12 @@ window.depRenderRapfinBilan = function(){
 window.depOuvrirReprise = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   var r = _depReprise();
-  var a = $('dep-rep-recettes'); if(a) a.value = r.recettes || '';
-  var d = $('dep-rep-depenses'); if(d) d.value = r.depenses || '';
+  var a = $('dep-rep-benefice'); if(a) a.value = r.benefice || '';
   var n = $('dep-rep-note');     if(n) n.value = r.note || '';
-  // Tant que personne n'a enregistré, ce sont les chiffres relevés sur
-  // 360 qui s'affichent : il n'y a qu'à les corriger, pas à les retaper.
   var av = $('dep-rep-avis');
-  if(av) av.innerHTML = r.dorigine
-    ? '&#128206; Dernier chiffre &agrave; date de l\'application 360, relev&eacute; le 24/09/2026. '
-      + 'Il ne bouge plus &mdash; ne le corrigez que si le relev&eacute; lui-m&ecirc;me &eacute;tait incomplet.'
-    : ('&#9989; Corrig&eacute; le ' + esc(dateHeureFr(r.le)) + (r.par ? ' par ' + esc(r.par) : ''));
+  if(av) av.innerHTML = r.benefice
+    ? ('&#9989; Enregistr&eacute; le ' + esc(dateHeureFr(r.le)) + (r.par ? ' par ' + esc(r.par) : ''))
+    : '&#128206; Aucun report pour l\'instant &mdash; les comptes de 360 ne sont pas encore arr&ecirc;t&eacute;s.';
   openModal('modal-dep-reprise');
 };
 
@@ -16761,15 +16745,15 @@ window.depEnregistrerReprise = function(){
   if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
   var u = window.currentUser || {};
   var obj = {
-    recettes : depArrondi2(parseFloat(($('dep-rep-recettes')||{}).value) || 0),
-    depenses : depArrondi2(parseFloat(($('dep-rep-depenses')||{}).value) || 0),
+    benefice : depArrondi2(parseFloat(($('dep-rep-benefice')||{}).value) || 0),
     note     : (($('dep-rep-note')||{}).value || '').trim(),
     le       : Date.now(),
     par      : u.name || u.id || ''
   };
   db.ref('dct_finance/reprise').set(obj).then(function(){
     closeModal('modal-dep-reprise');
-    toast('✅ Reprise enregistrée');
+    toast(obj.benefice ? ('✅ Bénéfice repris — ' + _depEuros(obj.benefice) + ' €')
+                       : '✅ Report remis à zéro');
   }).catch(function(e){
     toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé'));
   });
