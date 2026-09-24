@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.58.0';
+var DEP_VERSION = 'v1.59.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -721,7 +721,8 @@ var _depDetailId = null;        // départ affiché en détail
 var _depFiltrePaye = 'tous';       // 'tous' | 'paye' | 'non_paye'
 var _depFiltreLivraison = 'tous';  // 'tous' | 'avec' | 'sans'
 // v1.58.0 : filtre « qui doit encore », posé en tapant l'une des deux
-// cases RESTE DÛ de la caisse du container (voir depVoirRestants).
+// cases RESTE DÛ de la caisse, dans Rapport financier > Containers
+// (voir depVoirRestants). Ne touche jamais au carré Départ.
 var _depFiltreDu = 'tous';         // 'tous' | 'colis' | 'livraison'
 var _depDetailRecherche = '';      // v1.19.57 : recherche expéditeur/destinataire du carré Départ
 var _depMoveClient = null;      // { collecteId, clientId, nom, departId }
@@ -2083,70 +2084,21 @@ function compteursDepart(departId){
   return r;
 }
 
-// v1.58.0 — Ce que ce client-là doit encore, sur la caisse en cours de
-// dépouillement. N'apparaît que sous ce filtre : hors de là, la ligne
-// reste comme avant.
-function _depResteLigne(c){
-  if(_depFiltreDu === 'tous') return '';
-  var p = (_depFiltreDu === 'livraison')
-    ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
-  if(p.reste <= 0) return '';
-  return ' &middot; <b style="color:#B3261E;">reste ' + p.reste + ' &euro;</b>'
-    + (p.paye > 0 ? ' <span style="color:#888;">(' + p.paye + ' &euro; d&eacute;j&agrave; vers&eacute;s)</span>' : '');
-}
-
-// v1.58.0 — Taper une case RESTE DÛ n'ouvre pas un nouvel écran : on
-// filtre la liste déjà présente, juste en dessous, et on l'amène sous
-// les yeux. Les autres filtres repartent à zéro pour ne pas se
-// contredire entre eux.
+// v1.59.0 — Taper une case RESTE DÛ n'ouvre pas un nouvel écran : la
+// liste nominative se déplie sous la caisse, dans Rapport financier >
+// Containers. C'est le seul endroit de l'appli où des noms de clients
+// côtoient des montants restants — le carré Départ, lui, n'affiche plus
+// un seul chiffre (demande de Cobey du 24/09/2026).
 window.depVoirRestants = function(quoi){
   _depFiltreDu = quoi;
-  if(quoi !== 'tous'){ _depFiltrePaye = 'tous'; _depFiltreLivraison = 'tous'; }
-  if(!_depDetailId) return;
-  depDetail(_depDetailId, true);
+  if(!_depRapfinId) return;
+  depRapfinContainer(_depRapfinId);
   if(quoi === 'tous') return;
   try{
-    var cible = $('dep-d-bandeau-du');
+    var cible = $('dep-rf-c-restants');
     if(cible && cible.scrollIntoView) cible.scrollIntoView({ behavior:'smooth', block:'start' });
   }catch(e){}
 };
-
-/* v1.57.0 — Le total facturé n'a pas à être vert.
-   Le vert, dans toute l'appli, veut dire « c'est encaissé ». Écrit en
-   vert, le total du container laissait croire que les 18 696 € étaient
-   rentrés alors que 4 155 € manquaient encore (retour de Cobey du
-   24/09/2026). Il reste donc en noir tant que la somme n'est pas
-   atteinte, et ne passe au vert — avec une coche — qu'une fois le
-   container entièrement réglé. */
-function _depTeinteFacture(cp){
-  return (cp.colisTotal > 0 && cp.colisDu === 0) ? '#006b2d' : 'var(--text)';
-}
-function _depMarqueSolde(cp){
-  return (cp.colisTotal > 0 && cp.colisDu === 0)
-    ? '<span style="font-size:13px;margin-left:3px;">&#10003;</span>' : '';
-}
-
-// v1.56.0 — La version courte, sur la carte d'un container dans la
-// liste : deux lignes serrées, colis puis livraison, vert/rouge. Rien
-// n'est additionné entre les deux caisses.
-function _depMiniCaisse(cp){
-  function ligne(icone, total, paye, du){
-    if(!total) return '';
-    return '<span style="display:inline-flex;align-items:center;gap:5px;">'
-      + icone
-      + '<b style="color:#006b2d;">'+paye+' &euro;</b>'
-      + '<span style="color:var(--text3);">re&ccedil;us</span>'
-      + (du > 0 ? '<b style="color:#B3261E;margin-left:3px;">'+du+' &euro;</b>'
-                + '<span style="color:var(--text3);">dus</span>'
-                : '<span style="color:#006b2d;margin-left:3px;font-weight:700;">&#10003; sold&eacute;</span>')
-      + '</span>';
-  }
-  var l = ligne('&#128230;', cp.colisTotal, cp.colisPaye, cp.colisDu)
-        + ligne('&#128666;', cp.livTotal,   cp.livPaye,   cp.livDu);
-  if(!l) return '';
-  return '<div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:7px;'
-    + 'font-size:11.5px;font-weight:600;">' + l + '</div>';
-}
 
 // v1.56.0 — L'encart « Caisse » d'un container : deux lignes, deux
 // caisses, jamais additionnées entre elles. Vert ce qui est rentré,
@@ -3359,9 +3311,45 @@ function injecterEcrans(){
   +     '<div style="width:60px;"></div>'
   +   '</div>'
   +   '<div class="content">'
-  +     '<div class="dep-vide" style="padding:44px 20px;">&#128176;<br><br>Cet espace est en construction.<br>'
-  +       'Il sera d&eacute;velopp&eacute; prochainement.</div>'
+  +     '<div style="font-size:12.5px;color:var(--text3);font-weight:600;margin-bottom:14px;">'
+  +       'Les montants de l\'entreprise, hors de la vue des clients.</div>'
+  +     '<div class="dep-cases">'
+  +       '<div class="dep-case" style="background:#E2E2F1;" onclick="depOuvrirRapfinContainers()">'
+  +         '<div class="dep-case-ico">&#128230;</div>'
+  +         '<div class="dep-case-tit" style="color:#252599;">CONTAINERS</div>'
+  +         '<div class="dep-case-sub" id="dep-rf-sub-cont">&mdash;</div>'
+  +       '</div>'
+  +     '</div>'
   +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v1.59.0) : Rapport financier > Containers — la liste de
+     tous les containers avec leurs seuls chiffres. Aucun nom de client
+     ici : c'est l'écran qu'on peut ouvrir sans rien dévoiler de la
+     clientèle, et l'inverse exact du carré Départ, où plus aucun montant
+     n'apparaît (demande de Cobey du 24/09/2026). ---- */
+  + '<div class="screen" id="s-rapfin-containers">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-rapport-financier\')">&larr; Rapport</button>'
+  +     '<div><div class="h-title">Containers</div>'
+  +     '<div class="h-sub">Ce qui est encaiss&eacute;, ce qui reste d&ucirc;</div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="dep-rf-cont-liste"></div></div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v1.59.0) : le détail financier d'UN container. Les deux
+     caisses, et — en tapant une case RESTE DÛ — la liste nominative de
+     ceux qui doivent encore. C'est le seul endroit où ces noms
+     apparaissent à côté d'un montant. ---- */
+  + '<div class="screen" id="s-rapfin-container">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="depRapfinContainersRetour()">&larr; Containers</button>'
+  +     '<div><div class="h-title" id="dep-rf-c-titre">Container</div>'
+  +     '<div class="h-sub" id="dep-rf-c-sous"></div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="dep-rf-c-contenu"></div></div>'
   + '</div>';
 
   while(w.firstChild) parent.appendChild(w.firstChild);
@@ -5141,8 +5129,10 @@ function _depArchiveCarteDepart(d){
     +   '</div>'
     +   '<div class="dep-meta">'
     +     '<span>&#128197; <b>'+dateFr(d.dateDepart)+'</b></span>'
+    // v1.59.0 : l'Archivage se consulte au même endroit que le carré
+    // Départ, devant les clients — le montant part avec le reste, dans
+    // Rapport financier > Containers.
     +     '<span>&#128100; <b>'+cp.clients+'</b> client'+(cp.clients>1?'s':'')+'</span>'
-    +     '<span>&#128176; <b>'+cp.euros+'</b> &euro;</span>'
     +   '</div>'
     + '</div>';
 }
@@ -5350,12 +5340,7 @@ window.depRenderListe = function(){
       +   '<div class="dep-meta">'
       +     '<span>&#128197; <b>'+dateFr(d.dateDepart)+'</b></span>'
       +     '<span>&#128100; <b>'+cp.clients+'</b> client'+(cp.clients>1?'s':'')+'</span>'
-      +     '<span>&#128176; <b>'+cp.euros+'</b> &euro;</span>'
       +   '</div>'
-      // v1.56.0 : le montant seul ne disait pas ce qui était rentré. On
-      // ajoute l'encaissé et le restant dû, colis et livraison séparés —
-      // le détail complet reste dans le container (voir _depBlocCaisse).
-      +   _depMiniCaisse(cp)
       +   (ouvert
           ? '<div style="margin-top:8px;display:inline-block;background:var(--green-light);color:var(--green-dark);'
             + 'font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;">&#9679; OUVERT &Agrave; L\'INSCRIPTION</div>'
@@ -5718,7 +5703,6 @@ window.depDetailRetour = function(){
   // le dépouillement en cours.
   _depFiltrePaye = 'tous';
   _depFiltreLivraison = 'tous';
-  _depFiltreDu = 'tous';
   _depDetailRecherche = '';
   var rechD = $('dep-d-recherche'); if(rechD) rechD.value = '';
   if(_depDetailId === DEP_ID_DEPOT){ goTo('s-departs-pays'); depRenderDepartsPaysChoix(); return; }
@@ -5739,7 +5723,7 @@ window.depDetail = function(id, gardeFiltres){
   // celui-ci par son bouton retour (voir depDetailRetour).
   if(id !== _depDetailId){
     _depFiltrePaye = 'tous'; _depFiltreLivraison = 'tous';
-    _depFiltreDu = 'tous';   _depDetailRecherche = '';
+    _depDetailRecherche = '';
   }
   _depDetailId = id;
   // v1.19.57 : barre de recherche par expéditeur/destinataire, en dehors de
@@ -5775,11 +5759,13 @@ window.depDetail = function(id, gardeFiltres){
       +   '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
       +     '<div class="dep-badge" style="background:#FFF3D6;color:#8A6100;">&#127970; Stockage &mdash; hors container</div>'
       +   '</div>'
-      +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">'
-      +     '<div><div style="font-size:20px;font-weight:800;color:#252599;">'+cp.clients+'</div>'
-      +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">CLIENT'+(cp.clients>1?'S':'')+'</div></div>'
-      +     '<div><div style="font-size:20px;font-weight:800;color:'+_depTeinteFacture(cp)+';">'+cp.euros+_depMarqueSolde(cp)+'</div>'
-      +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">&euro; COLIS</div></div>'
+      // v1.59.0 : plus aucun montant dans le carré Départ — il est montré
+      // aux clients (demande de Cobey du 24/09/2026). L'argent vit
+      // désormais dans Rapport financier > Containers, réservé à la
+      // direction (voir depRenderRapfinContainers).
+      +   '<div style="text-align:center;">'
+      +     '<div style="font-size:20px;font-weight:800;color:#252599;">'+cp.clients+'</div>'
+      +     '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">CLIENT'+(cp.clients>1?'S':'')+'</div>'
       +   '</div>'
       + '</div>';
   } else {
@@ -5789,21 +5775,15 @@ window.depDetail = function(id, gardeFiltres){
       +     (ouvert ? '<div class="dep-badge" style="background:var(--green-light);color:var(--green-dark);">&#9679; Ouvert &agrave; l\'inscription</div>'
                     : '<div class="dep-badge" style="background:#EDEDED;color:#777;">Ferm&eacute; &agrave; l\'inscription</div>')
       +   '</div>'
-    +   '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">'
+    // v1.59.0 : le montant facturé quitte cet écran — voir ci-dessus.
+    +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">'
     +     '<div><div style="font-size:20px;font-weight:800;color:#252599;">'+cp.clients+'</div>'
     +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">CLIENT'+(cp.clients>1?'S':'')+'</div></div>'
-    +     '<div><div style="font-size:20px;font-weight:800;color:'+_depTeinteFacture(cp)+';">'+cp.euros+_depMarqueSolde(cp)+'</div>'
-    +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">&euro; COLIS</div></div>'
     +     '<div><div style="font-size:14px;font-weight:800;color:var(--text);margin-top:4px;">'+dateFr(d.dateArriveePrevue)+'</div>'
     +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">ARRIV&Eacute;E</div></div>'
     +   '</div>'
     + '</div>';
   }
-
-  // v1.56.0 : combien est rentré, combien manque — colis d'un côté,
-  // livraison de l'autre. Le chiffre « EUROS » ci-dessus ne dit que le
-  // montant facturé des colis ; il ne disait pas ce qui était encaissé.
-  h += _depBlocCaisse(cp);
 
   // v1.19.72 : suivi transport (étapes visibles par le client), affiché
   // uniquement pour un vrai container — le Dépôt (DEP_ID_DEPOT) est un
@@ -5867,29 +5847,6 @@ window.depDetail = function(id, gardeFiltres){
   // colis ET livraison intégralement réglés (depCalculerPaiementCombine) ;
   // tout le reste (y compris un acompte partiel) compte comme "non payé",
   // volontairement binaire pour rester lisible sur le container.
-  // v1.58.0 : bandeau du filtre « qui doit encore », posé depuis la case
-  // RESTE DÛ de la caisse. Il dit combien de clients et combien d'euros,
-  // et porte la sortie — sans lui, on ne saurait pas pourquoi la liste
-  // est courte.
-  if(_depFiltreDu !== 'tous' && tousAffiches.length){
-    var _estLiv = (_depFiltreDu === 'livraison');
-    var _nDu = tousAffiches.filter(function(x){
-      return (_estLiv ? depCalculerPaiementLivraison(x.c) : depCalculerPaiement(x.c)).reste > 0;
-    }).length;
-    var _totDu = _estLiv ? cp.livDu : cp.colisDu;
-    h += '<div id="dep-d-bandeau-du" style="background:#FDEDED;border:1.5px solid #F5C6C6;border-radius:12px;'
-      +   'padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;'
-      +   'justify-content:space-between;gap:10px;">'
-      +   '<div style="font-size:12.5px;font-weight:700;color:#992020;line-height:1.35;">'
-      +     (_estLiv ? '&#128666;' : '&#128230;') + ' <b>' + _nDu + '</b> client' + (_nDu>1?'s':'')
-      +     ' doi' + (_nDu>1?'vent':'t') + ' encore <b>' + _totDu + ' &euro;</b> '
-      +     (_estLiv ? 'de livraison' : 'sur les colis') + '</div>'
-      +   '<div onclick="depVoirRestants(\'tous\')" style="flex:none;cursor:pointer;background:#fff;'
-      +     'border:1.5px solid #F5C6C6;border-radius:20px;padding:5px 11px;font-size:11.5px;'
-      +     'font-weight:800;color:#992020;white-space:nowrap;">&#10005; Tout voir</div>'
-      + '</div>';
-  }
-
   if(tousAffiches.length){
     var chip = function(actif, label, onclick){
       return '<div class="dep-chip'+(actif?' on':'')+'" onclick="'+onclick+'">'+label+'</div>';
@@ -5919,11 +5876,6 @@ window.depDetail = function(id, gardeFiltres){
       if(_depFiltreLivraison === 'avec' && !avecLiv) return false;
       if(_depFiltreLivraison === 'sans' && avecLiv) return false;
     }
-    // v1.58.0 : caisse par caisse — un client peut avoir soldé ses colis
-    // et devoir encore sa livraison, ou l'inverse. Le filtre "Non payés"
-    // ci-dessus, lui, additionne les deux (depCalculerPaiementCombine).
-    if(_depFiltreDu === 'colis'     && depCalculerPaiement(c).reste <= 0) return false;
-    if(_depFiltreDu === 'livraison' && depCalculerPaiementLivraison(c).reste <= 0) return false;
     if(qDetail){
       var exp = (c.name || ((c.prenom||'')+' '+(c.nom||''))).toLowerCase();
       var dest = (c.destinataireNom||'').toLowerCase();
@@ -6016,10 +5968,7 @@ window.depDetail = function(id, gardeFiltres){
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">'
         +     '<span>'+(c.prixADefinir ? '&agrave; d&eacute;finir' : ((parseFloat(c.prix)||0)+' &euro;'))
         +       (c.livraisonDakar ? ' &middot; &#128666; livraison' : '')
-                // v1.58.0 : quand on dépouille une caisse, chaque ligne dit
-                // ce que CE client doit encore — sinon il faut ouvrir les
-                // fiches une par une, ce qu'on cherchait justement à éviter.
-        +       _depResteLigne(c) + '</span>'
+        +       '</span>'
         +     _depLienTelIcone(c.tel)
         +   '</div>'
         +   '<div class="dep-cli-btns" style="margin-top:12px;">'
@@ -6054,9 +6003,6 @@ window.depDetail = function(id, gardeFiltres){
 window.depFiltrerDetail = function(type, valeur){
   if(type === 'paye') _depFiltrePaye = valeur;
   else if(type === 'livraison') _depFiltreLivraison = valeur;
-  // v1.58.0 : les pastilles reprennent la main sur le filtre « qui doit
-  // encore » — deux filtrages de paiement à la fois ne se lisent pas.
-  _depFiltreDu = 'tous';
   if(_depDetailId) depDetail(_depDetailId, true);
 };
 
@@ -15842,7 +15788,214 @@ window.depDevisConfirmerRefuser = function(){
    ───────────────────────────────────────────── */
 window.depOuvrirEspaceRapportFinancier = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  // Aperçu sur la case : le restant dû, toutes caisses et tous
+  // containers confondus — c'est le chiffre qui décide s'il faut ouvrir.
+  var sub = $('dep-rf-sub-cont');
+  if(sub){
+    var g = _depRapfinTotaux();
+    var du = depArrondi2(g.colisDu + g.livDu);
+    sub.innerHTML = g.nb === 0
+      ? 'Aucun container'
+      : g.nb + ' container' + (g.nb>1?'s':'') + '<br>'
+        + (du > 0 ? '<b style="color:#B3261E;">' + du + ' &euro;</b> &agrave; encaisser'
+                  : '<b style="color:#006b2d;">Tout est encaiss&eacute;</b>');
+  }
   goTo('s-rapport-financier');
+};
+
+/* ─────────────────────────────────────────────
+   13ter bis (v1.59.0). RAPPORT FINANCIER > CONTAINERS
+   Le carré Départ est montré aux clients : plus un seul montant n'y
+   figure. Tout l'argent d'un container se lit ici, dans un espace
+   réservé à la direction — et la liste nominative des retardataires
+   n'existe qu'au bout d'un tap volontaire sur une case RESTE DÛ.
+   ───────────────────────────────────────────── */
+
+// Le cumul de tous les containers, Sénégal et Mali confondus. Le Dépôt
+// d'attente (DEP_ID_DEPOT) en fait partie : ce qu'il contient est déjà
+// facturé, et souvent déjà encaissé.
+function _depRapfinTousLesContainers(){
+  var liste = tousLesDeparts();
+  var d = (window.departsData||{})[DEP_ID_DEPOT];
+  if(d){
+    var o = Object.assign({}, d); o._id = DEP_ID_DEPOT;
+    liste = liste.concat([o]);
+  }
+  return liste;
+}
+
+function _depRapfinTotaux(){
+  var g = { nb:0, clients:0,
+            colisTotal:0, colisPaye:0, colisDu:0,
+            livTotal:0,   livPaye:0,   livDu:0 };
+  _depRapfinTousLesContainers().forEach(function(d){
+    var cp = compteursDepart(d._id);
+    if(!cp.clients) return;          // un container vide n'a rien à dire ici
+    g.nb++;
+    ['clients','colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
+      .forEach(function(k){ g[k] += cp[k]; });
+  });
+  ['colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
+    .forEach(function(k){ g[k] = depArrondi2(g[k]); });
+  return g;
+}
+
+window.depOuvrirRapfinContainers = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  goTo('s-rapfin-containers');
+  depRenderRapfinContainers();
+};
+
+window.depRenderRapfinContainers = function(){
+  var box = $('dep-rf-cont-liste');
+  if(!box) return;
+
+  var g = _depRapfinTotaux();
+  var h = '';
+
+  if(!g.nb){
+    box.innerHTML = '<div class="dep-vide" style="padding:40px 20px;">&#128230;<br><br>'
+      + 'Aucun container ne porte encore de client.</div>';
+    return;
+  }
+
+  // Le cumul d'abord : c'est la question qu'on se pose en arrivant.
+  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:14px;margin-bottom:14px;">'
+    + '<div style="font-size:12px;font-weight:800;color:var(--text);">'
+    +   '&#128202; Tous containers confondus</div>'
+    + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;margin-bottom:10px;">'
+    +   g.nb + ' container' + (g.nb>1?'s':'') + ' &middot; ' + g.clients + ' client' + (g.clients>1?'s':'')
+    +   '</div>'
+    + _depRapfinDeuxCaisses(g)
+    + '</div>';
+
+  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Container par container</div>';
+
+  _depRapfinTousLesContainers().forEach(function(d){
+    var cp = compteursDepart(d._id);
+    if(!cp.clients) return;
+    var estDepot = (d._id === DEP_ID_DEPOT);
+    var st = STATUTS_DEPART[d.statut] || STATUTS_DEPART.preparation;
+    var pM = DEP_PAYS_DEST[depPaysDepart(d)] || {};
+    var duTot = depArrondi2(cp.colisDu + cp.livDu);
+    h += '<div class="dep-card" style="cursor:pointer;border-left-color:'
+      +   (duTot > 0 ? '#B3261E' : '#009A44') + ';" onclick="depRapfinContainer(\''+d._id+'\')">'
+      +   '<div class="dep-card-top">'
+      +     '<div class="dep-nom">' + (estDepot ? '&#127970;' : (pM.drapeau||''))
+      +       ' ' + esc(estDepot ? 'D&eacute;p&ocirc;t (en attente)' : (d.nom||'Sans nom')) + '</div>'
+      +     (estDepot
+          ? '<div class="dep-badge" style="background:#FFF3D6;color:#8A6100;">Stockage</div>'
+          : '<div class="dep-badge" style="background:'+st.bg+';color:'+st.color+';">'+depStatutLabel(d)+'</div>')
+      +   '</div>'
+      +   '<div class="dep-meta">'
+      +     (estDepot ? '' : '<span>&#128197; <b>'+dateFr(d.dateDepart)+'</b></span>')
+      +     '<span>&#128100; <b>'+cp.clients+'</b> client'+(cp.clients>1?'s':'')+'</span>'
+      +   '</div>'
+      +   '<div style="margin-top:10px;">' + _depRapfinDeuxCaisses(cp) + '</div>'
+      + '</div>';
+  });
+
+  box.innerHTML = h;
+};
+
+// Les deux caisses en quatre chiffres, format compact — sert au cumul
+// comme à chaque carte de container.
+function _depRapfinDeuxCaisses(cp){
+  function ligne(icone, libelle, total, paye, du){
+    if(!total) return '<div style="font-size:11.5px;color:var(--text3);font-weight:600;padding:2px 0;">'
+      + icone + ' ' + libelle + ' &middot; aucun montant</div>';
+    return '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;'
+      + 'font-size:12px;font-weight:700;padding:2px 0;">'
+      + '<span style="color:var(--text3);">' + icone + ' ' + libelle + '</span>'
+      + '<b style="color:#006b2d;">' + paye + ' &euro;</b>'
+      + '<span style="color:var(--text3);font-weight:600;">sur ' + total + ' &euro;</span>'
+      + (du > 0
+        ? '<span style="margin-left:auto;background:#FBE3E3;color:#B3261E;border-radius:20px;'
+          + 'padding:2px 9px;font-size:11.5px;font-weight:800;">reste ' + du + ' &euro;</span>'
+        : '<span style="margin-left:auto;color:#006b2d;font-size:11.5px;font-weight:800;">&#10003; sold&eacute;</span>')
+      + '</div>';
+  }
+  return ligne('&#128230;', 'Colis',     cp.colisTotal, cp.colisPaye, cp.colisDu)
+       + ligne('&#128666;', 'Livraison', cp.livTotal,   cp.livPaye,   cp.livDu);
+}
+
+var _depRapfinId = null;   // le container ouvert dans le détail financier
+
+window.depRapfinContainer = function(id){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  if(id !== _depRapfinId) _depFiltreDu = 'tous';
+  _depRapfinId = id;
+  var d = (window.departsData||{})[id];
+  if(!d){ toast('⚠️ Container introuvable.'); return; }
+  var estDepot = (id === DEP_ID_DEPOT);
+  var cp = compteursDepart(id);
+
+  var t = $('dep-rf-c-titre');
+  if(t) t.textContent = estDepot ? 'Dépôt (en attente)' : (d.nom || 'Container');
+  var sTit = $('dep-rf-c-sous');
+  if(sTit) sTit.textContent = cp.clients + ' client' + (cp.clients>1?'s':'')
+    + (estDepot ? '' : ' · part le ' + dateFr(d.dateDepart));
+
+  var h = _depBlocCaisse(cp);
+
+  // La liste nominative n'apparaît qu'ici, et seulement si on a tapé
+  // l'une des deux cases RESTE DÛ.
+  if(_depFiltreDu !== 'tous'){
+    var estLiv = (_depFiltreDu === 'livraison');
+    var restants = _depToutesLesFiches()
+      .filter(function(x){
+        if(!x.c || x.c.departId !== id || _depEstFusionnee(x.c)) return false;
+        return (estLiv ? depCalculerPaiementLivraison(x.c) : depCalculerPaiement(x.c)).reste > 0;
+      })
+      .map(function(x){
+        x.p = estLiv ? depCalculerPaiementLivraison(x.c) : depCalculerPaiement(x.c);
+        return x;
+      })
+      .sort(function(a, b){ return b.p.reste - a.p.reste; });   // le plus gros dû en tête
+
+    h += '<div id="dep-rf-c-restants" style="background:#FDEDED;border:1.5px solid #F5C6C6;'
+      +   'border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;'
+      +   'align-items:center;justify-content:space-between;gap:10px;">'
+      +   '<div style="font-size:12.5px;font-weight:700;color:#992020;line-height:1.35;">'
+      +     (estLiv ? '&#128666;' : '&#128230;') + ' <b>' + restants.length + '</b> client'
+      +     (restants.length>1?'s':'') + ' doi' + (restants.length>1?'vent':'t') + ' encore <b>'
+      +     (estLiv ? cp.livDu : cp.colisDu) + ' &euro;</b> '
+      +     (estLiv ? 'de livraison' : 'sur les colis') + '</div>'
+      +   '<div onclick="depVoirRestants(\'tous\')" style="flex:none;cursor:pointer;background:#fff;'
+      +     'border:1.5px solid #F5C6C6;border-radius:20px;padding:5px 11px;font-size:11.5px;'
+      +     'font-weight:800;color:#992020;white-space:nowrap;">&#10005; Fermer</div>'
+      + '</div>';
+
+    restants.forEach(function(x){
+      var c = x.c;
+      h += '<div class="dep-cli">'
+        +   '<div class="dep-cli-n">' + _depPastilleRang(c, id)
+        +     esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
+        +     (x.src === 'depot'  ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
+        +     (x.src === 'france' ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')
+        +   '</div>'
+        +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+        +     '<span><b style="color:#B3261E;">reste ' + x.p.reste + ' &euro;</b>'
+        +       '<span style="color:var(--text3);"> sur ' + x.p.total + ' &euro;</span>'
+        +       (x.p.paye > 0 ? '<span style="color:var(--text3);"> &middot; ' + x.p.paye + ' &euro; d&eacute;j&agrave; vers&eacute;s</span>' : '')
+        +       '</span>'
+        +     _depLienTelIcone(c.tel)
+        +   '</div>'
+        + '</div>';
+    });
+  }
+
+  var box = $('dep-rf-c-contenu');
+  if(box) box.innerHTML = h;
+  goTo('s-rapfin-container');
+};
+
+window.depRapfinContainersRetour = function(){
+  _depFiltreDu = 'tous';
+  _depRapfinId = null;
+  goTo('s-rapfin-containers');
+  depRenderRapfinContainers();
 };
 
 /* ─────────────────────────────────────────────

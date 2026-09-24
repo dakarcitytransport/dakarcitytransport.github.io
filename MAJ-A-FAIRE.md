@@ -33,13 +33,26 @@ avant de commencer.
 ## 2 · Améliorations
 
 ### ~~Carré Départ~~
-**Fait le 24/09 (v1.56.0).** Chaque container porte un encart « Caisse »
-à deux lignes — colis, puis livraison — avec le payé en vert et le
-restant dû en rouge, et « X € reçus sur Y € » au-dessus de chacune. La
-carte du container dans la liste reprend les quatre chiffres en une
-ligne. Les deux caisses n'ont jamais été mélangées : le total affiché en
-haut du container ne compte que les colis (il est d'ailleurs relibellé
-« € COLIS »), la livraison a sa propre caisse depuis la v1.19.22.
+**Fait le 24/09, puis déplacé le même jour (v1.56.0 → v1.59.0).**
+
+Le carré Départ est montré aux clients : plus aucun montant total n'y
+figure. Ni le « € COLIS » en haut, ni l'encart Caisse, ni les chiffres
+sur les cartes de containers (Départ comme Archivage). Restent le prix
+de chaque colis sur la ligne du client, et les pastilles Payés / Non
+payés, qui n'affichent pas d'euros.
+
+Tout l'argent vit maintenant dans **Rapport financier > Containers**,
+réservé à la direction :
+- le cumul de tous les containers, colis et livraison séparés ;
+- puis container par container, avec bordure rouge s'il reste à
+  encaisser, verte si tout est soldé ;
+- en ouvrant un container, l'encart Caisse complet, et les deux cases
+  RESTE DÛ qui déplient la liste nominative des retardataires, avec leur
+  numéro de téléphone. C'est le seul écran où un nom de client côtoie un
+  montant restant.
+
+Les deux caisses n'ont jamais été mélangées : la livraison a la sienne
+depuis la v1.19.22.
 
 ### Lenteur
 Après modification d'une facture, le prix met trop de temps à apparaître
