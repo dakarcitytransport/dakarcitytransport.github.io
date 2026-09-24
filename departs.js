@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.60.0';
+var DEP_VERSION = 'v1.61.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3372,6 +3372,36 @@ function injecterEcrans(){
   +     '<div style="width:60px;"></div>'
   +   '</div>'
   +   '<div class="content"><div id="dep-rf-c-contenu"></div></div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v1.61.0) : les dépenses d'un camion pendant sa collecte.
+     Carburant, déjeuner, autres — saisies par le collecteur lui-même,
+     horodatées, et déduites du gain du camion (demande de Cobey du
+     24/09/2026). ---- */
+  + '<div class="screen" id="s-dep-depenses">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="depDepensesRetour()">&larr; Camion</button>'
+  +     '<div><div class="h-title">D&eacute;penses</div>'
+  +     '<div class="h-sub" id="dep-dep-sous"></div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div id="dep-dep-total"></div>'
+  +     '<div class="dep-sec" style="border-top:none;padding-top:0;">Ajouter une d&eacute;pense</div>'
+  +     '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
+  +       '<div style="font-size:11.5px;font-weight:800;color:var(--text3);margin-bottom:7px;">NATURE</div>'
+  +       '<div id="dep-dep-types" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>'
+  +       '<div style="font-size:11.5px;font-weight:800;color:var(--text3);margin-bottom:6px;">MONTANT</div>'
+  +       '<input class="fi" id="dep-dep-montant" type="number" inputmode="decimal" min="0" step="0.01" '
+  +         'placeholder="0" style="margin-bottom:12px;">'
+  +       '<div style="font-size:11.5px;font-weight:800;color:var(--text3);margin-bottom:6px;">'
+  +         'PR&Eacute;CISION <span style="font-weight:600;color:#aaa;">(facultatif)</span></div>'
+  +       '<input class="fi" id="dep-dep-note" maxlength="80" placeholder="Station Total, A1&hellip;" style="margin-bottom:14px;">'
+  +       '<button class="btn btn-green" onclick="depAjouterDepense()">&#10133; Enregistrer la d&eacute;pense</button>'
+  +     '</div>'
+  +     '<div class="dep-sec">D&eacute;penses enregistr&eacute;es</div>'
+  +     '<div id="dep-dep-liste"></div>'
+  +   '</div>'
   + '</div>';
 
   while(w.firstChild) parent.appendChild(w.firstChild);
@@ -4385,6 +4415,19 @@ function ecouterDeparts(){
     try{ if($('s-departs') && $('s-departs').classList.contains('active')) depRenderListe(); }catch(e){}
     try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
     try{ if($('s-add') && $('s-add').classList.contains('active')) depRemplirSelect(); }catch(e){}
+  });
+
+  // v1.61.0 : les dépenses de tournée, par collecte et par camion —
+  // voir depOuvrirDepenses. Elles se déduisent du gain du camion, il
+  // faut donc redessiner son écran quand elles changent.
+  db.ref('dct_depenses').on('value', function(snap){
+    window.depensesData = snap.val() || {};
+    try{ if($('s-dep-depenses') && $('s-dep-depenses').classList.contains('active')) depRenderDepenses(); }catch(e){}
+    try{
+      if($('s-camion') && $('s-camion').classList.contains('active') && window.currentCamion){
+        _depMajBlocDepensesCamion(window.currentCamion);
+      }
+    }catch(e){}
   });
 
   // v1.19.85 : devis en attente — voir carré DEVIS.
@@ -12758,6 +12801,8 @@ function greffer(){
       try{ _depAlerterArretsSansHeure(k); }catch(e){ console.error('departs: arrets sans heure', e); }
       try{ _depAfficherFinanceExtra(k); }catch(e){ console.error('departs: finance extra (camion)', e); }
       try{ _depInjecterBoutonEtiquettesCamion(k); }catch(e){ console.error('departs: bouton étiquettes camion', e); }
+      // v1.61.0 : la case Dépenses, juste sous l'impression des étiquettes.
+      try{ _depInjecterBoutonDepensesCamion(k); }catch(e){ console.error('departs: bouton dépenses camion', e); }
       // v1.50.0 : chaque camion a sa carte — voir depCarteCamion.
       try{ _depInjecterBoutonCarteCamion(k); }catch(e){ console.error('departs: bouton carte camion', e); }
     };
@@ -14570,6 +14615,265 @@ function _depInjecterBoutonEtiquettesCamion(k){
   btn.onclick = function(){ depOuvrirImpressionToutesEtiquettesCamion(window.currentCamion || k); };
   slabel.parentNode.insertBefore(btn, slabel);
 }
+
+/* ═════════ v1.61.0 — LES DÉPENSES D'UN CAMION ═════════
+   Chaque camion saisit lui-même ce qu'il a dépensé pendant sa tournée —
+   carburant, déjeuner, le reste. Chaque ligne est horodatée et signée,
+   et le total se déduit de ce que le camion a collecté : c'est le gain
+   réel de la tournée qui s'affiche alors sur son écran, et qui
+   remontera dans le rapport financier (demande de Cobey du 24/09/2026).
+
+   Rangées dans dct_depenses/<collecte>/<camion>/<clé>, à côté des autres
+   réserves de l'appli et jamais mêlées aux factures clients. */
+var DEP_TYPES_DEPENSE = [
+  { cle:'carburant', icone:'&#9981;',            label:'Carburant' },
+  { cle:'dejeuner',  icone:'&#127860;',          label:'D&eacute;jeuner' },
+  { cle:'autre',     icone:'&#128176;',          label:'Autre' }
+];
+// Le carburant se paie avec des centimes : « 45,50 € », pas « 45.5 € ».
+// (Ailleurs dans l'appli les prix sont des euros entiers, d'où l'absence
+// d'un tel formateur jusqu'ici.)
+function _depEuros(n){
+  var v = depArrondi2(parseFloat(n) || 0);
+  return (v % 1 === 0) ? String(v) : v.toFixed(2).replace('.', ',');
+}
+
+var _depDepenseType = 'carburant';
+var _depDepenseCtx  = null;   // { colId, camion }
+
+function _depLibelleTypeDepense(cle){
+  var t = DEP_TYPES_DEPENSE.find(function(x){ return x.cle === cle; });
+  return t ? (t.icone + ' ' + t.label) : '&#128176; Autre';
+}
+
+// Les dépenses d'un camion, de la plus récente à la plus ancienne.
+function _depDepensesDe(colId, camion){
+  var n = ((window.depensesData || {})[colId] || {})[camion] || {};
+  return Object.keys(n)
+    .map(function(k){ var o = Object.assign({}, n[k]); o._id = k; return o; })
+    .filter(function(o){ return o && typeof o === 'object'; })
+    .sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
+}
+
+function _depTotalDepenses(colId, camion){
+  return depArrondi2(_depDepensesDe(colId, camion).reduce(function(s,o){
+    return s + (parseFloat(o.montant) || 0);
+  }, 0));
+}
+
+// Ce que le camion a réellement collecté — même calcul que la ligne
+// "✅ Collecté" du natif, relu ici pour pouvoir en retrancher les frais.
+function _depCollecteDuCamion(tk){
+  var total = 0;
+  var cls = (window.clientsParCollecte || {})[window.currentCollecteId] || {};
+  (tk && Array.isArray(tk.validated) ? tk.validated : []).forEach(function(id){
+    var c = cls[id];
+    if(c) total += (parseFloat(c.prix) || 0);
+  });
+  return depArrondi2(total);
+}
+
+/* Le bouton et le bilan, posés sous « Imprimer toutes les étiquettes »
+   de l'écran camion. */
+function _depInjecterBoutonDepensesCamion(k){
+  var screen = $('s-camion');
+  if(!screen) return;
+  // renderCamion redessine le bloc finance à chaque passage : même quand
+  // le bouton est déjà là, il faut refaire le total et les deux lignes,
+  // sinon revenir de l'écran Dépenses les faisait disparaître.
+  if(!$('dep-btn-depenses')){
+    var ancre = $('dep-btn-etq-camion');
+    if(!ancre || !ancre.parentNode) return;
+    var btn = document.createElement('button');
+    btn.id = 'dep-btn-depenses';
+    btn.type = 'button';
+    btn.style.cssText = 'width:100%;padding:12px;background:#FFF3E0;color:#8A5200;'
+      + 'border:2px solid #E58A00;border-radius:10px;font-size:13.5px;font-weight:800;'
+      + 'cursor:pointer;font-family:var(--font);margin-bottom:14px;';
+    btn.onclick = function(){ depOuvrirDepenses(window.currentCamion || k); };
+    // Juste APRÈS le bouton d'étiquettes, comme demandé.
+    ancre.parentNode.insertBefore(btn, ancre.nextSibling);
+  }
+  _depMajBlocDepensesCamion(k);
+}
+
+// Le libellé du bouton et la ligne « Dépenses / Gain net » du bloc
+// finance — recalculés à chaque changement, sans redessiner l'écran.
+function _depMajBlocDepensesCamion(k){
+  var colId = window.currentCollecteId;
+  var tot = _depTotalDepenses(colId, k);
+  var btn = $('dep-btn-depenses');
+  if(btn){
+    btn.innerHTML = tot > 0
+      ? '&#128176; D&eacute;penses du camion &middot; ' + _depEuros(tot) + ' &euro;'
+      : '&#128176; D&eacute;penses du camion';
+  }
+
+  var remRow = $('c-remaining');
+  if(!remRow || !remRow.parentNode) return;
+  var box = remRow.parentNode.parentNode;
+  if(!box) return;
+  var trks = getTrucks(), tk = trks[k];
+
+  var rowD = $('dep-finance-depenses');
+  var rowN = $('dep-finance-net');
+  if(tot <= 0){
+    if(rowD && rowD.parentNode) rowD.parentNode.removeChild(rowD);
+    if(rowN && rowN.parentNode) rowN.parentNode.removeChild(rowN);
+    return;
+  }
+  if(!rowD){
+    rowD = document.createElement('div');
+    rowD.id = 'dep-finance-depenses';
+    rowD.className = 'finance-row';
+    rowD.style.cssText = 'margin-top:4px;';
+  }
+  rowD.innerHTML = '<span class="finance-label">&#128176; D&eacute;penses de la tourn&eacute;e</span>'
+    + '<span class="finance-val" style="color:#B3261E;">&minus; ' + _depEuros(tot) + ' &euro;</span>';
+  box.appendChild(rowD);
+
+  var net = depArrondi2(_depCollecteDuCamion(tk) - tot);
+  if(!rowN){
+    rowN = document.createElement('div');
+    rowN.id = 'dep-finance-net';
+    rowN.className = 'finance-row';
+    rowN.style.cssText = 'margin-top:4px;padding-top:7px;border-top:1.5px solid var(--border);';
+  }
+  rowN.innerHTML = '<span class="finance-label" style="font-weight:800;">&#9989; Gain net du camion</span>'
+    + '<span class="finance-val" style="font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">'
+    + _depEuros(net) + ' &euro;</span>';
+  box.appendChild(rowN);
+}
+
+window.depOuvrirDepenses = function(k){
+  var colId = window.currentCollecteId;
+  if(!colId || !k){ toast('⚠️ Ouvrez d\'abord un camion.'); return; }
+  _depDepenseCtx = { colId: colId, camion: k };
+  _depDepenseType = 'carburant';
+  var m = $('dep-dep-montant'); if(m) m.value = '';
+  var n = $('dep-dep-note');    if(n) n.value = '';
+  goTo('s-dep-depenses');
+  depRenderDepenses();
+};
+
+window.depDepensesRetour = function(){
+  goTo('s-camion');
+  try{ renderCamion(window.currentCamion); }catch(e){}
+};
+
+window.depChoisirTypeDepense = function(cle){
+  _depDepenseType = cle;
+  depRenderDepenses();
+};
+
+window.depRenderDepenses = function(){
+  var ctx = _depDepenseCtx;
+  if(!ctx) return;
+  var trks = getTrucks(), tk = trks[ctx.camion] || {};
+
+  var sous = $('dep-dep-sous');
+  if(sous) sous.textContent = tk.name || 'Camion';
+
+  // Les pastilles de nature
+  var zt = $('dep-dep-types');
+  if(zt){
+    zt.innerHTML = DEP_TYPES_DEPENSE.map(function(t){
+      return '<div class="dep-chip' + (_depDepenseType === t.cle ? ' on' : '') + '"'
+        + ' onclick="depChoisirTypeDepense(\'' + t.cle + '\')">' + t.icone + ' ' + t.label + '</div>';
+    }).join('');
+  }
+
+  var liste = _depDepensesDe(ctx.colId, ctx.camion);
+  var tot = _depTotalDepenses(ctx.colId, ctx.camion);
+  var collecte = _depCollecteDuCamion(tk);
+  var net = depArrondi2(collecte - tot);
+
+  var zTot = $('dep-dep-total');
+  if(zTot){
+    zTot.innerHTML = '<div style="background:#fff;border:1.5px solid var(--border);'
+      +   'border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">'
+      +   '<div><div style="font-size:18px;font-weight:800;color:#006b2d;">' + _depEuros(collecte) + ' &euro;</div>'
+      +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">COLLECT&Eacute;</div></div>'
+      +   '<div><div style="font-size:18px;font-weight:800;color:#B3261E;">' + (tot > 0 ? '&minus; ' : '') + _depEuros(tot) + ' &euro;</div>'
+      +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">D&Eacute;PENS&Eacute;</div></div>'
+      +   '<div><div style="font-size:18px;font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(net) + ' &euro;</div>'
+      +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">GAIN NET</div></div>'
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:10px;text-align:center;">'
+      +   liste.length + ' d&eacute;pense' + (liste.length>1?'s':'') + ' enregistr&eacute;e' + (liste.length>1?'s':'')
+      +   ' sur cette tourn&eacute;e</div>'
+      + '</div>';
+  }
+
+  var box = $('dep-dep-liste');
+  if(!box) return;
+  if(!liste.length){
+    box.innerHTML = '<div class="dep-vide" style="padding:28px 16px;">Aucune d&eacute;pense pour l\'instant.</div>';
+    return;
+  }
+  box.innerHTML = liste.map(function(o){
+    // Comme pour les versements : l'auteur peut se corriger dans la
+    // demi-heure, la direction à tout moment.
+    var supprimable = estDirection()
+      || (((window.currentUser||{}).id === o.parId) && (Date.now() - (o.ts||0)) <= DEP_VERSEMENT_DELAI_SUPPR);
+    return '<div class="dep-cli">'
+      + '<div class="dep-cli-n" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+      +   '<span>' + _depLibelleTypeDepense(o.type) + '</span>'
+      +   '<span style="font-weight:800;color:#B3261E;">' + _depEuros(o.montant) + ' &euro;</span>'
+      + '</div>'
+      + (o.note ? '<div class="dep-cli-s" style="margin-top:2px;">' + esc(o.note) + '</div>' : '')
+      + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;">'
+      +   '<span style="color:var(--text3);">' + esc(dateHeureFr(o.ts||0))
+      +     (o.par ? ' &middot; ' + esc(o.par) : '') + '</span>'
+      +   (supprimable
+        ? '<span onclick="depSupprimerDepense(\'' + o._id + '\')" style="cursor:pointer;color:#992020;'
+          + 'font-weight:800;font-size:11.5px;white-space:nowrap;">&#128465; Retirer</span>'
+        : '')
+      + '</div>'
+      + '</div>';
+  }).join('');
+};
+
+window.depAjouterDepense = function(){
+  var ctx = _depDepenseCtx;
+  if(!ctx){ toast('⚠️ Indisponible ici.'); return; }
+  var montant = parseFloat(($('dep-dep-montant')||{}).value);
+  if(!montant || montant <= 0){ toast('⚠️ Indiquez un montant.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  var u = window.currentUser || {};
+  var obj = {
+    type    : _depDepenseType,
+    montant : depArrondi2(montant),
+    note    : (($('dep-dep-note')||{}).value || '').trim(),
+    ts      : Date.now(),
+    par     : u.name || u.id || '',
+    parId   : u.id || ''
+  };
+  db.ref('dct_depenses/' + ctx.colId + '/' + ctx.camion).push(obj).then(function(){
+    toast('✅ Dépense enregistrée — ' + _depEuros(obj.montant) + ' €');
+    var m = $('dep-dep-montant'); if(m) m.value = '';
+    var n = $('dep-dep-note');    if(n) n.value = '';
+  }).catch(function(e){
+    toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé'));
+  });
+};
+
+window.depSupprimerDepense = function(id){
+  var ctx = _depDepenseCtx;
+  if(!ctx || !id) return;
+  var o = (((window.depensesData||{})[ctx.colId]||{})[ctx.camion]||{})[id];
+  if(!o) return;
+  var permis = estDirection()
+    || (((window.currentUser||{}).id === o.parId) && (Date.now() - (o.ts||0)) <= DEP_VERSEMENT_DELAI_SUPPR);
+  if(!permis){ toast('🔒 Passé 30 minutes, seule la direction peut retirer une dépense.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  db.ref('dct_depenses/' + ctx.colId + '/' + ctx.camion + '/' + id).remove().then(function(){
+    toast('🗑 Dépense retirée');
+  }).catch(function(e){
+    toast('❌ Échec : ' + ((e && e.message) || 'suppression refusée'));
+  });
+};
 
 /* ═════════ v1.50.0 — LA CARTE D'UN CAMION ═════════
    Le Dispatch a sa carte d'ensemble, où l'on affecte les clients aux

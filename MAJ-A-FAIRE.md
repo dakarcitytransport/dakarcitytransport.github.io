@@ -123,12 +123,20 @@ payé / non payé · avec / sans livraison · par région
 
 ## 6 · Rapport financier
 
-### Dépenses par camion
-Sous « imprimer les étiquettes » de chaque camion, une case de dépenses :
-carburant, déjeuner, autres. Ces montants sont **déduits du gain du
-camion**, et datés avec l'heure.
+### ~~Dépenses par camion~~
+**Fait le 24/09 (v1.61.0).** Case « 💰 Dépenses du camion » juste sous
+l'impression des étiquettes, avec le total sur le bouton. Trois natures :
+carburant, déjeuner, autre. Chaque ligne est horodatée et signée.
 
-**?** Qui les saisit : le collecteur lui-même, ou seulement la direction ?
+Le collecteur saisit lui-même (question tranchée par Cobey : « chaque
+camion entre les dépenses qu'ils ont fait lors de la collecte »). Il peut
+se corriger dans les 30 minutes, comme pour un versement ; passé ce
+délai, seule la direction retire une ligne.
+
+L'écran camion affiche désormais **💰 Dépenses de la tournée** et
+**✅ Gain net du camion** sous le bloc finance existant. Stocké dans
+`dct_depenses/<collecte>/<camion>`, prêt pour l'écran recettes /
+dépenses / bénéfice.
 
 ### Écran recettes / dépenses / bénéfice
 Par container, ou en total, pour chaque poste.
