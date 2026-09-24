@@ -148,9 +148,20 @@ tous containers). Ce qui reste dû est rappelé à part, en orange, et ne
 compte pas tant qu'il n'est pas versé.
 
 ### ~~Dépenses fixes, saisies à la main~~
-**Fait le 24/09 (v1.63.0).** Écran dédié depuis le Bilan, six postes :
-loyer · dédouanement · container · salaires · location · autres. Chaque
-ligne est datée et signée.
+**Fait le 24/09 (v1.63.0), rattachées au container le même jour
+(v1.66.0).** Elles ne vivent plus au niveau du bilan mais **dans chaque
+container** : on ouvre le container depuis Rapport financier, puis
+« Gérer les dépenses de ce container ». Six motifs dans une case à
+choisir, le montant juste à côté : loyer · dédouanement · container ·
+salaires · location · autres. Chaque ligne est datée et signée.
+
+Le même écran **reporte les dépenses des camions** qui ont rempli ce
+container, collecte par collecte. Quand un camion a rempli deux
+containers, ses frais se répartissent au prorata de ses clients : rien
+n'est compté deux fois, et la somme des containers redonne le total du
+bilan.
+
+Le container affiche alors son **résultat** : encaissé − dépenses.
 
 ### Container
 Total payé et total dû.
