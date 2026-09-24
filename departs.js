@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.74.0';
+var DEP_VERSION = 'v1.75.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16518,8 +16518,15 @@ window.depRapfinContainer = function(id){
         +       '</span>'
         +     '<span onclick="event.stopPropagation();">' + _depLienTelIcone(c.tel) + '</span>'
         +   '</div>'
-        +   '<div style="font-size:11px;color:var(--text3);font-weight:700;margin-top:5px;">'
-        +     '&#128196; Toucher pour ouvrir la fiche</div>'
+        +   '<div class="dep-cli-btns" style="margin-top:10px;">'
+        +     '<button class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
+        +       'onclick="event.stopPropagation();depRapfinOuvrirFacture(\''
+        +       x.src + '\',\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\')">'
+        +       '&#129534; Facture &middot; encaisser</button>'
+        +     '<button class="dep-cli-btn" onclick="event.stopPropagation();depRapfinOuvrirFiche(\''
+        +       x.src + '\',\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\')">'
+        +       '&#128196; Fiche</button>'
+        +   '</div>'
         + '</div>';
     });
   }
@@ -17031,6 +17038,30 @@ window.depRapfinOuvrirFiche = function(src, colId, clientId){
   // Départ : on le remplace après coup.
   var bk = $('client-back');   if(bk) bk.onclick = retour;
   var cn = $('client-cancel'); if(cn) cn.onclick = retour;
+};
+
+/* v1.75.0 — La facture, depuis la liste des impayés.
+   Voir la fiche sert à vérifier ; encaisser se fait sur la facture,
+   c'est là que vivent les versements (demande de Cobey du 24/09/2026).
+   Le bouton y mène directement, et le retour ramène à la liste. */
+window.depRapfinOuvrirFacture = function(src, colId, clientId){
+  var id = _depRapfinId;
+  if(!id) return;
+  try{
+    if(src === 'france') depOuvrirFactureFrance(clientId);
+    else                 depOuvrirFacture(colId || '', clientId, src === 'depot');
+  }catch(e){
+    console.error('departs: facture depuis le rapport financier', e);
+    toast('⚠️ Facture introuvable.');
+    return;
+  }
+  // Les trois chemins posent leur propre retour sur le même bouton :
+  // on le remplace une fois la facture ouverte.
+  var btn = $('dep-fact-retour');
+  if(btn){
+    btn.textContent = '← Container';
+    btn.onclick = function(){ depRapfinContainer(id); };
+  }
 };
 
 window.depRapfinContainersRetour = function(){
