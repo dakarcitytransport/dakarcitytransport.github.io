@@ -255,8 +255,9 @@ C'est presque toujours une erreur de saisie : un versement livraison tapé
 dans la case colis, un acompte pris avant que le prix soit fixé, un prix
 baissé après un paiement.
 
-### Container
-Total payé et total dû.
+### ~~Container~~
+**Fait le 24/09 (v1.56.0).** Total payé et total dû, séparément pour les
+colis et pour la livraison, sur chaque container et en cumul.
 
 ### ~~Anciennes données~~
 **Abandonné le 24/09 (v1.73.0).** Pas de reprise du tout : la nouvelle
