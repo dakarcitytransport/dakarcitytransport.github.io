@@ -120,11 +120,11 @@ même mise en page.
   De 100 à 168 px à l'écran, et le dessin passe de 180 à 300 px pour
   rester net à l'impression. Une étiquette se scanne sur un colis posé au
   sol, souvent de biais et à bout de bras : 100 px, c'était trop juste.
-- Remplacer « Scanner en secours » par le **numéro de client**.
-  **?** Cette mention n'existe nulle part dans l'application. À préciser
-  avec Cobey : s'agit-il de la grande ligne en haut de l'étiquette
-  (`CL-0001-051026-7` = n° client + date de départ + place dans le
-  container), à remplacer par le seul numéro de client ?
+- ~~Remplacer « Scanner en secours » par le **numéro de client**.~~
+  **Déplacé le 24/09 vers l'espace Mamadou (§5).** Précision de Cobey :
+  il ne s'agissait pas de l'étiquette. C'est la saisie de secours du
+  livreur, pour les fois où le QR refuse de se scanner. Rien à faire ici
+  tant que son espace n'existe pas.
 
 ---
 
@@ -136,8 +136,17 @@ Un accès séparé, sur le modèle du lien des chauffeurs externes.
 
 ### Ses écrans
 - une **case QR code**, pour scanner une étiquette ;
+- une **saisie de secours**, juste à côté : quand le QR refuse de se
+  scanner (étiquette abîmée, mal imprimée, colis mal éclairé), Mamadou
+  tape un numéro à la main et arrive sur la même fiche client. C'est ce
+  que Cobey appelait « scanner en secours » (précisé le 24/09) ;
 - une **case container**, pour accéder aux clients comme le carré Départ,
   mais **sans aucun total d'argent du container**.
+
+**?** Quel numéro tape-t-il : le numéro de client (`CL-0001`), ou la
+grande ligne de l'étiquette en entier (`CL-0001-051026-7`) ? À trancher
+au moment de construire l'écran — le second est unique par colis, le
+premier retombe sur le client quel que soit l'envoi.
 
 ### Au scan d'une étiquette
 - si le client a payé → l'information **en vert** ;
