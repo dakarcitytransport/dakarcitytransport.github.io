@@ -95,7 +95,11 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .nav-item.active .nav-label{color:var(--green);font-weight:700;}
 
 /* CONTENT */
-.content{flex:1;overflow-y:auto;padding:14px;padding-bottom:max(28px,calc(env(safe-area-inset-bottom) + 14px));-webkit-overflow-scrolling:touch;}
+/* v3.75.0 : le bas restait trop collé au bord — le dernier bloc frôlait
+   la barre d'accueil de l'iPhone et on ne pouvait pas descendre plus
+   (retour de Cobey du 24/09/2026). 52 px de respiration au minimum, et
+   davantage si la machine déclare une zone réservée en bas. */
+.content{flex:1;overflow-y:auto;padding:14px;padding-bottom:max(52px,calc(env(safe-area-inset-bottom) + 38px));-webkit-overflow-scrolling:touch;}
 
 /* SBAR */
 .sbar{background:var(--green);padding:10px 16px;display:flex;flex-shrink:0;}
@@ -183,7 +187,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 /* v3.73.0 : les boutons du bas touchaient le bord de l'écran, sous la
    barre d'accueil de l'iPhone (retour de Cobey du 24/09/2026). On
    garantit une marge basse, quelle que soit la machine. */
-.modal-sheet{background:var(--white);border-radius:18px 18px 0 0;padding:20px 16px max(34px,calc(env(safe-area-inset-bottom) + 20px));width:100%;max-width:430px;max-height:85vh;overflow-y:auto;}
+.modal-sheet{background:var(--white);border-radius:18px 18px 0 0;padding:20px 16px max(44px,calc(env(safe-area-inset-bottom) + 30px));width:100%;max-width:430px;max-height:85vh;overflow-y:auto;}
 .modal-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:14px;}
 .modal-option{display:flex;align-items:center;gap:12px;padding:13px;border:2px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;}
 .modal-option:active{background:var(--green-light);border-color:var(--green);}
@@ -1090,10 +1094,16 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 
 
 
-<!-- ADMIN -->
-<div
-  <div class="content" id="admin-panel"></div>
-</div>
+<!-- ADMIN : l'écran réel est #s-admin ci-dessus. Il restait ici un bloc
+     vestigial dont la balise ouvrante n'avait jamais été refermée ("<div"
+     sans ">") : le navigateur en faisait un <div class="content"
+     id="admin-panel"> posé directement dans .app, donc visible en
+     permanence, au-dessus de tous les écrans. Comme .content porte un
+     padding, ce fantôme mesurait plusieurs dizaines de pixels et
+     décalait chaque écran vers le bas d'autant — le bas se retrouvait
+     coupé, hors de .app qui masque son débordement. Personne ne
+     référençait #admin-panel : on le supprime (retour de Cobey du
+     24/09/2026, « les bordures c'est pas bon sur plusieurs écrans »). -->
 
 <div class="modal-overlay" id="modal-admin-pin"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">🔐</div><div class="modal-confirm-title">Code administrateur</div><input type="hidden" id="admin-pin-id"><input id="admin-pin-input" type="password" inputmode="numeric" maxlength="6" style="width:100%;padding:14px;border:2.5px solid #1a237e;border-radius:10px;font-size:28px;font-family:var(--font);color:#111;text-align:center;letter-spacing:8px;margin:12px 0;" onkeydown="if(event.key==='Enter')validerPinAdmin()"><div id="admin-pin-error" style="display:none;color:#c0392b;font-size:13px;font-weight:700;margin-bottom:8px;">❌ Code incorrect</div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-admin-pin')">Annuler</button><button class="btn-sm" style="background:#1a237e;color:#fff;border:2px solid #0d1b6b;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);" onclick="validerPinAdmin()">🔐 Entrer</button></div></div></div></div>
 <div class="modal-overlay" id="modal-affect"><div class="modal-sheet"><div class="modal-title" id="affect-title">Affecter à…</div><div id="affect-options"></div><button id="affect-retirer" class="btn btn-red" style="display:none;margin-top:8px;" onclick="retirerClient()">✕ Retirer du camion</button><button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal('modal-affect')">✕ Annuler</button></div></div>
@@ -1615,7 +1625,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.74.0';
+var APP_VERSION = 'v3.76.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},

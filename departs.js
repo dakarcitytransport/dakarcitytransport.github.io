@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.76.0';
+var DEP_VERSION = 'v1.77.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16662,6 +16662,41 @@ function _depBilanFinancier(){
 
 // Le report de 360 est un solde de clôture : il ne bouge plus, et on le
 // dit sous chacune de ses deux lignes.
+/* v1.77.0 — Dater le bilan.
+   Les chiffres sont recalculés à chaque ouverture : ils valent donc pour
+   l'instant où on les regarde. Sans date affichée, une capture d'écran
+   envoyée sur WhatsApp ne dit plus à quoi elle correspond (demande de
+   Cobey du 24/09/2026). On affiche donc le moment du calcul, et le
+   dernier mouvement enregistré — c'est lui qui dit jusqu'où vont les
+   comptes. */
+function _depDernierMouvement(){
+  var ts = 0;
+  var voir = function(t){ t = parseInt(t, 10) || 0; if(t > ts) ts = t; };
+
+  // Les versements des clients, dans les trois parcours.
+  _depToutesLesFiches().forEach(function(x){
+    var c = x.c;
+    if(!c || _depEstFusionnee(c)) return;
+    [c.versements, c.versementsLivraison].forEach(function(arr){
+      if(Array.isArray(arr)) arr.forEach(function(v){ if(v) voir(v.le || v.ts); });
+    });
+  });
+
+  // Les dépenses de tournée, et celles des containers.
+  var dep = window.depensesData || {};
+  Object.keys(dep).forEach(function(colId){
+    if(!_depCollecteExiste(colId)) return;
+    var parCam = dep[colId] || {};
+    Object.keys(parCam).forEach(function(cam){
+      var lignes = parCam[cam] || {};
+      Object.keys(lignes).forEach(function(k){ voir((lignes[k]||{}).ts); });
+    });
+  });
+  _depToutesLesFixes().forEach(function(o){ voir(o.ts); });
+
+  return ts;
+}
+
 window.depOuvrirRapfinBilan = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   goTo('s-rapfin-bilan');
@@ -16684,6 +16719,19 @@ window.depRenderRapfinBilan = function(){
   var h = '';
 
   // ── Le bilan, en tête ──
+  // Daté : ces chiffres valent pour l'instant où on les regarde.
+  var dern = _depDernierMouvement();
+  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:12px 14px;margin-bottom:12px;">'
+    + '<div style="font-size:12.5px;font-weight:800;color:var(--text);">'
+    +   '&#128197; Arr&ecirc;t&eacute; au ' + esc(dateHeureFr(Date.now())) + '</div>'
+    + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:3px;line-height:1.4;">'
+    +   (dern
+      ? 'Dernier mouvement enregistr&eacute; le ' + esc(dateHeureFr(dern)) + '.'
+      : 'Aucun mouvement enregistr&eacute; pour l\'instant.')
+    +   '</div>'
+    + '</div>';
+
   h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;">'
     + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
     +   'margin-bottom:6px;">&#128230; TRANSPORT DES COLIS</div>'
