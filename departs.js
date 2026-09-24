@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.80.0';
+var DEP_VERSION = 'v1.81.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2004,6 +2004,30 @@ function estDirection(){
   return !!(u.admin || u.patron || IDS_DIRECTION.indexOf(u.id) >= 0);
 }
 window._estDirection = estDirection;
+
+/* v1.81.0 — Rafraîchir la fiche ou la facture ouverte après une synchro.
+
+   L'application appelle ce rappel quand les données ont changé et que
+   l'écran actif ne fait pas partie de ceux qu'elle sait redessiner
+   elle-même (voir _dctRedessinerEcranActif dans dct-app.html). Sans ça,
+   un prix modifié ailleurs — par Issyaka, ou depuis un autre téléphone —
+   n'apparaissait qu'en refermant puis rouvrant la fiche.
+
+   On ne redessine que si on a de quoi : chaque écran garde le contexte
+   de ce qu'il affiche, et sans lui on ne touche à rien. */
+window._depRafraichirEcranOuvert = function(ecranId){
+  if(ecranId === 's-dep-fiche-lecture'){
+    var f = _depFicheLectureCtx;
+    if(f && f.clientId) depRenderFicheLecture(f.colId, f.clientId, f.depot);
+    return;
+  }
+  if(ecranId === 's-facture'){
+    var ctx = _depFactureCtx;
+    if(!ctx) return;
+    var c = _depClientFacture(ctx);
+    if(c) depRenderFacture(c);
+  }
+};
 
 // Réapplique les droits sur COLLABS. Appelée au démarrage, à chaque
 // rechargement de la config depuis Firebase, et juste avant la connexion.

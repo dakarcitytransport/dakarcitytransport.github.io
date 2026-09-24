@@ -54,9 +54,29 @@ réservé à la direction :
 Les deux caisses n'ont jamais été mélangées : la livraison a la sienne
 depuis la v1.19.22.
 
-### Lenteur
-Après modification d'une facture, le prix met trop de temps à apparaître
-sur la fiche client.
+### ~~Lenteur, et les boutons qui ne répondent pas~~
+**Fait le 24/09 (v3.78.0 / v1.81.0).** Même cause pour les deux.
+
+L'application écoutait Firebase sur `dct` tout entier — et le fil
+d'Activité vit sous `dct`. Chaque geste de chaque collaborateur y écrit
+une ligne, et cette écriture réveillait tout le monde : l'appli
+recopiait en entier l'annuaire des clients, puis redessinait l'écran de
+fond en comble, pour des données rigoureusement identiques.
+
+Trois corrections :
+
+1. **On ne refait le travail que si quelque chose a bougé.** Sur vingt
+   lignes d'Activité sans aucun changement de données, l'écran était
+   redessiné vingt fois ; il ne l'est plus qu'une. Le fil d'Activité,
+   lui, continue de suivre.
+2. **Le garde-doigt.** Un redessin qui tombe entre le moment où le doigt
+   touche et celui où il se lève détruit le bouton visé : le navigateur
+   n'émet aucun clic, et on a l'impression d'appuyer dans le vide
+   (retour de Cobey et des collaborateurs du 24/09). La synchronisation
+   attend maintenant que l'écran soit libre, puis rattrape son redessin.
+3. **La fiche et la facture ouvertes se rafraîchissent seules.** Un prix
+   changé depuis un autre téléphone s'affichait seulement après avoir
+   refermé puis rouvert la fiche.
 
 ### Suivi du colis
 - Retirer la date affichée à chaque étape.
@@ -76,8 +96,9 @@ sur la fiche client.
   France & Europe. Les trois parcours partagent désormais le même
   regroupement, dans les deux sens (regrouper et séparer).
 
-- **Lenteur** — après modification d'une facture, le prix met trop de temps
-  à apparaître sur la fiche client. *(à traiter)*
+- ~~**Lenteur** — après modification d'une facture, le prix met trop de temps
+  à apparaître sur la fiche client.~~ **Réglé le 24/09** — voir « Lenteur,
+  et les boutons qui ne répondent pas » plus haut.
 
 ---
 

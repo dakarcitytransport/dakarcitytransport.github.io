@@ -1448,6 +1448,28 @@ function ecouterChangements(){
     if(!activeNow || activeNow.id === 's-login') return;
     var data = snapshot.val();
     if(!data) return;
+
+    /* v3.78.0 — On ne refait le travail que si quelque chose a bougé.
+
+       Ce listener est posé sur `dct` tout entier. Or le fil d'Activité
+       vit lui aussi sous `dct` : chaque geste de chaque collaborateur y
+       écrit une ligne, et cette écriture rappelait ici tout le monde.
+       À chaque fois, l'application recopiait en entier l'annuaire des
+       clients (une collecte, c'est plusieurs centaines de fiches) puis
+       redessinait l'écran de fond en comble — pour des données
+       rigoureusement identiques.
+
+       D'où l'application qui traîne, et les boutons qui ne répondent
+       pas : le redessin détruit l'élément sous le doigt (voir le
+       garde-doigt plus bas).
+
+       On compare donc ce qui arrive à ce qu'on a déjà. Si c'est le
+       même, on met juste l'Activité à jour et on s'arrête là. */
+    var _empreinte = '';
+    try{ _empreinte = JSON.stringify([data.collectes, data.clients, data.dispatch, data.contacts]); }catch(e){}
+    if(_empreinte && _empreinte === _dctEmpreinteSync){ _dctMajActivite(data); return; }
+    _dctEmpreinteSync = _empreinte;
+
     // Synchronisation Firebase active
     // Toujours mettre à jour collectes, même si null (collecte supprimée)
     if(data.collectes){
@@ -1519,67 +1541,96 @@ function ecouterChangements(){
     } else if(!data.contacts) {
       window.dctContacts = {}; // Tous les contacts ont été supprimés
     }
-    if(data.activite){
-      var al = document.getElementById('activity-list');
-      if(al && data.activite.indexOf('Aucune')===-1){
-        // Charger deletedAt depuis Firebase (source de vérité) + localStorage
-        var _applyActivite = function(deletedAt){
-          var tmp = document.createElement('div');
-          tmp.innerHTML = data.activite;
-          var kept = [];
-          tmp.querySelectorAll('.activity-item').forEach(function(item){
-            var ts = parseInt(item.getAttribute('data-ts')||'9999999999999');
-            if(ts > deletedAt) kept.push(item.outerHTML);
-          });
-          var al2 = document.getElementById('activity-list');
-          if(al2) al2.innerHTML = kept.length ? kept.join('') : '<div style="text-align:center;color:#aaa;padding:40px 20px;font-size:14px;"><div style="font-size:32px;margin-bottom:10px;">📋</div>Aucune activité pour le moment.</div>';
-
-        };
-        if(currentUser && firebaseReady && db){
-          db.ref('dct_config/activite_deleted/'+currentUser.id).once('value', function(snap){
-            var fbDeletedAt = snap.val() || 0;
-            var localDeletedAt = parseInt(localStorage.getItem('dct_activite_deleted_'+currentUser.id)||'0');
-            var deletedAt = Math.max(fbDeletedAt, localDeletedAt);
-            if(deletedAt > localDeletedAt) localStorage.setItem('dct_activite_deleted_'+currentUser.id, deletedAt);
-            _applyActivite(deletedAt);
-          });
-        } else {
-          var deletedAt = currentUser ? parseInt(localStorage.getItem('dct_activite_deleted_'+currentUser.id)||'0') : 0;
-          _applyActivite(deletedAt);
-        }
-      }
-    }
-    // Mettre à jour l'affichage si on est sur un écran concerné
-    var activeScreen = document.querySelector('.screen.active');
-    if(activeScreen){
-      var id = activeScreen.id;
-      if(id==='s-login') return; // Ne pas interférer avec l'écran de login
-      if(id==='s-home'){
-        renderCollectesList();
-        // Si la collecte courante a été supprimée → mettre à jour
-        if(currentCollecteId && !collectes.find(function(c){ return c.id===currentCollecteId; })){
-          currentCollecteId = collectes.length ? collectes[0].id : null;
-        }
-      }
-      else if(id==='s-collecte'){
-        // Vérifier si la collecte courante existe encore
-        if(currentCollecteId && !collectes.find(function(c){ return c.id===currentCollecteId; })){
-          // La collecte a été supprimée → revenir à l'accueil
-          currentCollecteId = collectes.length ? collectes[0].id : null;
-          goTo('s-home');
-          renderCollectesList();
-        } else {
-          updateCollecteHeader();
-          if(currentSubtab==='clients') renderClientsTab();
-          else if(currentSubtab==='dispatch') renderDispatchTab();
-        }
-      }
-      else if(id==='s-suivi'){ try{ renderSuivi(); }catch(e){} }
-      else if(id==='s-suivi-detail' && suiviCamion){ try{ renderTimelineCamion(suiviCamion); }catch(e){} }
-      else if(id==='s-camion' && currentCamion) renderCamion(currentCamion);
-      else if(id==='s-clients') renderContacts();
-    }
+    _dctMajActivite(data);
+    // v3.78.0 : ne jamais redessiner pendant qu'un doigt est posé.
+    // La synchronisation temps réel reconstruit l'écran actif à chaque
+    // écriture — la sienne comprise, qui revient en écho. Si ce
+    // redessin tombe entre le moment où le doigt touche et celui où il
+    // se lève, le bouton visé n'existe plus : le tap part dans le vide
+    // et il faut réappuyer (retour de Cobey et des collaborateurs du
+    // 24/09/2026). On diffère donc le redessin jusqu'à ce que l'écran
+    // soit libre.
+    if(_dctDoigtPose()){ _dctRedessinerPlusTard(); return; }
+    _dctRedessinerEcranActif();
   });
+}
+
+// v3.78.0 : la dernière photo des données déjà traitées — voir le garde
+// en tête du listener ci-dessus.
+var _dctEmpreinteSync = '';
+
+// Le fil d'Activité, sorti du listener : c'est la seule chose qui doit
+// encore se mettre à jour quand les données, elles, n'ont pas bougé.
+function _dctMajActivite(data){
+  if(!data || !data.activite) return;
+  var al = document.getElementById('activity-list');
+  if(!al || data.activite.indexOf('Aucune') !== -1) return;
+  // Charger deletedAt depuis Firebase (source de vérité) + localStorage
+  var _applyActivite = function(deletedAt){
+    var tmp = document.createElement('div');
+    tmp.innerHTML = data.activite;
+    var kept = [];
+    tmp.querySelectorAll('.activity-item').forEach(function(item){
+      var ts = parseInt(item.getAttribute('data-ts')||'9999999999999');
+      if(ts > deletedAt) kept.push(item.outerHTML);
+    });
+    var al2 = document.getElementById('activity-list');
+    if(al2) al2.innerHTML = kept.length ? kept.join('') : '<div style="text-align:center;color:#aaa;padding:40px 20px;font-size:14px;"><div style="font-size:32px;margin-bottom:10px;">📋</div>Aucune activité pour le moment.</div>';
+  };
+  if(currentUser && firebaseReady && db){
+    db.ref('dct_config/activite_deleted/'+currentUser.id).once('value', function(snap){
+      var fbDeletedAt = snap.val() || 0;
+      var localDeletedAt = parseInt(localStorage.getItem('dct_activite_deleted_'+currentUser.id)||'0');
+      var deletedAt = Math.max(fbDeletedAt, localDeletedAt);
+      if(deletedAt > localDeletedAt) localStorage.setItem('dct_activite_deleted_'+currentUser.id, deletedAt);
+      _applyActivite(deletedAt);
+    });
+  } else {
+    var deletedAt = currentUser ? parseInt(localStorage.getItem('dct_activite_deleted_'+currentUser.id)||'0') : 0;
+    _applyActivite(deletedAt);
+  }
+}
+
+// Le redessin de l'écran actif après une synchronisation. Sorti de la
+// fonction ci-dessus pour que le garde-doigt puisse le rappeler plus
+// tard, une fois l'écran libre.
+function _dctRedessinerEcranActif(){
+  var activeScreen = document.querySelector('.screen.active');
+  if(!activeScreen) return;
+  var id = activeScreen.id;
+  if(id==='s-login') return; // Ne pas interférer avec l'écran de login
+  if(id==='s-home'){
+    renderCollectesList();
+    // Si la collecte courante a été supprimée → mettre à jour
+    if(currentCollecteId && !collectes.find(function(c){ return c.id===currentCollecteId; })){
+      currentCollecteId = collectes.length ? collectes[0].id : null;
+    }
+  }
+  else if(id==='s-collecte'){
+    // Vérifier si la collecte courante existe encore
+    if(currentCollecteId && !collectes.find(function(c){ return c.id===currentCollecteId; })){
+      // La collecte a été supprimée → revenir à l'accueil
+      currentCollecteId = collectes.length ? collectes[0].id : null;
+      goTo('s-home');
+      renderCollectesList();
+    } else {
+      updateCollecteHeader();
+      if(currentSubtab==='clients') renderClientsTab();
+      else if(currentSubtab==='dispatch') renderDispatchTab();
+    }
+  }
+  else if(id==='s-suivi'){ try{ renderSuivi(); }catch(e){} }
+  else if(id==='s-suivi-detail' && suiviCamion){ try{ renderTimelineCamion(suiviCamion); }catch(e){} }
+  else if(id==='s-camion' && currentCamion) renderCamion(currentCamion);
+  else if(id==='s-clients') renderContacts();
+  // v3.78.0 : la fiche client et la facture se redessinent elles aussi.
+  // Sans ça, un prix changé depuis un autre téléphone ne s'affichait
+  // qu'en refermant puis rouvrant la fiche (retour de Cobey : « le prix
+  // met trop de temps à apparaître sur la fiche client »). Ces deux
+  // écrans vivent dans le module départs, qui expose ce rappel.
+  else if(typeof window._depRafraichirEcranOuvert === 'function'){
+    try{ window._depRafraichirEcranOuvert(id); }catch(e){}
+  }
 }
 
 // v2.8.3 : fusionne deux tables {clientId: timestamp} sans perte.
@@ -1598,6 +1649,46 @@ function _fusionnerTs(distant, local, mode){
   });
   return res;
 }
+
+/* v3.78.0 — Le garde-doigt.
+
+   Un redessin de l'écran actif remplace son contenu : les éléments sous
+   le doigt sont détruits et recréés. Le navigateur n'émet alors aucun
+   clic, puisque l'élément relâché n'est plus celui qui a été touché.
+   D'où l'impression d'appuyer dans le vide, et le réflexe d'appuyer
+   plusieurs fois.
+
+   On tient donc un drapeau pendant tout le geste, et on garde une
+   petite marge après le relâchement, le temps que le clic soit émis et
+   traité. Tant que ce drapeau est levé, la synchronisation attend. */
+var _dctDoigtTs = 0;          // 0 = aucun doigt posé
+var _dctRedessinEnAttente = null;
+var DCT_GRACE_DOIGT = 350;    // ms après le relâchement
+
+function _dctDoigtPose(){
+  if(_dctDoigtTs === -1) return true;                       // doigt encore posé
+  return _dctDoigtTs > 0 && (Date.now() - _dctDoigtTs) < DCT_GRACE_DOIGT;
+}
+
+function _dctRedessinerPlusTard(){
+  if(_dctRedessinEnAttente) return;                         // déjà programmé
+  _dctRedessinEnAttente = setTimeout(function(){
+    _dctRedessinEnAttente = null;
+    if(_dctDoigtPose()){ _dctRedessinerPlusTard(); return; } // toujours occupé
+    try{ _dctRedessinerEcranActif(); }catch(e){}
+  }, DCT_GRACE_DOIGT);
+}
+
+(function _dctEcouterLeDoigt(){
+  var pose  = function(){ _dctDoigtTs = -1; };
+  var leve  = function(){ _dctDoigtTs = Date.now(); };
+  ['touchstart','pointerdown','mousedown'].forEach(function(ev){
+    document.addEventListener(ev, pose, true);
+  });
+  ['touchend','touchcancel','pointerup','pointercancel','mouseup'].forEach(function(ev){
+    document.addEventListener(ev, leve, true);
+  });
+})();
 
 function sauvegarderFirebase(){
   if(!db || !firebaseReady) return;
@@ -1625,7 +1716,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.77.0';
+var APP_VERSION = 'v3.78.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
