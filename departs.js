@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.56.0';
+var DEP_VERSION = 'v1.57.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2078,6 +2078,21 @@ function compteursDepart(departId){
   ['euros','colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
     .forEach(function(k){ r[k] = depArrondi2(r[k]); });
   return r;
+}
+
+/* v1.57.0 — Le total facturé n'a pas à être vert.
+   Le vert, dans toute l'appli, veut dire « c'est encaissé ». Écrit en
+   vert, le total du container laissait croire que les 18 696 € étaient
+   rentrés alors que 4 155 € manquaient encore (retour de Cobey du
+   24/09/2026). Il reste donc en noir tant que la somme n'est pas
+   atteinte, et ne passe au vert — avec une coche — qu'une fois le
+   container entièrement réglé. */
+function _depTeinteFacture(cp){
+  return (cp.colisTotal > 0 && cp.colisDu === 0) ? '#006b2d' : 'var(--text)';
+}
+function _depMarqueSolde(cp){
+  return (cp.colisTotal > 0 && cp.colisDu === 0)
+    ? '<span style="font-size:13px;margin-left:3px;">&#10003;</span>' : '';
 }
 
 // v1.56.0 — La version courte, sur la carte d'un container dans la
@@ -5715,7 +5730,7 @@ window.depDetail = function(id, gardeFiltres){
       +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">'
       +     '<div><div style="font-size:20px;font-weight:800;color:#252599;">'+cp.clients+'</div>'
       +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">CLIENT'+(cp.clients>1?'S':'')+'</div></div>'
-      +     '<div><div style="font-size:20px;font-weight:800;color:#006b2d;">'+cp.euros+'</div>'
+      +     '<div><div style="font-size:20px;font-weight:800;color:'+_depTeinteFacture(cp)+';">'+cp.euros+_depMarqueSolde(cp)+'</div>'
       +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">&euro; COLIS</div></div>'
       +   '</div>'
       + '</div>';
@@ -5729,7 +5744,7 @@ window.depDetail = function(id, gardeFiltres){
     +   '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">'
     +     '<div><div style="font-size:20px;font-weight:800;color:#252599;">'+cp.clients+'</div>'
     +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">CLIENT'+(cp.clients>1?'S':'')+'</div></div>'
-    +     '<div><div style="font-size:20px;font-weight:800;color:#006b2d;">'+cp.euros+'</div>'
+    +     '<div><div style="font-size:20px;font-weight:800;color:'+_depTeinteFacture(cp)+';">'+cp.euros+_depMarqueSolde(cp)+'</div>'
     +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">&euro; COLIS</div></div>'
     +     '<div><div style="font-size:14px;font-weight:800;color:var(--text);margin-top:4px;">'+dateFr(d.dateArriveePrevue)+'</div>'
     +       '<div style="font-size:10.5px;color:var(--text3);font-weight:700;">ARRIV&Eacute;E</div></div>'
