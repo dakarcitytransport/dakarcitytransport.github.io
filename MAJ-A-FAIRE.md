@@ -178,16 +178,9 @@ Le container affiche alors son **résultat** : encaissé − dépenses.
 Total payé et total dû.
 
 ### ~~Anciennes données~~
-**Remis à zéro le 24/09 (v1.68.0).** La nouvelle application repart de
-zéro : ses recettes et ses dépenses ne comptent que ce qui passe par
-elle, depuis septembre 2026.
-
-De l'application **360**, on ne reprendra **qu'un seul chiffre** : son
-**bénéfice**, quand Issyaka aura arrêté les comptes. Il s'ajoutera au
-bénéfice affiché, et à lui seul — jamais aux recettes ni aux dépenses.
-
-En attendant, le report est à **0**. Bouton « 🔄 Bénéfice repris de 360 »
-sur le Bilan, un seul champ à remplir le jour venu.
+**Abandonné le 24/09 (v1.73.0).** Pas de reprise du tout : la nouvelle
+application repart de zéro en septembre 2026 et ne compte que ce qui
+passe par elle. Le bloc « Bénéfice repris de 360 » a été retiré.
 
 ### Statistiques
 Une case avec des graphiques, pour chaque poste.

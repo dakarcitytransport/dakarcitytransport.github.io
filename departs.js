@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.72.0';
+var DEP_VERSION = 'v1.73.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3449,30 +3449,6 @@ function injecterEcrans(){
   + '</div>';
 
   while(w.firstChild) parent.appendChild(w.firstChild);
-
-  /* ---- Modale (v1.63.0) : la reprise de l'application 360 ---- */
-  var mRep = document.createElement('div');
-  mRep.className = 'modal-overlay';
-  mRep.id = 'modal-dep-reprise';
-  mRep.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
-    + '<div class="modal-emoji">&#128260;</div>'
-    + '<div class="modal-confirm-title">B&eacute;n&eacute;fice repris de 360</div>'
-    + '<div style="font-size:12.5px;color:#555;margin:8px 0 14px;text-align:left;line-height:1.45;">'
-    +   'Cette application compte ses propres recettes et d&eacute;penses depuis septembre 2026. '
-    +   'De l\'ancienne, on ne reprend qu\'un chiffre : son <strong>b&eacute;n&eacute;fice</strong>, '
-    +   'une fois les comptes arr&ecirc;t&eacute;s. Il s\'ajoute au b&eacute;n&eacute;fice affich&eacute; '
-    +   'ici, et &agrave; lui seul. Laissez &agrave; 0 tant que le chiffre n\'est pas connu.</div>'
-    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">B&Eacute;N&Eacute;FICE DE L\'APPLICATION 360</div>'
-    + '<input class="fi" id="dep-rep-benefice" type="number" inputmode="decimal" step="0.01" placeholder="0" style="margin-bottom:11px;">'
-    + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">ARR&Ecirc;T&Eacute; AU <span style="font-weight:600;color:#aaa;">(facultatif)</span></div>'
-    + '<input class="fi" id="dep-rep-note" maxlength="60" placeholder="30/09/2026" style="margin-bottom:14px;">'
-    + '<div id="dep-rep-avis" style="font-size:11.5px;color:#888;font-weight:600;'
-    +   'text-align:left;margin-bottom:12px;line-height:1.4;"></div>'
-    + '<div class="modal-confirm-btns">'
-    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-reprise\')">Annuler</button>'
-    +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerReprise()">Enregistrer</button>'
-    + '</div></div></div>';
-  document.body.appendChild(mRep);
 
   /* ---- Modale : changer un client de départ ---- */
   var m = document.createElement('div');
@@ -16571,36 +16547,6 @@ function _depLibellePosteFixe(cle){
   return t ? (t.icone + ' ' + t.label) : '&#128176; Autre';
 }
 
-/* v1.68.0 — Le report de l'ancienne application 360.
-   On repart de zéro : la nouvelle application commence sa comptabilité
-   en septembre 2026, recettes et dépenses comprises (décision de Cobey
-   du 24/09/2026). Les 84 120 € et 12 895 € relevés le matin même sont
-   donc retirés.
-
-   Il ne restera qu'un seul chiffre à reporter, plus tard, quand Issyaka
-   aura arrêté les comptes de 360 : le BÉNÉFICE de l'ancienne appli. Il
-   s'ajoute au bénéfice, et à lui seul — pas aux recettes, pas aux
-   dépenses, qui elles ne comptent que ce qui passe par ici. */
-function _depReprise(){
-  var r = (window.financeData || {}).reprise;
-  if(!r || typeof r !== 'object'){
-    return { benefice: 0, note: '', par: '', le: 0, dorigine: true };
-  }
-  /* Les tout premiers enregistrements portaient deux montants, recettes
-     et dépenses. On ne les convertit surtout PAS en bénéfice : la
-     consigne est de repartir de zéro. Un enregistrement d'avant ce
-     changement vaut donc 0, et le chiffre d'Issyaka sera saisi
-     explicitement le jour venu. */
-  var b = (r.benefice !== undefined) ? (parseFloat(r.benefice) || 0) : 0;
-  return {
-    benefice: depArrondi2(b),
-    note: r.note || '',
-    par: r.par || '',
-    le: r.le || 0,
-    dorigine: false
-  };
-}
-
 function _depFixeOrpheline(v){
   return v && typeof v === 'object' && v.montant !== undefined;
 }
@@ -16652,7 +16598,6 @@ function _depTotalDepensesCamions(){
 // Le bilan complet, en un seul objet.
 function _depBilanFinancier(){
   var g = _depRapfinTotaux();
-  var rep = _depReprise();
   var fixes = _depToutesLesFixes();
   var totFixes = depArrondi2(fixes.reduce(function(s,o){ return s + (parseFloat(o.montant)||0); }, 0));
   var camions = _depTotalDepensesCamions();
@@ -16668,16 +16613,15 @@ function _depBilanFinancier(){
   var aEncaisser = g.colisDu;
   var depenses = depArrondi2(camions + totFixes);
 
-  // Le report de 360 ne rejoint que le bénéfice : les recettes et les
-  // dépenses affichées sont celles de cette application, et d'elle seule.
-  var beneficeDCT = depArrondi2(recettes - depenses);
+  // v1.73.0 : plus aucun report de l'ancienne application 360 — les
+  // comptes de DCT ne comptent que ce qui passe par ici (décision de
+  // Cobey du 24/09/2026 : « retire ça, ça ne sert plus à rien »).
   return {
-    g: g, rep: rep, fixes: fixes, totFixes: totFixes, camions: camions,
+    g: g, fixes: fixes, totFixes: totFixes, camions: camions,
     aEncaisser: aEncaisser,
     recettes: recettes, depenses: depenses,
     livPaye: g.livPaye, livDu: g.livDu, livTotal: g.livTotal,
-    beneficeDCT: beneficeDCT,
-    benefice: depArrondi2(beneficeDCT + rep.benefice)
+    benefice: depArrondi2(recettes - depenses)
   };
 }
 
@@ -16716,14 +16660,6 @@ window.depRenderRapfinBilan = function(){
     +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">D&eacute;penses</span>'
     +   '<b style="font-size:19px;color:#B3261E;">&minus; ' + _depEuros(b.depenses) + ' &euro;</b>'
     + '</div>'
-    + (b.rep.benefice
-      ? '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
-        + '<span style="font-size:13px;font-weight:700;color:var(--text3);">'
-        +   '&#128260; B&eacute;n&eacute;fice repris de 360</span>'
-        + '<b style="font-size:16px;color:' + (b.rep.benefice < 0 ? '#B3261E' : '#006b2d') + ';">'
-        +   (b.rep.benefice > 0 ? '+ ' : '') + _depEuros(b.rep.benefice) + ' &euro;</b>'
-        + '</div>'
-      : '')
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;'
     +   'margin-top:6px;border-top:2px solid var(--border);">'
     +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice</span>'
@@ -16777,48 +16713,11 @@ window.depRenderRapfinBilan = function(){
 
   h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;'
     +   'margin-bottom:12px;">Les recettes et les d&eacute;penses ne comptent que ce qui passe par '
-    +   'cette application, depuis septembre 2026, et seulement le transport des colis. '
-    +   'Le b&eacute;n&eacute;fice de l\'ancienne application 360 s\'ajoutera &agrave; part, quand ses '
-    +   'comptes seront arr&ecirc;t&eacute;s.</div>'
-    + '<button class="btn btn-gray" style="margin-bottom:10px;" onclick="depOuvrirRapfinContainers()">'
-    + '&#128230; Voir les containers</button>'
-    + '<button class="btn btn-gray" style="background:#EDE5FC;border-color:#D9C8F5;color:#6d28d9;" '
-    + 'onclick="depOuvrirReprise()">&#128260; B&eacute;n&eacute;fice repris de 360'
-    + (b.rep.benefice ? ' &middot; ' + _depEuros(b.rep.benefice) + ' &euro;' : '') + '</button>';
+    +   'cette application, depuis septembre 2026, et seulement le transport des colis.</div>'
+    + '<button class="btn btn-gray" onclick="depOuvrirRapfinContainers()">'
+    + '&#128230; Voir les containers</button>';
 
   box.innerHTML = h;
-};
-
-/* ─── La reprise de 360 ─── */
-window.depOuvrirReprise = function(){
-  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
-  var r = _depReprise();
-  var a = $('dep-rep-benefice'); if(a) a.value = r.benefice || '';
-  var n = $('dep-rep-note');     if(n) n.value = r.note || '';
-  var av = $('dep-rep-avis');
-  if(av) av.innerHTML = r.benefice
-    ? ('&#9989; Enregistr&eacute; le ' + esc(dateHeureFr(r.le)) + (r.par ? ' par ' + esc(r.par) : ''))
-    : '&#128206; Aucun report pour l\'instant &mdash; les comptes de 360 ne sont pas encore arr&ecirc;t&eacute;s.';
-  openModal('modal-dep-reprise');
-};
-
-window.depEnregistrerReprise = function(){
-  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
-  if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
-  var u = window.currentUser || {};
-  var obj = {
-    benefice : depArrondi2(parseFloat(($('dep-rep-benefice')||{}).value) || 0),
-    note     : (($('dep-rep-note')||{}).value || '').trim(),
-    le       : Date.now(),
-    par      : u.name || u.id || ''
-  };
-  db.ref('dct_finance/reprise').set(obj).then(function(){
-    closeModal('modal-dep-reprise');
-    toast(obj.benefice ? ('✅ Bénéfice repris — ' + _depEuros(obj.benefice) + ' €')
-                       : '✅ Report remis à zéro');
-  }).catch(function(e){
-    toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé'));
-  });
 };
 
 /* ─── Les dépenses fixes ─── */
