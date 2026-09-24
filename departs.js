@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.84.0';
+var DEP_VERSION = 'v1.85.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3428,9 +3428,11 @@ function injecterEcrans(){
   +     '<div class="h-title">Rapport Financier</div>'
   +     '<div style="width:60px;"></div>'
   +   '</div>'
+  // v1.85.0 : plus de phrase d'introduction ici. Elle ne faisait que
+  // répéter à l'écran la raison pour laquelle cet espace existe —
+  // c'était une consigne de Cobey, pas une information pour celui qui
+  // s'en sert. L'écran est réservé à la direction : elle sait déjà.
   +   '<div class="content">'
-  +     '<div style="font-size:12.5px;color:var(--text3);font-weight:600;margin-bottom:14px;">'
-  +       'Les montants de l\'entreprise, hors de la vue des clients.</div>'
   +     '<div class="dep-cases">'
   +       '<div class="dep-case" style="background:#E2E2F1;" onclick="depOuvrirRapfinContainers()">'
   +         '<div class="dep-case-ico">&#128230;</div>'
