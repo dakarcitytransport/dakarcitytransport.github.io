@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.63.0';
+var DEP_VERSION = 'v1.64.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3469,6 +3469,8 @@ function injecterEcrans(){
     + '<input class="fi" id="dep-rep-depenses" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" style="margin-bottom:11px;">'
     + '<div style="text-align:left;font-size:11.5px;font-weight:800;color:#888;margin-bottom:5px;">ARR&Ecirc;T&Eacute; AU</div>'
     + '<input class="fi" id="dep-rep-note" maxlength="60" placeholder="24/09/2026" style="margin-bottom:14px;">'
+    + '<div id="dep-rep-avis" style="font-size:11.5px;color:#888;font-weight:600;'
+    +   'text-align:left;margin-bottom:12px;line-height:1.4;"></div>'
     + '<div class="modal-confirm-btns">'
     +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-reprise\')">Annuler</button>'
     +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerReprise()">Enregistrer</button>'
@@ -16508,14 +16510,38 @@ function _depLibellePosteFixe(cle){
   return t ? (t.icone + ' ' + t.label) : '&#128176; Autre';
 }
 
+/* Les chiffres relevés sur l'application 360 au 24/09/2026, donnés par
+   Cobey : 84 120 € encaissés, 12 895 € dépensés — soit 71 225 € de
+   bénéfice avant que DCT ne prenne le relais. Ils sont ici, et pas dans
+   Firebase, pour que le bilan soit juste dès le premier affichage, sans
+   aucune saisie.
+
+   Ce ne sont qu'une valeur de départ : dès que quelqu'un enregistre la
+   reprise depuis l'écran (depEnregistrerReprise), c'est sa saisie qui
+   compte, y compris si elle remet les montants à zéro. On teste donc la
+   présence de l'objet en base, pas celle de ses montants.
+
+   Les dépenses de 360 étaient encore incomplètes le jour du relevé —
+   d'où la mention portée par la date d'arrêté, visible sur le bilan. */
+var DEP_REPRISE_360 = {
+  recettes : 84120,
+  depenses : 12895,
+  note     : '24/09/2026 — dépenses encore incomplètes'
+};
+
 function _depReprise(){
-  var r = (window.financeData || {}).reprise || {};
+  var r = (window.financeData || {}).reprise;
+  if(!r || typeof r !== 'object'){
+    return { recettes: DEP_REPRISE_360.recettes, depenses: DEP_REPRISE_360.depenses,
+             note: DEP_REPRISE_360.note, par: '', le: 0, dorigine: true };
+  }
   return {
     recettes: depArrondi2(parseFloat(r.recettes) || 0),
     depenses: depArrondi2(parseFloat(r.depenses) || 0),
     note: r.note || '',
     par: r.par || '',
-    le: r.le || 0
+    le: r.le || 0,
+    dorigine: false
   };
 }
 
@@ -16645,6 +16671,12 @@ window.depOuvrirReprise = function(){
   var a = $('dep-rep-recettes'); if(a) a.value = r.recettes || '';
   var d = $('dep-rep-depenses'); if(d) d.value = r.depenses || '';
   var n = $('dep-rep-note');     if(n) n.value = r.note || '';
+  // Tant que personne n'a enregistré, ce sont les chiffres relevés sur
+  // 360 qui s'affichent : il n'y a qu'à les corriger, pas à les retaper.
+  var av = $('dep-rep-avis');
+  if(av) av.innerHTML = r.dorigine
+    ? '&#128206; Chiffres relev&eacute;s sur 360 le 24/09/2026, pas encore confirm&eacute;s ici.'
+    : ('&#9989; Enregistr&eacute; le ' + esc(dateHeureFr(r.le)) + (r.par ? ' par ' + esc(r.par) : ''));
   openModal('modal-dep-reprise');
 };
 

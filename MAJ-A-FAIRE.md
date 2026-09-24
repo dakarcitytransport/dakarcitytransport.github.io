@@ -163,7 +163,13 @@ encaissées, dépenses déjà faites) et la date d'arrêté. Ils s'ajoutent à
 ce que DCT calcule, donc les comptes continuent au lieu de repartir de
 zéro, et les nouveaux containers viennent s'y cumuler.
 
-À faire : Cobey saisit les vrais chiffres de 360 dans ce bloc.
+Les chiffres sont en place (v1.64.0) : **84 120 €** encaissés et
+**12 895 €** dépensés, relevés sur 360 le 24/09/2026 — soit **71 225 €**
+de bénéfice repris. Ce sont les vrais chiffres, pas un exemple.
+
+Les dépenses de 360 étaient encore incomplètes ce jour-là : la mention
+est portée sur le bilan, et le montant se corrige depuis le bouton
+Reprise dès que le relevé est complet.
 
 ### Statistiques
 Une case avec des graphiques, pour chaque poste.
