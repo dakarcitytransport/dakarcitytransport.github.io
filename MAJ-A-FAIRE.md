@@ -46,8 +46,16 @@ sur la fiche client.
 
 ## 3 · Bug
 
-- Le **regroupement de factures** ne fonctionne pas pour tout le monde.
-  **?** Chez qui, et à quel moment exactement ?
+- ~~Le **regroupement de factures** ne fonctionne pas pour tout le monde.~~
+  **Réglé le 24/09 (v1.54.0).** Le bouton « Regrouper avec une autre
+  facture » n'existait que sur les fiches de la Collecte. Le carré Départ,
+  lui, comptait les doublons des trois parcours : il annonçait « 4 factures »
+  puis ne proposait rien sur la fiche du Dépôt direct ni sur celle de
+  France & Europe. Les trois parcours partagent désormais le même
+  regroupement, dans les deux sens (regrouper et séparer).
+
+- **Lenteur** — après modification d'une facture, le prix met trop de temps
+  à apparaître sur la fiche client. *(à traiter)*
 
 ---
 

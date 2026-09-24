@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.53.0';
+var DEP_VERSION = 'v1.54.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1666,20 +1666,59 @@ function _depCleFusion(c){
    que _depCleFusion corrige. Et pour trouver les doublons sans ouvrir
    chaque fiche, le container les signale lui-même (voir la pastille
    "🔗 N factures" dans depDetail). */
+/* v1.54.0 — Les trois parcours, pas seulement la Collecte.
+   Le repérage ne parcourait que clientsParCollecte. Un client du Dépôt
+   direct ou de France & Europe n'avait donc JAMAIS le bouton
+   « Regrouper », et une fiche de Collecte ne pouvait pas non plus être
+   réunie avec la leur — alors que le carré Départ, lui, comptait bien
+   les trois et annonçait « 4 factures ». L'appli disait donc qu'il y
+   avait plusieurs factures tout en refusant de les regrouper (retour de
+   Cobey du 23/09/2026 : « ce bouton-là, on ne l'avait pas »).
+   Un container mélange les trois parcours : le regroupement les mélange
+   aussi. */
+function _depToutesLesFiches(){
+  var out = [];
+  try{
+    tousLesClients().forEach(function(x){
+      out.push({ src:'col', collecteId:x.collecteId, clientId:x.clientId, c:x.c });
+    });
+  }catch(e){}
+  var dep = window.depotClients || {};
+  Object.keys(dep).forEach(function(id){
+    if(dep[id]) out.push({ src:'depot', collecteId:'', clientId:id, c:dep[id] });
+  });
+  var fr = (window.franceData||{}).clients || {};
+  Object.keys(fr).forEach(function(id){
+    if(fr[id]) out.push({ src:'france', collecteId:'', clientId:id, c:fr[id] });
+  });
+  return out;
+}
+
+// La fiche désignée par une origine, quelle que soit sa source.
+function _depFicheDe(src, colId, clientId){
+  if(src === 'depot')  return (window.depotClients||{})[clientId];
+  if(src === 'france') return ((window.franceData||{}).clients||{})[clientId];
+  return ((window.clientsParCollecte||{})[colId] || {})[clientId];
+}
+// Le contexte d'écriture correspondant (voir _depEcrireFacture).
+function _depCibleDe(src, colId, clientId){
+  return { depot: src === 'depot', france: src === 'france',
+           collecteId: colId || '', clientId: clientId };
+}
+var DEP_LIB_PARCOURS = { col:'Collecte', depot:'Dépôt direct', france:'France & Europe' };
+
 function _depFichesFusionnables(clientId, c){
   if(!c || !c.departId || _depEstFusionnee(c)) return [];
   var cle = _depCleFusion(c);
   if(!cle) return [];
   var out = [];
-  try{
-    tousLesClients().forEach(function(x){
-      if(x.clientId === clientId) return;
-      if(!x.c || _depEstFusionnee(x.c)) return;
-      if(x.c.departId !== c.departId) return;   // même container, sans exception
-      if(_depCleFusion(x.c) !== cle) return;
-      out.push(x);
-    });
-  }catch(e){}
+  _depToutesLesFiches().forEach(function(x){
+    if(x.clientId === clientId) return;
+    if(!x.c || _depEstFusionnee(x.c)) return;
+    if(x.c.departId !== c.departId) return;   // même container, sans exception
+    if(_depCleFusion(x.c) !== cle) return;
+    out.push(x);
+  });
   return out;
 }
 
@@ -8708,7 +8747,10 @@ function depRenderFicheLecture(colId, clientId, depot){
 
     // v1.31.0 : regrouper avec une autre facture du même client dans ce
     // container — ou défaire un regroupement déjà fait.
-    if(!depot && c){
+    // v1.54.0 : le Dépôt direct en était exclu. Une facture de ce
+    // parcours n'avait donc jamais le bouton, alors que le container
+    // comptait bien ses fiches parmi les doublons.
+    if(c){
       if(Array.isArray(c.fusionDe) && c.fusionDe.length){
         act.innerHTML += '<div class="dep-alert" style="margin-top:10px;background:#FFF3E0;border-color:#E58A00;color:#8A5200;">'
           + '&#128279; Facture regroup&eacute;e &mdash; ' + c.fusionDe.length + ' autre'
@@ -8764,14 +8806,26 @@ window.depModifierFicheActuelle = function(force){
    retirer le verrou pour tout le monde, on le rend franchissable : une
    confirmation qui dit ce qu'on fait, et une trace nominative. */
 /* ─── Regrouper : la modale de choix ─── */
-window.depOuvrirFusionFacture = function(){
+// La fiche actuellement consultée, et son origine — Collecte, Dépôt
+// direct ou France & Europe.
+function _depOrigineCourante(){
   var ctx = _depFicheLectureCtx;
-  if(!ctx || !ctx.clientId || ctx.depot){ toast('⚠️ Indisponible ici.'); return; }
-  var colId = ctx.colId || window.currentCollecteId;
-  var c = ((window.clientsParCollecte||{})[colId] || {})[ctx.clientId];
+  if(!ctx || !ctx.clientId) return null;
+  var src = ctx.depot ? 'depot' : (ctx.france ? 'france' : 'col');
+  var colId = ctx.colId || window.currentCollecteId || '';
+  return { src: src, colId: colId, clientId: ctx.clientId,
+           c: _depFicheDe(src, colId, ctx.clientId) };
+}
+
+window.depOuvrirFusionFacture = function(){
+  // v1.54.0 : le Dépôt direct était refusé d'entrée — c'est justement
+  // l'un des parcours qui n'avait jamais accès au regroupement.
+  var o = _depOrigineCourante();
+  if(!o){ toast('⚠️ Indisponible ici.'); return; }
+  var colId = o.colId, c = o.c;
   if(!c){ toast('⚠️ Client introuvable.'); return; }
 
-  var cands = _depFichesFusionnables(ctx.clientId, c);
+  var cands = _depFichesFusionnables(o.clientId, c);
   var box = $('dep-fusion-liste');
   if(!cands.length){
     if(box) box.innerHTML = '<div style="text-align:center;color:#888;font-size:13px;padding:18px;">'
@@ -8801,8 +8855,12 @@ window.depOuvrirFusionFacture = function(){
       } else {
         libCol = 'Collecte archiv&eacute;e';
       }
+      // v1.54.0 : d'où vient cette facture — les trois parcours se
+      // côtoient désormais dans la liste, autant le dire.
+      if(x.src === 'depot')  libCol = 'D&eacute;p&ocirc;t direct';
+      if(x.src === 'france') libCol = 'France &amp; Europe';
       return '<div class="dep-cli-card" style="cursor:pointer;border-left:4px solid #E58A00;margin-bottom:8px;"'
-        + ' onclick="depChoisirFusion(\''+x.collecteId+'\',\''+x.clientId+'\')">'
+        + ' onclick="depChoisirFusion(\''+x.src+'\',\''+x.collecteId+'\',\''+x.clientId+'\')">'
         + '<div style="font-weight:800;font-size:13.5px;color:#111;">' + libCol + '</div>'
         + '<div style="font-size:12px;color:#666;margin-top:3px;">'
         +   (x.c.nbColis||1) + ' colis &middot; ' + nbL + ' ligne' + (nbL>1?'s':'')
@@ -8836,12 +8894,11 @@ window.depOuvrirFusionFacture = function(){
    part (retour de Cobey du 18/09/2026). On montre donc d'abord le
    résultat — colis, montant, versements, photos — et on demande un
    "Confirmer" franc. */
-window.depChoisirFusion = function(colIdSrc, clientIdSrc){
-  var ctx = _depFicheLectureCtx;
-  if(!ctx) return;
-  var colId = ctx.colId || window.currentCollecteId;
-  var principale = ((window.clientsParCollecte||{})[colId] || {})[ctx.clientId];
-  var source = ((window.clientsParCollecte||{})[colIdSrc] || {})[clientIdSrc];
+window.depChoisirFusion = function(srcSrc, colIdSrc, clientIdSrc){
+  var o = _depOrigineCourante();
+  if(!o) return;
+  var principale = o.c;
+  var source = _depFicheDe(srcSrc, colIdSrc, clientIdSrc);
   if(!principale || !source){ toast('⚠️ Fiche introuvable.'); return; }
 
   var lg = _depLignesColis(principale).concat(_depLignesColis(source));
@@ -8875,19 +8932,19 @@ window.depChoisirFusion = function(colIdSrc, clientIdSrc){
   if(btns){
     btns.style.gridTemplateColumns = '1fr 1fr';
     btns.innerHTML = '<button class="btn-sm btn-gray-sm" onclick="depOuvrirFusionFacture()">&larr; Retour</button>'
-      + '<button class="btn-sm btn-green-sm" onclick="depConfirmerFusionFacture(\''+colIdSrc+'\',\''+clientIdSrc+'\')">'
+      + '<button class="btn-sm btn-green-sm" onclick="depConfirmerFusionFacture(\''+srcSrc+'\',\''+colIdSrc+'\',\''+clientIdSrc+'\')">'
       + '&#128279; Confirmer</button>';
   }
 };
 
 /* ─── Regrouper : l'opération ─── */
-window.depConfirmerFusionFacture = function(colIdSrc, clientIdSrc){
+window.depConfirmerFusionFacture = function(srcSrc, colIdSrc, clientIdSrc){
   closeModal('modal-dep-fusion');
-  var ctx = _depFicheLectureCtx;
-  if(!ctx) return;
-  var colId = ctx.colId || window.currentCollecteId;
-  var principale = ((window.clientsParCollecte||{})[colId] || {})[ctx.clientId];
-  var source = ((window.clientsParCollecte||{})[colIdSrc] || {})[clientIdSrc];
+  var o = _depOrigineCourante();
+  if(!o) return;
+  var colId = o.colId, ctx = { clientId: o.clientId, retour: (_depFicheLectureCtx||{}).retour };
+  var principale = o.c;
+  var source = _depFicheDe(srcSrc, colIdSrc, clientIdSrc);
   if(!principale || !source){ toast('⚠️ Fiche introuvable.'); return; }
   if(_depEstFusionnee(source)){ toast('⚠️ Cette facture est déjà regroupée.'); return; }
 
@@ -8896,9 +8953,9 @@ window.depConfirmerFusionFacture = function(colIdSrc, clientIdSrc){
 
   // Ce que la source apporte — conservé tel quel pour pouvoir défaire.
   var apport = {
-    colId: colIdSrc, clientId: clientIdSrc,
+    src: srcSrc, colId: colIdSrc, clientId: clientIdSrc,
     nom: source.name || '',
-    dateCollecte: (colSrc && colSrc.date) || '',
+    dateCollecte: (srcSrc === 'col' ? ((colSrc && colSrc.date) || '') : (DEP_LIB_PARCOURS[srcSrc] || '')),
     prix: parseFloat(source.prix) || 0,
     nbColis: parseInt(source.nbColis, 10) || 1,
     colis: source.colis || '',
@@ -8927,20 +8984,21 @@ window.depConfirmerFusionFacture = function(colIdSrc, clientIdSrc){
        + '</strong> (' + apport.nbColis + ' colis, ' + apport.prix + ' &euro;) dans celle-ci' });
   principale.hist = hist;
 
-  source.fusionneeDans = { colId: colId, clientId: ctx.clientId };
+  source.fusionneeDans = { src: o.src, colId: colId, clientId: ctx.clientId };
   var histS = Array.isArray(source.hist) ? source.hist.slice() : [];
   histS.push({ q: apport.par, ts: apport.le, type: 'modif',
     a: 'a regroup&eacute; cette facture dans celle de la collecte du <strong>'
        + esc(((window.collectes||[]).find(function(k){ return k.id === colId; })||{}).date || '—') + '</strong>' });
   source.hist = histS;
 
-  _depEcrireClient({ collecteId: colId, clientId: ctx.clientId }, {
+  _depEcrireFacture(_depCibleDe(o.src, colId, ctx.clientId), {
     colisDetail: principale.colisDetail, colis: principale.colis, nbColis: principale.nbColis,
+    nb: principale.nbColis,
     prix: principale.prix, prixADefinir: false, versements: principale.versements,
     fusionDe: principale.fusionDe, aPhotoColis: !!principale.aPhotoColis,
     departId: principale.departId || null, hist: hist
   });
-  _depEcrireClient({ collecteId: colIdSrc, clientId: clientIdSrc }, {
+  _depEcrireFacture(_depCibleDe(srcSrc, colIdSrc, clientIdSrc), {
     fusionneeDans: source.fusionneeDans, hist: histS
   });
   try{ sauvegarder(); }catch(e){}
@@ -8950,19 +9008,67 @@ window.depConfirmerFusionFacture = function(colIdSrc, clientIdSrc){
   }catch(e){}
 
   toast('🔗 Factures regroupées — ' + principale.nbColis + ' colis, ' + principale.prix + ' €');
-  try{ openClientFiche(ctx.clientId, ctx.retour); }catch(e){}
+  _depRouvrirFicheSelonSource(o.src, colId, ctx.clientId, ctx.retour);
 };
+
+/* v1.54.0 — Le regroupement sur la fiche France & Europe.
+   Ce parcours a son propre écran de fiche (s-france-client), qui ne
+   passe pas par dep-ficheL-actions : le bouton devait donc y être posé
+   séparément, sinon un client France restait sans recours. */
+function _depBoutonsFusionFrance(){
+  var box = $('fc-content');
+  var id = window.franceClientId;
+  var c = ((window.franceData||{}).clients||{})[id];
+  if(!box || !c || $('dep-fr-fusion')) return;
+  if(typeof _peutGererFrance === 'function' && !_peutGererFrance()) return;
+
+  // C'est cette fiche que les actions de regroupement vont manipuler.
+  _depFicheLectureCtx = { colId: '', clientId: id, depot: false, france: true,
+                          departId: c.departId || null };
+
+  var h = '';
+  if(Array.isArray(c.fusionDe) && c.fusionDe.length){
+    h += '<div class="dep-alert" style="margin-top:10px;background:#FFF3E0;border-color:#E58A00;color:#8A5200;">'
+      + '&#128279; Facture regroup&eacute;e &mdash; ' + c.fusionDe.length + ' autre'
+      + (c.fusionDe.length > 1 ? 's' : '') + ' incluse'
+      + (c.fusionDe.length > 1 ? 's' : '') + '.</div>'
+      + '<button class="btn btn-gray" style="margin-top:8px;" onclick="depAnnulerFusionFacture()">'
+      + '&#8617;&#65039; S&eacute;parer la derni&egrave;re</button>';
+  }
+  if(_depFichesFusionnables(id, c).length){
+    h += '<button class="btn btn-gray" style="margin-top:8px;background:#FFF3E0;border-color:#E58A00;color:#8A5200;" '
+      + 'onclick="depOuvrirFusionFacture()">&#128279; Regrouper avec une autre facture</button>';
+  }
+  if(!h) return;
+  var bloc = document.createElement('div');
+  bloc.id = 'dep-fr-fusion';
+  bloc.innerHTML = h;
+  box.appendChild(bloc);
+}
+
+// Rouvrir la fiche qu'on vient de modifier, sur son propre écran.
+function _depRouvrirFicheSelonSource(src, colId, clientId, retour){
+  try{
+    if(src === 'depot'){ depRenderFicheLecture('', clientId, true); goTo('s-dep-fiche-lecture'); return; }
+    if(src === 'france'){ if(typeof ouvrirFicheFrance === 'function') ouvrirFicheFrance(clientId); return; }
+    openClientFiche(clientId, retour);
+  }catch(e){ console.error('departs: retour fiche après regroupement', e); }
+}
 
 /* ─── Défaire un regroupement ─── */
 window.depAnnulerFusionFacture = function(){
-  var ctx = _depFicheLectureCtx;
-  if(!ctx) return;
-  var colId = ctx.colId || window.currentCollecteId;
-  var principale = ((window.clientsParCollecte||{})[colId] || {})[ctx.clientId];
+  var o = _depOrigineCourante();
+  if(!o) return;
+  var ctx = { clientId: o.clientId, retour: (_depFicheLectureCtx||{}).retour };
+  var colId = o.colId;
+  var principale = o.c;
   if(!principale || !Array.isArray(principale.fusionDe) || !principale.fusionDe.length) return;
 
   var apport = principale.fusionDe[principale.fusionDe.length - 1];
-  var source = ((window.clientsParCollecte||{})[apport.colId] || {})[apport.clientId];
+  // v1.54.0 : les apports d'avant cette version n'ont pas de `src` —
+  // c'étaient forcément des fiches de Collecte.
+  var srcAp = apport.src || 'col';
+  var source = _depFicheDe(srcAp, apport.colId, apport.clientId);
 
   // On retire exactement ce que cette fiche avait apporté : autant de
   // lignes que rendues, prises à la fin, puis on recalcule le reste.
@@ -8985,21 +9091,23 @@ window.depAnnulerFusionFacture = function(){
   var u = window.currentUser || {};
   var hist = Array.isArray(principale.hist) ? principale.hist.slice() : [];
   hist.push({ q: u.name || u.id || '', ts: Date.now(), type: 'modif',
-    a: 'a s&eacute;par&eacute; la facture de la collecte du <strong>' + esc(apport.dateCollecte) + '</strong>' });
+    a: 'a s&eacute;par&eacute; la facture ' + (srcAp === 'col' ? 'de la collecte du ' : 'de ')
+       + '<strong>' + esc(apport.dateCollecte) + '</strong>' });
   principale.hist = hist;
 
-  _depEcrireClient({ collecteId: colId, clientId: ctx.clientId }, {
+  _depEcrireFacture(_depCibleDe(o.src, colId, ctx.clientId), {
     colisDetail: principale.colisDetail, colis: principale.colis, nbColis: principale.nbColis,
+    nb: principale.nbColis,
     prix: principale.prix, versements: principale.versements,
     fusionDe: principale.fusionDe.length ? principale.fusionDe : null, hist: hist
   });
   if(source){
     source.fusionneeDans = null;
-    _depEcrireClient({ collecteId: apport.colId, clientId: apport.clientId }, { fusionneeDans: null });
+    _depEcrireFacture(_depCibleDe(srcAp, apport.colId, apport.clientId), { fusionneeDans: null });
   }
   try{ sauvegarder(); }catch(e){}
   toast('↩️ Factures séparées');
-  try{ openClientFiche(ctx.clientId, ctx.retour); }catch(e){}
+  _depRouvrirFicheSelonSource(o.src, colId, ctx.clientId, ctx.retour);
 };
 
 window.depRouvrirFicheTerminee = function(){
@@ -12693,6 +12801,10 @@ function greffer(){
           }
         }
       }catch(e){ console.error('departs: retrait photos fiche france', e); }
+      // v1.54.0 : le regroupement de factures, ici aussi. Un client de
+      // France & Europe a le même droit qu'un autre de voir ses deux
+      // factures d'un même container réunies.
+      try{ _depBoutonsFusionFrance(); }catch(eFus){ console.error('departs: regroupement (fiche france)', eFus); }
     };
     window._renderFicheFrance._depPatch = true;
   }
