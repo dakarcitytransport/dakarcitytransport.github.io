@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.69.0';
+var DEP_VERSION = 'v1.70.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16421,7 +16421,11 @@ window.depRapfinContainer = function(id){
      _depCamionsParContainer) et ses dépenses propres, saisies juste à
      côté. Le résultat part de l'encaissé, pas du facturé : un euro pas
      encore versé n'est pas un euro gagné. */
-  var encContainer = depArrondi2(cp.colisPaye + cp.livPaye);
+  // v1.70.0 : le résultat d'un container ne porte que sur les COLIS.
+  // La livraison est une caisse à part, encaissée à Dakar, et elle ne
+  // doit pas venir gonfler ce chiffre (retour de Cobey du 24/09/2026).
+  // Elle reste lisible juste au-dessus, dans l'encart Caisse.
+  var encContainer = cp.colisPaye;
   var totCam = _depTotalCamionsDe(id);
   var totFix = _depTotalFixesDe(id);
   var totDep = depArrondi2(totCam + totFix);
@@ -16441,11 +16445,16 @@ window.depRapfinContainer = function(id){
     + '</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
     +   'margin-top:5px;border-top:2px solid var(--border);">'
-    +   '<span style="font-size:13px;font-weight:800;color:var(--text);">R&eacute;sultat'
-    +     '<span style="font-weight:600;color:#999;"> (encaiss&eacute; &minus; d&eacute;penses)</span></span>'
+    +   '<span style="font-size:13px;font-weight:800;color:var(--text);">R&eacute;sultat colis'
+    +     '<span style="font-weight:600;color:#999;"> (colis encaiss&eacute;s &minus; d&eacute;penses)</span></span>'
     +   '<b style="font-size:18px;color:' + (resultat < 0 ? '#B3261E' : '#006b2d') + ';">'
     +     _depEuros(resultat) + ' &euro;</b>'
     + '</div>'
+    + (cp.livPaye
+      ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.4;">'
+        + '&#128666; La livraison a sa propre caisse : ' + _depEuros(cp.livPaye)
+        + ' &euro; encaiss&eacute;s, non compt&eacute;s ici.</div>'
+      : '')
     + '<button class="btn btn-gray" style="margin-top:12px;" onclick="depOuvrirRapfinFixes(\'' + id + '\')">'
     +   '&#127968; G&eacute;rer les d&eacute;penses de ce container</button>'
     + '</div>';
