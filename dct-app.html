@@ -1615,7 +1615,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.73.0';
+var APP_VERSION = 'v3.74.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -7855,6 +7855,11 @@ function _effacerCollecte(idToDelete){
   collectes=collectes.filter(function(c){return c.id!==idToDelete;});
   delete clientsParCollecte[idToDelete];
   delete dispatchParCollecte[idToDelete];
+  // v3.74.0 : les dépenses de tournée de cette collecte partent avec
+  // elle. Sans ça, elles continuaient d'alimenter le rapport financier
+  // alors que la collecte n'existait plus (retour de Cobey du
+  // 24/09/2026, après un essai supprimé qui laissait 65 € de carburant).
+  try{ if(window.depensesData) delete window.depensesData[idToDelete]; }catch(e){}
   if(currentCollecteId===idToDelete)currentCollecteId=collectes.length?collectes[0].id:null;
   if(suiviCollecteId===idToDelete) suiviCollecteId=null;
 
@@ -7864,6 +7869,7 @@ function _effacerCollecte(idToDelete){
     updates['dct/collectes'] = collectes.length ? collectes : null;
     updates['dct/clients/'+idToDelete] = null;
     updates['dct/dispatch/'+idToDelete] = null;
+    updates['dct_depenses/'+idToDelete] = null;
     db.ref().update(updates);
   }
   sauvegarder();

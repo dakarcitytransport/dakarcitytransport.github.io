@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.75.0';
+var DEP_VERSION = 'v1.76.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16596,10 +16596,29 @@ function _depTotalFixesDe(departId){
   }, 0));
 }
 
+/* v1.76.0 — Une dépense orpheline ne compte plus.
+   Supprimer une collecte n'effaçait pas ses dépenses de tournée : elles
+   restaient dans dct_depenses et continuaient d'alimenter le bilan,
+   rattachées à une collecte qui n'existe plus (retour de Cobey du
+   24/09/2026). La suppression les emporte désormais (voir
+   _effacerCollecte), et par sécurité on ignore ici celles dont la
+   collecte a disparu — y compris celles laissées par une suppression
+   d'avant ce correctif.
+
+   Prudence : tant que la liste des collectes n'est pas chargée, on ne
+   déclare rien orphelin, sinon un bilan ouvert trop tôt afficherait
+   zéro dépense. */
+function _depCollecteExiste(colId){
+  var cols = window.collectes;
+  if(!Array.isArray(cols) || !cols.length) return true;
+  return cols.some(function(c){ return c && c.id === colId; });
+}
+
 // Toutes les dépenses de tournée, toutes collectes et tous camions.
 function _depTotalDepensesCamions(){
   var t = 0, src = window.depensesData || {};
   Object.keys(src).forEach(function(colId){
+    if(!_depCollecteExiste(colId)) return;
     var parCamion = src[colId] || {};
     Object.keys(parCamion).forEach(function(cam){
       var lignes = parCamion[cam] || {};
@@ -16775,6 +16794,7 @@ function _depCamionsParContainer(departId){
   var out = [];
   var src = window.depensesData || {};
   Object.keys(src).forEach(function(colId){
+    if(!_depCollecteExiste(colId)) return;
     var parCamion = src[colId] || {};
     var cls = (window.clientsParCollecte || {})[colId] || {};
     var trucks = ((window.dispatchParCollecte || {})[colId] || {}).trucks || {};
