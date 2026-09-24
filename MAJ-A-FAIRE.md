@@ -266,3 +266,20 @@ passe par elle. Le bloc « Bénéfice repris de 360 » a été retiré.
 
 ### Statistiques
 Une case avec des graphiques, pour chaque poste.
+
+**Comparer les containers entre eux** (note de Cobey, 24/09/2026) :
+- comparer **au mois** ou **à l'année**, au choix ;
+- et surtout **choisir soi-même** les mois ou les années à mettre côte à
+  côte — pas seulement le mois en cours contre le précédent. Par
+  exemple septembre 2026 contre septembre 2027, ou toute l'année 2026
+  contre toute l'année 2027.
+
+Ce qu'on a déjà, container par container, et qui peut donc se comparer
+sans rien stocker de nouveau : le total facturé, l'encaissé, le reste
+dû, les dépenses (tournées + fixes), le résultat colis, le nombre de
+clients et le nombre de colis. La livraison reste à part, comme partout
+ailleurs.
+
+**?** Sur quoi porte la comparaison en priorité — le chiffre d'affaires,
+le bénéfice, le nombre de clients ? À préciser avec Cobey avant de
+dessiner les graphiques : c'est ce qui décide de ce qu'on met en avant.
