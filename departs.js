@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.68.0';
+var DEP_VERSION = 'v1.69.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16271,13 +16271,12 @@ window.depOuvrirEspaceRapportFinancier = function(){
   // containers confondus — c'est le chiffre qui décide s'il faut ouvrir.
   var sub = $('dep-rf-sub-cont');
   if(sub){
+    // v1.69.0 : pas de montant ici — les totaux sont l'affaire du Bilan.
     var g = _depRapfinTotaux();
-    var du = depArrondi2(g.colisDu + g.livDu);
     sub.innerHTML = g.nb === 0
       ? 'Aucun container'
-      : g.nb + ' container' + (g.nb>1?'s':'') + '<br>'
-        + (du > 0 ? '<b style="color:#B3261E;">' + du + ' &euro;</b> &agrave; encaisser'
-                  : '<b style="color:#006b2d;">Tout est encaiss&eacute;</b>');
+      : '<b style="color:#252599;">' + g.nb + '</b> container' + (g.nb>1?'s':'')
+        + '<br>' + g.clients + ' client' + (g.clients>1?'s':'');
   }
   // Aperçu de la case BILAN : le bénéfice, reprise comprise.
   var sb = $('dep-rf-sub-bilan');
@@ -16345,18 +16344,10 @@ window.depRenderRapfinContainers = function(){
     return;
   }
 
-  // Le cumul d'abord : c'est la question qu'on se pose en arrivant.
-  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
-    +   'padding:14px;margin-bottom:14px;">'
-    + '<div style="font-size:12px;font-weight:800;color:var(--text);">'
-    +   '&#128202; Tous containers confondus</div>'
-    + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;margin-bottom:10px;">'
-    +   g.nb + ' container' + (g.nb>1?'s':'') + ' &middot; ' + g.clients + ' client' + (g.clients>1?'s':'')
-    +   '</div>'
-    + _depRapfinDeuxCaisses(g)
-    + '</div>';
-
-  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Container par container</div>';
+  // v1.69.0 : le cumul de tous les containers a été retiré d'ici — le
+  // Bilan le donne déjà, et le répéter n'apprenait rien (retour de Cobey
+  // du 24/09/2026). Cet écran sert à comparer les containers entre eux,
+  // pas à faire la somme.
 
   _depRapfinTousLesContainers().forEach(function(d){
     var cp = compteursDepart(d._id);
