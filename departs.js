@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.86.0';
+var DEP_VERSION = 'v1.87.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2691,7 +2691,7 @@ function injecterEcrans(){
      côte à côte, avec le graphique en colonnes. ---- */
   + '<div class="screen" id="s-stats-cmp">'
   +   '<div class="header">'
-  +     '<button class="btn-back" onclick="depOuvrirEspaceStats()">&larr; Statistiques</button>'
+  +     '<button class="btn-back" onclick="depOuvrirEspaceRapportFinancier()">&larr; Rapport</button>'
   +     '<div class="h-title">Comparer<div class="h-sub">Deux p&eacute;riodes, ou deux containers</div></div>'
   +     '<div style="width:60px;"></div>'
   +   '</div>'
@@ -3458,6 +3458,16 @@ function injecterEcrans(){
   +         '<div class="dep-case-ico">&#128202;</div>'
   +         '<div class="dep-case-tit" style="color:#006b2d;">BILAN</div>'
   +         '<div class="dep-case-sub" id="dep-rf-sub-bilan">&mdash;</div>'
+  +       '</div>'
+  // v1.87.0 : COMPARER rejoint le Rapport financier. Il était d'abord
+  // arrivé dans le carré STATISTIQUES, qui classe les collaborateurs —
+  // or ce qu'on compare ici, ce sont des containers et de l'argent
+  // (« fais le mettre dans le rapport financier, pas dans la case
+  // statistique », Cobey, 25/09/2026).
+  +       '<div class="dep-case" style="background:#EDE7F6;" onclick="depOuvrirComparer()">'
+  +         '<div class="dep-case-ico">&#9878;&#65039;</div>'
+  +         '<div class="dep-case-tit" style="color:#4527A0;">COMPARER</div>'
+  +         '<div class="dep-case-sub" id="dep-rf-sub-cmp">&mdash;</div>'
   +       '</div>'
   +     '</div>'
   +   '</div>'
@@ -5216,14 +5226,10 @@ window.depRenderStats = function(){
   // plus que les dossiers Année ; le classement lui-même n'apparaît qu'à
   // partir du moment où une année (ou un mois) est choisie.
   if(_depStatsNav.annee === null){
-    // v1.86.0 : la comparaison, en tête — c'est ce qu'on vient chercher
-    // le plus souvent (demande de Cobey du 25/09/2026).
-    var h0 = '<div class="dep-card" style="border-left-color:#1a237e;cursor:pointer;margin-bottom:14px;" '
-      +   'onclick="depOuvrirComparer()">'
-      +   '<div class="dep-card-top"><div class="dep-nom">&#9878;&#65039; Comparer</div></div>'
-      +   '<div class="dep-meta"><span>Deux p&eacute;riodes, ou deux containers, c&ocirc;te &agrave; c&ocirc;te</span></div>'
-      + '</div>';
-    h0 += '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">Classement par ann&eacute;e</div>';
+    // v1.87.0 : « Comparer » a déménagé dans le Rapport financier — ici
+    // on classe les collaborateurs, là-bas on compare des containers et
+    // de l'argent. Deux sujets différents (Cobey, 25/09/2026).
+    var h0 = '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">Choisir une ann&eacute;e</div>';
     var annees = _depStatsAnneesDisponibles();
     if(!annees.length){
       h0 += '<div class="dep-vide" style="padding:16px;">Aucune donn&eacute;e pour l\'instant.</div>';
@@ -16710,6 +16716,18 @@ window.depOuvrirEspaceRapportFinancier = function(){
     var b = _depBilanFinancier();
     sb.innerHTML = 'B&eacute;n&eacute;fice<br><b style="color:'
       + (b.benefice < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(b.benefice) + ' &euro;</b>';
+  }
+  // v1.87.0 : aperçu de la case COMPARER — combien de périodes il y a à
+  // mettre en regard. Tant qu'il n'y en a qu'une, il n'y a rien à
+  // comparer, et la case le dit plutôt que de laisser ouvrir pour rien.
+  var sc = $('dep-rf-sub-cmp');
+  if(sc){
+    var o = _depCmpOptions();
+    sc.innerHTML = o.mois.length >= 2
+      ? '<b style="color:#4527A0;">' + o.mois.length + '</b> mois<br>' + o.containers.length + ' containers'
+      : (o.containers.length >= 2
+        ? '<b style="color:#4527A0;">' + o.containers.length + '</b> containers'
+        : 'Pas encore de quoi<br>comparer');
   }
   goTo('s-rapport-financier');
 };
