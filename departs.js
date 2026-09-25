@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.88.0';
+var DEP_VERSION = 'v1.89.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2082,10 +2082,20 @@ function compteursDepart(departId){
      Sans ce compteur, ça restait invisible : « reste dû » plafonne à
      zéro par client, donc le trop-perçu de l'un ne se voyait qu'en
      comparant deux totaux à la main, ce que Cobey a fini par faire. */
+  /* v1.89.0 — sansPrix : les fiches dont le prix n'est pas encore fixé.
+
+     Elles s'affichent « 0 € » en attendant. Du coup elles ne devaient
+     rien : « reste dû » vaut zéro, et elles disparaissaient de la liste
+     des clients à relancer (repéré par Cobey le 25/09/2026 sur le
+     container du 13/09). Il y a pourtant bien de l'argent à encaisser
+     derrière — on ne sait simplement pas encore combien.
+
+     On les compte donc à part, sans montant : annoncer un euro qu'on
+     ignore serait pire que de n'en annoncer aucun. */
   var r = { clients:0, euros:0, colis:0,
             colisTotal:0, colisPaye:0, colisDu:0, colisTrop:0, colisTropNb:0,
             livTotal:0,   livPaye:0,   livDu:0,   livTrop:0,   livTropNb:0,
-            livClients:0 };
+            livClients:0, sansPrix:0 };
 
   function ajouter(c){
     // v1.31.0 : ne compter qu'une fois une facture regroupée — ses colis,
@@ -2095,6 +2105,7 @@ function compteursDepart(departId){
     // v1.86.0 : le nombre de colis, pour la comparaison de périodes.
     r.colis += (parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 1);
     r.euros += (parseFloat(c.prix) || 0);
+    if(_depSansPrix(c)) r.sansPrix++;
     var pc = depCalculerPaiement(c);
     r.colisTotal += pc.total; r.colisPaye += pc.paye; r.colisDu += pc.reste;
     var tc = _depTropVerse(pc);
@@ -2123,6 +2134,18 @@ function compteursDepart(departId){
   ['euros','colisTotal','colisPaye','colisDu','colisTrop','livTotal','livPaye','livDu','livTrop']
     .forEach(function(k){ r[k] = depArrondi2(r[k]); });
   return r;
+}
+
+/* v1.89.0 — Une fiche dont le prix n'est pas encore fixé.
+
+   Deux cas se ressemblent à l'écran et se traitent pareil : la fiche
+   marquée « prix à définir » à l'inscription, et celle dont le prix est
+   simplement resté vide. Dans les deux, la facture affiche 0 € et il
+   reste un prix à convenir avec le client. */
+function _depSansPrix(c){
+  if(!c) return false;
+  if(c.prixADefinir === true) return true;
+  return !(parseFloat(c.prix) > 0);
 }
 
 // Ce qu'une fiche porte en trop : le versé moins le facturé, jamais
@@ -2211,6 +2234,35 @@ function _depBlocCaisse(cp){
        container sain, rien ne s'affiche. */
     + _depAlerteTrop(cp, 'colis')
     + _depAlerteTrop(cp, 'livraison')
+    + _depAlerteSansPrix(cp)
+    + '</div>';
+}
+
+/* v1.89.0 — « Ces fiches n'ont pas encore de prix. »
+
+   Cobey, le 25/09/2026 : « des clients qui n'ont pas encore de prix
+   fixé, pour l'instant ils sont mis à 0 €. Du coup ils ne sont pas dans
+   les clients qui n'ont pas tout payé. Il faudrait quand même les avoir
+   quelque part. »
+
+   Elles ne peuvent pas rejoindre le RESTE DÛ : on ignore le montant, et
+   inventer un chiffre fausserait la caisse. Elles ont donc leur propre
+   ligne, qui compte des fiches et non des euros. */
+function _depAlerteSansPrix(cp){
+  var n = cp.sansPrix;
+  if(!(n > 0)) return '';
+  var actif = (_depFiltreDu === 'sansprix');
+  return '<div onclick="depVoirRestants(\'sansprix\')" '
+    + 'style="cursor:pointer;margin-top:10px;background:#EEF0FA;border:1.5px solid '
+    +   (actif ? '#1a237e' : '#C5CAE9') + ';border-radius:10px;padding:9px 11px;'
+    +   'display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+    + '<div style="font-size:11.5px;font-weight:700;color:#1a237e;line-height:1.4;">'
+    +   '&#10067; <b>' + n + '</b> fiche' + (n>1?'s':'') + ' sans prix fix&eacute;'
+    +   '<br><span style="font-weight:600;opacity:.85;">Affich&eacute;'+(n>1?'es':'')
+    +   ' &agrave; 0 &euro; &mdash; le montant reste &agrave; convenir.</span></div>'
+    + '<div style="flex:none;background:#fff;border:1.5px solid #C5CAE9;border-radius:20px;'
+    +   'padding:5px 11px;font-size:11px;font-weight:800;color:#1a237e;white-space:nowrap;">'
+    +   (actif ? '&#10003; AFFICH&Eacute;ES' : '&#128071; VOIR LESQUELLES') + '</div>'
     + '</div>';
 }
 
@@ -16753,14 +16805,14 @@ function _depRapfinTousLesContainers(){
 }
 
 function _depRapfinTotaux(){
-  var g = { nb:0, clients:0,
+  var g = { nb:0, clients:0, sansPrix:0,
             colisTotal:0, colisPaye:0, colisDu:0,
             livTotal:0,   livPaye:0,   livDu:0 };
   _depRapfinTousLesContainers().forEach(function(d){
     var cp = compteursDepart(d._id);
     if(!cp.clients) return;          // un container vide n'a rien à dire ici
     g.nb++;
-    ['clients','colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
+    ['clients','sansPrix','colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
       .forEach(function(k){ g[k] += cp[k]; });
   });
   ['colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
@@ -16941,6 +16993,7 @@ window.depRapfinContainer = function(id){
     // v1.84.0 : deux listes possibles maintenant — ceux qui doivent
     // encore, et les fiches où l'argent enregistré dépasse le prix.
     var estTrop = (_depFiltreDu.indexOf('trop-') === 0);
+    var estSansPrix = (_depFiltreDu === 'sansprix');
     var estLiv = estTrop ? (_depFiltreDu === 'trop-livraison') : (_depFiltreDu === 'livraison');
     var paiementDe = function(c){
       return estLiv ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
@@ -16948,6 +17001,7 @@ window.depRapfinContainer = function(id){
     var restants = _depToutesLesFiches()
       .filter(function(x){
         if(!x.c || x.c.departId !== id || _depEstFusionnee(x.c)) return false;
+        if(estSansPrix) return _depSansPrix(x.c);
         var p = paiementDe(x.c);
         return estTrop ? (_depTropVerse(p) > 0) : (p.reste > 0);
       })
@@ -16957,10 +17011,23 @@ window.depRapfinContainer = function(id){
         return x;
       })
       .sort(function(a, b){                       // le plus gros écart en tête
+        if(estSansPrix) return (b.p.paye - a.p.paye);   // ceux qui ont déjà versé d'abord
         return estTrop ? (b.trop - a.trop) : (b.p.reste - a.p.reste);
       });
 
-    h += estTrop
+    h += estSansPrix
+      ? ('<div id="dep-rf-c-restants" style="background:#EEF0FA;border:1.5px solid #C5CAE9;'
+        +   'border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;'
+        +   'align-items:center;justify-content:space-between;gap:10px;">'
+        +   '<div style="font-size:12.5px;font-weight:700;color:#1a237e;line-height:1.35;">'
+        +     '&#10067; <b>' + restants.length + '</b> fiche' + (restants.length>1?'s':'')
+        +     ' sans prix fix&eacute;'
+        +     '<br><span style="font-weight:600;opacity:.85;">Ouvrez la facture pour fixer le montant.</span></div>'
+        +   '<div onclick="depVoirRestants(\'tous\')" style="flex:none;cursor:pointer;background:#fff;'
+        +     'border:1.5px solid #C5CAE9;border-radius:20px;padding:5px 11px;font-size:11.5px;'
+        +     'font-weight:800;color:#1a237e;white-space:nowrap;">&#10005; Fermer</div>'
+        + '</div>')
+      : estTrop
       ? ('<div id="dep-rf-c-restants" style="background:#FFF3E0;border:1.5px solid #F5C377;'
         +   'border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;'
         +   'align-items:center;justify-content:space-between;gap:10px;">'
@@ -16996,7 +17063,13 @@ window.depRapfinContainer = function(id){
         +     (x.src === 'france' ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')
         +   '</div>'
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-        +     (estTrop
+        +     (estSansPrix
+            ? ('<span><b style="color:#1a237e;">Prix &agrave; fixer</b>'
+               + (x.p.paye > 0
+                 ? ('<span style="color:var(--text3);"> &middot; ' + x.p.paye + ' &euro; d&eacute;j&agrave; vers&eacute;s</span>')
+                 : '<span style="color:var(--text3);"> &middot; rien de vers&eacute;</span>')
+               + '</span>')
+            : estTrop
             ? ('<span><b style="color:#8A5200;">' + _depEuros(x.trop) + ' &euro; en trop</b>'
                + '<span style="color:var(--text3);"> &middot; factur&eacute; ' + x.p.total
                + ' &euro;, vers&eacute; ' + x.p.paye + ' &euro;</span></span>')
@@ -17012,7 +17085,7 @@ window.depRapfinContainer = function(id){
         +       x.src + '\',\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\')">'
         // v1.84.0 : sur une fiche en trop, il n'y a rien à encaisser —
         // il y a un versement à reprendre.
-        +       '&#129534; Facture &middot; ' + (estTrop ? 'corriger' : 'encaisser') + '</button>'
+        +       '&#129534; Facture &middot; ' + (estSansPrix ? 'fixer le prix' : (estTrop ? 'corriger' : 'encaisser')) + '</button>'
         +     '<button class="dep-cli-btn" onclick="event.stopPropagation();depRapfinOuvrirFiche(\''
         +       x.src + '\',\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\')">'
         +       '&#128196; Fiche</button>'
@@ -17261,6 +17334,17 @@ window.depRenderRapfinBilan = function(){
         + 'padding:8px 10px;margin-top:12px;font-weight:600;line-height:1.4;">'
         + '&#8987; <b>' + _depEuros(b.aEncaisser) + ' &euro;</b> de colis restent &agrave; encaisser. '
         + 'Ils ne comptent pas dans les recettes tant qu\'ils ne sont pas vers&eacute;s.</div>'
+      : '')
+    /* v1.89.0 : les fiches sans prix. Elles ne sont dans aucun des deux
+       chiffres ci-dessus — ni facturé, ni à encaisser — puisqu'on ignore
+       leur montant. Le Bilan le dit, sinon cet argent n'existe nulle
+       part (repéré par Cobey le 25/09/2026). */
+    + (b.g.sansPrix > 0
+      ? '<div style="font-size:11.5px;color:#1a237e;background:#EEF0FA;border-radius:8px;'
+        + 'padding:8px 10px;margin-top:8px;font-weight:600;line-height:1.4;">'
+        + '&#10067; <b>' + b.g.sansPrix + ' fiche' + (b.g.sansPrix>1?'s':'') + '</b> sans prix fix&eacute;, '
+        + 'donc compt&eacute;'+(b.g.sansPrix>1?'es':'e')+' nulle part ci-dessus. '
+        + 'Ouvrez le container concern&eacute; pour voir qui.</div>'
       : '')
     + '</div>';
 

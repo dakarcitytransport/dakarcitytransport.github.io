@@ -293,6 +293,25 @@ C'est presque toujours une erreur de saisie : un versement livraison tapé
 dans la case colis, un acompte pris avant que le prix soit fixé, un prix
 baissé après un paiement.
 
+### ~~Les fiches sans prix fixé~~
+**Fait le 25/09 (v1.89.0).** Repéré par Cobey sur le container du
+13/09 : des clients dont le prix n'est pas encore convenu s'affichent
+« 0 € ». Ils ne devaient donc rien, et disparaissaient de la liste des
+clients à relancer — alors qu'il y a bien de l'argent à encaisser
+derrière, on ignore simplement combien.
+
+Ils ne peuvent pas rejoindre le RESTE DÛ : inventer un montant
+fausserait la caisse. Ils ont donc leur propre ligne, qui compte des
+fiches et non des euros :
+- dans chaque container, sous les deux caisses : « ❓ 3 fiches sans prix
+  fixé », qui se déplie et donne les noms, avec le bouton
+  « Facture · fixer le prix » et la mention de ce qui a déjà été versé ;
+- dans le Bilan, un rappel qu'elles ne sont comptées dans aucun des
+  chiffres du dessus.
+
+N'apparaît que s'il y en a. Deux cas traités pareil : la fiche marquée
+« prix à définir » à l'inscription, et celle dont le prix est resté vide.
+
 ### ~~Container~~
 **Fait le 24/09 (v1.56.0).** Total payé et total dû, séparément pour les
 colis et pour la livraison, sur chaque container et en cumul.
