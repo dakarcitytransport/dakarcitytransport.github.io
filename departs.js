@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.95.0';
+var DEP_VERSION = 'v1.96.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1381,103 +1381,150 @@ function _depLigneChamp(id){
   return box ? box.querySelector('#' + id) : null;
 }
 
-/* v1.95.0 — Choisir un article en trois touches, au lieu d'un menu.
+/* v1.96.0 — On cherche l'article, on ne le cherche plus des yeux.
 
-   Cobey, le 25/09/2026 : « dans le choix pour facture, ça sera trop long
-   à défiler ». Le menu déroulant alignait les 32 articles à la suite, et
-   il grandira à chaque prix ajouté.
+   Cobey, le 25/09/2026 : « c'est toujours pas optimal, trop d'infos ».
+   Il avait raison : dix articles d'électroménager faisaient dix grosses
+   cases, et la moitié de l'écran y passait. Avant ça, un menu déroulant
+   de trente-deux lignes. Les deux avaient le même défaut — ils montrent
+   tout le catalogue pour en choisir un.
 
-   Trois étages, comme pour Comparer : la catégorie, puis l'article, puis
-   le prix. Aucune rangée ne dépasse quelques cases, quel que soit le
-   nombre d'articles au catalogue. L'étage du prix ne s'affiche que
-   lorsqu'un même article en a plusieurs — un article à prix unique
-   s'ajoute donc en deux touches. */
-var _depCatSel = { theme:'', nom:'' };
+   Un champ de recherche règle le problème une fois pour toutes : trois
+   lettres suffisent, et l'écran ne grandit jamais, qu'il y ait trente
+   articles ou trois cents.
 
-window.depCatChoisirTheme = function(t){
-  _depCatSel.theme = (_depCatSel.theme === t) ? '' : t;
-  _depCatSel.nom = '';
-  _depRenderLignes();
-};
-window.depCatChoisirNom = function(n){
-  _depCatSel.nom = (_depCatSel.nom === n) ? '' : n;
-  _depRenderLignes();
-};
+   Au-dessus, ce que DCT facture le plus souvent, calculé sur les
+   factures déjà faites : dans la plupart des cas, le bon article est
+   déjà là et se touche sans rien taper. */
 
-function _depCatCase(libelle, actif, action){
-  return '<div onclick="' + action + '" style="cursor:pointer;font-size:12.5px;'
-    + 'font-weight:800;padding:7px 13px;border-radius:20px;white-space:nowrap;'
-    + (actif ? 'background:#111;color:#fff;border:1.5px solid #111;'
-             : 'background:#fff;color:var(--text3);border:1.5px solid var(--border);')
-    + '">' + libelle + '</div>';
+var _depCatQ = '';   // ce qui est tapé dans la recherche
+
+// Les articles les plus facturés, comptés sur les fiches existantes.
+// Rien de nouveau à stocker : la réponse est dans les factures.
+function _depArticlesFrequents(prods, n){
+  var compte = {};
+  var voir = function(c){
+    if(!c || !Array.isArray(c.colisDetail)) return;
+    c.colisDetail.forEach(function(l){
+      var cle = String(l.nom || '').trim().toLowerCase() + '|' + (parseFloat(l.pu) || 0);
+      compte[cle] = (compte[cle] || 0) + 1;
+    });
+  };
+  try{
+    var parCol = window.clientsParCollecte || {};
+    Object.keys(parCol).forEach(function(k){
+      var cls = parCol[k] || {};
+      Object.keys(cls).forEach(function(id){ voir(cls[id]); });
+    });
+    var dep = window.depotClients || {};
+    Object.keys(dep).forEach(function(id){ voir(dep[id]); });
+    var fr = (window.franceData || {}).clients || {};
+    Object.keys(fr).forEach(function(id){ voir(fr[id]); });
+  }catch(e){}
+
+  return prods.map(function(a){
+      var cle = String(a.nom || '').trim().toLowerCase() + '|' + (parseFloat(a.prix) || 0);
+      return { a: a, n: compte[cle] || 0 };
+    })
+    .filter(function(x){ return x.n > 0; })
+    .sort(function(x, y){ return y.n - x.n; })
+    .slice(0, n || 6)
+    .map(function(x){ return x.a; });
 }
 
-function _depChoixCatalogue(prods){
-  var themes = {}, ordreT = [];
-  prods.forEach(function(a){
-    var t = (a.theme || '').trim() || 'Autres';
-    if(!themes[t]){ themes[t] = []; ordreT.push(t); }
-    themes[t].push(a);
-  });
-  ordreT.sort(function(a,b){
-    if(a === 'Autres') return 1;
-    if(b === 'Autres') return -1;
-    return a.localeCompare(b);
-  });
-  if(!themes[_depCatSel.theme]) _depCatSel.theme = (ordreT.length === 1) ? ordreT[0] : '';
+// Accents et casse ignorés : « frigo » trouve « Frigidaire ».
+function _depSansAccent(t){
+  return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
 
-  var rangee = function(contenu){
-    return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' + contenu + '</div>';
-  };
+// La pastille qui ajoute un article : son nom, son prix, un seul geste.
+function _depCatPastille(a, gros){
+  return '<div onclick="depLigneAjouterId(\'' + esc(a._id) + '\')" '
+    + 'style="cursor:pointer;display:inline-flex;align-items:baseline;gap:7px;'
+    + 'background:#EAF7EE;border:1.5px solid #C8E6D0;border-radius:20px;'
+    + 'padding:' + (gros ? '8px 14px' : '7px 12px') + ';font-size:' + (gros ? '13.5px' : '13px') + ';'
+    + 'font-weight:700;color:#1a3d2a;max-width:100%;">'
+    + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+    +   esc(a.nom || 'Article') + '</span>'
+    + '<b style="color:#006b2d;white-space:nowrap;">' + (parseFloat(a.prix) || 0) + ' &euro;</b>'
+    + '</div>';
+}
 
-  var h = '<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;'
-    + 'padding:10px 11px;margin-bottom:10px;">';
+// Le contenu qui change à chaque lettre tapée. Isolé dans son propre
+// conteneur : on le redessine sans toucher au champ de saisie, qui
+// garde le curseur et le clavier ouverts.
+function _depCatResultats(){
+  var prods = _depCatalogueProduits();
+  var q = _depSansAccent(_depCatQ).trim();
 
-  // 1. La catégorie
-  h += rangee(ordreT.map(function(t){
-    return _depCatCase(esc(t) + ' <span style="opacity:.6;">' + themes[t].length + '</span>',
-      _depCatSel.theme === t, 'depCatChoisirTheme(\'' + esc(t).replace(/'/g,"\\'") + '\')');
-  }).join(''));
-
-  if(!_depCatSel.theme){
-    return h + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;">'
-      + 'Choisissez une cat&eacute;gorie.</div></div>';
+  if(!q){
+    var freq = _depArticlesFrequents(prods, 6);
+    if(!freq.length){
+      return '<div style="font-size:11.5px;color:var(--text3);font-weight:600;">'
+        + 'Tapez les premi&egrave;res lettres de l\'article.</div>';
+    }
+    return '<div style="font-size:10.5px;font-weight:800;color:var(--text3);'
+      +   'letter-spacing:.04em;margin-bottom:6px;">LES PLUS FACTUR&Eacute;S</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+      +   freq.map(function(a){ return _depCatPastille(a, true); }).join('')
+      + '</div>';
   }
 
-  // 2. L'article, une case par nom
-  var parNom = {}, ordreN = [];
-  themes[_depCatSel.theme].forEach(function(a){
+  var trouves = prods.filter(function(a){
+    return _depSansAccent(a.nom).indexOf(q) >= 0;
+  }).sort(function(a, b){
+    var n = String(a.nom || '').localeCompare(String(b.nom || ''));
+    return n || ((parseFloat(a.prix) || 0) - (parseFloat(b.prix) || 0));
+  });
+
+  if(!trouves.length){
+    return '<div style="font-size:11.5px;color:var(--text3);font-weight:600;">'
+      + 'Aucun article ne contient &laquo;&nbsp;' + esc(_depCatQ) + '&nbsp;&raquo;.<br>'
+      + 'Utilisez la ligne libre juste en dessous.</div>';
+  }
+
+  // Un nom, une ligne : ses prix se suivent, comme sur l'écran des
+  // articles. « Carton » ne prend donc qu'une ligne, pas sept.
+  var parNom = {}, ordre = [];
+  trouves.forEach(function(a){
     var n = (a.nom || '—').trim();
-    if(!parNom[n]){ parNom[n] = []; ordreN.push(n); }
+    if(!parNom[n]){ parNom[n] = []; ordre.push(n); }
     parNom[n].push(a);
   });
-  ordreN.sort(function(a,b){ return a.localeCompare(b); });
-  if(!parNom[_depCatSel.nom]) _depCatSel.nom = (ordreN.length === 1) ? ordreN[0] : '';
 
-  h += rangee(ordreN.map(function(n){
-    var nb = parNom[n].length;
-    return _depCatCase(esc(n) + (nb > 1 ? ' <span style="opacity:.6;">' + nb + '</span>' : ''),
-      _depCatSel.nom === n, 'depCatChoisirNom(\'' + esc(n).replace(/'/g,"\\'") + '\')');
-  }).join(''));
-
-  if(!_depCatSel.nom){
-    return h + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;">'
-      + 'Choisissez un article.</div></div>';
-  }
-
-  // 3. Le prix — chaque case ajoute la ligne directement.
-  var prix = parNom[_depCatSel.nom].sort(function(a,b){
-    return (parseFloat(a.prix)||0) - (parseFloat(b.prix)||0);
+  var COUPE = 6;   // au-delà, on invite à préciser plutôt que dérouler
+  var h = '';
+  ordre.slice(0, COUPE).forEach(function(n){
+    h += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;'
+      +   'padding:7px 0;border-bottom:1px dashed var(--border);">'
+      + parNom[n].map(function(a){ return _depCatPastille(a); }).join('')
+      + '</div>';
   });
-  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;">'
-    + prix.map(function(a){
-        return '<div onclick="depLigneAjouterId(\'' + esc(a._id) + '\')" '
-          + 'style="cursor:pointer;background:#EAF7EE;border:1.5px solid #C8E6D0;'
-          + 'border-radius:20px;padding:8px 15px;font-size:14px;font-weight:800;'
-          + 'color:#006b2d;">+ ' + (parseFloat(a.prix)||0) + ' &euro;</div>';
-      }).join('')
+  if(ordre.length > COUPE){
+    h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;padding-top:7px;">'
+      + (ordre.length - COUPE) + ' autre' + (ordre.length - COUPE > 1 ? 's' : '')
+      + ' article' + (ordre.length - COUPE > 1 ? 's' : '') + ' &mdash; pr&eacute;cisez votre recherche.</div>';
+  }
+  return h;
+}
+
+// Tapé dans le champ : on ne redessine que la liste, jamais le champ.
+window.depCatRecherche = function(v){
+  _depCatQ = v || '';
+  var box = document.getElementById(_depLignesCible);
+  var res = box ? box.querySelector('#dl-cat-res') : null;
+  if(res) res.innerHTML = _depCatResultats();
+};
+
+function _depChoixCatalogue(prods){
+  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;'
+    +   'padding:10px 11px;margin-bottom:10px;">'
+    + '<input class="fi" id="dl-cat-q" type="search" autocomplete="off"'
+    +   ' placeholder="&#128269; Chercher un article…" value="' + esc(_depCatQ) + '"'
+    +   ' oninput="depCatRecherche(this.value)"'
+    +   ' style="margin:0 0 9px;font-size:13.5px;">'
+    + '<div id="dl-cat-res">' + _depCatResultats() + '</div>'
     + '</div>';
-  return h + '</div>';
 }
 
 // Ajoute directement l'article touché, sans passer par un bouton.
