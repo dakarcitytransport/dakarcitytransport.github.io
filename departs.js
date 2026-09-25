@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.87.0';
+var DEP_VERSION = 'v1.88.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2692,7 +2692,7 @@ function injecterEcrans(){
   + '<div class="screen" id="s-stats-cmp">'
   +   '<div class="header">'
   +     '<button class="btn-back" onclick="depOuvrirEspaceRapportFinancier()">&larr; Rapport</button>'
-  +     '<div class="h-title">Comparer<div class="h-sub">Deux p&eacute;riodes, ou deux containers</div></div>'
+  +     '<div class="h-title">Statistiques<div class="h-sub">Comparer deux p&eacute;riodes, ou deux containers</div></div>'
   +     '<div style="width:60px;"></div>'
   +   '</div>'
   +   '<div class="content">'
@@ -3448,25 +3448,24 @@ function injecterEcrans(){
   // c'était une consigne de Cobey, pas une information pour celui qui
   // s'en sert. L'écran est réservé à la direction : elle sait déjà.
   +   '<div class="content">'
+  /* v1.88.0 — L'ordre des trois cases : Bilan, puis Containers, puis
+     Statistiques (Cobey, 25/09/2026). C'est l'ordre dans lequel on
+     regarde : d'abord où on en est, ensuite d'où ça vient, et enfin
+     comment ça évolue. */
   +     '<div class="dep-cases">'
-  +       '<div class="dep-case" style="background:#E2E2F1;" onclick="depOuvrirRapfinContainers()">'
-  +         '<div class="dep-case-ico">&#128230;</div>'
-  +         '<div class="dep-case-tit" style="color:#252599;">CONTAINERS</div>'
-  +         '<div class="dep-case-sub" id="dep-rf-sub-cont">&mdash;</div>'
-  +       '</div>'
   +       '<div class="dep-case" style="background:#DDF1E6;" onclick="depOuvrirRapfinBilan()">'
   +         '<div class="dep-case-ico">&#128202;</div>'
   +         '<div class="dep-case-tit" style="color:#006b2d;">BILAN</div>'
   +         '<div class="dep-case-sub" id="dep-rf-sub-bilan">&mdash;</div>'
   +       '</div>'
-  // v1.87.0 : COMPARER rejoint le Rapport financier. Il était d'abord
-  // arrivé dans le carré STATISTIQUES, qui classe les collaborateurs —
-  // or ce qu'on compare ici, ce sont des containers et de l'argent
-  // (« fais le mettre dans le rapport financier, pas dans la case
-  // statistique », Cobey, 25/09/2026).
+  +       '<div class="dep-case" style="background:#E2E2F1;" onclick="depOuvrirRapfinContainers()">'
+  +         '<div class="dep-case-ico">&#128230;</div>'
+  +         '<div class="dep-case-tit" style="color:#252599;">CONTAINERS</div>'
+  +         '<div class="dep-case-sub" id="dep-rf-sub-cont">&mdash;</div>'
+  +       '</div>'
   +       '<div class="dep-case" style="background:#EDE7F6;" onclick="depOuvrirComparer()">'
-  +         '<div class="dep-case-ico">&#9878;&#65039;</div>'
-  +         '<div class="dep-case-tit" style="color:#4527A0;">COMPARER</div>'
+  +         '<div class="dep-case-ico">&#128200;</div>'
+  +         '<div class="dep-case-tit" style="color:#4527A0;">STATISTIQUES</div>'
   +         '<div class="dep-case-sub" id="dep-rf-sub-cmp">&mdash;</div>'
   +       '</div>'
   +     '</div>'

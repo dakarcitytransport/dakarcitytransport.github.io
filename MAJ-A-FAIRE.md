@@ -305,10 +305,13 @@ passe par elle. Le bloc « Bénéfice repris de 360 » a été retiré.
 ### Statistiques
 
 #### ~~Comparer~~
-**Fait le 25/09 (v1.86.0), déplacé le même jour (v1.87.0).**
-Rapport financier > **Comparer**, à côté de Containers et de Bilan —
-c'est de l'argent et des containers qu'on compare, pas le travail des
-collaborateurs (le carré Statistiques, lui, garde son classement). Un sélecteur à
+**Fait le 25/09 (v1.86.0), déplacé et renommé le même jour
+(v1.87.0 / v1.88.0).** Rapport financier > **Statistiques**, la
+troisième case après Bilan et Containers, dans cet ordre voulu par
+Cobey : d'abord où on en est, ensuite d'où ça vient, enfin comment ça
+évolue. C'est de l'argent et des containers qu'on compare, pas le
+travail des collaborateurs — le carré Statistiques de l'accueil, lui,
+garde son classement. Un sélecteur à
 gauche, un à droite. La même liste propose les mois, les années et les
 containers un par un : comparer deux périodes ou deux containers, c'est
 le même geste, il n'y a pas de mode à choisir. Un bouton ⇆ intervertit.
