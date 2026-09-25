@@ -2687,6 +2687,19 @@ function injecterEcrans(){
   +   '</div>'
   + '</div>'
 
+  /* ---- ÉCRAN (v1.86.0) : COMPARER — deux périodes ou deux containers,
+     côte à côte, avec le graphique en colonnes. ---- */
+  + '<div class="screen" id="s-stats-cmp">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="depOuvrirEspaceStats()">&larr; Statistiques</button>'
+  +     '<div class="h-title">Comparer<div class="h-sub">Deux p&eacute;riodes, ou deux containers</div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div id="dep-cmp-content"></div>'
+  +   '</div>'
+  + '</div>'
+
   /* ---- ÉCRAN 1quater (v1.19.16) : choix du pays de destination —
      Sénégal ou Mali, chacun avec ses propres containers. ---- */
   + '<div class="screen" id="s-departs-pays">'
@@ -5203,7 +5216,14 @@ window.depRenderStats = function(){
   // plus que les dossiers Année ; le classement lui-même n'apparaît qu'à
   // partir du moment où une année (ou un mois) est choisie.
   if(_depStatsNav.annee === null){
-    var h0 = '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">Choisir une ann&eacute;e</div>';
+    // v1.86.0 : la comparaison, en tête — c'est ce qu'on vient chercher
+    // le plus souvent (demande de Cobey du 25/09/2026).
+    var h0 = '<div class="dep-card" style="border-left-color:#1a237e;cursor:pointer;margin-bottom:14px;" '
+      +   'onclick="depOuvrirComparer()">'
+      +   '<div class="dep-card-top"><div class="dep-nom">&#9878;&#65039; Comparer</div></div>'
+      +   '<div class="dep-meta"><span>Deux p&eacute;riodes, ou deux containers, c&ocirc;te &agrave; c&ocirc;te</span></div>'
+      + '</div>';
+    h0 += '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">Classement par ann&eacute;e</div>';
     var annees = _depStatsAnneesDisponibles();
     if(!annees.length){
       h0 += '<div class="dep-vide" style="padding:16px;">Aucune donn&eacute;e pour l\'instant.</div>';
@@ -5267,6 +5287,313 @@ window.depRenderStats = function(){
 
   box.innerHTML = h;
   _depStatsMajBoutonRetour();
+};
+
+/* ═════════════════════════════════════════════
+   v1.86.0 — COMPARER
+   ═════════════════════════════════════════════
+   Demande de Cobey du 25/09/2026 : « pouvoir choisir le mois de
+   septembre 2025 et le comparer au mois de septembre 2026, voir quelles
+   sont les évolutions en termes de chiffres », et de même d'un container
+   à l'autre.
+
+   Un seul écran, un seul sélecteur de chaque côté. Il propose dans la
+   même liste les mois, les années et les containers : comparer deux
+   périodes ou deux containers, c'est le même geste, il n'y a donc pas
+   de mode à choisir.
+
+   Tout se recalcule à la volée depuis les containers existants. Rien
+   n'est stocké : la comparaison d'hier donnera le même résultat demain
+   si rien n'a bougé, et suivra toute seule le moindre versement.
+   ───────────────────────────────────────────── */
+
+// A et B, plus le chiffre mis en colonnes.
+var _depCmp = { a:'', b:'', mesure:'benefice' };
+
+// Les six chiffres comparables. `bas` = une hausse est une mauvaise
+// nouvelle (les dépenses et l'argent pas encore rentré).
+var DEP_CMP_MESURES = [
+  { cle:'ca',       lib:'Chiffre d\'affaires', court:'C.A.',      euro:true  },
+  { cle:'encaisse', lib:'Encaiss&eacute;',     court:'Encaiss&eacute;', euro:true },
+  { cle:'du',       lib:'Reste d&ucirc;',      court:'Reste d&ucirc;',  euro:true, bas:true },
+  { cle:'depenses', lib:'D&eacute;penses',     court:'D&eacute;penses', euro:true, bas:true },
+  { cle:'benefice', lib:'B&eacute;n&eacute;fice', court:'B&eacute;n&eacute;fice', euro:true },
+  { cle:'clients',  lib:'Clients',             court:'Clients',    euro:false },
+  { cle:'colis',    lib:'Colis',               court:'Colis',      euro:false }
+];
+
+// Ce qu'on peut choisir à gauche comme à droite : les mois, puis les
+// années, puis les containers un par un. Un container sans date de
+// départ lisible ne peut pas rejoindre un mois — il reste choisissable
+// seul, mais ne fausse aucune période.
+function _depCmpOptions(){
+  var mois = {}, annees = {}, conts = [];
+  tousLesDeparts().forEach(function(d){
+    var q = _depQuandDepart(d);
+    conts.push({ cle:'C:'+d._id, lib:(depPaysDepart(d)==='ML'?'🇲🇱 ':'🇸🇳 ') + (d.nom || 'Container')
+                 + (d.dateDepart ? ' · ' + dateFr(d.dateDepart) : ''), q:q });
+    if(!q) return;
+    var dt = new Date(q);
+    annees[dt.getUTCFullYear()] = true;
+    mois[dt.getUTCFullYear() + '-' + dt.getUTCMonth()] = true;
+  });
+  var lMois = Object.keys(mois).map(function(k){
+    var p = k.split('-');
+    return { cle:'M:'+k, lib:DEP_MOIS_NOMS[+p[1]] + ' ' + p[0], tri:(+p[0])*100 + (+p[1]) };
+  }).sort(function(a,b){ return b.tri - a.tri; });
+  var lAnnees = Object.keys(annees).map(Number).sort(function(a,b){ return b-a; })
+    .map(function(a){ return { cle:'A:'+a, lib:'Ann&eacute;e ' + a }; });
+  return { mois:lMois, annees:lAnnees, containers:conts };
+}
+
+// Les containers que recouvre un choix.
+function _depCmpContainersDe(cle){
+  var t = cle.charAt(0), v = cle.slice(2);
+  if(t === 'C') return tousLesDeparts().filter(function(d){ return d._id === v; });
+  return tousLesDeparts().filter(function(d){
+    var q = _depQuandDepart(d);
+    if(!q) return false;
+    var dt = new Date(q);
+    if(t === 'A') return dt.getUTCFullYear() === +v;
+    var p = v.split('-');
+    return dt.getUTCFullYear() === +p[0] && dt.getUTCMonth() === +p[1];
+  });
+}
+
+// Le libellé d'un choix, tel qu'il s'affiche sous sa colonne. Rendu déjà
+// échappé (il contient un retour à la ligne pour les containers), donc
+// à ne PAS repasser dans esc() à l'affichage.
+function _depCmpLibelle(cle){
+  if(!cle) return '&mdash;';
+  var t = cle.charAt(0), v = cle.slice(2);
+  if(t === 'A') return esc(v);
+  if(t === 'M'){ var p = v.split('-'); return DEP_MOIS_NOMS[+p[1]] + ' ' + p[0]; }
+  // v1.86.0 : la date fait partie du nom d'un container. Deux
+  // « Chargement DKR » se suivent d'un mois sur l'autre — sans elle, les
+  // deux colonnes du graphique portent la même étiquette.
+  var d = (window.departsData || {})[v];
+  if(!d) return '&mdash;';
+  return esc(d.nom || 'Container') + (d.dateDepart ? '<br>' + esc(dateFr(d.dateDepart)) : '');
+}
+
+/* Les chiffres d'un choix. Les mêmes règles que partout ailleurs dans
+   l'application : le bénéfice part de l'encaissé et non du facturé, et
+   la livraison reste dehors — elle se partage avec le livreur. */
+function _depCmpAgreger(cle){
+  var r = { nb:0, ca:0, encaisse:0, du:0, depenses:0, benefice:0,
+            clients:0, colis:0, livTotal:0, livPaye:0 };
+  if(!cle) return r;
+  _depCmpContainersDe(cle).forEach(function(d){
+    var cp = compteursDepart(d._id);
+    r.nb++;
+    r.ca       += cp.colisTotal;
+    r.encaisse += cp.colisPaye;
+    r.du       += cp.colisDu;
+    r.clients  += cp.clients;
+    r.colis    += cp.colis;
+    r.livTotal += cp.livTotal;
+    r.livPaye  += cp.livPaye;
+    r.depenses += _depTotalCamionsDe(d._id) + _depTotalFixesDe(d._id);
+  });
+  ['ca','encaisse','du','depenses','livTotal','livPaye'].forEach(function(k){ r[k] = depArrondi2(r[k]); });
+  r.benefice = depArrondi2(r.encaisse - r.depenses);
+  return r;
+}
+
+window.depOuvrirComparer = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  var o = _depCmpOptions();
+  // Au premier passage, on propose les deux périodes les plus récentes —
+  // celle d'avant à gauche, la dernière à droite, pour lire l'évolution
+  // dans le sens de la lecture.
+  if(!_depCmp.a && !_depCmp.b){
+    if(o.mois.length >= 2){ _depCmp.a = o.mois[1].cle; _depCmp.b = o.mois[0].cle; }
+    else if(o.containers.length >= 2){ _depCmp.a = o.containers[1].cle; _depCmp.b = o.containers[0].cle; }
+    else if(o.mois.length === 1){ _depCmp.b = o.mois[0].cle; }
+  }
+  goTo('s-stats-cmp');
+  depRenderComparer();
+};
+
+window.depCmpChoisir = function(cote, cle){ _depCmp[cote] = cle; depRenderComparer(); };
+window.depCmpMesure  = function(m){ _depCmp.mesure = m; depRenderComparer(); };
+// Intervertir A et B : pratique quand on s'est trompé de sens.
+window.depCmpInverser = function(){
+  var t = _depCmp.a; _depCmp.a = _depCmp.b; _depCmp.b = t;
+  depRenderComparer();
+};
+
+function _depCmpSelect(cote){
+  var o = _depCmpOptions();
+  var choisi = _depCmp[cote];
+  var opt = function(c, l){
+    return '<option value="'+c+'"'+(c === choisi ? ' selected' : '')+'>'+l+'</option>';
+  };
+  var h = '<select class="fi" style="margin:0;font-size:13px;font-weight:700;padding:10px 8px;" '
+    + 'onchange="depCmpChoisir(\''+cote+'\', this.value)">'
+    + '<option value=""'+(choisi ? '' : ' selected')+'>&mdash; choisir &mdash;</option>';
+  if(o.mois.length){
+    h += '<optgroup label="Mois">';
+    o.mois.forEach(function(m){ h += opt(m.cle, m.lib); });
+    h += '</optgroup>';
+  }
+  if(o.annees.length){
+    h += '<optgroup label="Ann&eacute;es">';
+    o.annees.forEach(function(a){ h += opt(a.cle, a.lib); });
+    h += '</optgroup>';
+  }
+  if(o.containers.length){
+    h += '<optgroup label="Containers">';
+    o.containers.forEach(function(c){ h += opt(c.cle, esc(c.lib)); });
+    h += '</optgroup>';
+  }
+  return h + '</select>';
+}
+
+// Une valeur, formatée selon qu'elle compte des euros ou des têtes.
+function _depCmpVal(m, v){ return m.euro ? (_depEuros(v) + ' &euro;') : String(v); }
+
+/* L'écart entre deux valeurs : la flèche, la couleur, le pourcentage.
+   La couleur suit le sens des affaires, pas celui du nombre : des
+   dépenses qui montent, c'est rouge. */
+function _depCmpEcart(m, va, vb){
+  var d = depArrondi2(vb - va);
+  if(!d) return { txt:'&#61; identique', coul:'#888' };
+  var monte = d > 0;
+  var bon = m.bas ? !monte : monte;
+  var pct = va ? Math.round(Math.abs(d) / Math.abs(va) * 100) : null;
+  return {
+    txt: (monte ? '&#8599; +' : '&#8600; &minus;') + _depCmpVal(m, Math.abs(d))
+       + (pct !== null ? ' (' + (monte?'+':'&minus;') + pct + '&nbsp;%)' : ''),
+    coul: bon ? '#006b2d' : '#B3261E'
+  };
+}
+
+/* Le graphique : deux colonnes, hauteur proportionnelle au chiffre.
+   Dessiné en HTML, sans aucune librairie — ça marche hors connexion et
+   ça s'imprime (demande de Cobey : « des pylônes, les hauts et les bas
+   selon le chiffre »). Une valeur négative (un bénéfice dans le rouge)
+   descend sous la ligne au lieu de disparaître. */
+function _depCmpGraphique(m, ga, gb){
+  var va = ga[m.cle], vb = gb[m.cle];
+  var max = Math.max(Math.abs(va), Math.abs(vb), 1);
+  var H = 130;
+  var colonne = function(v, lib, coul){
+    var haut = Math.round(Math.abs(v) / max * H);
+    if(v && haut < 3) haut = 3;                 // une valeur non nulle se voit
+    var neg = v < 0;
+    return '<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;">'
+      + '<div style="font-size:13px;font-weight:800;color:'+(neg?'#B3261E':coul)+';margin-bottom:5px;'
+      +   'white-space:nowrap;">' + _depCmpVal(m, v) + '</div>'
+      + '<div style="height:'+H+'px;display:flex;align-items:flex-end;width:100%;justify-content:center;">'
+      +   '<div style="width:56px;max-width:70%;height:'+haut+'px;border-radius:7px 7px 0 0;'
+      +     'background:'+(neg?'#B3261E':coul)+';"></div>'
+      + '</div>'
+      + '<div style="height:2px;width:100%;background:var(--border);"></div>'
+      + '<div style="font-size:11.5px;font-weight:700;color:var(--text3);margin-top:6px;'
+      +   'text-align:center;line-height:1.3;">' + lib + '</div>'
+      + '</div>';
+  };
+  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:16px 14px 12px;margin-bottom:12px;">'
+    + '<div style="font-size:12px;font-weight:800;color:var(--text);text-align:center;margin-bottom:12px;">'
+    +   m.lib + '</div>'
+    + '<div style="display:flex;gap:18px;align-items:flex-end;">'
+    +   colonne(va, _depCmpLibelle(_depCmp.a), '#1a237e')
+    +   colonne(vb, _depCmpLibelle(_depCmp.b), '#006b2d')
+    + '</div>'
+    + '</div>';
+}
+
+window.depRenderComparer = function(){
+  var box = $('dep-cmp-content');
+  if(!box) return;
+
+  var h = '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
+    + '<div style="flex:1;min-width:0;">'
+    +   '<div style="font-size:10.5px;font-weight:800;color:#1a237e;letter-spacing:.04em;margin-bottom:4px;">A</div>'
+    +   _depCmpSelect('a')
+    + '</div>'
+    + '<div onclick="depCmpInverser()" style="flex:none;margin-top:16px;cursor:pointer;'
+    +   'background:#f2f2f4;border:1.5px solid var(--border);border-radius:10px;'
+    +   'padding:9px 10px;font-size:15px;" title="Intervertir">&#8646;</div>'
+    + '<div style="flex:1;min-width:0;">'
+    +   '<div style="font-size:10.5px;font-weight:800;color:#006b2d;letter-spacing:.04em;margin-bottom:4px;">B</div>'
+    +   _depCmpSelect('b')
+    + '</div>'
+    + '</div>';
+
+  if(!_depCmp.a || !_depCmp.b){
+    h += '<div class="dep-vide" style="padding:26px 16px;margin-top:12px;">'
+      +  'Choisissez deux p&eacute;riodes, ou deux containers,<br>pour voir l\'&eacute;volution.</div>';
+    box.innerHTML = h;
+    return;
+  }
+
+  var ga = _depCmpAgreger(_depCmp.a), gb = _depCmpAgreger(_depCmp.b);
+
+  // Le rappel de ce que chaque côté recouvre.
+  h += '<div style="display:flex;gap:8px;font-size:11px;color:var(--text3);font-weight:600;'
+    +   'margin-bottom:12px;">'
+    +   '<div style="flex:1;">' + ga.nb + ' container' + (ga.nb>1?'s':'') + '</div>'
+    +   '<div style="flex:1;text-align:right;">' + gb.nb + ' container' + (gb.nb>1?'s':'') + '</div>'
+    + '</div>';
+
+  // Les cases pour choisir le chiffre mis en colonnes.
+  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">';
+  DEP_CMP_MESURES.forEach(function(m){
+    var on = (m.cle === _depCmp.mesure);
+    h += '<div onclick="depCmpMesure(\''+m.cle+'\')" style="cursor:pointer;font-size:11.5px;'
+      +   'font-weight:800;padding:6px 11px;border-radius:20px;'
+      +   (on ? 'background:#111;color:#fff;border:1.5px solid #111;'
+           : 'background:#fff;color:var(--text3);border:1.5px solid var(--border);')
+      +   '">' + m.court + '</div>';
+  });
+  h += '</div>';
+
+  var mes = DEP_CMP_MESURES.filter(function(m){ return m.cle === _depCmp.mesure; })[0]
+          || DEP_CMP_MESURES[4];
+  h += _depCmpGraphique(mes, ga, gb);
+
+  // Le tableau complet, sous le graphique.
+  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:6px 14px 12px;margin-bottom:12px;">';
+  DEP_CMP_MESURES.forEach(function(m){
+    var va = ga[m.cle], vb = gb[m.cle];
+    var e = _depCmpEcart(m, va, vb);
+    var fort = (m.cle === 'benefice');
+    h += '<div style="padding:9px 0;border-bottom:1px dashed var(--border);">'
+      + '<div style="font-size:'+(fort?'13px':'12px')+';font-weight:'+(fort?800:700)+';'
+      +   'color:var(--text'+(fort?'':'3')+');">' + m.lib + '</div>'
+      + '<div style="display:flex;align-items:baseline;gap:8px;margin-top:3px;flex-wrap:wrap;">'
+      +   '<b style="font-size:'+(fort?'15px':'13.5px')+';color:#1a237e;">' + _depCmpVal(m, va) + '</b>'
+      +   '<span style="color:var(--text3);">&rarr;</span>'
+      +   '<b style="font-size:'+(fort?'15px':'13.5px')+';color:#006b2d;">' + _depCmpVal(m, vb) + '</b>'
+      +   '<span style="margin-left:auto;font-size:11.5px;font-weight:800;color:'+e.coul+';'
+      +     'white-space:nowrap;">' + e.txt + '</span>'
+      + '</div>'
+      + '</div>';
+  });
+  h += '</div>';
+
+  // La livraison, à part — comme partout ailleurs.
+  var eLiv = _depCmpEcart({ euro:true }, ga.livPaye, gb.livPaye);
+  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:12px 14px;margin-bottom:12px;">'
+    + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
+    +   'margin-bottom:6px;">&#128666; LIVRAISON &Agrave; DAKAR &mdash; CAISSE S&Eacute;PAR&Eacute;E</div>'
+    + '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">'
+    +   '<b style="font-size:13.5px;color:#1a237e;">' + _depEuros(ga.livPaye) + ' &euro;</b>'
+    +   '<span style="color:var(--text3);">&rarr;</span>'
+    +   '<b style="font-size:13.5px;color:#006b2d;">' + _depEuros(gb.livPaye) + ' &euro;</b>'
+    +   '<span style="margin-left:auto;font-size:11.5px;font-weight:800;color:'+eLiv.coul+';">'
+    +     eLiv.txt + '</span>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:6px;line-height:1.45;">'
+    +   'Encaiss&eacute; sur les livraisons. N\'entre pas dans le b&eacute;n&eacute;fice ci-dessus.</div>'
+    + '</div>';
+
+  box.innerHTML = h;
 };
 
 // v1.19.0 : carré ARCHIVAGE — consultation en lecture seule des départs

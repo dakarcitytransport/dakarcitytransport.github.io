@@ -303,8 +303,30 @@ application repart de zéro en septembre 2026 et ne compte que ce qui
 passe par elle. Le bloc « Bénéfice repris de 360 » a été retiré.
 
 ### Statistiques
-Une case avec des graphiques, pour chaque poste.
 
+#### ~~Comparer~~
+**Fait le 25/09 (v1.86.0).** Statistiques > **Comparer**. Un sélecteur à
+gauche, un à droite. La même liste propose les mois, les années et les
+containers un par un : comparer deux périodes ou deux containers, c'est
+le même geste, il n'y a pas de mode à choisir. Un bouton ⇆ intervertit.
+
+Un **graphique en colonnes** en haut — deux colonnes, hauteur
+proportionnelle au chiffre, le montant écrit au-dessus. Une rangée de
+cases choisit ce qu'on regarde : chiffre d'affaires, encaissé, reste dû,
+dépenses, bénéfice, clients, colis. Dessiné en HTML, sans librairie :
+marche hors connexion et à l'impression.
+
+Sous le graphique, les sept lignes avec l'écart en euros et en
+pourcentage. Vert quand c'est une bonne nouvelle — donc rouge quand les
+dépenses ou le reste dû montent. La livraison a son bloc à part, comme
+partout ailleurs.
+
+Tout se recalcule à la volée depuis les containers : rien n'est stocké.
+
+**?** Reste à faire : des graphiques par poste (au-delà de la
+comparaison), si le besoin se confirme à l'usage.
+
+#### Notes d'origine
 **Comparer les containers entre eux** (note de Cobey, 24/09/2026) :
 - comparer **au mois** ou **à l'année**, au choix ;
 - et surtout **choisir soi-même** les mois ou les années à mettre côte à
