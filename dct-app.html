@@ -1716,7 +1716,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.78.0';
+var APP_VERSION = 'v3.79.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3325,6 +3325,45 @@ function _boutonNotes(id, style){
     + (style||_ACT_BLEU) + '">📝 Notes'+(n?(' · '+n):'')+'</div>';
 }
 
+/* v3.79.0 — Les notes, lisibles depuis la liste France & Europe.
+
+   Ces clients-là ne sont pas à Paris : leur colis attend parfois
+   quarante-quatre jours avant de partir, et tout ce qu'on sait d'eux
+   tient dans les notes de suivi (demande de Cobey du 25/09/2026). Or la
+   carte n'en disait rien : il fallait ouvrir chaque fiche, une par une,
+   pour savoir si quelqu'un avait écrit quelque chose.
+
+   La carte porte donc maintenant la dernière note, en clair. Et quand
+   il n'y en a aucune, elle le dit aussi — c'est l'information la plus
+   utile sur un colis qui attend depuis un mois. */
+function _frBlocNotes(id){
+  var l=_notesDe(id).sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
+  var ouvre='event.stopPropagation();ouvrirNotes(\''+id+'\')';
+  if(!l.length){
+    return '<div onclick="'+ouvre+'" style="margin-top:7px;display:inline-flex;align-items:center;'
+      + 'gap:5px;font-size:11.5px;font-weight:700;color:#8a8a8a;background:#f4f4f6;'
+      + 'border:1px dashed #d0d0d6;border-radius:18px;padding:5px 11px;cursor:pointer;">'
+      + '📝 Aucune note &middot; en ajouter</div>';
+  }
+  var d=l[l.length-1];
+  return '<div onclick="'+ouvre+'" style="margin-top:7px;background:#eef0fa;'
+    + 'border:1px solid #c5cae9;border-left:3px solid #1a237e;border-radius:9px;'
+    + 'padding:7px 10px;cursor:pointer;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">'
+    +   '<span style="font-size:10.5px;font-weight:800;color:#1a237e;">📝 DERNIÈRE NOTE</span>'
+    +   '<span style="font-size:10.5px;color:#666;font-weight:700;white-space:nowrap;">'
+    +     _dateHeureFr(d.ts)+' · '+_auteurNote(d)+'</span>'
+    + '</div>'
+    + '<div style="font-size:12px;color:#222;line-height:1.45;margin-top:3px;'
+    +   'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'
+    +   _esc(d.t||'')+'</div>'
+    + (l.length>1
+      ? ('<div style="font-size:11px;font-weight:700;color:#1a237e;margin-top:4px;">'
+         + 'Voir les '+l.length+' notes →</div>')
+      : '')
+    + '</div>';
+}
+
 // ═══════════ ZONE D'ACTIONS — v3.35.0 ═══════════
 // Deux rangées régulières : les numéros au-dessus, Notes et Photos
 // en dessous. Chaque bouton occupe la même largeur que son voisin,
@@ -4268,6 +4307,8 @@ function _frCarte(c){
         : (c.statut==='planifie' && c.dateLib
             ? ('<div style="font-size:11.5px;color:#1a237e;margin-top:4px;">🚛 Collecte du '+c.dateLib+'</div>')
             : ''))
+    // v3.79.0 : la dernière note de suivi, sans ouvrir la fiche.
+    + _frBlocNotes(c._id)
     + '</div>';
 }
 

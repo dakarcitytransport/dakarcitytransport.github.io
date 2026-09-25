@@ -113,6 +113,27 @@ même mise en page.
 
 ---
 
+## 2 bis · France & Europe
+
+### ~~Les notes de suivi, visibles depuis la liste~~
+**Fait le 25/09 (v3.79.0).** Ces clients ne sont pas à Paris : leur
+colis attend parfois quarante-quatre jours, et tout ce qu'on sait d'eux
+tient dans les notes. Or la carte n'en disait rien — il fallait ouvrir
+chaque fiche, une par une, pour savoir si quelqu'un avait écrit quelque
+chose.
+
+Chaque carte porte maintenant :
+- sa **dernière note** en clair (date, auteur, deux lignes de texte), et
+  « Voir les N notes → » s'il y en a plusieurs ;
+- ou, s'il n'y en a aucune, **« 📝 Aucune note · en ajouter »** — c'est
+  l'information la plus utile sur un colis qui attend depuis un mois.
+
+Dans les deux cas, on touche le bloc et la fenêtre des notes s'ouvre
+directement sur ce client, prête à écrire. Toucher ailleurs sur la carte
+ouvre la fiche, comme avant.
+
+---
+
 ## 3 · Bug
 
 - ~~Le **regroupement de factures** ne fonctionne pas pour tout le monde.~~
