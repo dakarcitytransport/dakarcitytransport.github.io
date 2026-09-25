@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.97.0';
+var DEP_VERSION = 'v1.98.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -17547,6 +17547,8 @@ var DEP_POSTES_FIXES = [
   { cle:'container',    icone:'&#128230;', label:'Container' },
   { cle:'salaires',     icone:'&#128100;', label:'Salaires' },
   { cle:'location',     icone:'&#128666;', label:'Location' },
+  // v1.98.0 : demandé par Cobey le 25/09/2026.
+  { cle:'telephonie',   icone:'&#128242;', label:'T&eacute;l&eacute;phonie' },
   { cle:'autre',        icone:'&#128176;', label:'Autre' }
 ];
 var _depPosteFixe = 'loyer';
