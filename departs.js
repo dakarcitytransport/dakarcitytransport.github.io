@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.91.0';
+var DEP_VERSION = 'v1.92.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2693,7 +2693,10 @@ function injecterEcrans(){
   +       '<div class="dep-case" id="dep-case-rapfin" style="background:#E0EAF6;" onclick="depOuvrirEspaceRapportFinancier()">'
   +         '<div class="dep-case-ico">&#128176;</div>'
   +         '<div class="dep-case-tit" style="color:#1565C0;">RAPPORT FINANCIER</div>'
-  +         '<div class="dep-case-sub">&Agrave; venir</div>'
+  // v1.92.0 : « À venir » datait du jour où la case n'était qu'un
+  // emplacement. Elle a maintenant son contenu — on annonce donc le
+  // bénéfice, comme les autres cases annoncent leur chiffre.
+  +         '<div class="dep-case-sub" id="dep-case-sub-rf">&mdash;</div>'
   +       '</div>'
   // v1.19.9 : nouveau carré STATISTIQUES, réservé à la direction — classement
   // des collaborateurs (clients inscrits, argent apporté/encaissé, collectes
@@ -4853,10 +4856,20 @@ window.depRenderEspaces = function(){
       + '<br>'+nbColT+' collecte'+(nbColT>1?'s':'')+' archiv&eacute;e'+(nbColT>1?'s':'');
   }
 
-  // Case RAPPORT FINANCIER (v1.19.96) — réservée à la direction, simple
-  // emplacement en attendant le vrai contenu (chantier à part avec Issyaka).
+  // Case RAPPORT FINANCIER — réservée à la direction. v1.92.0 : elle
+  // annonce le bénéfice, comme les autres annoncent leur chiffre.
   var crf = $('dep-case-rapfin');
   if(crf) crf.style.display = estDirection() ? '' : 'none';
+  if(estDirection()){
+    var srf = $('dep-case-sub-rf');
+    if(srf){
+      try{
+        var bf = _depBilanFinancier();
+        srf.innerHTML = 'B&eacute;n&eacute;fice<br><b style="color:'
+          + (bf.benefice < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(bf.benefice) + ' &euro;</b>';
+      }catch(e){ srf.innerHTML = 'Containers, bilan, statistiques'; }
+    }
+  }
 
   // Case RÉGLAGES (v1.19.8) — réservée à la direction, remplace la molette
   // de l'écran Collecte. Reprend le badge d'alertes non lues qui vivait
@@ -5839,7 +5852,10 @@ window.depOuvrirEspaceArchive = function(){
 function _depArchiveItemsBruts(type){
   if(type === 'departs'){
     return tousLesDeparts().filter(function(d){ return d.statut === 'cloture'; }).map(function(d){
-      return { date: new Date(d.dateDepart), item: d };
+      // v1.92.0 : _depQuandDepart comprend les deux formats de date. Avec
+      // new Date(), un container au vieux format « 05/10/2026 » sortait
+      // NaN et disparaissait de l'archive.
+      return { date: new Date(_depQuandDepart(d)), item: d };
     });
   }
   if(type === 'collectes'){
@@ -5895,7 +5911,7 @@ function _depArchiveCarteDepart(d){
   // peut mélanger des clients des deux (voir _depArchiveCarteCollecte,
   // laissée sans repère pour cette raison).
   var pArch = DEP_PAYS_DEST[depPaysDepart(d)] || {};
-  return '<div class="dep-card" style="border-left-color:#8B5E34;cursor:pointer;" onclick="depDetail(\''+d._id+'\')">'
+  return '<div class="dep-card" style="border-left-color:#8B5E34;cursor:pointer;" onclick="depArchiveOuvrirDepart(\''+d._id+'\')">'
     +   '<div class="dep-card-top">'
     +     '<div class="dep-nom">'+pArch.drapeau+' '+esc(d.nom||'Sans nom')+'</div>'
     +     '<div class="dep-badge" style="background:#EDEDED;color:#777;">Cl&ocirc;tur&eacute;</div>'
@@ -5918,7 +5934,7 @@ function _depArchiveCarteCollecte(c){
   // sur chaque carte — l'Archivage était resté lecture seule après le
   // retrait de l'ancien "Historique" (greffe M), sans moyen de rouvrir
   // une collecte clôturée par erreur (retour de Cobey du 01/09/2026).
-  return '<div class="dep-card" style="border-left-color:#8B5E34;cursor:pointer;" onclick="ouvrirCollecte(\''+c.id+'\')">'
+  return '<div class="dep-card" style="border-left-color:#8B5E34;cursor:pointer;" onclick="depArchiveOuvrirCollecte(\''+c.id+'\')">'
     +   '<div class="dep-card-top">'
     +     '<div class="dep-nom">'+esc(c.date||'Collecte')+'</div>'
     +     '<div style="display:flex;align-items:center;gap:6px;">'
@@ -5933,6 +5949,35 @@ function _depArchiveCarteCollecte(c){
     +   '</div>'
     + '</div>';
 }
+
+/* v1.92.0 — Revenir à l'archive, et pas ailleurs.
+
+   Cobey, le 25/09/2026 : « on va dans une collecte archivée, on appuie
+   retour, on se retrouve dans la collecte ». Le bouton Retour de l'écran
+   Collecte ramène en dur à la liste des collectes, et celui d'un
+   container au carré Départs : ni l'un ni l'autre ne savait qu'on venait
+   de l'Archivage.
+
+   On ouvre donc l'élément normalement, puis on réécrit son bouton
+   Retour pour qu'il ramène à l'archive, là où on l'a laissée. Le bouton
+   reprend son comportement d'origine dès qu'on y arrive par un autre
+   chemin, puisque chaque ouverture le repose. */
+function _depArchiveRetourVers(selecteur, libelle){
+  var btn = document.querySelector(selecteur);
+  if(!btn) return;
+  btn.innerHTML = '&larr; ' + libelle;
+  btn.onclick = function(){ goTo('s-archive'); depRenderArchive(); };
+}
+
+window.depArchiveOuvrirCollecte = function(id){
+  try{ ouvrirCollecte(id); }catch(e){ console.error('departs: collecte archivée', e); }
+  setTimeout(function(){ _depArchiveRetourVers('#s-collecte .btn-back', 'Archivage'); }, 0);
+};
+
+window.depArchiveOuvrirDepart = function(id){
+  try{ depDetail(id); }catch(e){ console.error('departs: container archivé', e); }
+  setTimeout(function(){ _depArchiveRetourVers('#s-depart-detail .btn-back', 'Archivage'); }, 0);
+};
 
 window.depArchiveOuvrir = function(type){
   _depArchiveEtat = { type: type, annee: null, mois: null, semaine: null };
@@ -6015,7 +6060,11 @@ window.depRenderArchive = function(){
   if(etat.mois === null){
     // Niveau 2 : mois
     if(titreEl) titreEl.textContent = nomCategorie+' — '+etat.annee;
-    var moisCles = Object.keys(moisGroupe).sort(function(a,b){ return a-b; });
+    // v1.92.0 : du plus récent au plus ancien, comme les années et les
+    // semaines juste à côté. Les mois remontaient seuls dans l'autre
+    // sens — janvier en tête, décembre en bas (retour de Cobey du
+    // 25/09/2026 : « classer par date récente en priorité »).
+    var moisCles = Object.keys(moisGroupe).sort(function(a,b){ return b-a; });
     if(!moisCles.length){
       box.innerHTML = '<div class="dep-vide" style="padding:20px 16px;">Aucune archive pour l\'instant.</div>';
       return;
@@ -6055,8 +6104,10 @@ window.depRenderArchive = function(){
     return;
   }
   var itemsTries = g.items.slice().sort(function(x,y){
-    var dx = (etat.type === 'departs') ? new Date(x.dateDepart) : parseDate(x.date);
-    var dy = (etat.type === 'departs') ? new Date(y.dateDepart) : parseDate(y.date);
+    // v1.92.0 : _depQuandDepart plutôt que new Date() — une date au vieux
+    // format « 05/10/2026 » donnait NaN, et l'élément se plaçait au hasard.
+    var dx = (etat.type === 'departs') ? _depQuandDepart(x) : parseDate(x.date);
+    var dy = (etat.type === 'departs') ? _depQuandDepart(y) : parseDate(y.date);
     return dy - dx;
   });
   itemsTries.forEach(function(it){

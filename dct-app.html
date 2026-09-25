@@ -1716,7 +1716,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.79.0';
+var APP_VERSION = 'v3.80.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3106,7 +3106,7 @@ function _enregistrerPhoto(data){
     var c=(franceData.clients||{})[id]||{};
     _activiteFrance('📷', 'a photographié les colis de <strong>'+_nomAffiche(c)+'</strong>');
     var maj={}; maj['clients/'+id+'/nbPhotos']=_photosCourantes.length;
-    db.ref('france').update(maj);
+    _frUpdate(maj);
     _majStatPhotos(String(data).length, 1);
     try{ renderFrance(); }catch(e){}
     try{ renderDanny(); }catch(e){}
@@ -3126,7 +3126,7 @@ function supprimerPhoto(k){
     _renderPhotos();
     showToastNew('🗑️ Photo supprimée');
     var maj={}; maj['clients/'+id+'/nbPhotos']=_photosCourantes.length;
-    db.ref('france').update(maj);
+    _frUpdate(maj);
     try{ renderFrance(); }catch(e){}
   }).catch(function(e){
     showToastNew('❌ Échec : '+((e&&e.message)||'suppression refusée'));
@@ -3267,7 +3267,7 @@ function ajouterNote(){
   liste.push({ q:nom, uid:u.id||'', t:txt, ts:Date.now() });
   var c=(franceData.clients||{})[id]||{};
   var maj={}; maj['clients/'+id+'/notes']=liste;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     c.notes=liste;
     if(t) t.value='';
     _renderNotes();
@@ -3288,7 +3288,7 @@ function supprimerNote(ts){
   if(!confirm('Supprimer cette note ?')) return;
   var reste=liste.filter(function(x){ return x.ts!==ts; });
   var maj2={}; maj2['clients/'+id+'/notes']=reste.length?reste:null;
-  db.ref('france').update(maj2).then(function(){
+  _frUpdate(maj2).then(function(){
     var c=(franceData.clients||{})[id]||{};
     c.notes=reste;
     _renderNotes();
@@ -3311,7 +3311,7 @@ function annulerNonCharge(id){
   var maj={};
   maj['clients/'+id+'/nonCharge']=null;
   maj['clients/'+id+'/hist']=hist;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('↩ Refus annulé');
     _renderLotChartres();
     try{ renderFrance(); }catch(e){}
@@ -3542,7 +3542,7 @@ function validerTourneeDanny(){
     maj['clients/'+id+'/hist']=hist;
   });
 
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✅ Tournée du '+lib+' créée');
     _activiteFrance('📅', 'a préparé la tournée <strong>'+reg+' · '+lib+'</strong> — '+dannySel.length+' client'+(dannySel.length>1?'s':''));
     dannySel=[]; _dtConfirmes=[]; _dtPoste='';
@@ -3595,7 +3595,7 @@ function annulerTournee(tid){
     maj['clients/'+id+'/dateLib']='';
   });
   maj['tournees/'+tid]=null;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('🗑️ Tournée annulée');
     renderDanny();
   }).catch(function(e){ showToastNew('❌ '+((e&&e.message)||'échec')); });
@@ -3690,13 +3690,59 @@ function switchFranceTab(t){
 }
 
 // ── Liste des clients selon filtre/recherche ──
+/* v3.80.0 — Une fiche fantôme n'est pas un client.
+
+   Cobey, le 25/09/2026 : « des fiches qui se créent toutes seules ».
+   Elles arrivaient par la porte de derrière : clore ou supprimer une
+   collecte France renvoie « en attente » tous ses clients, en écrivant
+   clients/<id>/statut pour chaque identifiant inscrit sur la tournée.
+   Firebase crée le nœud s'il n'existe pas — donc un client supprimé
+   entre-temps, dont l'identifiant traînait encore dans la liste du
+   camion, ressuscitait sous forme de coquille : pas de nom, pas de
+   date, « En attente », 1 colis, 0 €.
+
+   Deux verrous. Ici, on ne considère pas ces coquilles comme des
+   clients : sans nom, sans téléphone et sans date de création, il n'y a
+   rien à afficher ni à compter. Et plus bas, _frUpdate empêche d'en
+   créer de nouvelles. */
+function _frEstFantome(c){
+  if(!c) return true;
+  return !(c.nom || c.prenom || c.tel || c.creeTs);
+}
+
 function _frClients(){
   var out=[];
   Object.keys(franceData.clients||{}).forEach(function(k){
     var c=franceData.clients[k]; if(!c) return;
+    if(_frEstFantome(c)) return;
     c._id=k; out.push(c);
   });
   return out;
+}
+
+/* v3.80.0 — Le filet : aucune écriture ne crée un client par accident.
+
+   Toutes les mises à jour de l'espace France passent par ici. On y
+   retire les clés clients/<id>/<champ> dont l'identifiant ne correspond
+   à aucun client connu : mettre à jour un champ d'un client qui n'existe
+   pas, c'est le faire naître.
+
+   La création d'un vrai client ne passe pas par là : elle écrit l'objet
+   entier sur db.ref('france/clients'), pas champ par champ. */
+function _frUpdate(maj){
+  var propre = {}, jetes = [];
+  var connus = franceData.clients || {};
+  Object.keys(maj || {}).forEach(function(k){
+    var m = /^clients\/([^\/]+)\/./.exec(k);
+    if(m && !connus[m[1]]){ jetes.push(m[1]); return; }
+    propre[k] = maj[k];
+  });
+  if(jetes.length){
+    console.warn('[FRANCE] écriture ignorée pour '+jetes.length
+      + ' client(s) inconnu(s) : ' + jetes.join(', '));
+  }
+  if(!Object.keys(propre).length) return Promise.resolve();
+  return db.ref('france').update(propre);
 }
 function _frMatch(c,q){
   if(!q) return true;
@@ -3917,7 +3963,7 @@ function marquerPartis(){
     maj['clients/'+id+'/partiPar']=qui;
     maj['clients/'+id+'/hist']=hist;
   });
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     dannySel=[];
     showToastNew('✈️ '+ids.length+' client'+(ids.length>1?'s':'')+' · '+colis+' colis partis');
     _activiteFrance('✈️', 'a déclaré <strong>'+colis+' colis</strong> partis pour Dakar ('+ids.length+' client'+(ids.length>1?'s':'')+')');
@@ -3937,7 +3983,7 @@ function _supprimerFiches(ids, libelle){
   ids.forEach(function(id){ maj['clients/'+id]=null; });
   // Les photos vivent ailleurs : on les emporte avec la fiche.
   ids.forEach(function(id){ try{ db.ref('france_photos/'+id).remove(); }catch(e){} });
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     dannySel=[];
     showToastNew('🗑️ '+ids.length+' fiche'+(ids.length>1?'s':'')+' supprimée'+(ids.length>1?'s':''));
     _activiteFrance('🗑️', 'a supprimé <strong>'+ids.length+' fiche'+(ids.length>1?'s':'')+'</strong> '+libelle);
@@ -4195,7 +4241,7 @@ function corrigerCivilites(){
   };
   if(nDct){ try{ sauvegarder(); }catch(e){} }
   if(Object.keys(maj).length){
-    db.ref('france').update(maj).then(_fin).catch(function(e){
+    _frUpdate(maj).then(_fin).catch(function(e){
       showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée'));
     });
   } else { _fin(); }
@@ -4550,12 +4596,20 @@ function _frTrierCollectes(){
 // Les clients de la collecte. Une collecte montee avant la v3.59.0 n'a
 // pas de liste propre : on la reconstitue depuis ses camions plutot que
 // d'afficher zero client.
+/* v3.80.0 : une collecte garde la liste des identifiants qu'on lui a
+   confiés, même après qu'un client a été supprimé. On ne rend donc que
+   ceux qui existent encore — sinon on compte des fantômes, et surtout on
+   leur écrit dessus, ce qui les fait naître (voir _frUpdate). */
 function _frClientsDeCollecte(r){
   if(!r) return [];
-  if(r.clients && r.clients.length) return r.clients;
+  var connus = franceData.clients || {};
+  var vivant = function(id){ return !!connus[id] && !_frEstFantome(connus[id]); };
+  if(r.clients && r.clients.length) return r.clients.filter(vivant);
   var vus={}, out=[];
   Object.keys(r.trucks||{}).forEach(function(k){
-    (r.trucks[k].clients||[]).forEach(function(id){ if(!vus[id]){ vus[id]=1; out.push(id); } });
+    (r.trucks[k].clients||[]).forEach(function(id){
+      if(!vus[id] && vivant(id)){ vus[id]=1; out.push(id); }
+    });
   });
   return out;
 }
@@ -4572,7 +4626,7 @@ function _frSauverCollecte(r, maj){
   var m = maj || {};
   m['collectes/'+r._id+'/trucks']   = r.trucks || {};
   m['collectes/'+r._id+'/assigned'] = r.assigned || {};
-  return db.ref('france').update(m);
+  return _frUpdate(m);
 }
 
 // ── Créer une collecte ──
@@ -4625,7 +4679,7 @@ function creerCollecteFrance(){
     clients:[], trucks:{}, assigned:{}
   };
   closeModal('modal-fc-nouveau');
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✅ Collecte du '+lib+' créé');
     _activiteFrance('🚛','a créé la collecte <strong>'+lib+'</strong>');
     currentCollecteFrId=rid;
@@ -4691,7 +4745,7 @@ function changerStatutCollecteFr(nouveau){
   }
   maj['collectes/'+id+'/statut']=nouveau;
   closeModal('modal-fc-statut');
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✏️ Statut mis à jour');
     if(nouveau==='terminee') _activiteFrance('🏁','a terminé la collecte <strong>'+r.dateLib+'</strong>');
     renderFrance();
@@ -4712,7 +4766,7 @@ function supprimerCollecteFrance(id){
     maj['clients/'+cid+'/dateLib']='';
   });
   maj['collectes/'+id]=null;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('🗑️ Collecte supprimée');
     if(currentCollecteFrId===id){ currentCollecteFrId=''; switchFranceTab('collectes'); return; }
     renderFrance();
@@ -5402,7 +5456,7 @@ function validerDispatchFrance(){
   }
   if(!confirm('Valider le dispatch de la collecte du '+r.dateLib+' ?\n\n'+ids.length+' client(s) répartis dans '+Object.keys(trks).length+' camion(s).')) return;
   var maj={}; maj['collectes/'+r._id+'/dispatchValide']=true;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✅ Dispatch validé');
     _activiteFrance('✅','a validé le dispatch de la collecte <strong>'+r.dateLib+'</strong>');
     renderFrance();
@@ -5413,7 +5467,7 @@ function annulerValidationDispatchFrance(){
   var r=_frCollecteActive(); if(!r) return;
   if(!confirm('Annuler la validation du dispatch ?')) return;
   var maj={}; maj['collectes/'+r._id+'/dispatchValide']=false;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('↩️ Validation annulée');
     renderFrance();
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
@@ -5931,7 +5985,7 @@ function _enregistrerModifFrance(z){
   // l'adresse a bougé : les coordonnées ne valent plus rien
   if(change.indexOf('adresse')>=0){ maj['clients/'+id+'/lat']=null; maj['clients/'+id+'/lng']=null; }
 
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     _versCarnet(Object.assign({}, c, nouveau));
     showToastNew('✅ Fiche mise à jour');
     _activiteFrance('✏️', 'a modifié la fiche de <strong>'+(nouveau.nom||'')+'</strong>'+(change.length?(' — '+change.join(', ')):''));
@@ -6348,7 +6402,7 @@ function demarrerTournee(){
       renderPosteTournee();
       goTo('s-poste-tournee');
     };
-    if(Object.keys(maj).length) db.ref('france').update(maj).then(fin).catch(fin);
+    if(Object.keys(maj).length) _frUpdate(maj).then(fin).catch(fin);
     else fin();
   });
 }
@@ -6469,7 +6523,7 @@ function marquerRamasse(id){
   maj['clients/'+id+'/ramassePar']=qui;
   maj['clients/'+id+'/ramasseTs']=Date.now();
   maj['clients/'+id+'/hist']=hist;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     _activiteFrance('✅', 'a ramassé <strong>'+_nomAffiche(c)+'</strong>');
     renderPosteTournee();
   }).catch(function(e){ showToastNew('❌ '+((e&&e.message)||'échec')); });
@@ -6525,7 +6579,7 @@ function validerMotif(){
     maj['clients/'+id+'/tourneeId']='';
     maj['clients/'+id+'/dateLib']='';
   }
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     _activiteFrance('❌', 'n\'a pas ramassé <strong>'+_nomAffiche(c)+'</strong> — '+m.lib);
     closeModal('modal-motif');
     renderPosteTournee();
@@ -6546,7 +6600,7 @@ function annulerRamasse(id){
   maj['clients/'+id+'/tourneeId']=to.id;
   maj['clients/'+id+'/dateLib']=to.dateLib||'';
   maj['clients/'+id+'/ramassePar']='';
-  db.ref('france').update(maj).then(function(){ renderPosteTournee(); });
+  _frUpdate(maj).then(function(){ renderPosteTournee(); });
 }
 
 // ── Le dépôt ──
@@ -6594,7 +6648,7 @@ function rendreTournee(){
     maj['postes/'+p.id+'/chauffeur']='';
     maj['postes/'+p.id+'/tourneeId']='';
   }
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('↩ Tournée relâchée — choisis-en une autre');
     _activiteFrance('↩️', 'a relâché la tournée <strong>'+_titreTournee(to)+'</strong>');
     _posteTourneeId='';
@@ -6701,7 +6755,7 @@ function validerDepot(lieu){
     maj['clients/'+id+'/hist']=hist;
   });
   maj['tournees/'+to.id+'/depots']=depots;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✅ '+_depotSel.length+' colis à '+(lieu==='mitry'?'Mitry-Mory':'Chartres'));
     _activiteFrance(lieu==='mitry'?'📍':'🏭', 'a déposé <strong>'+_depotSel.length+' client'+(_depotSel.length>1?'s':'')+'</strong> à '+(lieu==='mitry'?'Mitry-Mory':'Chartres'));
     _depotSel=[];
@@ -6776,7 +6830,7 @@ function fermerPoste(){
     maj['postes/'+p.id+'/tourneeId']='';
   }
   if(!Object.keys(maj).length){ showToastNew('⚠️ Aucun poste à fermer.'); return; }
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew(to?'✅ Tournée archivée':'✅ Poste libéré');
     if(to) _activiteFrance('🏁', 'a terminé la tournée <strong>'+_titreTournee(to)+'</strong>');
     _posteTourneeId='';
@@ -6802,7 +6856,7 @@ function cloturerPourChauffeur(tid){
     maj['postes/'+to.posteId+'/chauffeur']='';
     maj['postes/'+to.posteId+'/tourneeId']='';
   }
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✅ Tournée clôturée · poste libéré');
     _activiteFrance('🏁', 'a clôturé la tournée <strong>'+_titreTournee(to)+'</strong> à la place de '+qui);
     renderDanny(); renderFrance();
@@ -6933,7 +6987,7 @@ function reprendreLotChartres(){
   var _l=franceData.lots[currentCollecteId]||{};
   delete _l.fait; delete _l.faitTs; delete _l.faitPar;
   delete _l.pris; delete _l.prisColis; delete _l.laisses;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('↩ Chargement rouvert');
     _activiteFrance('↩️', 'a rouvert le chargement du lot de Chartres');
     if(typeof currentCamion!=='undefined' && currentCamion) renderCamion(currentCamion);
@@ -7021,7 +7075,7 @@ function affecterLotChartres(k){
       camion:k, par:(currentUser||{}).name||'', ts:Date.now()
     });
   }
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew(k?'🏭 Lot Chartres affecté':'Lot retiré');
     if(k){ var _t=(typeof getTrucks==='function'?getTrucks():{})[k]||{};
       _activiteFrance('🏭', 'a affecté le <strong>lot Chartres</strong> → '+( _t.name||('Camion '+k) )); }
@@ -7213,7 +7267,7 @@ function validerLotChartres(){
     maj['lots/'+currentCollecteId+'/laisses']=laisses.length;
   }
   // Les refusés ne sont pas touchés : ni leur lieu, ni leur motif.
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew(pris.length
       ? ('✅ Passage validé · '+pris.length+' client'+(pris.length>1?'s':'')+' chargé'+(pris.length>1?'s':''))
       : '✅ Passage validé · rien chargé');
@@ -7327,7 +7381,7 @@ function chargerUnClient(id){
   maj['clients/'+id+'/mitryCamion']=(typeof currentCamion!=='undefined'&&currentCamion)?currentCamion:'';
   maj['clients/'+id+'/nonCharge']=null;
   maj['clients/'+id+'/hist']=hist;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('📍 '+_nomAffiche(c)+' à Mitry-Mory');
     _activiteFrance('🏭', 'a chargé les colis de <strong>'+_nomAffiche(c)+'</strong> — Chartres → Mitry-Mory');
     // Plus rien sur place : le passage est fait de lui-même.
@@ -7336,7 +7390,7 @@ function chargerUnClient(id){
       majF['lots/'+currentCollecteId+'/fait']=true;
       majF['lots/'+currentCollecteId+'/faitTs']=Date.now();
       majF['lots/'+currentCollecteId+'/faitPar']=qui;
-      try{ db.ref('france').update(majF); }catch(e){}
+      try{ _frUpdate(majF); }catch(e){}
     }
     var sc=document.querySelector('.screen.active');
     if(sc && sc.id==='s-lot-chartres') _renderLotChartres();
@@ -7380,7 +7434,7 @@ function validerNonCharge(){
     maj['clients/'+id+'/mitryPar']=null;
     maj['clients/'+id+'/mitryCamion']=null;
   }
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     closeModal('modal-noncharge');
     showToastNew('✕ Raison enregistrée');
     _activiteFrance('⚠️', 'n\'a pas chargé <strong>'+_nomAffiche(c)+'</strong> à Chartres — '+motif);
@@ -7435,7 +7489,7 @@ function validerChargementChartres(){
     maj['clients/'+id+'/collecteId']=currentCollecteId||'';
     maj['clients/'+id+'/hist']=hist;
   });
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✅ '+_chargeSel.length+' client(s) à Mitry-Mory');
     _activiteFrance('🏭', 'a chargé <strong>'+_chargeSel.length+' colis</strong> à Chartres → Mitry-Mory');
     _chargeSel=[];
@@ -10625,7 +10679,7 @@ function validerHeure(){
   if(curHeureId===CHARTRES_ID){
     if(!db || !firebaseReady || !currentCollecteId){ showToastNew('❌ Connexion indisponible.'); return; }
     var majH={}; majH['lots/'+currentCollecteId+'/heure']=f;
-    db.ref('france').update(majH).then(function(){
+    _frUpdate(majH).then(function(){
       if(!franceData.lots[currentCollecteId]) franceData.lots[currentCollecteId]={};
       franceData.lots[currentCollecteId].heure=f;
       addActivity('🗺️',currentUser.bg,'<strong style="color:'+currentUser.color+'">'+currentUser.name+'</strong> a planifié l\'<strong>entrepôt de Chartres</strong> à '+f+_sufColl(),"À l'instant");
@@ -12531,7 +12585,7 @@ function _geocodeClientFr(c, cb){
   var fini=function(lat,lng){
     if(lat && lng && c._id && db && firebaseReady){
       var maj={}; maj['clients/'+c._id+'/lat']=lat; maj['clients/'+c._id+'/lng']=lng;
-      db.ref('france').update(maj);
+      _frUpdate(maj);
       c.lat=lat; c.lng=lng;
     }
     cb(lat,lng);
@@ -12863,7 +12917,7 @@ function supprimerTournee(tid){
     maj['postes/'+to.posteId+'/tourneeId']='';
   }
   maj['tournees/'+tid]=null;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('🗑️ Tournée supprimée');
     _activiteFrance('🗑️', 'a supprimé la tournée <strong>'+_titreTournee(to)+'</strong>');
     if(_posteTourneeId===tid) _posteTourneeId='';
@@ -12993,7 +13047,7 @@ function retirerClientTournee(id){
   maj['clients/'+id+'/tourneeId']='';
   maj['clients/'+id+'/dateLib']='';
   maj['clients/'+id+'/hist']=hist;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✕ Client retiré');
     _activiteFrance('🔄', 'a retiré <strong>'+_nomAffiche(c)+'</strong> de la tournée '+_titreTournee(to));
     _renderEditionTournee();
@@ -13022,7 +13076,7 @@ function ajouterClientTournee(id){
   maj['clients/'+id+'/dateLib']=to.dateLib||'';
   maj['clients/'+id+'/planifieTs']=Date.now();
   maj['clients/'+id+'/hist']=hist;
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✅ Client ajouté');
     _activiteFrance('🔄', 'a ajouté <strong>'+_nomAffiche(c)+'</strong> à la tournée '+_titreTournee(to));
     _renderEditionTournee();
@@ -13121,7 +13175,7 @@ function changerStatutTournee(nouveau){
       maj['postes/'+to.posteId+'/tourneeId']='';
     }
   }
-  db.ref('france').update(maj).then(function(){
+  _frUpdate(maj).then(function(){
     showToastNew('✅ Tournée « '+st.lib+' »');
     _activiteFrance('✏️', 'a passé la tournée <strong>'+_titreTournee(to)+'</strong> en '+st.lib);
     closeModal('modal-statut-tournee');
