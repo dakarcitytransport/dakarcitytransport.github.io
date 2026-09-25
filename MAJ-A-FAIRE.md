@@ -115,6 +115,23 @@ même mise en page.
 
 ## 2 bis · France & Europe
 
+### ~~Chartres, retiré de l'application~~
+**Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
+plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage
+avec Global Logistique : les colis de province y étaient déposés, puis
+repris par un camion vers Mitry-Mory.
+
+Retiré en entier — environ 900 lignes : l'écran « Entrepôt de Chartres »,
+la modale « colis non chargé », l'arrêt sur la feuille de route avec son
+heure et son adresse, le choix « Déposer à Chartres », le bloc « À
+récupérer à Chartres », le filtre, les badges, l'étape du suivi, les
+compteurs et le contrôle de photo au ramassage.
+
+Une fiche qui porte encore `lieu='chartres'` n'est plus mise à part :
+elle réapparaît dans le flux normal, comme n'importe quel autre client —
+vérifié sur une fiche de 70 jours. Rien n'est perdu.
+
+
 ### ~~Les notes de suivi, visibles depuis la liste~~
 **Fait le 25/09 (v3.79.0).** Ces clients ne sont pas à Paris : leur
 colis attend parfois quarante-quatre jours, et tout ce qu'on sait d'eux

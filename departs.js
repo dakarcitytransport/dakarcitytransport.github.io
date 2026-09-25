@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.92.0';
+var DEP_VERSION = 'v1.93.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4829,8 +4829,10 @@ window.depRenderEspaces = function(){
   // Case FRANCE & EUROPE
   var scfr = $('dep-case-sub-fr');
   if(scfr){
-    var cfr = (typeof compteursFrance === 'function') ? compteursFrance() : {attente:0,chartres:0};
-    scfr.innerHTML = '<b style="color:#1a237e;">'+cfr.attente+'</b> en attente<br>'+cfr.chartres+' &agrave; Chartres';
+    // v1.93.0 : Chartres est fermé — la case annonce les planifiés.
+    var cfr = (typeof compteursFrance === 'function') ? compteursFrance() : {attente:0,planifies:0};
+    scfr.innerHTML = '<b style="color:#1a237e;">'+cfr.attente+'</b> en attente<br>'
+      + cfr.planifies + ' planifi&eacute;' + (cfr.planifies>1?'s':'');
   }
 
   // Case DÉPÔT (v1.19.50)
@@ -13978,44 +13980,10 @@ function greffer(){
     window.renderClientsTab._depPatch = true;
   }
 
-  /* --- P (v1.19.63). Prise de photo obligatoire au ramassage à Chartres :
-     un colis ne peut monter dans le camion (chargerUnClient, per-client, ou
-     validerLotChartres, en lot) sans qu'au moins une photo ait été prise —
-     preuve de ce qui a été récupéré chez le partenaire, avant la facture
-     qui se fera plus tard à Mitry-Mory (retour de Cobey du 29/08/2026:
-     "il faudra ajouter la prise de photo des colis obligatoire à la
-     collecte à Chartres"). --- */
-  if(typeof window.chargerUnClient === 'function' && !window.chargerUnClient._depPatch){
-    var origChargerUnClient = window.chargerUnClient;
-    window.chargerUnClient = function(id){
-      try{
-        var c = ((window.franceData||{}).clients||{})[id];
-        if(c && !(c.nbPhotos > 0)){
-          toast('📷 Prenez au moins une photo du colis avant de le charger.');
-          if(typeof ouvrirPhotos === 'function') ouvrirPhotos(id);
-          return;
-        }
-      }catch(e){ console.error('departs: contrôle photo Chartres (unitaire)', e); }
-      origChargerUnClient.apply(this, arguments);
-    };
-    window.chargerUnClient._depPatch = true;
-  }
-  if(typeof window.validerLotChartres === 'function' && !window.validerLotChartres._depPatch){
-    var origValiderLotChartres = window.validerLotChartres;
-    window.validerLotChartres = function(){
-      try{
-        var manquants = (typeof _refsChartres === 'function' ? _refsChartres() : [])
-          .filter(function(c){ return !c.nonCharge && !(c.nbPhotos > 0); });
-        if(manquants.length){
-          var noms = manquants.map(function(c){ return (typeof _nomAffiche === 'function') ? _nomAffiche(c) : (c.name||''); }).join(', ');
-          toast('📷 Photo manquante pour : ' + noms + '. Prenez une photo avant de valider le lot.');
-          return;
-        }
-      }catch(e){ console.error('departs: contrôle photo Chartres (lot)', e); }
-      origValiderLotChartres.apply(this, arguments);
-    };
-    window.validerLotChartres._depPatch = true;
-  }
+  /* --- P. Le contrôle « photo obligatoire au ramassage » portait sur
+     l'entrepôt de Chartres, retiré de l'application le 25/09/2026
+     (v3.81.0). Il n'a plus d'objet et part avec lui. --- */
+
 
   /* --- Q (v1.19.63). Onglet Mitry-Mory du carré France & Europe : retrait
      de la sélection en lot "✈️ Déclarer partis pour Dakar" (marquerPartis)
@@ -14736,7 +14704,7 @@ function _depAjouterFactureCamionValide(k){
 // de la fiche). Contrairement à _depAjouterFactureCamionValide, on mappe
 // sorted[i] ↔ cartes[i] un-à-un : sans filtrer par statut, l'ordre des
 // cartes générées par renderCamion() correspond exactement à celui de
-// `sorted` (l'arrêt de Chartres, lui, n'a pas la classe .route-card).
+// `sorted`.
 function _depAjouterSuiviCamion(k){
   var trks = getTrucks(), tk = trks[k];
   if(!tk || !(tk.clients||[]).length) return;
@@ -15205,7 +15173,7 @@ function _depAjouterObservationAvantCollecte(k){
     return tk.clients.indexOf(a) - tk.clients.indexOf(b);
   });
   var clients = getClients() || {};
-  // L'arrêt de Chartres n'a pas la classe .route-card : la correspondance
+  // La correspondance
   // carte↔client reste donc un simple index, comme ailleurs.
   var cartes = document.querySelectorAll('#camion-route .route-card');
   for(var i = 0; i < sorted.length; i++){
