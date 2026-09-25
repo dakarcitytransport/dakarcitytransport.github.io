@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.85.0';
+var DEP_VERSION = 'v1.86.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2082,7 +2082,7 @@ function compteursDepart(departId){
      Sans ce compteur, ça restait invisible : « reste dû » plafonne à
      zéro par client, donc le trop-perçu de l'un ne se voyait qu'en
      comparant deux totaux à la main, ce que Cobey a fini par faire. */
-  var r = { clients:0, euros:0,
+  var r = { clients:0, euros:0, colis:0,
             colisTotal:0, colisPaye:0, colisDu:0, colisTrop:0, colisTropNb:0,
             livTotal:0,   livPaye:0,   livDu:0,   livTrop:0,   livTropNb:0,
             livClients:0 };
@@ -2092,6 +2092,8 @@ function compteursDepart(departId){
     // son montant et ses versements sont portés par la principale.
     if(!c || c.departId !== departId || _depEstFusionnee(c)) return;
     r.clients++;
+    // v1.86.0 : le nombre de colis, pour la comparaison de périodes.
+    r.colis += (parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 1);
     r.euros += (parseFloat(c.prix) || 0);
     var pc = depCalculerPaiement(c);
     r.colisTotal += pc.total; r.colisPaye += pc.paye; r.colisDu += pc.reste;
