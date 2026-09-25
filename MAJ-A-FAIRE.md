@@ -335,9 +335,12 @@ garde son classement. On choisit d'abord
 côté. Le type vaut pour les deux : on compare une année à une année, un
 mois à un mois, un container à un container.
 
-Le deuxième choix ne dépasse jamais douze cases : une rangée d'années,
-puis la grille des douze mois (les mois sans container sont grisés), ou
-les containers de l'année choisie. Chaque côté garde son année à lui —
+Le choix ne dépasse jamais douze cases à la fois : une rangée d'années,
+puis la grille des douze mois (les mois sans container sont grisés).
+Pour un container, on descend d'un cran de plus — année, mois, puis le
+ou les containers de ce mois-là : vingt-quatre containers dans l'année
+se réduisent à deux cases. Chaque case porte sa date en gros et son nom
+dessous, parce qu'ils s'appellent presque tous « Chargement DKR ». Chaque côté garde son année à lui —
 c'est ce qui permet septembre 2026 contre septembre 2027. Un bouton ⇆
 intervertit les deux côtés, années comprises.
 
