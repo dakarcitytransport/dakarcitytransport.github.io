@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.89.0';
+var DEP_VERSION = 'v1.90.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -857,6 +857,10 @@ var _depNoteFichePending = null; // { colId, id }
 // (Année > Mois > Semaine > liste). null = niveau non choisi.
 var _depArchiveEtat = { type: null, annee: null, mois: null, semaine: null };
 var DEP_MOIS_NOMS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+// v1.90.0 : abréviations pour la grille des douze mois (voir Comparer).
+// Écrites à la main : couper à trois lettres donnerait « Jui » pour juin
+// comme pour juillet.
+var DEP_MOIS_COURTS = ['Jan','Fév','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
 
 // v1.19.8 : sous-carré actuellement ouvert dans RÉGLAGES ('equipe',
 // 'partenaires', 'acces', 'donnees', 'message') — null = grille de choix.
@@ -5365,7 +5369,14 @@ window.depRenderStats = function(){
    ───────────────────────────────────────────── */
 
 // A et B, plus le chiffre mis en colonnes.
-var _depCmp = { a:'', b:'', mesure:'benefice' };
+/* v1.90.0 — type : 'A' (année), 'M' (mois) ou 'C' (container).
+   Choisi une seule fois, en haut, et valable pour A comme pour B : on
+   compare une année à une année, un mois à un mois, un container à un
+   container. Comparer un mois à une année ne voudrait rien dire.
+   anneeA / anneeB : l'année dans laquelle on pioche le mois ou le
+   container — chaque côté a la sienne, c'est tout l'intérêt (septembre
+   2026 contre septembre 2027). */
+var _depCmp = { a:'', b:'', mesure:'benefice', type:'M', anneeA:null, anneeB:null };
 
 // Les six chiffres comparables. `bas` = une hausse est une mauvaise
 // nouvelle (les dépenses et l'argent pas encore rentré).
@@ -5460,51 +5471,152 @@ function _depCmpAgreger(cle){
 window.depOuvrirComparer = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   var o = _depCmpOptions();
-  // Au premier passage, on propose les deux périodes les plus récentes —
-  // celle d'avant à gauche, la dernière à droite, pour lire l'évolution
-  // dans le sens de la lecture.
+  // Au premier passage, on propose les deux mois les plus récents —
+  // l'avant-dernier à gauche, le dernier à droite, pour lire l'évolution
+  // dans le sens de la lecture. v1.90.0 : chaque côté emporte l'année du
+  // mois proposé, pour que les grilles s'ouvrent au bon endroit.
   if(!_depCmp.a && !_depCmp.b){
-    if(o.mois.length >= 2){ _depCmp.a = o.mois[1].cle; _depCmp.b = o.mois[0].cle; }
-    else if(o.containers.length >= 2){ _depCmp.a = o.containers[1].cle; _depCmp.b = o.containers[0].cle; }
-    else if(o.mois.length === 1){ _depCmp.b = o.mois[0].cle; }
+    var an = function(cle){ return +String(cle).slice(2).split('-')[0]; };
+    if(o.mois.length >= 2){
+      _depCmp.a = o.mois[1].cle; _depCmp.anneeA = an(o.mois[1].cle);
+      _depCmp.b = o.mois[0].cle; _depCmp.anneeB = an(o.mois[0].cle);
+    } else if(o.mois.length === 1){
+      _depCmp.b = o.mois[0].cle;
+      _depCmp.anneeA = _depCmp.anneeB = an(o.mois[0].cle);
+    }
   }
+  if(_depCmp.anneeA === null && o.annees.length) _depCmp.anneeA = +String(o.annees[0].cle).slice(2);
+  if(_depCmp.anneeB === null && o.annees.length) _depCmp.anneeB = +String(o.annees[0].cle).slice(2);
   goTo('s-stats-cmp');
   depRenderComparer();
 };
 
 window.depCmpChoisir = function(cote, cle){ _depCmp[cote] = cle; depRenderComparer(); };
 window.depCmpMesure  = function(m){ _depCmp.mesure = m; depRenderComparer(); };
-// Intervertir A et B : pratique quand on s'est trompé de sens.
-window.depCmpInverser = function(){
-  var t = _depCmp.a; _depCmp.a = _depCmp.b; _depCmp.b = t;
+
+// v1.90.0 : changer de type vide les deux choix — un mois et un
+// container ne se comparent pas, garder l'ancien n'aurait pas de sens.
+window.depCmpType = function(t){
+  if(_depCmp.type === t) return;
+  _depCmp.type = t;
+  _depCmp.a = ''; _depCmp.b = '';
+  var o = _depCmpOptions();
+  // On propose l'année la plus récente des deux côtés : c'est de là
+  // qu'on part presque toujours, et il reste une touche pour en changer.
+  var derniere = o.annees.length ? +String(o.annees[0].cle).slice(2) : null;
+  _depCmp.anneeA = derniere; _depCmp.anneeB = derniere;
   depRenderComparer();
 };
 
-function _depCmpSelect(cote){
+window.depCmpAnnee = function(cote, an){
+  _depCmp[(cote === 'a') ? 'anneeA' : 'anneeB'] = an;
+  _depCmp[cote] = '';        // le mois ou le container choisi n'est plus dans cette année
+  depRenderComparer();
+};
+
+// Intervertir A et B : pratique quand on s'est trompé de sens.
+window.depCmpInverser = function(){
+  var t = _depCmp.a; _depCmp.a = _depCmp.b; _depCmp.b = t;
+  var u = _depCmp.anneeA; _depCmp.anneeA = _depCmp.anneeB; _depCmp.anneeB = u;
+  depRenderComparer();
+};
+
+/* v1.90.0 — Le choix en cases, à la place des deux longues listes.
+
+   Cobey, le 25/09/2026 : « imaginons qu'on a six mois ou un an de
+   containers, la liste sera interminable ». Elle l'était : mois, années
+   et containers s'empilaient dans un seul menu qui grandissait de
+   quelques lignes chaque mois.
+
+   Deux temps maintenant : d'abord QUOI (année, mois ou container),
+   ensuite LEQUEL. Le deuxième choix ne dépasse jamais douze cases —
+   dans dix ans, la grille des mois fera toujours douze cases, seule la
+   rangée des années s'allongera d'une case par an. */
+
+// Une case, un état : on, éteinte, ou vide (rien à voir dedans).
+function _depCmpCase(libelle, actif, vide, action){
+  var fond = actif ? 'background:#111;color:#fff;border-color:#111;'
+           : (vide ? 'background:#f6f6f7;color:#c4c4c8;border-color:#ececee;'
+                   : 'background:#fff;color:var(--text);border-color:var(--border);');
+  return '<div' + (vide ? '' : ' onclick="' + action + '"')
+    + ' style="' + fond + 'border:1.5px solid;border-radius:9px;padding:8px 4px;'
+    + 'font-size:12px;font-weight:800;text-align:center;' + (vide ? '' : 'cursor:pointer;')
+    + 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+    + libelle + '</div>';
+}
+
+// La rangée des années d'un côté — commune aux trois types.
+function _depCmpRangeeAnnees(cote){
   var o = _depCmpOptions();
-  var choisi = _depCmp[cote];
-  var opt = function(c, l){
-    return '<option value="'+c+'"'+(c === choisi ? ' selected' : '')+'>'+l+'</option>';
-  };
-  var h = '<select class="fi" style="margin:0;font-size:13px;font-weight:700;padding:10px 8px;" '
-    + 'onchange="depCmpChoisir(\''+cote+'\', this.value)">'
-    + '<option value=""'+(choisi ? '' : ' selected')+'>&mdash; choisir &mdash;</option>';
-  if(o.mois.length){
-    h += '<optgroup label="Mois">';
-    o.mois.forEach(function(m){ h += opt(m.cle, m.lib); });
-    h += '</optgroup>';
+  var cleAnnee = (cote === 'a') ? 'anneeA' : 'anneeB';
+  var courante = _depCmp[cleAnnee];
+  var h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:5px;">';
+  o.annees.forEach(function(a){
+    var an = +String(a.cle).slice(2);
+    h += _depCmpCase(String(an), an === courante, false,
+                     'depCmpAnnee(\''+cote+'\','+an+')');
+  });
+  return h + '</div>';
+}
+
+// Le deuxième étage : les douze mois, ou les containers de l'année.
+function _depCmpChoixDe(cote){
+  var t = _depCmp.type;
+  var an = (cote === 'a') ? _depCmp.anneeA : _depCmp.anneeB;
+
+  if(t === 'A'){
+    // Une année se choisit d'un seul geste : la rangée suffit.
+    return _depCmpRangeeAnneesSeules(cote);
   }
-  if(o.annees.length){
-    h += '<optgroup label="Ann&eacute;es">';
-    o.annees.forEach(function(a){ h += opt(a.cle, a.lib); });
-    h += '</optgroup>';
+  var h = _depCmpRangeeAnnees(cote);
+  if(an === null || an === undefined) return h;
+
+  if(t === 'M'){
+    var dispo = {};
+    _depCmpOptions().mois.forEach(function(m){
+      var p = String(m.cle).slice(2).split('-');
+      if(+p[0] === an) dispo[+p[1]] = true;
+    });
+    h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">';
+    for(var i = 0; i < 12; i++){
+      var cle = 'M:' + an + '-' + i;
+      // Pas de découpe automatique : « Juin » et « Juillet » donneraient
+      // tous les deux « Jui ».
+      h += _depCmpCase(DEP_MOIS_COURTS[i], _depCmp[cote] === cle, !dispo[i],
+                       'depCmpChoisir(\''+cote+'\',\''+cle+'\')');
+    }
+    return h + '</div>';
   }
-  if(o.containers.length){
-    h += '<optgroup label="Containers">';
-    o.containers.forEach(function(c){ h += opt(c.cle, esc(c.lib)); });
-    h += '</optgroup>';
+
+  // Containers de cette année-là, du plus récent au plus ancien.
+  var liste = tousLesDeparts().filter(function(d){
+    var q = _depQuandDepart(d);
+    return q && new Date(q).getUTCFullYear() === an;
+  });
+  if(!liste.length){
+    return h + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;'
+      + 'padding:6px 2px;">Aucun container cette ann&eacute;e-l&agrave;.</div>';
   }
-  return h + '</select>';
+  h += '<div style="display:grid;gap:5px;">';
+  liste.forEach(function(d){
+    var cle = 'C:' + d._id;
+    h += _depCmpCase((depPaysDepart(d)==='ML'?'🇲🇱 ':'🇸🇳 ') + esc(d.nom || 'Container')
+                     + (d.dateDepart ? ' · ' + dateFr(d.dateDepart) : ''),
+                     _depCmp[cote] === cle, false,
+                     'depCmpChoisir(\''+cote+'\',\''+cle+'\')');
+  });
+  return h + '</div>';
+}
+
+// Type « Année » : la rangée EST le choix, pas un filtre.
+function _depCmpRangeeAnneesSeules(cote){
+  var o = _depCmpOptions();
+  var h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">';
+  o.annees.forEach(function(a){
+    h += _depCmpCase(String(a.cle).slice(2), _depCmp[cote] === a.cle, false,
+                     'depCmpChoisir(\''+cote+'\',\''+a.cle+'\')');
+  });
+  return h + '</div>';
 }
 
 // Une valeur, formatée selon qu'elle compte des euros ou des têtes.
@@ -5566,23 +5678,40 @@ window.depRenderComparer = function(){
   var box = $('dep-cmp-content');
   if(!box) return;
 
-  var h = '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
+  // 1. Le type, choisi une fois pour les deux côtés.
+  var TYPES = [ {c:'A', l:'&#128198; Ann&eacute;e'}, {c:'M', l:'&#128197; Mois'},
+                {c:'C', l:'&#128230; Container'} ];
+  var h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;">';
+  TYPES.forEach(function(t){
+    var on = (_depCmp.type === t.c);
+    h += '<div onclick="depCmpType(\''+t.c+'\')" style="cursor:pointer;text-align:center;'
+      +   'padding:9px 4px;border-radius:10px;font-size:12px;font-weight:800;'
+      +   (on ? 'background:#111;color:#fff;border:1.5px solid #111;'
+           : 'background:#fff;color:var(--text3);border:1.5px solid var(--border);')
+      +   '">' + t.l + '</div>';
+  });
+  h += '</div>';
+
+  // 2. Le choix de chaque côté, jamais plus de douze cases.
+  h += '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;">'
     + '<div style="flex:1;min-width:0;">'
-    +   '<div style="font-size:10.5px;font-weight:800;color:#1a237e;letter-spacing:.04em;margin-bottom:4px;">A</div>'
-    +   _depCmpSelect('a')
+    +   '<div style="font-size:10.5px;font-weight:800;color:#1a237e;letter-spacing:.04em;margin-bottom:5px;">A</div>'
+    +   _depCmpChoixDe('a')
     + '</div>'
-    + '<div onclick="depCmpInverser()" style="flex:none;margin-top:16px;cursor:pointer;'
+    + '<div onclick="depCmpInverser()" style="flex:none;margin-top:18px;cursor:pointer;'
     +   'background:#f2f2f4;border:1.5px solid var(--border);border-radius:10px;'
     +   'padding:9px 10px;font-size:15px;" title="Intervertir">&#8646;</div>'
     + '<div style="flex:1;min-width:0;">'
-    +   '<div style="font-size:10.5px;font-weight:800;color:#006b2d;letter-spacing:.04em;margin-bottom:4px;">B</div>'
-    +   _depCmpSelect('b')
+    +   '<div style="font-size:10.5px;font-weight:800;color:#006b2d;letter-spacing:.04em;margin-bottom:5px;">B</div>'
+    +   _depCmpChoixDe('b')
     + '</div>'
     + '</div>';
 
   if(!_depCmp.a || !_depCmp.b){
-    h += '<div class="dep-vide" style="padding:26px 16px;margin-top:12px;">'
-      +  'Choisissez deux p&eacute;riodes, ou deux containers,<br>pour voir l\'&eacute;volution.</div>';
+    var quoi = _depCmp.type === 'A' ? 'deux ann&eacute;es'
+             : (_depCmp.type === 'M' ? 'deux mois' : 'deux containers');
+    h += '<div class="dep-vide" style="padding:26px 16px;margin-top:4px;">'
+      +  'Choisissez ' + quoi + ' pour voir l\'&eacute;volution.</div>';
     box.innerHTML = h;
     return;
   }

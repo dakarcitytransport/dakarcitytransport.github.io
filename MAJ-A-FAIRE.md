@@ -330,10 +330,21 @@ troisième case après Bilan et Containers, dans cet ordre voulu par
 Cobey : d'abord où on en est, ensuite d'où ça vient, enfin comment ça
 évolue. C'est de l'argent et des containers qu'on compare, pas le
 travail des collaborateurs — le carré Statistiques de l'accueil, lui,
-garde son classement. Un sélecteur à
-gauche, un à droite. La même liste propose les mois, les années et les
-containers un par un : comparer deux périodes ou deux containers, c'est
-le même geste, il n'y a pas de mode à choisir. Un bouton ⇆ intervertit.
+garde son classement. On choisit d'abord
+**quoi** — 📆 Année, 📅 Mois ou 📦 Container — puis **lequel**, de chaque
+côté. Le type vaut pour les deux : on compare une année à une année, un
+mois à un mois, un container à un container.
+
+Le deuxième choix ne dépasse jamais douze cases : une rangée d'années,
+puis la grille des douze mois (les mois sans container sont grisés), ou
+les containers de l'année choisie. Chaque côté garde son année à lui —
+c'est ce qui permet septembre 2026 contre septembre 2027. Un bouton ⇆
+intervertit les deux côtés, années comprises.
+
+*(v1.90.0 — la première version empilait mois, années et containers dans
+un seul menu déroulant, qui allongeait de quelques lignes chaque mois :
+« imaginons qu'on a six mois ou un an de containers, la liste sera
+interminable ».)*
 
 Un **graphique en colonnes** en haut — deux colonnes, hauteur
 proportionnelle au chiffre, le montant écrit au-dessus. Une rangée de
