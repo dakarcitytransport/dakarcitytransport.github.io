@@ -31,7 +31,18 @@ un prestataire.
   couleur, et voit en plus DÉPARTS, RAPPORT FINANCIER, STATISTIQUES et
   RÉGLAGES. Seule la case MAINTENANCE (passe-partout) reste à Cobey —
   comme pour Issyaka.
-- **Nouveau profil : Aminata**, avec accès à :
+- ~~**L'accueil s'allongeait** d'une case par personne.~~
+  **Fait le 25/09 (v3.82.0 / v1.94.0).** Quatre espaces, nommés par le
+  métier et non par la personne, dans l'ordre d'usage réel :
+  **👔 Direction** (Issyaka, Abdoulaye — tous les jours) ·
+  **🏢 Bureau** (Aminata) ·
+  **🚚 Terrain** (Samba, Ibrahima, Boubacar — le dimanche) ·
+  **🔐 Administration** (Cobey).
+  Un nouveau venu entre dans un espace existant : l'accueil reste à
+  quatre cases pour toujours. Un espace vide ne s'affiche pas.
+
+- **Nouveau profil : Aminata** — *créé le 25/09 (v3.82.0), sans droits
+  particuliers pour l'instant. Reste à régler ses accès :*
   - Devis
   - Articles
   - Client

@@ -1677,7 +1677,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.81.0';
+var APP_VERSION = 'v3.82.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -1685,6 +1685,10 @@ var COLLABS = [
   {id:'SA',name:'Samba',     bg:'#CFFAFE',color:'#0e7490'},
   {id:'IB',name:'Ibrahima',  bg:'#EDE9FE',color:'#7c3aed'},
   {id:'BO',name:'Boubacar',  bg:'#FEF3C7',color:'#92400e'},
+  // v3.82.0 : Aminata, au Bureau. Créée sans droits particuliers pour
+  // l'instant — ses accès seront réglés dans un second temps (demande
+  // de Cobey du 25/09/2026 : « crée le profil, mais sans rien mettre »).
+  {id:'AM',name:'Aminata',   bg:'#FCE7F3',color:'#9D174D'},
   // v3.64.0 : les deux profils administrateurs étaient en blanc sur fond
   // sombre. L'avatar passait, mais le fil d'Activité écrit le nom avec
   // cette même couleur sur fond blanc — donc en blanc sur blanc, illisible
@@ -1693,6 +1697,12 @@ var COLLABS = [
   {id:'AD',name:'Eric',    bg:'#FDE4E5',color:'#A31118', admin:true},
   {id:'AI',name:'Issyaka', bg:'#F7D5D7',color:'#7A0F14', admin:true}
 ];
+
+/* v3.82.0 — La liste écrite dans le code, mise de côté avant que la
+   mémoire locale ou Firebase ne la remplacent. Elle sert à repérer les
+   profils nouveaux, ajoutés ici et jamais encore posés sur Firebase
+   (voir _completerEquipe). */
+var CODE_COLLABS = COLLABS.slice();
 
 /* v3.66.0 — L'équipe, mémorisée pour le prochain démarrage.
    La liste ci-dessus est celle inscrite dans le code : elle sert au tout
@@ -12667,6 +12677,40 @@ function quitterAdmin(){
   goTo('s-home');
 }
 
+/* v3.82.0 — Un profil ajouté dans le code arrive jusqu'aux téléphones.
+
+   L'équipe vit dans dct_config/collabs : au démarrage, cette liste
+   remplace celle écrite dans le code, qui ne sert que de premier
+   secours. Un profil ajouté ici ne serait donc jamais apparu chez
+   personne — il aurait fallu le ressaisir à la main dans Réglages.
+
+   On complète donc la liste reçue avec les profils du code qui lui
+   manquent, une seule fois, et on renvoie le tout sur Firebase pour que
+   tous les téléphones l'aient. Un profil retiré depuis l'Administration
+   ne revient pas : seuls ceux jamais vus sont ajoutés (voir le repère
+   dct_config/profils_poses). */
+var PROFILS_POSES_CLE = 'dct_config/profils_poses';
+
+function _completerEquipe(){
+  if(!db || !firebaseReady) return;
+  db.ref(PROFILS_POSES_CLE).once('value', function(snap){
+    var poses = snap.val() || {};
+    var manquants = CODE_COLLABS.filter(function(c){
+      return !c.admin && !poses[c.id] && !COLLABS.some(function(x){ return x.id === c.id; });
+    });
+    if(!manquants.length) return;
+    manquants.forEach(function(c){ COLLABS.push(Object.assign({}, c)); });
+    var maj = {};
+    manquants.forEach(function(c){ maj[c.id] = true; });
+    db.ref(PROFILS_POSES_CLE).update(maj);
+    db.ref('dct_config/collabs').set(COLLABS.filter(function(c){ return !c.admin; }));
+    try{ _memoriserCollabs(); }catch(e){}
+    try{ _rafraichirLogin(); }catch(e){}
+    console.log('[ÉQUIPE] profil(s) ajouté(s) : '
+      + manquants.map(function(c){ return c.name; }).join(', '));
+  });
+}
+
 function chargerConfigFirebase(){
   if(!db) return;
   db.ref('dct_config/collabs').once('value', function(snap){
@@ -12679,6 +12723,7 @@ function chargerConfigFirebase(){
       admins.forEach(function(a){
         if(!COLLABS.some(function(c){ return c.id===a.id; })) COLLABS.push(a);
       });
+      _completerEquipe();    // v3.82.0 : les profils nouveaux du code
       _memoriserCollabs();   // v3.66.0 : pour le prochain démarrage
       var v=document.getElementById('app-version'); if(v) v.textContent=APP_VERSION;
       _rafraichirLogin();

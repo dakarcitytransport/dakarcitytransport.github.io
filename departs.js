@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.93.0';
+var DEP_VERSION = 'v1.94.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -12800,6 +12800,97 @@ function greffer(){
     }
     return '<span style="font-size:18px;">🔐</span>';
   }
+  /* ═══════════════════════════════════════════════════════════
+     v1.94.0 — L'accueil en quatre espaces
+
+     Cobey, le 25/09/2026 : « l'écran d'accueil est un peu trop
+     extensible, on rajoute des noms, donc ça s'allonge ». Il s'allongeait
+     d'une case par personne, et Aminata allait en ajouter une de plus.
+
+     On regroupe donc par métier, et non par personne : quand quelqu'un
+     arrive, il entre dans un espace existant et l'accueil ne bouge pas.
+     Quatre cases, pour toujours.
+
+     L'ordre suit l'usage réel, tel que Cobey l'a décrit : Issyaka et
+     Abdoulaye ouvrent l'application tous les jours, Aminata
+     régulièrement, les trois frères le dimanche de la collecte.
+     ═══════════════════════════════════════════════════════════ */
+  var DEP_ESPACES = [
+    { id:'DIR', nom:'Direction',      sous:'Clients, prix, containers', ico:'&#128084;', coul:'#252599', fond:'#E0E4FF' },
+    { id:'BUR', nom:'Bureau',         sous:'Devis, appels, inscriptions', ico:'&#127970;', coul:'#9D174D', fond:'#FCE7F3' },
+    { id:'TER', nom:'Terrain',        sous:'La collecte du dimanche',   ico:'&#128666;', coul:'#0e7490', fond:'#CFFAFE' },
+    { id:'ADM', nom:'Administration', sous:'',                          ico:'&#128274;', coul:'#A31118', fond:'#FDE4E5' }
+  ];
+
+  /* À quel espace appartient quelqu'un.
+
+     Le champ `groupe` de la fiche fait foi — il se règle depuis
+     l'Administration. Sans lui, on retombe sur la répartition d'origine,
+     par identifiant : indispensable, car l'équipe vient de Firebase et
+     les fiches déjà enregistrées n'ont pas ce champ.
+
+     Un profil inconnu va au Terrain : c'est là qu'arrive un collecteur,
+     le cas de loin le plus fréquent. */
+  var DEP_ESPACE_PAR_ID = { IS:'DIR', AB:'DIR', AM:'BUR', SA:'TER', IB:'TER', BO:'TER' };
+
+  function _depEspaceDe(c){
+    if(!c) return 'TER';
+    if(c.admin) return 'ADM';
+    if(c.groupe && DEP_ESPACES.some(function(e){ return e.id === c.groupe; })) return c.groupe;
+    return DEP_ESPACE_PAR_ID[c.id] || 'TER';
+  }
+
+  function _depGensDe(espaceId){
+    return (window.COLLABS || []).filter(function(c){
+      return c && !c.desactive && _depEspaceDe(c) === espaceId;
+    });
+  }
+
+  // Ouvre un espace : on remplace la liste des cases par ses profils.
+  window.depOuvrirEspaceAccueil = function(espaceId){
+    var e = DEP_ESPACES.filter(function(x){ return x.id === espaceId; })[0];
+    if(!e) return;
+    window._espaceOuvertUI = espaceId;
+    var esp = document.getElementById('login-espaces');
+    var cards = document.getElementById('login-cards');
+    var ret = document.getElementById('login-retour');
+    var titre = document.getElementById('login-titre');
+    if(titre) titre.textContent = 'Qui êtes-vous ?';
+    if(ret){
+      ret.style.display = 'block';
+      var n1 = document.getElementById('login-soc-nom'); if(n1) n1.textContent = e.nom;
+      var n2 = document.getElementById('login-soc-sous'); if(n2) n2.textContent = e.sous || '';
+    }
+    var gens = _depGensDe(espaceId);
+    var h = '';
+    gens.forEach(function(c){
+      h += (typeof window._carteProfil === 'function')
+        ? window._carteProfil(c, (espaceId === 'ADM') ? '🔒' : '')
+        : ('<div class="login-card" onclick="login(\'' + c.id + '\')">' + esc(c.name) + '</div>');
+    });
+    if(!gens.length){
+      h += '<div class="dep-vide" style="padding:22px 16px;">Personne dans cet espace pour l\'instant.</div>';
+    }
+    if(esp){ esp.innerHTML = ''; esp.style.display = 'none'; }
+    if(cards){ cards.style.display = 'block'; cards.innerHTML = h; }
+  };
+
+  /* Le bouton « Retour » de l'écran de connexion et le rafraîchissement
+     après réponse de Firebase passent tous deux par ouvirEspace(). On
+     l'intercepte pour nos quatre espaces, sinon un rafraîchissement en
+     pleine saisie renvoyait sur un écran vide. */
+  if(typeof window.ouvrirEspace === 'function' && !window.ouvrirEspace._depEspacesPatch){
+    var origOuvrirEspace = window.ouvrirEspace;
+    window.ouvrirEspace = function(socId){
+      if(DEP_ESPACES.some(function(e){ return e.id === socId; }) && socId !== 'ADM'){
+        return window.depOuvrirEspaceAccueil(socId);
+      }
+      if(socId === 'ADM') return window.depOuvrirEspaceAccueil('ADM');
+      return origOuvrirEspace.apply(this, arguments);
+    };
+    window.ouvrirEspace._depEspacesPatch = true;
+  }
+
   if(typeof window.retourEspaces === 'function' && !window.retourEspaces._depPatch){
     window.retourEspaces = function(){
       _espaceOuvertUI = '';
@@ -12808,28 +12899,41 @@ function greffer(){
       var cards = document.getElementById('login-cards');
       var ret = document.getElementById('login-retour');
       var titre = document.getElementById('login-titre');
-      // v1.26.0 : l'accueil s'ouvre directement sur les prenoms. Le grand
-      // carre "Dakar City Transport" imposait un tap de plus chaque matin
-      // pour arriver a son profil, alors qu'il ne menait qu'a un seul
-      // endroit (retour de Cobey du 17/09/2026). Chacun garde son code
-      // personnel derriere son prenom.
-      if(titre) titre.textContent = 'Qui êtes-vous ?';
+      // v1.94.0 : l'accueil montre les quatre espaces, pas les prénoms.
+      // Chacun garde son code personnel derrière son prénom.
+      if(titre) titre.textContent = 'Choisissez votre espace';
       if(ret) ret.style.display = 'none';
       if(cards){ cards.innerHTML = ''; cards.style.display = 'none'; }
       if(!esp) return;
       esp.style.display = 'block';
 
-      var adm = SOCIETES.find(function(s){ return s.id === 'ADM'; });
       var partenaires = SOCIETES.filter(function(s){ return s.id !== 'DCT' && s.id !== 'ADM'; });
 
       var html = '';
 
-      (window.COLLABS || []).filter(function(c){ return !c.admin && !c.desactive; })
-        .forEach(function(c){
-          html += (typeof window._carteProfil === 'function')
-            ? window._carteProfil(c)
-            : ('<div class="login-card" onclick="login(\'' + c.id + '\')">' + esc(c.name) + '</div>');
-        });
+      // Les quatre espaces. Un espace vide ne s'affiche pas : inutile
+      // d'ouvrir une porte sur une pièce où il n'y a personne.
+      DEP_ESPACES.forEach(function(e){
+        var gens = _depGensDe(e.id);
+        if(!gens.length) return;
+        html += '<div class="login-card" style="border-top:5px solid ' + e.coul + ';'
+          +   'border-left:2px solid var(--border);align-items:center;" '
+          +   'onclick="depOuvrirEspaceAccueil(\'' + e.id + '\')">'
+          + '<div style="width:56px;height:56px;border-radius:50%;background:' + e.fond + ';'
+          +   'border:2px solid ' + e.coul + ';display:flex;align-items:center;'
+          +   'justify-content:center;flex-shrink:0;font-size:24px;">' + e.ico + '</div>'
+          + '<div style="flex:1;">'
+          +   '<div class="login-name">' + e.nom + '</div>'
+          +   (e.sous ? ('<div class="login-role">' + e.sous + '</div>') : '')
+          +   '<div style="display:inline-block;font-size:11px;font-weight:700;color:' + e.coul + ';'
+          +     'background:' + e.fond + ';padding:3px 9px;border-radius:20px;margin-top:6px;">'
+          +     (e.id === 'ADM' ? '🔒 ' : '') + gens.length + ' personne' + (gens.length > 1 ? 's' : '')
+          +   '</div>'
+          + '</div>'
+          + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="' + e.coul
+          +   '" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>'
+          + '</div>';
+      });
 
       // v1.22.0 : l'intertitre n'apparaît que s'il reste au moins un
       // partenaire — sinon il flottait tout seul au-dessus du vide.
@@ -12850,21 +12954,9 @@ function greffer(){
           + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + so.color + '" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>'
           + '</div>';
       });
-      // v1.27.0 : l'administration demandait deux taps — la ligne
-      // "Administration", puis des initiales sans prénom. Les
-      // administrateurs ont maintenant leur propre case, au nom, comme
-      // tout le monde (retour de Cobey du 17/09/2026). Elles restent
-      // en bas et gardent le cadenas : on voit d'un coup d'œil que ce
-      // n'est pas un profil de collecte.
-      var admins = (window.COLLABS || []).filter(function(c){ return c.admin && !c.desactive; });
-      if(admins.length){
-        html += '<div class="dep-esp-section-lbl">Administration</div>';
-        admins.forEach(function(c){
-          html += (typeof window._carteProfil === 'function')
-            ? window._carteProfil(c, '🔒')
-            : ('<div class="login-card" onclick="login(\'' + c.id + '\')">' + esc(c.name) + '</div>');
-        });
-      }
+      // v1.94.0 : l'Administration est le quatrième espace, dessiné
+      // plus haut avec les trois autres — elle n'a plus sa section à
+      // part. Elle garde son cadenas.
 
       esp.innerHTML = html;
       // v1.22.2 : le nouvel écran est à l'écran — on peut découvrir.
