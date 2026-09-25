@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.96.0';
+var DEP_VERSION = 'v1.97.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1381,140 +1381,140 @@ function _depLigneChamp(id){
   return box ? box.querySelector('#' + id) : null;
 }
 
-/* v1.96.0 — On cherche l'article, on ne le cherche plus des yeux.
+/* v1.97.0 — Une recherche, deux filtres déroulants, une liste.
 
-   Cobey, le 25/09/2026 : « c'est toujours pas optimal, trop d'infos ».
-   Il avait raison : dix articles d'électroménager faisaient dix grosses
-   cases, et la moitié de l'écran y passait. Avant ça, un menu déroulant
-   de trente-deux lignes. Les deux avaient le même défaut — ils montrent
-   tout le catalogue pour en choisir un.
+   Cobey, le 25/09/2026 : « c'est pas bien plus, car faut deviner. À la
+   recherche faut un système de recherche, pas des cases, et qui se
+   filtre avec des menus déroulants ».
 
-   Un champ de recherche règle le problème une fois pour toutes : trois
-   lettres suffisent, et l'écran ne grandit jamais, qu'il y ait trente
-   articles ou trois cents.
+   Le reproche est juste : avec des pastilles, on ne voit que ce qui est
+   déjà affiché — pour savoir ce qui existe, il faut deviner quoi taper.
+   Un menu déroulant, lui, s'ouvre et montre tout, sans rien encombrer
+   tant qu'il est fermé.
 
-   Au-dessus, ce que DCT facture le plus souvent, calculé sur les
-   factures déjà faites : dans la plupart des cas, le bon article est
-   déjà là et se touche sans rien taper. */
+   Donc : un champ de recherche libre, deux menus déroulants qui
+   filtrent (la catégorie, puis l'article), et en dessous les résultats
+   en lignes — nom, prix, et un bouton pour ajouter. Les trois se
+   combinent : on peut taper, ou dérouler, ou les deux. */
 
-var _depCatQ = '';   // ce qui est tapé dans la recherche
-
-// Les articles les plus facturés, comptés sur les fiches existantes.
-// Rien de nouveau à stocker : la réponse est dans les factures.
-function _depArticlesFrequents(prods, n){
-  var compte = {};
-  var voir = function(c){
-    if(!c || !Array.isArray(c.colisDetail)) return;
-    c.colisDetail.forEach(function(l){
-      var cle = String(l.nom || '').trim().toLowerCase() + '|' + (parseFloat(l.pu) || 0);
-      compte[cle] = (compte[cle] || 0) + 1;
-    });
-  };
-  try{
-    var parCol = window.clientsParCollecte || {};
-    Object.keys(parCol).forEach(function(k){
-      var cls = parCol[k] || {};
-      Object.keys(cls).forEach(function(id){ voir(cls[id]); });
-    });
-    var dep = window.depotClients || {};
-    Object.keys(dep).forEach(function(id){ voir(dep[id]); });
-    var fr = (window.franceData || {}).clients || {};
-    Object.keys(fr).forEach(function(id){ voir(fr[id]); });
-  }catch(e){}
-
-  return prods.map(function(a){
-      var cle = String(a.nom || '').trim().toLowerCase() + '|' + (parseFloat(a.prix) || 0);
-      return { a: a, n: compte[cle] || 0 };
-    })
-    .filter(function(x){ return x.n > 0; })
-    .sort(function(x, y){ return y.n - x.n; })
-    .slice(0, n || 6)
-    .map(function(x){ return x.a; });
-}
+var _depCatQ = '';        // texte tapé
+var _depCatTheme = '';    // catégorie choisie dans le menu ('' = toutes)
+var _depCatNom = '';      // article choisi dans le menu ('' = tous)
 
 // Accents et casse ignorés : « frigo » trouve « Frigidaire ».
 function _depSansAccent(t){
   return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-// La pastille qui ajoute un article : son nom, son prix, un seul geste.
-function _depCatPastille(a, gros){
-  return '<div onclick="depLigneAjouterId(\'' + esc(a._id) + '\')" '
-    + 'style="cursor:pointer;display:inline-flex;align-items:baseline;gap:7px;'
-    + 'background:#EAF7EE;border:1.5px solid #C8E6D0;border-radius:20px;'
-    + 'padding:' + (gros ? '8px 14px' : '7px 12px') + ';font-size:' + (gros ? '13.5px' : '13px') + ';'
-    + 'font-weight:700;color:#1a3d2a;max-width:100%;">'
-    + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
-    +   esc(a.nom || 'Article') + '</span>'
-    + '<b style="color:#006b2d;white-space:nowrap;">' + (parseFloat(a.prix) || 0) + ' &euro;</b>'
-    + '</div>';
-}
+function _depCatTheneDe(a){ return (a.theme || '').trim() || 'Autres'; }
 
-// Le contenu qui change à chaque lettre tapée. Isolé dans son propre
-// conteneur : on le redessine sans toucher au champ de saisie, qui
-// garde le curseur et le clavier ouverts.
-function _depCatResultats(){
-  var prods = _depCatalogueProduits();
+// Ce que les trois filtres laissent passer.
+function _depCatFiltres(prods){
   var q = _depSansAccent(_depCatQ).trim();
-
-  if(!q){
-    var freq = _depArticlesFrequents(prods, 6);
-    if(!freq.length){
-      return '<div style="font-size:11.5px;color:var(--text3);font-weight:600;">'
-        + 'Tapez les premi&egrave;res lettres de l\'article.</div>';
-    }
-    return '<div style="font-size:10.5px;font-weight:800;color:var(--text3);'
-      +   'letter-spacing:.04em;margin-bottom:6px;">LES PLUS FACTUR&Eacute;S</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:6px;">'
-      +   freq.map(function(a){ return _depCatPastille(a, true); }).join('')
-      + '</div>';
-  }
-
-  var trouves = prods.filter(function(a){
-    return _depSansAccent(a.nom).indexOf(q) >= 0;
+  return prods.filter(function(a){
+    if(_depCatTheme && _depCatTheneDe(a) !== _depCatTheme) return false;
+    if(_depCatNom && String(a.nom || '').trim() !== _depCatNom) return false;
+    if(q && _depSansAccent(a.nom).indexOf(q) < 0) return false;
+    return true;
   }).sort(function(a, b){
     var n = String(a.nom || '').localeCompare(String(b.nom || ''));
     return n || ((parseFloat(a.prix) || 0) - (parseFloat(b.prix) || 0));
   });
-
-  if(!trouves.length){
-    return '<div style="font-size:11.5px;color:var(--text3);font-weight:600;">'
-      + 'Aucun article ne contient &laquo;&nbsp;' + esc(_depCatQ) + '&nbsp;&raquo;.<br>'
-      + 'Utilisez la ligne libre juste en dessous.</div>';
-  }
-
-  // Un nom, une ligne : ses prix se suivent, comme sur l'écran des
-  // articles. « Carton » ne prend donc qu'une ligne, pas sept.
-  var parNom = {}, ordre = [];
-  trouves.forEach(function(a){
-    var n = (a.nom || '—').trim();
-    if(!parNom[n]){ parNom[n] = []; ordre.push(n); }
-    parNom[n].push(a);
-  });
-
-  var COUPE = 6;   // au-delà, on invite à préciser plutôt que dérouler
-  var h = '';
-  ordre.slice(0, COUPE).forEach(function(n){
-    h += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;'
-      +   'padding:7px 0;border-bottom:1px dashed var(--border);">'
-      + parNom[n].map(function(a){ return _depCatPastille(a); }).join('')
-      + '</div>';
-  });
-  if(ordre.length > COUPE){
-    h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;padding-top:7px;">'
-      + (ordre.length - COUPE) + ' autre' + (ordre.length - COUPE > 1 ? 's' : '')
-      + ' article' + (ordre.length - COUPE > 1 ? 's' : '') + ' &mdash; pr&eacute;cisez votre recherche.</div>';
-  }
-  return h;
 }
 
-// Tapé dans le champ : on ne redessine que la liste, jamais le champ.
-window.depCatRecherche = function(v){
-  _depCatQ = v || '';
+window.depCatRecherche = function(v){ _depCatQ = v || ''; _depCatMaj(); };
+window.depCatTheme = function(v){ _depCatTheme = v || ''; _depCatNom = ''; _depCatMaj(true); };
+window.depCatNom   = function(v){ _depCatNom = v || ''; _depCatMaj(); };
+
+/* Redessine ce qui a changé, et rien de plus : le champ de recherche
+   garde son curseur et le clavier reste ouvert. Le menu des articles
+   n'est refait que lorsque la catégorie bouge. */
+function _depCatMaj(refaireMenus){
   var box = document.getElementById(_depLignesCible);
-  var res = box ? box.querySelector('#dl-cat-res') : null;
+  if(!box) return;
+  if(refaireMenus){
+    var mn = box.querySelector('#dl-cat-nom');
+    if(mn) mn.outerHTML = _depCatMenuNoms(_depCatalogueProduits());
+  }
+  var res = box.querySelector('#dl-cat-res');
   if(res) res.innerHTML = _depCatResultats();
-};
+}
+
+function _depCatMenuThemes(prods){
+  var t = {};
+  prods.forEach(function(a){ t[_depCatTheneDe(a)] = (t[_depCatTheneDe(a)] || 0) + 1; });
+  var noms = Object.keys(t).sort(function(a, b){
+    if(a === 'Autres') return 1;
+    if(b === 'Autres') return -1;
+    return a.localeCompare(b);
+  });
+  var h = '<select class="fi" id="dl-cat-theme" onchange="depCatTheme(this.value)" '
+    + 'style="margin:0;font-size:13px;font-weight:700;">'
+    + '<option value=""' + (_depCatTheme ? '' : ' selected') + '>Toutes les cat&eacute;gories</option>';
+  noms.forEach(function(n){
+    h += '<option value="' + esc(n) + '"' + (_depCatTheme === n ? ' selected' : '') + '>'
+      + esc(n) + ' (' + t[n] + ')</option>';
+  });
+  return h + '</select>';
+}
+
+function _depCatMenuNoms(prods){
+  var dans = prods.filter(function(a){
+    return !_depCatTheme || _depCatTheneDe(a) === _depCatTheme;
+  });
+  var n = {};
+  dans.forEach(function(a){
+    var k = (a.nom || '—').trim();
+    n[k] = (n[k] || 0) + 1;
+  });
+  var noms = Object.keys(n).sort(function(a, b){ return a.localeCompare(b); });
+  var h = '<select class="fi" id="dl-cat-nom" onchange="depCatNom(this.value)" '
+    + 'style="margin:0;font-size:13px;font-weight:700;">'
+    + '<option value=""' + (_depCatNom ? '' : ' selected') + '>Tous les articles</option>';
+  noms.forEach(function(k){
+    h += '<option value="' + esc(k) + '"' + (_depCatNom === k ? ' selected' : '') + '>'
+      + esc(k) + (n[k] > 1 ? (' (' + n[k] + ' prix)') : '') + '</option>';
+  });
+  return h + '</select>';
+}
+
+// Une ligne de résultat : le nom, son prix, et le bouton qui l'ajoute.
+function _depCatLigne(a){
+  return '<div style="display:flex;align-items:center;gap:10px;padding:9px 2px;'
+    + 'border-bottom:1px dashed var(--border);">'
+    + '<div style="flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--text);'
+    +   'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+    +   esc(a.nom || 'Article') + '</div>'
+    + '<div style="font-size:14px;font-weight:800;color:#006b2d;white-space:nowrap;">'
+    +   (parseFloat(a.prix) || 0) + ' &euro;</div>'
+    + '<div onclick="depLigneAjouterId(\'' + esc(a._id) + '\')" '
+    +   'style="flex:none;cursor:pointer;background:#006b2d;color:#fff;border-radius:9px;'
+    +   'padding:7px 15px;font-size:13px;font-weight:800;">+</div>'
+    + '</div>';
+}
+
+function _depCatResultats(){
+  var prods = _depCatalogueProduits();
+  var trouves = _depCatFiltres(prods);
+
+  if(!trouves.length){
+    return '<div style="font-size:11.5px;color:var(--text3);font-weight:600;padding:10px 2px;">'
+      + 'Aucun article ne correspond.<br>'
+      + 'Changez de cat&eacute;gorie, ou utilisez la ligne libre en dessous.</div>';
+  }
+
+  var COUPE = 12;
+  var h = '<div style="font-size:10.5px;font-weight:800;color:var(--text3);'
+    +   'letter-spacing:.04em;padding:2px 2px 4px;">'
+    +   trouves.length + ' ARTICLE' + (trouves.length > 1 ? 'S' : '') + '</div>'
+    + '<div style="max-height:238px;overflow-y:auto;-webkit-overflow-scrolling:touch;">'
+    + trouves.slice(0, COUPE).map(_depCatLigne).join('');
+  if(trouves.length > COUPE){
+    h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;padding:9px 2px;">'
+      + (trouves.length - COUPE) + ' de plus &mdash; affinez la recherche.</div>';
+  }
+  return h + '</div>';
+}
 
 function _depChoixCatalogue(prods){
   return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;'
@@ -1522,7 +1522,11 @@ function _depChoixCatalogue(prods){
     + '<input class="fi" id="dl-cat-q" type="search" autocomplete="off"'
     +   ' placeholder="&#128269; Chercher un article…" value="' + esc(_depCatQ) + '"'
     +   ' oninput="depCatRecherche(this.value)"'
-    +   ' style="margin:0 0 9px;font-size:13.5px;">'
+    +   ' style="margin:0 0 8px;font-size:13.5px;">'
+    + '<div style="display:flex;gap:7px;margin-bottom:8px;">'
+    +   '<div style="flex:1;min-width:0;">' + _depCatMenuThemes(prods) + '</div>'
+    +   '<div style="flex:1;min-width:0;">' + _depCatMenuNoms(prods) + '</div>'
+    + '</div>'
     + '<div id="dl-cat-res">' + _depCatResultats() + '</div>'
     + '</div>';
 }
