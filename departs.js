@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.94.0';
+var DEP_VERSION = 'v1.95.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1381,6 +1381,114 @@ function _depLigneChamp(id){
   return box ? box.querySelector('#' + id) : null;
 }
 
+/* v1.95.0 — Choisir un article en trois touches, au lieu d'un menu.
+
+   Cobey, le 25/09/2026 : « dans le choix pour facture, ça sera trop long
+   à défiler ». Le menu déroulant alignait les 32 articles à la suite, et
+   il grandira à chaque prix ajouté.
+
+   Trois étages, comme pour Comparer : la catégorie, puis l'article, puis
+   le prix. Aucune rangée ne dépasse quelques cases, quel que soit le
+   nombre d'articles au catalogue. L'étage du prix ne s'affiche que
+   lorsqu'un même article en a plusieurs — un article à prix unique
+   s'ajoute donc en deux touches. */
+var _depCatSel = { theme:'', nom:'' };
+
+window.depCatChoisirTheme = function(t){
+  _depCatSel.theme = (_depCatSel.theme === t) ? '' : t;
+  _depCatSel.nom = '';
+  _depRenderLignes();
+};
+window.depCatChoisirNom = function(n){
+  _depCatSel.nom = (_depCatSel.nom === n) ? '' : n;
+  _depRenderLignes();
+};
+
+function _depCatCase(libelle, actif, action){
+  return '<div onclick="' + action + '" style="cursor:pointer;font-size:12.5px;'
+    + 'font-weight:800;padding:7px 13px;border-radius:20px;white-space:nowrap;'
+    + (actif ? 'background:#111;color:#fff;border:1.5px solid #111;'
+             : 'background:#fff;color:var(--text3);border:1.5px solid var(--border);')
+    + '">' + libelle + '</div>';
+}
+
+function _depChoixCatalogue(prods){
+  var themes = {}, ordreT = [];
+  prods.forEach(function(a){
+    var t = (a.theme || '').trim() || 'Autres';
+    if(!themes[t]){ themes[t] = []; ordreT.push(t); }
+    themes[t].push(a);
+  });
+  ordreT.sort(function(a,b){
+    if(a === 'Autres') return 1;
+    if(b === 'Autres') return -1;
+    return a.localeCompare(b);
+  });
+  if(!themes[_depCatSel.theme]) _depCatSel.theme = (ordreT.length === 1) ? ordreT[0] : '';
+
+  var rangee = function(contenu){
+    return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' + contenu + '</div>';
+  };
+
+  var h = '<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;'
+    + 'padding:10px 11px;margin-bottom:10px;">';
+
+  // 1. La catégorie
+  h += rangee(ordreT.map(function(t){
+    return _depCatCase(esc(t) + ' <span style="opacity:.6;">' + themes[t].length + '</span>',
+      _depCatSel.theme === t, 'depCatChoisirTheme(\'' + esc(t).replace(/'/g,"\\'") + '\')');
+  }).join(''));
+
+  if(!_depCatSel.theme){
+    return h + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;">'
+      + 'Choisissez une cat&eacute;gorie.</div></div>';
+  }
+
+  // 2. L'article, une case par nom
+  var parNom = {}, ordreN = [];
+  themes[_depCatSel.theme].forEach(function(a){
+    var n = (a.nom || '—').trim();
+    if(!parNom[n]){ parNom[n] = []; ordreN.push(n); }
+    parNom[n].push(a);
+  });
+  ordreN.sort(function(a,b){ return a.localeCompare(b); });
+  if(!parNom[_depCatSel.nom]) _depCatSel.nom = (ordreN.length === 1) ? ordreN[0] : '';
+
+  h += rangee(ordreN.map(function(n){
+    var nb = parNom[n].length;
+    return _depCatCase(esc(n) + (nb > 1 ? ' <span style="opacity:.6;">' + nb + '</span>' : ''),
+      _depCatSel.nom === n, 'depCatChoisirNom(\'' + esc(n).replace(/'/g,"\\'") + '\')');
+  }).join(''));
+
+  if(!_depCatSel.nom){
+    return h + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;">'
+      + 'Choisissez un article.</div></div>';
+  }
+
+  // 3. Le prix — chaque case ajoute la ligne directement.
+  var prix = parNom[_depCatSel.nom].sort(function(a,b){
+    return (parseFloat(a.prix)||0) - (parseFloat(b.prix)||0);
+  });
+  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+    + prix.map(function(a){
+        return '<div onclick="depLigneAjouterId(\'' + esc(a._id) + '\')" '
+          + 'style="cursor:pointer;background:#EAF7EE;border:1.5px solid #C8E6D0;'
+          + 'border-radius:20px;padding:8px 15px;font-size:14px;font-weight:800;'
+          + 'color:#006b2d;">+ ' + (parseFloat(a.prix)||0) + ' &euro;</div>';
+      }).join('')
+    + '</div>';
+  return h + '</div>';
+}
+
+// Ajoute directement l'article touché, sans passer par un bouton.
+window.depLigneAjouterId = function(id){
+  var a = (window.prixArticlesData || {})[id];
+  if(!a){ toast('⚠️ Article introuvable.'); return; }
+  var pu = parseFloat(a.prix) || 0;
+  _depLignesEdit.push({ nom:(a.nom||'Article'), qte:1, pu:pu, total:pu });
+  _depRenderLignes();
+};
+
 function _depRenderLignes(){
   var box = document.getElementById(_depLignesCible);
   if(!box) return;
@@ -1388,18 +1496,8 @@ function _depRenderLignes(){
 
   var h = '';
 
-  // ── Choix au catalogue ──
-  if(prods.length){
-    h += '<div style="display:flex;gap:8px;margin-bottom:10px;">'
-      +   '<select class="fi" id="dl-produit" style="flex:1;margin:0;">'
-      +     '<option value="">— Choisir un article —</option>'
-      +     prods.map(function(a){
-              return '<option value="'+esc(a._id)+'">'+esc(a.nom)+' · '+(parseFloat(a.prix)||0)+' €</option>';
-            }).join('')
-      +   '</select>'
-      +   '<button type="button" class="dep-cli-btn" onclick="depLigneAjouterCatalogue()" style="flex-shrink:0;">+ Ajouter</button>'
-      + '</div>';
-  }
+  // ── Choix au catalogue, en trois touches (v1.95.0) ──
+  if(prods.length) h += _depChoixCatalogue(prods);
 
   // ── Ligne libre ──
   h += '<div style="display:flex;gap:6px;margin-bottom:12px;">'
@@ -1520,17 +1618,15 @@ function _depMajChiffresLignes(){
   }
 }
 
-window.depLigneAjouterCatalogue = function(){
-  var s = _depLigneChamp('dl-produit');
-  var id = s ? s.value : '';
-  if(!id){ toast('⚠️ Choisissez un produit.'); return; }
-  var a = (window.prixArticlesData || {})[id];
-  if(!a) return;
-  var pu = parseFloat(a.prix) || 0;
-  // Le prix du catalogue n'est qu'un point de depart : on peut le changer
-  // ligne par ligne sans jamais toucher au catalogue.
-  _depLignesEdit.push({ nom:(a.nom||'Article'), qte:1, pu:pu, total:pu });
-  _depRenderLignes();
+/* v1.95.0 : le menu deroulant du catalogue a laisse la place au choix en
+   trois touches (categorie, article, prix — voir _depChoixCatalogue).
+   depLigneAjouterId fait desormais l'ajout ; cette fonction reste en
+   place et y renvoie, au cas ou un ancien bouton l'appellerait encore.
+   Le prix du catalogue n'est qu'un point de depart : il se change ligne
+   par ligne sans jamais toucher au catalogue. */
+window.depLigneAjouterCatalogue = function(id){
+  if(id) return window.depLigneAjouterId(id);
+  toast('⚠️ Touchez le prix de l\'article à ajouter.');
 };
 
 window.depLigneAjouterLibre = function(){
@@ -18128,15 +18224,52 @@ window.depRenderListePrixArticles = function(){
     return a.localeCompare(b);
   });
 
+  /* v1.95.0 — Un article, une ligne, tous ses prix dessus.
+
+     Cobey, le 25/09/2026 : « c'est pas facile à lire ». Sept lignes
+     « Carton » se suivaient, à 40, 50, 60, 70, 80, 90 et 100 € : pour
+     savoir lesquelles existaient, il fallait les lire une par une. Ce
+     ne sont pourtant pas sept articles, mais un article à sept prix.
+
+     On regroupe donc par nom. Chaque prix reste une case, qu'on touche
+     pour le modifier — c'est la même fiche qu'avant derrière. */
   var h = '';
   themesOrdonnes.forEach(function(t){
     h += '<div class="dep-sec">'+esc(t)+'</div>';
-    groupes[t].sort(function(a, b){ return String(a.nom||'').localeCompare(String(b.nom||'')); });
+
+    var parNom = {}, ordre = [];
     groupes[t].forEach(function(a){
-      h += '<div class="pa-row" onclick="depPrixArticleModifier(\''+a._id+'\')">'
-        +   '<div class="pa-nom">'+esc(a.nom||'—')+'</div>'
-        +   '<div class="pa-prix">'+(parseFloat(a.prix)||0)+' &euro;</div>'
-        + '</div>';
+      var n = (a.nom || '—').trim();
+      if(!parNom[n]){ parNom[n] = []; ordre.push(n); }
+      parNom[n].push(a);
+    });
+    ordre.sort(function(a, b){ return a.localeCompare(b); });
+
+    ordre.forEach(function(n){
+      var prix = parNom[n].sort(function(a, b){
+        return (parseFloat(a.prix)||0) - (parseFloat(b.prix)||0);
+      });
+      if(prix.length === 1){
+        h += '<div class="pa-row" onclick="depPrixArticleModifier(\''+prix[0]._id+'\')">'
+          +   '<div class="pa-nom">'+esc(n)+'</div>'
+          +   '<div class="pa-prix">'+(parseFloat(prix[0].prix)||0)+' &euro;</div>'
+          + '</div>';
+        return;
+      }
+      h += '<div class="pa-row" style="display:block;">'
+        + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">'
+        +   '<div class="pa-nom">'+esc(n)+'</div>'
+        +   '<div style="font-size:11px;font-weight:700;color:var(--text3);white-space:nowrap;">'
+        +     prix.length + ' prix</div>'
+        + '</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">';
+      prix.forEach(function(a){
+        h += '<div onclick="event.stopPropagation();depPrixArticleModifier(\''+a._id+'\')" '
+          +   'style="cursor:pointer;background:#EAF7EE;border:1.5px solid #C8E6D0;'
+          +   'border-radius:20px;padding:5px 12px;font-size:13px;font-weight:800;'
+          +   'color:#006b2d;">' + (parseFloat(a.prix)||0) + ' &euro;</div>';
+      });
+      h += '</div></div>';
     });
   });
   liste.innerHTML = h;
