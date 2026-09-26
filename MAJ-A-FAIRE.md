@@ -41,20 +41,28 @@ un prestataire.
   Un nouveau venu entre dans un espace existant : l'accueil reste à
   quatre cases pour toujours. Un espace vide ne s'affiche pas.
 
-- **Nouveau profil : Aminata** — *créé le 25/09 (v3.82.0), sans droits
-  particuliers pour l'instant. Reste à régler ses accès :*
-  - Devis
-  - Articles
-  - Client
-  - Collecte
-  - France & Europe
-  - Inscription au dépôt
+- ~~**Nouveau profil : Aminata**, et ses accès.~~
+  **Fait le 26/09 (v3.83.0 / v1.99.0).** Collaboratrice, pas
+  administratrice. Six cases sur son accueil, et rien d'autre :
+  **Devis · Prix articles · Client · Collecte · France & Europe ·
+  Inscription au dépôt**. Les six autres (Départs, QR Code, Archivage,
+  Rapport financier, Statistiques, Réglages) lui sont fermées, case
+  masquée *et* entrée refusée.
 
   Son rôle : prendre les appels, enregistrer les devis, les clients et les
   dispatchs, tenir les réseaux sociaux.
 
-  **?** Collaboratrice avec ces accès, ou administratrice ?
-  **?** « numéro cette semaine » — à quoi cela correspond-il ?
+  Au passage, l'application ne connaît plus seulement « direction » et
+  « les autres » : chacun porte la liste des cases qui lui sont ouvertes.
+  Personne n'a rien perdu — les trois frères et la direction voient
+  exactement ce qu'ils voyaient.
+
+  **?** « numéro cette semaine » — à quoi cela correspond-il ? Rien dans
+  l'application ne porte ce nom aujourd'hui.
+
+- **Régler les accès depuis les Réglages.** Aujourd'hui la liste des cases
+  de chacun se change dans Firebase (champ `cases` de sa fiche), pas depuis
+  un écran. À faire quand un deuxième poste sortira du moule.
 
 ---
 

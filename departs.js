@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.98.0';
+var DEP_VERSION = 'v1.99.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2156,6 +2156,105 @@ function estDirection(){
 }
 window._estDirection = estDirection;
 
+/* ═══════════════════════════════════════════════════════════
+   v1.99.0 — LES CASES DE L'ACCUEIL, PERSONNE PAR PERSONNE
+
+   Il n'y avait que deux niveaux : la direction, qui voit les douze
+   cases, et les autres, qui en voient huit. Aminata n'entre ni dans
+   l'un ni dans l'autre. Cobey, le 26/09/2026 : « elle n'est pas admin,
+   pour elle : devis, articles, client, collecte, France, inscription au
+   dépôt ». Ses missions vont avec — prendre les appels, enregistrer les
+   devis, les clients et les dispatchs : rien qui touche aux containers,
+   à l'archivage ni aux chiffres de l'entreprise.
+
+   Deux niveaux ne suffisaient donc plus. À la place, chacun porte la
+   liste des cases qui lui sont ouvertes. Trois sources, dans cet ordre :
+
+     1. le champ `cases` de sa fiche, s'il existe — réglable depuis
+        Firebase, donc modifiable sans toucher au code ;
+     2. sinon la liste de son poste, par identifiant ;
+     3. sinon la liste du terrain, qui est ce que les collaborateurs
+        voyaient déjà — un nouveau venu ne perd donc aucun accès.
+
+   La direction garde tout, sans liste : c'est son rôle, et le jour où
+   quelqu'un la rejoint il n'y a rien à penser.
+   ═══════════════════════════════════════════════════════════ */
+
+// Une case = sa clé, et l'élément qui la porte sur l'écran des cases.
+var DEP_CASES = [
+  { cle:'departs',  el:'dep-case-departs'  },
+  { cle:'client',   el:'dep-case-client'   },
+  { cle:'collecte', el:'dep-case-collecte' },
+  { cle:'france',   el:'dep-case-france'   },
+  { cle:'depot',    el:'dep-case-depot'    },
+  { cle:'devis',    el:'dep-case-devis'    },
+  { cle:'articles', el:'dep-case-pa'       },
+  { cle:'qr',       el:'dep-case-qr'       },
+  { cle:'archive',  el:'dep-case-arch'     },
+  { cle:'rapfin',   el:'dep-case-rapfin'   },
+  { cle:'stats',    el:'dep-case-stats'    },
+  { cle:'reglages', el:'dep-case-reglages' }
+];
+
+var DEP_CASES_TOUTES = DEP_CASES.map(function(c){ return c.cle; });
+
+// Ce que les collaborateurs voyaient déjà : tout sauf les quatre cases
+// de la direction. C'est le repli, donc personne ne perd un accès.
+var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles','qr','archive'];
+
+// Le Bureau : les appels, les devis, les clients, les dispatchs.
+var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot'];
+
+var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU };
+
+function _depCasesDe(u){
+  u = u || window.currentUser || {};
+  if(u.admin || u.patron || IDS_DIRECTION.indexOf(u.id) >= 0) return DEP_CASES_TOUTES.slice();
+  // Une liste posée sur la fiche fait foi, même vide : « rien » est un
+  // réglage valable. D'où le test sur le tableau, pas sur sa longueur.
+  if(Array.isArray(u.cases)) return u.cases.slice();
+  return (DEP_CASES_PAR_ID[u.id] || DEP_CASES_TERRAIN).slice();
+}
+
+function _depPeutCase(cle){ return _depCasesDe().indexOf(cle) >= 0; }
+window._depCasesDe = _depCasesDe;
+window._depPeutCase = _depPeutCase;
+
+/* Cacher une case ne suffit pas : on arrive aussi sur ces écrans par un
+   bouton retour, un QR scanné ou un lien resté ouvert. Chaque entrée est
+   donc gardée à la source. Posé après greffer(), pour que les fonctions
+   de l'application existent déjà. */
+var DEP_GARDES_CASES = {
+  depOuvrirEspaceDeparts           : 'departs',
+  depOuvrirEspaceClient            : 'client',
+  depOuvrirEspaceCollecte          : 'collecte',
+  ouvrirFrance                     : 'france',
+  depCarreDepotOuvrir              : 'depot',
+  depOuvrirEspaceDevis             : 'devis',
+  depOuvrirEspacePrixArticles      : 'articles',
+  depOuvrirScanQR                  : 'qr',
+  depOuvrirEspaceArchive           : 'archive',
+  depOuvrirEspaceRapportFinancier  : 'rapfin',
+  depOuvrirEspaceStats             : 'stats',
+  depOuvrirEspaceReglages          : 'reglages'
+};
+
+function _depPoserGardesCases(){
+  Object.keys(DEP_GARDES_CASES).forEach(function(nom){
+    var orig = window[nom];
+    if(typeof orig !== 'function' || orig._depGardeCase) return;
+    var cle = DEP_GARDES_CASES[nom];
+    window[nom] = function(){
+      if(!_depPeutCase(cle)){
+        try{ toast('⛔ Cet espace ne vous est pas ouvert.'); }catch(e){}
+        return;
+      }
+      return orig.apply(this, arguments);
+    };
+    window[nom]._depGardeCase = true;
+  });
+}
+
 /* v1.81.0 — Rafraîchir la fiche ou la facture ouverte après une synchro.
 
    L'application appelle ce rappel quand les données ont changé et que
@@ -2781,12 +2880,12 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#252599;">D&Eacute;PARTS</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-dep">—</div>'
   +       '</div>'
-  +       '<div class="dep-case" style="background:#EDE5FC;" onclick="depOuvrirEspaceClient()">'
+  +       '<div class="dep-case" id="dep-case-client" style="background:#EDE5FC;" onclick="depOuvrirEspaceClient()">'
   +         '<div class="dep-case-ico">&#128100;</div>'
   +         '<div class="dep-case-tit" style="color:#7c3aed;">CLIENT</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-cli">—</div>'
   +       '</div>'
-  +       '<div class="dep-case" style="background:#DDF1E6;" onclick="depOuvrirEspaceCollecte()">'
+  +       '<div class="dep-case" id="dep-case-collecte" style="background:#DDF1E6;" onclick="depOuvrirEspaceCollecte()">'
   +         '<div class="dep-case-ico">&#128197;</div>'
   +         '<div class="dep-case-tit" style="color:#009A44;">COLLECTE</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-col">—</div>'
@@ -2820,7 +2919,7 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#C2185B;">PRIX ARTICLES</div>'
   +         '<div class="dep-case-sub">Grille tarifaire de r&eacute;f&eacute;rence</div>'
   +       '</div>'
-  +       '<div class="dep-case" style="background:#DDEBE3;" onclick="depOuvrirScanQR()">'
+  +       '<div class="dep-case" id="dep-case-qr" style="background:#DDEBE3;" onclick="depOuvrirScanQR()">'
   +         '<div class="dep-case-ico">&#128247;</div>'
   +         '<div class="dep-case-tit" style="color:#006b2d;">QR CODE</div>'
   +         '<div class="dep-case-sub">Scanner une facture</div>'
@@ -2828,7 +2927,7 @@ function injecterEcrans(){
   // v1.19.0 : nouveau carré ARCHIVAGE, ouvert à tous — consultation en
   // lecture seule des départs clôturés et des collectes terminées, dans un
   // seul endroit (demande de Cobey du 21/08/2026).
-  +       '<div class="dep-case" style="background:#EFEAE4;" onclick="depOuvrirEspaceArchive()">'
+  +       '<div class="dep-case" id="dep-case-arch" style="background:#EFEAE4;" onclick="depOuvrirEspaceArchive()">'
   +         '<div class="dep-case-ico">&#128194;</div>'
   +         '<div class="dep-case-tit" style="color:#8B5E34;">ARCHIVAGE</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-arch">—</div>'
@@ -4919,10 +5018,19 @@ window.depRenderEspaces = function(){
     a.style.border = '2px solid ' + (u.color || '#ccc');
   }
 
-  // Case DÉPARTS — réservée à la direction
-  var cd = $('dep-case-departs');
-  if(cd) cd.style.display = estDirection() ? '' : 'none';
-  if(estDirection()){
+  /* v1.99.0 : les cases ouvertes se lisent sur la personne, et non plus
+     sur son seul rang. Un seul passage les montre ou les cache ; les
+     chiffres annoncés dessous ne se calculent que pour celles qui
+     restent visibles. */
+  var _ouvertes = _depCasesDe(u);
+  DEP_CASES.forEach(function(c){
+    var el = $(c.el);
+    if(el) el.style.display = (_ouvertes.indexOf(c.cle) >= 0) ? '' : 'none';
+  });
+  var _voit = function(cle){ return _ouvertes.indexOf(cle) >= 0; };
+
+  // Case DÉPARTS
+  if(_voit('departs')){
     var ouverts = departsDisponibles().length;
     var total   = tousLesDeparts().length;
     var sd = $('dep-case-sub-dep');
@@ -5005,11 +5113,9 @@ window.depRenderEspaces = function(){
       + '<br>'+nbColT+' collecte'+(nbColT>1?'s':'')+' archiv&eacute;e'+(nbColT>1?'s':'');
   }
 
-  // Case RAPPORT FINANCIER — réservée à la direction. v1.92.0 : elle
-  // annonce le bénéfice, comme les autres annoncent leur chiffre.
-  var crf = $('dep-case-rapfin');
-  if(crf) crf.style.display = estDirection() ? '' : 'none';
-  if(estDirection()){
+  // Case RAPPORT FINANCIER — v1.92.0 : elle annonce le bénéfice, comme
+  // les autres annoncent leur chiffre.
+  if(_voit('rapfin')){
     var srf = $('dep-case-sub-rf');
     if(srf){
       try{
@@ -5020,12 +5126,10 @@ window.depRenderEspaces = function(){
     }
   }
 
-  // Case RÉGLAGES (v1.19.8) — réservée à la direction, remplace la molette
-  // de l'écran Collecte. Reprend le badge d'alertes non lues qui vivait
-  // sur cette molette, pour ne pas perdre cette information.
-  var crg = $('dep-case-reglages');
-  if(crg) crg.style.display = estDirection() ? '' : 'none';
-  if(estDirection()){
+  // Case RÉGLAGES (v1.19.8) — remplace la molette de l'écran Collecte.
+  // Reprend le badge d'alertes non lues qui vivait sur cette molette,
+  // pour ne pas perdre cette information.
+  if(_voit('reglages')){
     var srg = $('dep-case-sub-regl');
     if(srg){
       var nbAl = (typeof nbAlertesNouvelles === 'function') ? nbAlertesNouvelles() : 0;
@@ -5035,10 +5139,8 @@ window.depRenderEspaces = function(){
     }
   }
 
-  // Case STATISTIQUES (v1.19.9) — réservée à la direction.
-  var cst = $('dep-case-stats');
-  if(cst) cst.style.display = estDirection() ? '' : 'none';
-  if(estDirection()){
+  // Case STATISTIQUES (v1.19.9)
+  if(_voit('stats')){
     var sst = $('dep-case-sub-stats');
     // v1.19.14 : plus d'aperçu "tout l'historique" ici (retiré du classement
     // lui-même) — juste un texte fixe, le détail se choisit à l'intérieur.
@@ -18547,6 +18649,7 @@ function demarrer(){
   try{ cacherOngletActiviteAccueil(); }catch(e){ console.error('departs: onglet activité', e); }
   try{ nettoyerEspacesAutonomes(); }catch(e){ console.error('departs: espaces autonomes', e); }
   try{ greffer(); }catch(e){ console.error('departs: greffes', e); }
+  try{ _depPoserGardesCases(); }catch(e){ console.error('departs: gardes des cases', e); }
   try{ depSetLivraison(false); }catch(e){}
   try{ depSetLivraisonFiche(false); }catch(e){}
   try{ depSetLivraisonDepot(false); }catch(e){}
