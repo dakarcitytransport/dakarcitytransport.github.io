@@ -43,11 +43,11 @@ un prestataire.
 
 - ~~**Nouveau profil : Aminata**, et ses accès.~~
   **Fait le 26/09 (v3.83.0 / v1.99.0).** Collaboratrice, pas
-  administratrice. Six cases sur son accueil, et rien d'autre :
-  **Devis · Prix articles · Client · Collecte · France & Europe ·
-  Inscription au dépôt**. Les six autres (Départs, QR Code, Archivage,
-  Rapport financier, Statistiques, Réglages) lui sont fermées, case
-  masquée *et* entrée refusée.
+  administratrice. Neuf cases sur son accueil : **Devis · Prix articles ·
+  Client · Collecte · France & Europe · Inscription au dépôt · QR Code ·
+  Archivage · Statistiques**. Les trois qui portent l'argent de
+  l'entreprise et ses réglages lui sont fermées — **Départs, Rapport
+  financier, Réglages** — case masquée *et* entrée refusée.
 
   Son rôle : prendre les appels, enregistrer les devis, les clients et les
   dispatchs, tenir les réseaux sociaux.
