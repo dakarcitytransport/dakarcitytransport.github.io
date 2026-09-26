@@ -31,6 +31,24 @@ un prestataire.
   couleur, et voit en plus DÉPARTS, RAPPORT FINANCIER, STATISTIQUES et
   RÉGLAGES. Seule la case MAINTENANCE (passe-partout) reste à Cobey —
   comme pour Issyaka.
+- ~~**Planning, corrigé après le premier essai.**~~ *Fait le 26/09
+  (v3.88.2 / v2.4.2).* Cobey, après avoir testé avec Samba :
+  - la case Planning passe **avant** Collecte, et porte sa propre icône
+    (une main levée) — elle partageait celle de Collecte ;
+  - **Eric et Aminata retirés de la liste des participants** : ils
+    organisent et relancent, mais ne roulent pas le dimanche — seuls les
+    5 collecteurs (Issyaka, Abdoulaye, Samba, Ibrahima, Boubacar) donnent
+    une disponibilité ;
+  - **« Retirer ma réponse »** : on peut revenir à « rien mis », pas
+    seulement basculer entre Oui et Non ;
+  - **la date et l'heure** de chaque réponse s'affichent, dans l'équipe
+    comme sur sa propre fiche.
+
+  Au passage, `_depEspaceDe` — déjà appelée ailleurs via
+  `window._depEspaceDe` sans jamais avoir été exportée — est maintenant
+  exposée : les futures notifications par espace (colis 30 jours,
+  paiement, camion) pourront s'en servir.
+
 - ~~**Case Planning**~~ — *faite le 26/09 (v3.88.0 / v2.4.0).*
   Le problème d'Issyaka : ses frères ne répondaient pas toujours quand il
   demandait qui serait là le dimanche, et il ne pouvait pas décider s'il

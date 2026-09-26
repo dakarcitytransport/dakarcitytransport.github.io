@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.4.1';
+var DEP_VERSION = 'v2.4.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2942,6 +2942,17 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#7c3aed;">CLIENT</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-cli">—</div>'
   +       '</div>'
+  // v2.4.0 : case PLANNING — les disponibilités de l'équipe. Placée avant
+  // Collecte (retour de Cobey du 26/09/2026) : c'est une case de
+  // préparation, on la choisit avant de préparer la collecte elle-même.
+  // v2.4.2 : son icône reprenait celle de Collecte — les deux cases
+  // étaient identiques au premier coup d'œil. Une main levée : c'est la
+  // case où l'on se déclare disponible.
+  +       '<div class="dep-case" id="dep-case-planning" style="background:#FDEBDD;" onclick="depOuvrirEspacePlanning()">'
+  +         '<div class="dep-case-ico">&#128587;</div>'
+  +         '<div class="dep-case-tit" style="color:#E65100;">PLANNING</div>'
+  +         '<div class="dep-case-sub" id="dep-case-sub-planning">&mdash;</div>'
+  +       '</div>'
   +       '<div class="dep-case" id="dep-case-collecte" style="background:#DDF1E6;" onclick="depOuvrirEspaceCollecte()">'
   +         '<div class="dep-case-ico">&#128197;</div>'
   +         '<div class="dep-case-tit" style="color:#009A44;">COLLECTE</div>'
@@ -2971,14 +2982,6 @@ function injecterEcrans(){
   // v1.19.95 : nouveau carré PRIX ARTICLES, ouvert à tout le monde comme le
   // carré Devis (retour de Cobey du 30/08/2026) — grille tarifaire de
   // référence, placée juste après Devis.
-  // v2.4.0 : case PLANNING — les disponibilités de l'équipe. Placée après
-  // Devis, avant Prix Articles : c'est une case de préparation, pas de
-  // consultation.
-  +       '<div class="dep-case" id="dep-case-planning" style="background:#FDEBDD;" onclick="depOuvrirEspacePlanning()">'
-  +         '<div class="dep-case-ico">&#128197;</div>'
-  +         '<div class="dep-case-tit" style="color:#E65100;">PLANNING</div>'
-  +         '<div class="dep-case-sub" id="dep-case-sub-planning">&mdash;</div>'
-  +       '</div>'
   +       '<div class="dep-case" id="dep-case-pa" style="background:#F7E0E9;" onclick="depOuvrirEspacePrixArticles()">'
   +         '<div class="dep-case-ico">&#127991;&#65039;</div>'
   +         '<div class="dep-case-tit" style="color:#C2185B;">PRIX ARTICLES</div>'
@@ -13302,6 +13305,10 @@ function greffer(){
     if(c.groupe && DEP_ESPACES.some(function(e){ return e.id === c.groupe; })) return c.groupe;
     return DEP_ESPACE_PAR_ID[c.id] || 'TER';
   }
+  // v2.4.2 : exposée — elle était déjà appelée via window._depEspaceDe
+  // ailleurs (les abonnements aux notifications) sans jamais l'avoir été,
+  // et Planning en a besoin pour savoir qui fait la collecte du dimanche.
+  window._depEspaceDe = _depEspaceDe;
 
   function _depGensDe(espaceId){
     return (window.COLLABS || []).filter(function(c){
@@ -19537,12 +19544,21 @@ function _depCollecteDuJour(dim){
   return null;
 }
 
-/* Qui est concerné : toute l'équipe en activité, administrateurs
-   compris. Cobey : « tout le monde aura la possibilité de […] mettre ses
-   disponibilités ». Une première version les écartait — on les remet. */
+/* Qui est concerné : ceux qui font la collecte du dimanche — la
+   direction et le terrain. Cobey, le 26/09/2026, après un essai : « il
+   faut retirer Eric et Aminata de la liste des participants ». Juste :
+   Eric organise sans jamais rouler, Aminata est au Bureau — ni l'un ni
+   l'autre n'a de disponibilité à donner pour la collecte. Ils gardent
+   la main pour consulter et relancer (_depPeutOrganiserPlanning),
+   simplement plus comme personnes à qui on demande une réponse. */
 function _depGensPlanning(){
-  return (window.COLLABS || []).filter(function(c){ return c && !c.desactive; });
+  return (window.COLLABS || []).filter(function(c){
+    if(!c || c.desactive) return false;
+    var esp = (typeof window._depEspaceDe === 'function') ? window._depEspaceDe(c) : 'TER';
+    return esp === 'DIR' || esp === 'TER';
+  });
 }
+window._depGensPlanning = _depGensPlanning;
 
 function _depDispoDe(iso, id){
   return ((window.planningData || {})[iso] || {})[id] || null;
@@ -19560,9 +19576,13 @@ function _depCompteDispo(iso){
 }
 
 // Ce qui me reste à remplir : le chiffre de la pastille sur la case.
+// Rien à remplir pour quelqu'un qui n'est pas dans la liste des
+// participants (Eric, Aminata) : la pastille ne doit pas les relancer
+// pour une réponse qu'on ne leur demande pas.
 function _depDimanchesSansMaReponse(){
   var u = window.currentUser || {};
   if(!u.id) return 0;
+  if(!_depGensPlanning().some(function(c){ return c.id === u.id; })) return 0;
   return _depProchainsDimanches(5).filter(function(d){
     return !_depDispoDe(d.iso, u.id);
   }).length;
@@ -19590,6 +19610,32 @@ window.depPlanningPoser = function(iso, dispo){
     toast('❌ Échec, réessayez.');
   });
 };
+
+/* Revenir à « rien mis ». Cobey, le 26/09/2026, après un essai avec
+   Samba : « je ne peux plus laisser le choix libre, je ne peux plus
+   enlever ». Il manquait ce chemin : une fois Oui ou Non choisi, rien ne
+   permettait de redevenir sans réponse — seulement de basculer de l'un
+   à l'autre. */
+window.depPlanningRetirer = function(iso){
+  var u = window.currentUser || {};
+  if(!u.id || !window.db){ toast('❌ Pas de connexion.'); return; }
+  db.ref('dct_planning/' + iso + '/' + u.id).remove().then(function(){
+    toast('↩️ R&eacute;ponse retir&eacute;e.');
+    depRenderPlanning();
+  }).catch(function(e){
+    console.error('departs: retrait disponibilité', e);
+    toast('❌ Échec, réessayez.');
+  });
+};
+
+// « 26/09 à 14h05 » — pour savoir quand quelqu'un a répondu, pas
+// seulement ce qu'il a répondu (Cobey, le 26/09/2026).
+function _depPlDateHeure(ts){
+  if(!ts) return '';
+  var d = new Date(ts);
+  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0')
+    + ' &agrave; ' + String(d.getHours()).padStart(2, '0') + 'h' + String(d.getMinutes()).padStart(2, '0');
+}
 
 /* ─── La relance ─────────────────────────────────────────────
    On ne l'envoie pas soi-même : on la dépose dans une file que
@@ -19655,8 +19701,9 @@ function _depPlanningBlocMien(dim){
     +   (col ? '<span style="font-size:10.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
     +     'padding:2px 8px;border-radius:20px;">collecte cr&eacute;&eacute;e</span>' : '')
     + '</div>'
-    + (r && r.mot ? '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:3px;">'
-        + '&laquo;&nbsp;' + esc(r.mot) + '&nbsp;&raquo;</div>' : '')
+    + (r ? ('<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;">'
+        + (r.mot ? ('&laquo;&nbsp;' + esc(r.mot) + '&nbsp;&raquo; &mdash; ') : '')
+        + 'r&eacute;pondu le ' + _depPlDateHeure(r.le) + '</div>') : '')
     + '<input class="fi" id="pl-mot-' + dim.iso + '" maxlength="140" value="'
     +   esc((r && r.mot) || '') + '" placeholder="Un mot, si besoin (facultatif)" '
     +   'style="margin:10px 0 9px;font-size:13px;">'
@@ -19666,6 +19713,12 @@ function _depPlanningBlocMien(dim){
     +   '<div onclick="depPlanningPoser(\'' + dim.iso + '\',false)" style="' + choisi(false) + '">'
     +     'Pas dispo</div>'
     + '</div>'
+    // v2.4.2 : le seul moyen de revenir à « rien mis » — avant, une fois
+    // Oui ou Non choisi, on ne pouvait plus que basculer de l'un à
+    // l'autre.
+    + (r ? ('<div onclick="depPlanningRetirer(\'' + dim.iso + '\')" style="text-align:center;'
+        + 'margin-top:8px;font-size:12px;font-weight:700;color:var(--text3);cursor:pointer;'
+        + 'text-decoration:underline;">&#8617; Retirer ma r&eacute;ponse</div>') : '')
     + '</div>';
 }
 
@@ -19678,11 +19731,17 @@ function _depPlanningBlocEquipe(dim){
     if(!r){ ic = '&#9203;'; coul = '#8a8a8a'; txt = 'rien mis'; }
     else if(r.dispo){ ic = '&#9989;'; coul = '#006b2d'; txt = 'Disponible' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
     else { ic = '&#10060;'; coul = '#992020'; txt = 'Pas dispo' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
+    // v2.4.2 : la date et l'heure de la réponse, pour savoir QUAND
+    // quelqu'un a répondu, pas seulement ce qu'il a répondu (Cobey, le
+    // 26/09/2026).
+    var quand = r ? ('<span style="color:var(--text3);font-weight:600;font-size:11.5px;">'
+      + ' &mdash; ' + _depPlDateHeure(r.le) + '</span>') : '';
     return '<div style="display:flex;align-items:baseline;gap:8px;padding:6px 0;'
-      + 'border-bottom:1px dashed var(--border);font-size:13.5px;">'
+      + 'border-bottom:1px dashed var(--border);font-size:13.5px;flex-wrap:wrap;">'
       + '<span>' + ic + '</span>'
       + '<b style="color:var(--text);min-width:80px;">' + esc(pers.name) + '</b>'
-      + '<span style="color:' + coul + ';font-weight:600;flex:1;">' + txt + '</span>'
+      + '<span style="color:' + coul + ';font-weight:600;">' + txt + '</span>'
+      + quand
       + '</div>';
   }).join('');
 
