@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.5.0';
+var DEP_VERSION = 'v2.5.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19717,6 +19717,26 @@ function _depExternesDe(iso){
     });
 }
 
+/* L'iso du dimanche actuellement en « mode modification » — un seul à la
+   fois. Cobey, le 26/09/2026 : « les modifications par les admins […]
+   doivent se faire dans un menu de gestion à part, car là elles sont
+   faisables directement dans chaque jour, une fausse manœuvre est vite
+   arrivée. Faut un bouton pour modifier le jour de planning ».
+
+   Par défaut, l'onglet Équipe est donc en lecture pure — les boutons de
+   correction n'existent dans le HTML que pour le dimanche ouvert ici, et
+   se fermer y remet tout en lecture seule. */
+var _depPlanningModifIso = '';
+
+window.depPlanningModifierJour = function(iso){
+  if(!_depPeutOrganiserPlanning()) return;
+  _depPlanningModifIso = (_depPlanningModifIso === iso) ? '' : iso;
+  // Fermer le formulaire d'ajout en même temps que le mode modification :
+  // sortir de l'un doit sortir de l'autre.
+  if(_depPlanningModifIso !== iso) _depPlanningExterneOuvert = '';
+  depRenderPlanning();
+};
+
 // L'iso du dimanche dont le petit formulaire d'ajout est déplié — un
 // seul à la fois, pour ne pas encombrer l'écran.
 var _depPlanningExterneOuvert = '';
@@ -19764,9 +19784,16 @@ window.depPlanningExterneAjouter = function(iso, dispo){
 /* Les trois petits boutons de correction — mêmes réglages pour un
    collaborateur du planning et pour un intervenant ponctuel, puisque la
    mécanique (depPlanningForcer / depPlanningForcerRetirer) est
-   identique des deux côtés. */
-function _depPlControles(iso, id, r){
-  if(!_depPeutOrganiserPlanning()) return '';
+   identique des deux côtés.
+
+   v2.5.1 : n'apparaissent plus que dans le mode « Modifier ce dimanche »
+   — Cobey, le 26/09/2026 : « là elles sont faisables directement dans
+   chaque jour, une fausse manœuvre est vite arrivée ». Posés en
+   permanence à côté de chaque nom, ces boutons étaient à portée du
+   moindre doigt qui glisse en faisant défiler l'écran. `enModif` doit
+   maintenant être vrai — donc un geste exprès — pour qu'ils existent. */
+function _depPlControles(iso, id, r, enModif){
+  if(!enModif || !_depPeutOrganiserPlanning()) return '';
   var actifOui = r && r.dispo === true;
   var actifNon = r && r.dispo === false;
   return '<div style="display:flex;gap:6px;margin:4px 0 6px 24px;flex-wrap:wrap;">'
@@ -19886,6 +19913,7 @@ function _depPlanningBlocMien(dim){
 function _depPlanningBlocEquipe(dim){
   var c = _depCompteDispo(dim.iso);
   var gens = _depGensPlanning();
+  var enModif = _depPlanningModifIso === dim.iso;
   var lignes = gens.map(function(pers){
     var r = _depDispoDe(dim.iso, pers.id);
     var ic, coul, txt;
@@ -19905,10 +19933,10 @@ function _depPlanningBlocEquipe(dim){
       + quand
       + '</div>';
     // v2.5.0 : les trois boutons de correction (Direction + Aminata
-    // seulement) — « l'admin peut moduler le planning, car il se peut
-    // que l'autre collaborateur ne changera pas son statut ».
+    // seulement). v2.5.1 : cachés tant que « Modifier ce dimanche » n'a
+    // pas été ouvert exprès.
     return '<div style="border-bottom:1px dashed var(--border);padding-bottom:2px;">'
-      + ligne + _depPlControles(dim.iso, pers.id, r) + '</div>';
+      + ligne + _depPlControles(dim.iso, pers.id, r, enModif) + '</div>';
   }).join('');
 
   var relance = '';
@@ -19947,11 +19975,11 @@ function _depPlanningBlocEquipe(dim){
         + quand2
         + '</div>';
       return '<div style="border-bottom:1px dashed var(--border);padding-bottom:2px;">'
-        + ligneExt + _depPlControles(dim.iso, ext._id, ext) + '</div>';
+        + ligneExt + _depPlControles(dim.iso, ext._id, ext, enModif) + '</div>';
     }).join('');
 
     var formAjout = '';
-    if(_depPlanningExterneOuvert === dim.iso){
+    if(enModif && _depPlanningExterneOuvert === dim.iso){
       formAjout = '<div style="background:#F9F6FF;border:1.5px dashed #7c3aed;border-radius:10px;'
         + 'padding:10px;margin-top:8px;">'
         + '<input class="fi" id="pl-ext-nom-' + dim.iso + '" maxlength="60" '
@@ -19973,20 +20001,42 @@ function _depPlanningBlocEquipe(dim){
         + '</div>';
     }
 
+    // v2.5.1 : le bouton d'ajout, comme les corrections, n'existe plus
+    // qu'en mode modification.
     blocExternes = '<div style="margin-top:14px;padding-top:11px;border-top:1px solid var(--border);">'
       + '<div style="font-size:10.5px;font-weight:800;color:#7c3aed;letter-spacing:.04em;'
       +   'margin-bottom:7px;">INTERVENANTS PONCTUELS</div>'
-      + lignesExt
-      + (_depPlanningExterneOuvert === dim.iso ? formAjout
-          : '<div onclick="depPlanningExterneOuvrir(\'' + dim.iso + '\')" style="text-align:center;'
-            + 'background:#F9F6FF;color:#7c3aed;border:1.5px dashed #7c3aed;border-radius:9px;'
-            + 'padding:9px;font-size:12.5px;font-weight:800;cursor:pointer;margin-top:6px;">'
-            + '+ Ajouter quelqu\'un pour ce dimanche</div>')
+      + (lignesExt || '<div style="font-size:12px;color:var(--text3);font-weight:600;">'
+          + 'Aucun pour ce dimanche.</div>')
+      + (enModif
+          ? (_depPlanningExterneOuvert === dim.iso ? formAjout
+              : '<div onclick="depPlanningExterneOuvrir(\'' + dim.iso + '\')" style="text-align:center;'
+                + 'background:#F9F6FF;color:#7c3aed;border:1.5px dashed #7c3aed;border-radius:9px;'
+                + 'padding:9px;font-size:12.5px;font-weight:800;cursor:pointer;margin-top:6px;">'
+                + '+ Ajouter quelqu\'un pour ce dimanche</div>')
+          : '')
       + '</div>';
   }
 
-  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:13px;'
-    +   'padding:13px 14px;margin-bottom:10px;">'
+  /* v2.5.1 : le bouton qui ouvre et ferme le mode modification — Cobey,
+     le 26/09/2026 : « faut un bouton pour modifier le jour de planning ».
+     Tant qu'il n'a pas été touché, l'onglet Équipe reste en pure
+     lecture : aucune correction n'est possible d'un geste accidentel. */
+  var boutonModif = '';
+  if(_depPeutOrganiserPlanning()){
+    boutonModif = enModif
+      ? ('<div onclick="depPlanningModifierJour(\'' + dim.iso + '\')" style="text-align:center;'
+          + 'background:#E65100;color:#fff;border:2px solid #B34700;border-radius:9px;padding:9px;'
+          + 'font-size:12.5px;font-weight:800;cursor:pointer;margin-bottom:10px;">'
+          + '&#9989; Terminer la modification</div>')
+      : ('<div onclick="depPlanningModifierJour(\'' + dim.iso + '\')" style="text-align:center;'
+          + 'background:#fff;color:#E65100;border:1.5px solid #E65100;border-radius:9px;padding:8px;'
+          + 'font-size:12px;font-weight:700;cursor:pointer;margin-bottom:10px;">'
+          + '&#9999;&#65039; Modifier ce dimanche</div>');
+  }
+
+  return '<div style="background:#fff;border:1.5px solid ' + (enModif ? '#E65100' : 'var(--border)')
+    +   ';border-radius:13px;padding:13px 14px;margin-bottom:10px;">'
     + '<div style="font-size:15px;font-weight:800;color:var(--text);">Dimanche '
     +   esc(dim.libelle) + '</div>'
     + '<div style="display:flex;gap:7px;margin:9px 0 10px;flex-wrap:wrap;">'
@@ -19998,6 +20048,7 @@ function _depPlanningBlocEquipe(dim){
     +     'background:#fff3cd;padding:3px 10px;border-radius:20px;">'
     +     c.muets.length + ' sans r&eacute;ponse</span>' : '')
     + '</div>'
+    + boutonModif
     + lignes
     + relance
     + blocExternes

@@ -31,6 +31,20 @@ un prestataire.
   couleur, et voit en plus DÉPARTS, RAPPORT FINANCIER, STATISTIQUES et
   RÉGLAGES. Seule la case MAINTENANCE (passe-partout) reste à Cobey —
   comme pour Issyaka.
+- ~~**Les corrections passent derrière un bouton « Modifier ».**~~
+  *Fait le 26/09 (v3.89.1 / v2.5.1).* Cobey, aussitôt après la
+  fonctionnalité précédente : « les modifications […] doivent se faire
+  dans un menu de gestion à part, car là elles sont faisables directement
+  dans chaque jour, une fausse manœuvre est vite arrivée. Faut un bouton
+  pour modifier le jour de planning ».
+
+  L'onglet Équipe est maintenant en pure lecture par défaut — les
+  boutons Dispo/Pas dispo/Effacer et « + Ajouter quelqu'un » n'existent
+  dans la page que pour le dimanche dont on a ouvert
+  **« ✏️ Modifier ce dimanche »**. Un seul dimanche modifiable à la fois ;
+  la carte se souligne en orange pendant ce temps, et
+  **« ✅ Terminer la modification »** referme tout.
+
 - ~~**L'admin peut corriger le planning, et ajouter des ponctuels.**~~
   *Fait le 26/09 (v3.89.0 / v2.5.0).* Cobey : « même si un collaborateur
   dit qu'il est dispo mais qu'au final non, l'admin peut moduler le
