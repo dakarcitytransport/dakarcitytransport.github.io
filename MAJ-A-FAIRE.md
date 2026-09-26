@@ -200,6 +200,18 @@ un prestataire.
   sous le champ de saisie (qui a écrit quoi, et quand), séparé de la file
   d'envoi qui se vide au fur et à mesure — l'historique, lui, reste.
 
+- ~~**Le titre des notifications se répétait.**~~ *Fait le 26/09
+  (v3.91.1 / v2.7.1, et v1.2.0 côté Cloudflare — à recoller).* Cobey,
+  capture d'écran à l'appui : « Dakar City Transport, from Dakar City
+  Transport […] ça parle deux fois du titre ». L'iPhone affiche déjà tout
+  seul le nom de l'application (celui du manifeste) en gras ; toutes nos
+  notifications reprenaient ce même nom comme titre, que l'iPhone
+  affichait donc une seconde fois, précédé de « from ». Chaque
+  notification a maintenant un titre court et différent : « Planning »
+  pour les rappels et résultats, « Essai » pour le bouton de test, et le
+  nom de l'auteur pour la case Notification (« from Eric », par
+  exemple) — plus utile que de répéter le nom de l'application.
+
 - ~~**L'écran de connexion était froid.**~~
   **Fait le 26/09 (v3.84.0 / v2.0.0).** Cobey : « je la trouve pas très
   esthétique […] assez froid en fait. Il n'y a pas de modèle de design ? ».

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.7.0';
+var DEP_VERSION = 'v2.7.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19477,7 +19477,14 @@ window.depTesterNotif = function(){
   if(_depEtatNotifs() !== 'ok'){ depActiverNotifs(); return; }
   if(!u.id || !window.db){ toast('❌ Pas de connexion.'); return; }
   db.ref('dct_file_push').push({
-    titre  : 'Dakar City Transport',
+    // v2.7.1 : Cobey, capture d'écran à l'appui : « Dakar City Transport,
+    // from Dakar City Transport […] ça parle deux fois du titre ».
+    // L'iPhone affiche déjà le nom de l'application (celui du manifeste)
+    // en gras tout seul ; répéter ce même nom comme titre de la
+    // notification l'affiche une seconde fois, précédé de « from ».
+    // Un titre court et différent du nom de l'application évite le
+    // doublon.
+    titre  : 'Essai',
     // v2.6.2 : Cobey, le 26/09/2026, capture d'écran à l'appui : le texte
     // affichait « r&eacute;ussi » au lieu de « réussi ». Une notification
     // n'est pas une page web — son texte s'affiche tel quel, sans
@@ -19525,7 +19532,7 @@ window.depTesterRappelDelai = function(){
   if(!u.id || !window.db){ toast('❌ Pas de connexion.'); return; }
   var dim = _depProchainsDimanches(1)[0];
   db.ref('dct_file_push').push({
-    titre  : 'Dakar City Transport',
+    titre  : 'Planning',
     corps  : 'Êtes-vous disponible dimanche ' + dim.libelle + ' ? Merci de répondre dans '
            + 'Planning avant jeudi 22h — passé ce délai, vous serez noté absent.',
     sujet  : 'essai-rappel-delai',
@@ -20032,7 +20039,7 @@ window.depPlanningRelancer = function(iso){
   var quand = dim ? dim.libelle : iso;
   var u = window.currentUser || {};
   db.ref('dct_file_push').push({
-    titre  : 'Dakar City Transport',
+    titre  : 'Planning',
     corps  : 'Êtes-vous disponible dimanche ' + quand + ' ? Merci de répondre dans Planning.',
     sujet  : 'planning-' + iso,
     // v2.5.3 : toucher la notification doit mener droit à Planning, pas
@@ -20424,7 +20431,13 @@ window.depAnnonceEnvoyer = function(){
   });
 
   db.ref('dct_file_push').push({
-    titre  : 'Dakar City Transport',
+    // v2.7.1 : le nom de l'auteur, pas « Dakar City Transport » — déjà
+    // affiché tout seul par l'iPhone comme nom de l'application, le
+    // répéter comme titre créait « Dakar City Transport / from Dakar
+    // City Transport » (retour de Cobey, capture d'écran à l'appui).
+    // Le nom de l'auteur est aussi plus utile ici : « from Eric » dit
+    // tout de suite qui parle.
+    titre  : u.name || 'Notification',
     corps  : texte,
     // Un sujet différent à chaque envoi : deux annonces de suite ne
     // doivent jamais s'effacer l'une l'autre sur l'écran verrouillé du

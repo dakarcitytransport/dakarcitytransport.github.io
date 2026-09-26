@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.1.0 · 26/09/2026
+   v1.2.0 · 26/09/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -244,7 +244,11 @@ function plCleUnique(){
 async function plRelancer(iso, libelle, ids, env){
   if(!ids.length) return;
   await ecrire('dct_file_push/' + plCleUnique(), {
-    titre  : 'Dakar City Transport',
+    // v1.2.0 : « Planning », pas « Dakar City Transport » — déjà affiché
+    // tout seul par l'iPhone comme nom de l'application ; le répéter
+    // comme titre créait « Dakar City Transport / from Dakar City
+    // Transport » (Cobey, capture d'écran à l'appui).
+    titre  : 'Planning',
     corps  : 'Êtes-vous disponible dimanche ' + libelle + ' ? Merci de répondre dans '
            + 'Planning avant jeudi 22h — passé ce délai, vous serez noté absent.',
     sujet  : 'planning-' + iso,
@@ -303,7 +307,7 @@ async function traitePlanning(env){
       for(const id of ids){
         const r = jour[id] || { dispo:false };
         await ecrire('dct_file_push/' + plCleUnique(), {
-          titre  : 'Dakar City Transport',
+          titre  : 'Planning',
           corps  : r.dispo
             ? ('Vous êtes noté disponible dimanche ' + dim.libelle + '.')
             : ('Vous êtes noté absent dimanche ' + dim.libelle + ' — le délai de réponse est passé.'),
@@ -347,7 +351,10 @@ async function vider(env){
       let statut = 0;
       try{
         statut = await envoyerA(tel, {
-          titre: m.titre || 'Dakar City Transport',
+          // v1.2.0 : repli neutre si jamais un message arrivait sans
+          // titre — jamais le nom de l'application, déjà affiché tout
+          // seul par l'iPhone (voir plRelancer et le statut final).
+          titre: m.titre || 'Notification',
           corps: m.corps || '',
           sujet: m.sujet || 'dct',
           url  : m.url || './dct-app.html'
