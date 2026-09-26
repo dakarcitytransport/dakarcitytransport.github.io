@@ -31,6 +31,29 @@ un prestataire.
   couleur, et voit en plus DÉPARTS, RAPPORT FINANCIER, STATISTIQUES et
   RÉGLAGES. Seule la case MAINTENANCE (passe-partout) reste à Cobey —
   comme pour Issyaka.
+- **Notifications sur le téléphone** — *partie application faite le 26/09
+  (v3.87.0 / v2.3.0). Reste l'envoi, à installer chez Cloudflare.*
+
+  Trois notifications retenues : un colis qui attend depuis plus de 30
+  jours (Direction + Bureau), un paiement encaissé (Direction + Cobey), un
+  camion qui a fini sa tournée (Direction). Chacun ne reçoit que ce qui
+  concerne son espace.
+
+  **Fait :** manifeste, service worker (sans aucun cache, pour ne jamais
+  bloquer l'équipe sur une vieille version), demande d'autorisation,
+  abonnement rangé dans `dct_push/<téléphone>`, bandeau qui explique aux
+  iPhone qu'il faut d'abord ajouter l'application à l'écran d'accueil.
+
+  **Reste à faire :**
+  1. Cobey crée un compte Cloudflare (gratuit, sans carte).
+  2. Y déposer la clé privée VAPID — *elle est dans le message du 26/09,
+     à ne jamais mettre dans le code*.
+  3. Écrire le programme qui lit Firebase toutes les minutes et envoie.
+
+  *Non testable ici : la souscription réelle exige de joindre le service
+  de Google, bloqué dans l'environnement de développement. À vérifier sur
+  un vrai téléphone.*
+
 - ~~**L'écran de connexion était froid.**~~
   **Fait le 26/09 (v3.84.0 / v2.0.0).** Cobey : « je la trouve pas très
   esthétique […] assez froid en fait. Il n'y a pas de modèle de design ? ».

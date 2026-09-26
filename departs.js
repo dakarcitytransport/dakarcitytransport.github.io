@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.2.2';
+var DEP_VERSION = 'v2.3.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5193,6 +5193,10 @@ window.depRenderEspaces = function(){
         : '&Eacute;quipe, acc&egrave;s, donn&eacute;es&hellip;';
     }
   }
+
+  // v2.3.0 : le bandeau des notifications, au-dessus des cases. Il ne
+  // s'affiche que s'il reste quelque chose à faire.
+  try{ if(typeof _depMajBandeauNotifs === 'function') _depMajBandeauNotifs(); }catch(e){}
 
   // Case STATISTIQUES (v1.19.9)
   if(_voit('stats')){
@@ -13461,6 +13465,11 @@ function greffer(){
         depMajBoutonEspaces();
         depRenderEspaces();
         goTo('s-espaces');
+        /* v2.3.0 : on rattache l'abonnement aux notifications à la
+           personne qui vient de se connecter. Sans ça, un téléphone
+           partagé continuerait d'envoyer les notifications du
+           précédent. */
+        try{ _depRattacherAbonnement(); }catch(e){}
       }catch(e){}
     };
     window._finalisLoginCore._depPatch = true;
@@ -18794,6 +18803,10 @@ function injecterIconeAccueil(){
 function demarrer(){
   try{ injecterStyles(); }catch(e){ console.error('departs: styles', e); }
   try{ injecterIconeAccueil(); }catch(e){ console.error('departs: icône accueil', e); }
+  // v2.3.0 : sans manifeste, ni Android ni iPhone ne proposent
+  // d'installer l'application — et sans installation, pas de
+  // notifications sur iPhone.
+  try{ _depPoserManifeste(); }catch(e){ console.error('departs: manifeste', e); }
   try{ injecterEcrans(); }catch(e){ console.error('departs: écrans', e); }
   try{ injecterChampsClient(); }catch(e){ console.error('departs: champs', e); }
   try{ injecterChampsClientFrance(); }catch(e){ console.error('departs: champs france', e); }
@@ -19109,5 +19122,247 @@ window.renderAdminAlertes = function(){
   if(!sec) return;
   sec.innerHTML = _htmlAlertes();
 };
+
+
+/* ═══════════════════════════════════════════════════════════
+   v2.3.0 — NOTIFICATIONS SUR LE TÉLÉPHONE
+
+   Cobey, le 26/09/2026 : « c'est possible d'avoir des notifications push
+   de l'appli ? ». Jusqu'ici l'application ne savait prévenir que pendant
+   qu'elle était ouverte — une pastille rouge que personne ne voit si le
+   téléphone est dans la poche.
+
+   Comment ça marche, en clair :
+
+     1. le téléphone demande au navigateur un « abonnement » — une adresse
+        personnelle à laquelle on peut lui envoyer un message ;
+     2. cette adresse est rangée dans Firebase, à côté du nom de la
+        personne connectée ;
+     3. un petit programme chez Cloudflare (gratuit, sans carte) regarde
+        toutes les minutes s'il s'est passé quelque chose, retrouve qui
+        est concerné, et envoie à leurs adresses ;
+     4. sw.js attrape le message sur le téléphone et affiche la
+        notification, même application fermée.
+
+   Ce fichier ne fait que les points 1 et 2. La clé publique ci-dessous
+   n'est pas un secret : elle sert à chiffrer, et c'est la clé privée —
+   qui reste chez Cloudflare — qui permet d'envoyer. La publier ici est
+   la façon normale de procéder.
+
+   Sur iPhone, rien ne marchera tant que l'application n'a pas été ajoutée
+   à l'écran d'accueil : Apple l'impose, aucune ligne de code ne contourne
+   ça. D'où le bandeau qui l'explique, plutôt qu'un silence inexpliqué.
+   ═══════════════════════════════════════════════════════════ */
+
+var DEP_VAPID_PUBLIQUE = 'BA_ZoZeRbLL6oY8upT2gfESS3SbaqgHY-s1OafuI2ZuuiJeLV2_63zFpiEDO6uVq3qZgThDe6m-9sdykectvJEw';
+
+// La clé voyage en base64 « URL », le navigateur la veut en octets.
+function _depCleEnOctets(base64){
+  var p = '='.repeat((4 - base64.length % 4) % 4);
+  var b = (base64 + p).replace(/-/g, '+').replace(/_/g, '/');
+  var brut = atob(b), out = new Uint8Array(brut.length);
+  for(var i = 0; i < brut.length; i++) out[i] = brut.charCodeAt(i);
+  return out;
+}
+
+/* Deux abonnements du même téléphone doivent se remplacer, pas s'empiler.
+   L'adresse d'abonnement est longue et pleine de caractères interdits
+   dans une clé Firebase : on en fait une empreinte courte et stable. */
+function _depEmpreinte(t){
+  var h = 5381;
+  for(var i = 0; i < t.length; i++){ h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; }
+  return 'a' + h.toString(36);
+}
+
+function _depSurIPhone(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent || '')
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+// « Installée » = ajoutée à l'écran d'accueil, et lancée depuis là.
+function _depAppInstallee(){
+  try{
+    return window.navigator.standalone === true
+        || window.matchMedia('(display-mode: standalone)').matches;
+  }catch(e){ return false; }
+}
+
+/* L'état, pour savoir quoi proposer : 'ok', 'a-activer', 'refuse',
+   'ajouter-ecran-accueil' (iPhone), ou 'impossible'. */
+function _depEtatNotifs(){
+  if(_depSurIPhone() && !_depAppInstallee()) return 'ajouter-ecran-accueil';
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return 'impossible';
+  if(typeof Notification === 'undefined') return 'impossible';
+  if(Notification.permission === 'granted') return 'ok';
+  if(Notification.permission === 'denied') return 'refuse';
+  return 'a-activer';
+}
+window._depEtatNotifs = _depEtatNotifs;
+
+function _depPoserManifeste(){
+  try{
+    if(document.querySelector('link[rel="manifest"]')) return;
+    var l = document.createElement('link');
+    l.rel = 'manifest';
+    l.href = './manifest.json';
+    document.head.appendChild(l);
+  }catch(e){}
+}
+
+var _depSWPret = null;
+
+function _depEnregistrerSW(){
+  if(_depSWPret) return _depSWPret;
+  if(!('serviceWorker' in navigator)) return Promise.reject(new Error('pas de service worker'));
+  _depSWPret = navigator.serviceWorker.register('./sw.js', { scope: './' });
+  return _depSWPret;
+}
+
+/* Ranger l'abonnement dans Firebase.
+
+   La fiche est rangée sous le TÉLÉPHONE (l'empreinte de son adresse
+   d'abonnement), et non sous la personne — la personne n'est qu'un champ
+   à l'intérieur. La première version faisait l'inverse, et le test l'a
+   attrapée : quand Issyaka reprenait le téléphone d'Aminata, une fiche
+   « Issyaka » se créait mais celle d'Aminata restait. L'appareil aurait
+   reçu les notifications du Bureau ET de la Direction.
+
+   Un téléphone, une fiche : se reconnecter avec un autre profil ne fait
+   que réécrire le nom dedans. */
+function _depRangerAbonnement(ab){
+  var u = window.currentUser || {};
+  if(!u.id || !window.db) return Promise.resolve();
+  var j = (ab && ab.toJSON) ? ab.toJSON() : {};
+  var cles = j.keys || {};
+  var fiche = {
+    adresse : ab.endpoint,
+    p256dh  : cles.p256dh || '',
+    auth    : cles.auth || '',
+    collab  : u.id,
+    nom     : u.name || '',
+    espace  : (typeof window._depEspaceDe === 'function') ? window._depEspaceDe(u) : '',
+    majLe   : Date.now()
+  };
+  return window.db.ref('dct_push/' + _depEmpreinte(ab.endpoint)).set(fiche);
+}
+window._depRangerAbonnement = _depRangerAbonnement;
+
+/* Demander l'autorisation, puis s'abonner. Appelé depuis un bouton, et
+   jamais au chargement : un navigateur refuse la demande hors geste de
+   l'utilisateur, et une demande surgie de nulle part se fait refuser par
+   les gens eux-mêmes — un refus est ensuite très difficile à rattraper. */
+window.depActiverNotifs = function(){
+  var etat = _depEtatNotifs();
+  if(etat === 'ajouter-ecran-accueil'){
+    toast('📱 Ajoutez d\'abord l\'application à votre écran d\'accueil.');
+    return;
+  }
+  if(etat === 'impossible'){
+    toast('⛔ Ce téléphone ne gère pas les notifications.');
+    return;
+  }
+  if(etat === 'refuse'){
+    toast('🔕 Vous les avez refusées. Réglages du téléphone → Notifications.');
+    return;
+  }
+  Notification.requestPermission().then(function(rep){
+    if(rep !== 'granted'){
+      toast('🔕 Notifications refusées.');
+      _depMajBandeauNotifs();
+      return;
+    }
+    return _depEnregistrerSW().then(function(reg){
+      return reg.pushManager.getSubscription().then(function(dejaLa){
+        return dejaLa || reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: _depCleEnOctets(DEP_VAPID_PUBLIQUE)
+        });
+      });
+    }).then(function(ab){
+      return _depRangerAbonnement(ab);
+    }).then(function(){
+      toast('🔔 Notifications activées.');
+      _depMajBandeauNotifs();
+    });
+  }).catch(function(e){
+    console.error('departs: activation notifications', e);
+    toast('❌ Échec de l\'activation, réessayez.');
+  });
+};
+
+/* À chaque connexion : si l'autorisation est déjà donnée, on rafraîchit
+   l'abonnement en silence. Sans ça, une personne qui change de profil sur
+   le même téléphone continuerait de recevoir les notifications de
+   l'ancienne. */
+function _depRattacherAbonnement(){
+  try{
+    if(_depEtatNotifs() !== 'ok') return;
+    _depEnregistrerSW().then(function(reg){
+      return reg.pushManager.getSubscription();
+    }).then(function(ab){
+      if(ab) return _depRangerAbonnement(ab);
+    }).catch(function(e){ console.warn('departs: rattachement abonnement', e); });
+  }catch(e){}
+}
+window._depRattacherAbonnement = _depRattacherAbonnement;
+
+/* Le bandeau sur l'écran des cases. Il ne s'affiche que s'il y a quelque
+   chose à faire, et disparaît dès que c'est réglé. */
+function _depHtmlBandeauNotifs(){
+  var etat = _depEtatNotifs();
+  if(etat === 'ok' || etat === 'impossible') return '';
+
+  var fond, bord, coul, titre, sous, action = '';
+  if(etat === 'ajouter-ecran-accueil'){
+    fond = '#EAF1FB'; bord = '#1565C0'; coul = '#0D47A1';
+    titre = '&#128241; Ajoutez l\'application &agrave; votre &eacute;cran d\'accueil';
+    sous  = 'Sur iPhone, les notifications ne fonctionnent qu\'ainsi. Bouton Partager, '
+          + 'puis &laquo;&nbsp;Sur l\'&eacute;cran d\'accueil&nbsp;&raquo;.';
+  } else if(etat === 'refuse'){
+    fond = '#FDECEC'; bord = '#c0392b'; coul = '#992020';
+    titre = '&#128277; Notifications refus&eacute;es';
+    sous  = 'Pour les r&eacute;activer&nbsp;: r&eacute;glages du t&eacute;l&eacute;phone, puis Notifications.';
+  } else {
+    fond = '#EAF7EE'; bord = '#009A44'; coul = '#006b2d';
+    titre = '&#128276; Activer les notifications';
+    sous  = 'Pour &ecirc;tre pr&eacute;venu m&ecirc;me quand l\'application est ferm&eacute;e.';
+    action = '<div onclick="depActiverNotifs()" style="margin-top:9px;background:#009A44;color:#fff;'
+      + 'border:2px solid #006b2d;border-radius:9px;padding:9px 14px;font-size:13.5px;'
+      + 'font-weight:800;cursor:pointer;text-align:center;">Activer</div>';
+  }
+
+  return '<div id="dep-bandeau-notifs" style="background:' + fond + ';border:1.5px solid ' + bord + ';'
+    + 'border-radius:12px;padding:12px 13px;margin-bottom:14px;">'
+    + '<div style="font-size:13.5px;font-weight:800;color:' + coul + ';">' + titre + '</div>'
+    + '<div style="font-size:11.5px;color:' + coul + ';opacity:.85;margin-top:3px;line-height:1.4;">'
+    +   sous + '</div>'
+    + action
+    + '</div>';
+}
+
+function _depMajBandeauNotifs(){
+  try{
+    var vieux = document.getElementById('dep-bandeau-notifs');
+    if(vieux && vieux.parentNode) vieux.parentNode.removeChild(vieux);
+    var html = _depHtmlBandeauNotifs();
+    if(!html) return;
+    var grille = document.querySelector('#s-espaces .dep-cases');
+    if(!grille || !grille.parentNode) return;
+    var d = document.createElement('div');
+    d.innerHTML = html;
+    grille.parentNode.insertBefore(d.firstChild, grille);
+  }catch(e){ console.warn('departs: bandeau notifications', e); }
+}
+window._depMajBandeauNotifs = _depMajBandeauNotifs;
+
+// Le service worker prévient quand le navigateur a renouvelé l'abonnement
+// de lui-même : on le réenregistre aussitôt.
+try{
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.addEventListener('message', function(e){
+      if(e && e.data && e.data.dct === 'abonnement-a-refaire') _depRattacherAbonnement();
+    });
+  }
+}catch(e){}
 
 })();
