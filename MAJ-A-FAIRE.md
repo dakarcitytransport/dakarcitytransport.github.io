@@ -118,6 +118,19 @@ un prestataire.
   Vérifié en conditions réelles par Cobey : connexion normale, lien
   chauffeur et facture fonctionnent toujours.
 
+  **Oublié dans ce tour d'horizon, découvert par Cobey en vrai :** un
+  quatrième point d'entrée — `cloudflare-worker.js`, qui tourne à part,
+  sans jamais ouvrir l'application. Il parlait à Firebase par simples
+  requêtes, sans la moindre connexion : dès les règles resserrées, ses
+  lectures/écritures ont commencé à échouer (« j'ai envoyé une
+  notification, rien reçu après trois minutes »). Corrigé (v1.3.0) :
+  connexion anonyme réécrite en requêtes brutes (le fichier n'a pas le
+  SDK Firebase) — voir `jetonAuth` — avec le jeton gardé en mémoire et
+  réutilisé tant qu'il reste valable, pour ne pas créer un nouvel
+  utilisateur anonyme à chaque réveil du minuteur. **À recoller chez
+  Cloudflare** (Overview → Edit code → coller le fichier à jour →
+  Deploy), sinon les notifications restent bloquées.
+
 - ~~**Ablaye** passe administrateur, comme Issyaka.~~
   **Fait le 24/09 (v1.55.0).** Abdoulaye (AB) rejoint la direction, aux
   mêmes conditions qu'Issyaka : il garde son profil, son PIN et sa

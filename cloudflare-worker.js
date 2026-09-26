@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.2.0 · 26/09/2026
+   v1.3.0 · 26/09/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -47,8 +47,8 @@
      VAPID_PUBLIC   la clé publique (la même que dans departs.js)
      VAPID_PRIVATE  la clé privée — À GARDER SECRÈTE, type « Secret »
      CONTACT        une adresse mail, exigée par les services d'envoi
-   Et une quatrième, seulement si la base Firebase est protégée :
-     FIREBASE_SECRET
+   Rien à régler pour Firebase : ce fichier se connecte tout seul, en
+   anonyme (voir jetonAuth ci-dessous), la même façon que l'application.
    ═══════════════════════════════════════════════════════════ */
 
 const BASE = 'https://dakar-collecte-default-rtdb.europe-west1.firebasedatabase.app';
@@ -86,21 +86,61 @@ async function hmac(cle, donnees){
   return new Uint8Array(await crypto.subtle.sign('HMAC', k, donnees));
 }
 
+/* ─── Connexion anonyme à Firebase (v1.3.0) ───
+
+   Cobey, le 26/09/2026, juste après avoir resserré les règles de la
+   base (« auth != null » en lecture et en écriture, voir
+   MAJ-A-FAIRE.md) : une notification envoyée n'arrivait plus. Cause :
+   ce fichier parlait à Firebase sans jamais s'identifier — l'ancienne
+   variable FIREBASE_SECRET (un « secret de base de données », une
+   fonctionnalité que Google retire des projets Firebase depuis
+   plusieurs années) n'a jamais été réglée, et de toute façon rien ne
+   garantit qu'elle existe encore sur ce projet.
+
+   Le vrai correctif : la même connexion anonyme que fait déjà
+   l'application elle-même (_depConnexionAnonyme, departs.js), mais
+   réécrite ici en simples requêtes — ce fichier n'a pas le SDK
+   Firebase, seulement fetch(). API_KEY n'est pas un secret : c'est la
+   même clé déjà visible dans le code de l'application
+   (dct-app.html, firebaseConfig.apiKey) — elle identifie le projet,
+   elle n'autorise rien à elle seule, tout le contrôle se fait par les
+   règles Firebase. Le jeton obtenu est gardé en mémoire et réutilisé
+   tant qu'il reste valable (une heure), pour ne pas créer un nouvel
+   utilisateur anonyme à chaque réveil du minuteur. */
+
+const API_KEY = 'AIzaSyCs7oTZAG8vzhqY3rSEqCnwSnQY8hm_f2A';
+
+let _jeton = { valeur: '', expire: 0 };
+
+async function jetonAuth(){
+  // 60s de marge, pour ne jamais partir avec un jeton sur le point d'expirer.
+  if(_jeton.valeur && Date.now() < _jeton.expire - 60000) return _jeton.valeur;
+  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + API_KEY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ returnSecureToken: true })
+  });
+  if(!r.ok) throw new Error('connexion Firebase anonyme : ' + r.status);
+  const j = await r.json();
+  _jeton = { valeur: j.idToken, expire: Date.now() + Number(j.expiresIn || 3600) * 1000 };
+  return _jeton.valeur;
+}
+
 /* ─── Firebase, par son interface web ─── */
 
-function url(chemin, env){
-  const a = env.FIREBASE_SECRET ? ('?auth=' + encodeURIComponent(env.FIREBASE_SECRET)) : '';
-  return BASE + '/' + chemin + '.json' + a;
+async function url(chemin){
+  const jeton = await jetonAuth();
+  return BASE + '/' + chemin + '.json?auth=' + encodeURIComponent(jeton);
 }
 
 async function lire(chemin, env){
-  const r = await fetch(url(chemin, env));
+  const r = await fetch(await url(chemin));
   if(!r.ok) throw new Error('lecture ' + chemin + ' : ' + r.status);
   return (await r.json()) || {};
 }
 
 async function ecrire(chemin, valeur, env){
-  await fetch(url(chemin, env), {
+  await fetch(await url(chemin), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(valeur)
@@ -108,7 +148,7 @@ async function ecrire(chemin, valeur, env){
 }
 
 async function effacer(chemin, env){
-  await fetch(url(chemin, env), { method: 'DELETE' });
+  await fetch(await url(chemin), { method: 'DELETE' });
 }
 
 /* ─── La signature VAPID ───
@@ -412,4 +452,4 @@ export default {
 /* Exporté uniquement pour la vérification automatique : Cloudflare ne
    lit que l'export par défaut ci-dessus. */
 export { chiffrer, jeton, b64urlVersOctets, octetsVersB64url, vider,
-         plProchainsDimanches, plDatesCles, traitePlanning };
+         plProchainsDimanches, plDatesCles, traitePlanning, jetonAuth };
