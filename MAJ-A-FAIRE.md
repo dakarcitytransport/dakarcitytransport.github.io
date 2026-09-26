@@ -73,6 +73,41 @@ un prestataire.
   Volontairement en dehors des compteurs « X dispo / X non » de l'équipe
   fixe, pour ne pas les rendre illisibles d'une semaine à l'autre.
 
+- ~~**Le délai de réponse : jeudi 22h, sinon absent d'office.**~~ *Fait le
+  26/09 (v3.90.0 / v2.6.0 côté application ; v1.1.0 côté Cloudflare — à
+  recoller chez Cloudflare pour que les rappels et le couperet partent
+  réellement, voir plus bas).* Cobey : « si le collaborateur n'a pas
+  répondu avant le jeudi 22h précédent le dimanche, il ne pourra plus
+  répondre et sera considéré comme absent, seuls les admins pourront
+  modifier ça ! […] des notifications push automatique avant et après
+  l'heure de 22h ». Puis, en cours de route : « notification le lundi
+  également pour rappeler de valider leur disponibilité pour le dimanche
+  en cours ».
+
+  **Le délai lui-même** (application) : passé jeudi 22h, plus aucun
+  bouton pour un collaborateur — sa fiche affiche son statut final
+  (« Noté disponible » / « Noté absent » / « Absent d'office » s'il n'a
+  rien mis) et un mot expliquant que seule la direction peut encore
+  changer ça. Avant l'échéance, un rappel du délai s'affiche tant qu'il
+  n'a pas répondu. Direction + Aminata gardent la main à tout moment,
+  verrouillé ou non — un badge « 🔒 verrouillé » le leur signale dans
+  L'équipe.
+
+  **Les rappels et le couperet** (Cloudflare, tourne même appli fermée) :
+  trois rappels à ceux qui n'ont encore rien mis — lundi 9h, mercredi
+  20h, jeudi 18h — puis, jeudi 22h passé, une fiche « absent » écrite
+  d'office pour les silencieux et une notification de statut final
+  (disponible ou absent) envoyée à chacun des cinq, pas seulement aux
+  absents. Ce fichier ne connaît pas l'équipe par lui-même : l'application
+  lui laisse un mémo à jour (`dct_planning_participants`) chaque fois que
+  la case Planning s'affiche.
+
+  **Reste : recoller le fichier chez Cloudflare.** Comme à chaque
+  modification de `cloudflare-worker.js`, la version déjà collée ne
+  bouge pas toute seule — il faut recopier le fichier à jour depuis
+  GitHub et le recoller dans l'éditeur Cloudflare (Overview → Edit code),
+  puis Deploy.
+
 - ~~**La notification de relance amène directement sur Planning.**~~
   *Fait le 26/09 (v3.89.3 / v2.5.3).* Cobey : « comment ça sera quand
   l'équipe recevra les notifications de rappel ? ». En touchant la

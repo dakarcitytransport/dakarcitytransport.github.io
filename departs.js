@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.5.3';
+var DEP_VERSION = 'v2.6.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19596,6 +19596,39 @@ function _depProchainsDimanches(n){
   return out;
 }
 
+/* ═══ v2.6.0 — LE DÉLAI DE RÉPONSE : JEUDI 22H ═══
+
+   Cobey, le 26/09/2026 : « si le collaborateur n'a pas répondu avant le
+   jeudi 22h précédent le dimanche, il ne pourra plus répondre et sera
+   considéré comme absent, seuls les admins pourront modifier ça ». Avant
+   ce délai, Issyaka pouvait relancer sans certitude de réponse ; passé
+   22h le jeudi, le planning doit être figé pour qu'il décide s'il faut
+   des chauffeurs externes, sans attendre une réponse qui ne viendra
+   peut-être jamais.
+
+   Calculé en UTC exprès : Dakar est à l'heure UTC toute l'année (pas de
+   changement d'heure), donc une date construite ainsi vaut la même chose
+   quelle que soit l'heure réglée sur le téléphone qui l'affiche — pas de
+   décalage possible d'un appareil à l'autre. */
+function _depPlEcheance(iso){
+  var dimanche = new Date(iso + 'T00:00:00Z');
+  // dimanche 00h − 3 jours = jeudi 00h ; + 22h = jeudi 22h.
+  return new Date(dimanche.getTime() - 3 * 86400000 + 22 * 3600000);
+}
+
+function _depPlVerrouille(iso){
+  return Date.now() >= _depPlEcheance(iso).getTime();
+}
+window._depPlVerrouille = _depPlVerrouille;
+
+// « jeudi 24 septembre à 22h » — affiché à ceux qui n'ont pas encore
+// répondu, pour qu'ils voient venir le délai avant de le découvrir trop
+// tard.
+function _depPlLibelleEcheance(iso){
+  var e = _depPlEcheance(iso);
+  return 'jeudi ' + e.getUTCDate() + ' ' + DEP_PL_MOIS[e.getUTCMonth()] + ' &agrave; 22h';
+}
+
 // La collecte déjà créée pour ce dimanche, s'il y en a une. Les dates de
 // collecte sont écrites en toutes lettres — on compare sur le jour.
 function _depCollecteDuJour(dim){
@@ -19663,6 +19696,12 @@ window.depPlanningPoser = function(iso, dispo){
   var u = window.currentUser || {};
   if(!u.id){ toast('❌ Reconnectez-vous.'); return; }
   if(!window.db){ toast('❌ Pas de connexion.'); return; }
+  // v2.6.0 : passé jeudi 22h, seule la direction (et Aminata) peut encore
+  // toucher une réponse — voir _depPlEcheance.
+  if(_depPlVerrouille(iso) && !_depPeutOrganiserPlanning()){
+    toast('⛔ D&eacute;lai d&eacute;pass&eacute; (jeudi 22h). Voyez la direction.');
+    return;
+  }
   var champ = document.getElementById('pl-mot-' + iso);
   var mot = champ ? (champ.value || '').trim().slice(0, 140) : '';
   db.ref('dct_planning/' + iso + '/' + u.id).set({
@@ -19687,6 +19726,10 @@ window.depPlanningPoser = function(iso, dispo){
 window.depPlanningRetirer = function(iso){
   var u = window.currentUser || {};
   if(!u.id || !window.db){ toast('❌ Pas de connexion.'); return; }
+  if(_depPlVerrouille(iso) && !_depPeutOrganiserPlanning()){
+    toast('⛔ D&eacute;lai d&eacute;pass&eacute; (jeudi 22h). Voyez la direction.');
+    return;
+  }
   db.ref('dct_planning/' + iso + '/' + u.id).remove().then(function(){
     toast('↩️ R&eacute;ponse retir&eacute;e.');
     depRenderPlanning();
@@ -19943,6 +19986,7 @@ function _depPlanningBlocMien(dim){
   var u = window.currentUser || {};
   var r = _depDispoDe(dim.iso, u.id);
   var col = _depCollecteDuJour(dim);
+  var verrouille = _depPlVerrouille(dim.iso);
   var choisi = function(oui){
     var actif = r && r.dispo === oui;
     var vert = 'background:#009A44;color:#fff;border:2px solid #006b2d;';
@@ -19953,6 +19997,51 @@ function _depPlanningBlocMien(dim){
       + 'font-weight:800;cursor:pointer;' + (actif ? (oui ? vert : rouge) : creux);
   };
 
+  // v2.6.0 : passé jeudi 22h, plus aucun bouton — juste le statut final,
+  // qu'il vienne d'une réponse donnée à temps ou d'une absence d'office
+  // (Cobey, le 26/09/2026 : « il ne pourra plus répondre et sera
+  // considéré comme absent »).
+  var corps;
+  if(verrouille){
+    var dispoFinal = !!(r && r.dispo);
+    var auto = !!(r && r.auto);
+    corps = '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;'
+      + 'background:' + (dispoFinal ? '#EAF7EF' : '#FBEAEA') + ';'
+      + 'border:1.5px solid ' + (dispoFinal ? '#009A44' : '#c0392b') + ';">'
+      + '<div style="font-weight:800;font-size:13.5px;color:'
+      +   (dispoFinal ? '#006b2d' : '#922b21') + ';">'
+      +   (dispoFinal ? '&#9989; Not&eacute; disponible'
+          : (auto ? '&#9940; Not&eacute; absent d\'office (pas de r&eacute;ponse &agrave; temps)'
+                  : '&#10060; Not&eacute; absent'))
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:4px;">'
+      +   'D&eacute;lai du ' + _depPlLibelleEcheance(dim.iso) + ' pass&eacute; &mdash; '
+      +   'seule la direction peut encore changer &ccedil;a.'
+      + '</div>'
+      + '</div>';
+  } else {
+    corps = '<input class="fi" id="pl-mot-' + dim.iso + '" maxlength="140" value="'
+      +   esc((r && r.mot) || '') + '" placeholder="Un mot, si besoin (facultatif)" '
+      +   'style="margin:10px 0 9px;font-size:13px;">'
+      + '<div style="display:flex;gap:9px;">'
+      +   '<div onclick="depPlanningPoser(\'' + dim.iso + '\',true)" style="' + choisi(true) + '">'
+      +     'Disponible</div>'
+      +   '<div onclick="depPlanningPoser(\'' + dim.iso + '\',false)" style="' + choisi(false) + '">'
+      +     'Pas dispo</div>'
+      + '</div>'
+      // v2.4.2 : le seul moyen de revenir à « rien mis » — avant, une fois
+      // Oui ou Non choisi, on ne pouvait plus que basculer de l'un à
+      // l'autre.
+      + (r ? ('<div onclick="depPlanningRetirer(\'' + dim.iso + '\')" style="text-align:center;'
+          + 'margin-top:8px;font-size:12px;font-weight:700;color:var(--text3);cursor:pointer;'
+          + 'text-decoration:underline;">&#8617; Retirer ma r&eacute;ponse</div>') : '')
+      // v2.6.0 : le rappel du délai, tant qu'il n'a pas encore répondu —
+      // pour ne pas le laisser découvrir la règle une fois trop tard.
+      + (!r ? ('<div style="text-align:center;margin-top:9px;font-size:11px;'
+          + 'color:#8a5a00;font-weight:700;">&#9203; Dernier d&eacute;lai : '
+          + _depPlLibelleEcheance(dim.iso) + '</div>') : '');
+  }
+
   return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:13px;'
     +   'padding:13px 14px;margin-bottom:10px;">'
     + '<div style="display:flex;align-items:baseline;gap:8px;">'
@@ -19961,24 +20050,10 @@ function _depPlanningBlocMien(dim){
     +   (col ? '<span style="font-size:10.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
     +     'padding:2px 8px;border-radius:20px;">collecte cr&eacute;&eacute;e</span>' : '')
     + '</div>'
-    + (r ? ('<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;">'
+    + (r && !verrouille ? ('<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;">'
         + (r.mot ? ('&laquo;&nbsp;' + esc(r.mot) + '&nbsp;&raquo; &mdash; ') : '')
         + _depPlQuiEtQuand(r, false) + '</div>') : '')
-    + '<input class="fi" id="pl-mot-' + dim.iso + '" maxlength="140" value="'
-    +   esc((r && r.mot) || '') + '" placeholder="Un mot, si besoin (facultatif)" '
-    +   'style="margin:10px 0 9px;font-size:13px;">'
-    + '<div style="display:flex;gap:9px;">'
-    +   '<div onclick="depPlanningPoser(\'' + dim.iso + '\',true)" style="' + choisi(true) + '">'
-    +     'Disponible</div>'
-    +   '<div onclick="depPlanningPoser(\'' + dim.iso + '\',false)" style="' + choisi(false) + '">'
-    +     'Pas dispo</div>'
-    + '</div>'
-    // v2.4.2 : le seul moyen de revenir à « rien mis » — avant, une fois
-    // Oui ou Non choisi, on ne pouvait plus que basculer de l'un à
-    // l'autre.
-    + (r ? ('<div onclick="depPlanningRetirer(\'' + dim.iso + '\')" style="text-align:center;'
-        + 'margin-top:8px;font-size:12px;font-weight:700;color:var(--text3);cursor:pointer;'
-        + 'text-decoration:underline;">&#8617; Retirer ma r&eacute;ponse</div>') : '')
+    + corps
     + '</div>';
 }
 
@@ -19991,6 +20066,10 @@ function _depPlanningBlocEquipe(dim){
     var ic, coul, txt;
     if(!r){ ic = '&#9203;'; coul = '#8a8a8a'; txt = 'rien mis'; }
     else if(r.dispo){ ic = '&#9989;'; coul = '#006b2d'; txt = 'Disponible' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
+    // v2.6.0 : distingue une absence choisie d'une absence d'office,
+    // faute d'avoir répondu avant jeudi 22h — sinon on croirait que la
+    // personne a explicitement dit non.
+    else if(r.auto){ ic = '&#9940;'; coul = '#992020'; txt = 'Absent d\'office (pas r&eacute;pondu &agrave; temps)'; }
     else { ic = '&#10060;'; coul = '#992020'; txt = 'Pas dispo' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
     // v2.4.2 : la date et l'heure de la réponse, pas seulement ce qui a
     // été répondu. v2.5.0 : « modifié par X » quand ce n'est pas la
@@ -20123,6 +20202,10 @@ function _depPlanningBlocEquipe(dim){
     +   (c.muets.length ? '<span style="font-size:11.5px;font-weight:800;color:#8a5a00;'
     +     'background:#fff3cd;padding:3px 10px;border-radius:20px;">'
     +     c.muets.length + ' sans r&eacute;ponse</span>' : '')
+    // v2.6.0 : pour que Direction et Aminata voient d'un coup d'œil que
+    // ce dimanche est figé — plus personne ne peut répondre lui-même.
+    +   (_depPlVerrouille(dim.iso) ? '<span style="font-size:11.5px;font-weight:800;color:#555;'
+    +     'background:#e8e8e8;padding:3px 10px;border-radius:20px;">&#128274; verrouill&eacute;</span>' : '')
     + '</div>'
     + boutonModif
     + lignes
@@ -20164,6 +20247,25 @@ window.depRenderPlanning = function(){
     h += dims.map(_depPlanningBlocEquipe).join('');
   }
   box.innerHTML = h;
+  try{ _depMajParticipantsPourCloudflare(); }catch(e){}
 };
+
+/* v2.6.0 — Cloudflare ne connaît pas COLLABS : il n'a pas accès à
+   l'application, seulement à Firebase. Pour qu'il sache qui relancer le
+   lundi/mercredi/jeudi et qui rendre absent d'office à 22h, l'application
+   lui laisse un mémo à jour de qui fait partie du planning — écrit
+   chaque fois que la case Planning s'affiche, donc rafraîchi dès que
+   quelqu'un l'ouvre. N'écrit que si la liste a changé, pour ne pas
+   solliciter Firebase à chaque rendu. */
+var _depPlanningMemoEnvoye = '';
+function _depMajParticipantsPourCloudflare(){
+  if(!window.db) return;
+  var memo = {};
+  _depGensPlanning().forEach(function(c){ memo[c.id] = { nom: c.name || '' }; });
+  var json = JSON.stringify(memo);
+  if(json === _depPlanningMemoEnvoye) return;
+  _depPlanningMemoEnvoye = json;
+  db.ref('dct_planning_participants').set(memo);
+}
 
 })();
