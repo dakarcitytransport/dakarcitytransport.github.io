@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.0.0';
+var DEP_VERSION = 'v2.2.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2829,7 +2829,7 @@ function injecterStyles(){
     // masque, le numéro de version du module juste en dessous suffit.
     + '#app-update{display:none !important;}'
 
-    /* ═══════ v2.0.0 — L'ÉCRAN DE CONNEXION, HABILLÉ ═══════
+    /* ═══════ v2.2.0 — L'ÉCRAN D'ACCUEIL, HABILLÉ ═══════
 
        Cobey, le 26/09/2026 : « je la trouve pas très esthétique […] assez
        froid en fait. Il n'y a pas de modèle de design ? ». Il n'y en avait
@@ -2838,66 +2838,46 @@ function injecterStyles(){
        immeuble, un camion, tous dessinés dans un style différent puisque
        chaque plateforme fabrique les siens.
 
-       D'où un fond de nuit qui met le logo en valeur (il est vif, coloré,
-       c'est la seule chose de l'écran qui porte la marque), des cartes en
-       couleur pleine plutôt que blanches, et des icônes dessinées d'un
-       même trait. Les couleurs restent celles déjà attribuées à chaque
-       espace : on habille, on ne renomme rien.
+       D'où des cartes en couleur pleine plutôt que blanches, des icônes
+       dessinées d'un même trait, et le drapeau du Sénégal sous le nom. Les
+       couleurs restent celles déjà attribuées à chaque espace : on
+       habille, on ne renomme rien.
 
-       Tout est sous .dep-nuit, posé sur .login-screen : le reste de
+       v2.2.0 : le fond était passé en sombre, puis toute l'application
+       avec. Cobey a tranché : « laisse en clair pour le tout, même
+       l'accueil ». L'écran reprend donc le gris de l'application — une
+       seule couleur du début à la fin — et garde tout le reste.
+
+       Tout est sous .dep-clair, posé sur .login-screen : le reste de
        l'application n'est pas touché. */
-    + '.login-screen.dep-nuit{background:#0F1A24;position:relative;}'
-    + '.login-screen.dep-nuit::before{content:"";position:absolute;top:0;left:0;right:0;'
-    +   'height:330px;pointer-events:none;'
-    +   'background:radial-gradient(120% 100% at 50% 0%,#12603A 0%,rgba(15,26,36,0) 72%);}'
-    + '.login-screen.dep-nuit > *{position:relative;}'
-    + '.dep-nuit #dct-logo{border:3px solid rgba(255,255,255,.9);'
-    +   'box-shadow:0 10px 34px rgba(0,0,0,.45);}'
+    + '.login-screen.dep-clair{background:var(--bg);}'
+    + '.dep-clair #dct-logo{box-shadow:0 6px 22px rgba(0,0,0,.13);}'
     // Le drapeau sous le nom : trois traits, rien de plus.
     + '.dep-drap{display:flex;gap:4px;justify-content:center;margin-top:12px;}'
     + '.dep-drap i{width:26px;height:3px;border-radius:2px;display:block;}'
     // Le drapeau ne fait que 3px de haut : sans cette marge, le titre
     // venait s'appuyer dessus.
-    + '.dep-nuit #login-titre{color:#7C8A99 !important;letter-spacing:.16em !important;'
-    +   'font-weight:700 !important;margin-top:20px !important;}'
+    + '.dep-clair #login-titre{letter-spacing:.16em !important;font-weight:700 !important;'
+    +   'margin-top:20px !important;}'
     // La carte d'un espace : couleur pleine, icône en médaillon.
-    + '.dep-nuit .dep-esp-c{display:flex;align-items:center;gap:15px;border-radius:20px;'
+    + '.dep-clair .dep-esp-c{display:flex;align-items:center;gap:15px;border-radius:20px;'
     +   'padding:17px 18px;margin-bottom:12px;cursor:pointer;'
-    +   'box-shadow:0 8px 22px rgba(0,0,0,.34);transition:transform .12s;}'
-    + '.dep-nuit .dep-esp-c:active{transform:scale(.975);}'
-    + '.dep-nuit .dep-esp-c-ic{width:52px;height:52px;border-radius:15px;flex:none;'
-    +   'display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.17);}'
-    + '.dep-nuit .dep-esp-c-t{font-size:17.5px;font-weight:800;color:#fff;letter-spacing:-.2px;}'
-    + '.dep-nuit .dep-esp-c-s{font-size:12.5px;color:rgba(255,255,255,.78);margin-top:2px;'
+    +   'box-shadow:0 5px 16px rgba(20,25,35,.16);transition:transform .12s;}'
+    + '.dep-clair .dep-esp-c:active{transform:scale(.975);}'
+    + '.dep-clair .dep-esp-c-ic{width:52px;height:52px;border-radius:15px;flex:none;'
+    +   'display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.2);}'
+    + '.dep-clair .dep-esp-c-t{font-size:17.5px;font-weight:800;color:#fff;letter-spacing:-.2px;}'
+    + '.dep-clair .dep-esp-c-s{font-size:12.5px;color:rgba(255,255,255,.85);margin-top:2px;'
     +   'font-weight:500;}'
-    + '.dep-nuit .dep-esp-c-n{font-size:11px;font-weight:800;color:rgba(255,255,255,.95);'
-    +   'background:rgba(0,0,0,.24);padding:3px 10px;border-radius:20px;margin-top:8px;'
+    + '.dep-clair .dep-esp-c-n{font-size:11px;font-weight:800;color:#fff;'
+    +   'background:rgba(0,0,0,.22);padding:3px 10px;border-radius:20px;margin-top:8px;'
     +   'display:inline-block;}'
-    /* Le deuxième niveau (les prénoms) vit sur le même fond : ses cartes
-       blanches y feraient une tache. Elles passent en verre dépoli. */
-    + '.dep-nuit .login-card{background:rgba(255,255,255,.07) !important;'
-    +   'border:1.5px solid rgba(255,255,255,.13) !important;border-radius:16px !important;'
-    +   'box-shadow:none !important;}'
-    + '.dep-nuit .login-card:active{background:rgba(255,255,255,.12) !important;}'
-    + '.dep-nuit .login-name{color:#fff !important;}'
-    + '.dep-nuit .login-role{color:rgba(255,255,255,.6) !important;}'
-    + '.dep-nuit #login-soc-nom{color:#fff !important;}'
-    + '.dep-nuit #login-soc-sous{color:rgba(255,255,255,.62) !important;}'
-    + '.dep-nuit #login-retour > div > div:first-child{background:rgba(255,255,255,.1) !important;'
-    +   'border-color:rgba(255,255,255,.2) !important;color:#fff !important;}'
-    + '.dep-nuit .dep-esp-mini{background:rgba(255,255,255,.07);'
-    +   'border:1.5px solid rgba(255,255,255,.13);}'
-    + '.dep-nuit .dep-esp-mini-ttl{color:#fff;}'
-    + '.dep-nuit .dep-esp-mini-sub{color:rgba(255,255,255,.6);}'
-    + '.dep-nuit .dep-esp-mini-badge{background:rgba(0,0,0,.28);color:rgba(255,255,255,.8);}'
-    + '.dep-nuit .dep-esp-section-lbl{color:#7C8A99;}'
-    + '.dep-nuit .dep-vide{color:rgba(255,255,255,.55);}'
     /* Les numéros de version trônaient au milieu de l'accueil. Ils
        descendent en bas, discrets : c'est une information de dépannage,
        pas un élément de bienvenue. */
-    + '.dep-nuit #app-version{background:transparent !important;color:#3E4A56 !important;'
+    + '.dep-clair #app-version{background:transparent !important;color:#b6b6b6 !important;'
     +   'order:99;margin-top:18px;padding:0 !important;font-size:10px !important;}'
-    + '.dep-nuit #dep-login-version{color:#3E4A56 !important;order:100;margin:2px 0 0 !important;}';
+    + '.dep-clair #dep-login-version{color:#c2c2c2 !important;order:100;margin:2px 0 0 !important;}';
   document.head.appendChild(s);
 }
 
@@ -13094,7 +13074,7 @@ function greffer(){
       if(sousTitre) sousTitre.textContent = 'Sénégal';
       // v2.0.0 : le libellé doit être posé avant l'habillage, qui le
       // repeint et glisse le drapeau juste en dessous.
-      _depHabillerLoginNuit();
+      _depHabillerLogin();
     }catch(e){}
   }
   // L'appel natif buildLogin() du tout premier chargement (avant que ce
@@ -13176,17 +13156,17 @@ function greffer(){
      style : une règle CSS ne peut pas les atteindre, on les repeint donc
      ici. Posé à chaque construction de l'écran, et sans effet la
      deuxième fois. */
-  function _depHabillerLoginNuit(){
+  function _depHabillerLogin(){
     try{
       var ecran = document.querySelector('.login-screen');
       if(!ecran) return;
-      ecran.classList.add('dep-nuit');
+      ecran.classList.add('dep-clair');
       var av = document.getElementById('app-version');
       var pays = av ? av.previousElementSibling : null;              // « Sénégal »
       var nom  = pays ? pays.previousElementSibling : null;          // « Dakar City Transport »
-      if(nom){ nom.style.color = '#fff'; }
+      if(nom){ nom.style.color = 'var(--text)'; }
       if(pays){
-        pays.style.color = '#8FCBAA';
+        pays.style.color = 'var(--text3)';
         pays.style.fontWeight = '600';
         pays.style.letterSpacing = '.14em';
         pays.style.textTransform = 'uppercase';
@@ -13287,7 +13267,7 @@ function greffer(){
       if(cards){ cards.innerHTML = ''; cards.style.display = 'none'; }
       if(!esp) return;
       esp.style.display = 'block';
-      _depHabillerLoginNuit();
+      _depHabillerLogin();
 
       var partenaires = SOCIETES.filter(function(s){ return s.id !== 'DCT' && s.id !== 'ADM'; });
 

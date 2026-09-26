@@ -36,11 +36,12 @@ un prestataire.
   esthétique […] assez froid en fait. Il n'y a pas de modèle de design ? ».
   Il n'y en avait aucun : quatre rectangles blancs identiques et des
   emojis pris au téléphone, dessinés dans quatre styles différents.
-  Trois maquettes proposées, **« Chaleur » retenue** : fond de nuit qui
-  met le logo en valeur, cartes en couleur pleine, icônes tracées d'un
-  même trait, drapeau du Sénégal sous le nom, et les numéros de version
-  descendus en bas — c'est du dépannage, pas de la bienvenue.
-  Le deuxième niveau (les prénoms) suit le même fond.
+  Trois maquettes proposées : cartes en couleur pleine, icônes tracées
+  d'un même trait, drapeau du Sénégal sous le nom, et les numéros de
+  version descendus en bas — c'est du dépannage, pas de la bienvenue.
+  Le fond est d'abord passé en sombre, puis toute l'application avec ;
+  Cobey a tranché le 26/09 : **tout reste en clair**, accueil compris,
+  une seule couleur du début à la fin (v3.86.0 / v2.2.0).
 
 - ~~**L'accueil s'allongeait** d'une case par personne.~~
   **Fait le 25/09 (v3.82.0 / v1.94.0).** Quatre espaces, nommés par le
