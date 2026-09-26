@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.8.0';
+var DEP_VERSION = 'v2.8.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20444,8 +20444,14 @@ function _depBioOctets(b64url){
   return out;
 }
 
+// v2.8.1 : Cobey, en se demandant ce qui s'affiche sur Android — bonne
+// remarque, « l'empreinte digitale » présumait à tort qu'aucun Android
+// n'utilise la reconnaissance faciale (certains le font). Un texte qui
+// ne mise pas sur laquelle des deux c'est : on laisse le téléphone lui
+// montrer son propre écran, on ne fait que le nommer sans deviner.
 function _depBioLibelle(){
-  return (typeof _depSurIPhone === 'function' && _depSurIPhone()) ? 'Face ID' : "l'empreinte digitale";
+  return (typeof _depSurIPhone === 'function' && _depSurIPhone())
+    ? 'Face ID' : 'le déverrouillage de votre téléphone';
 }
 
 // Tentée avant même d'ouvrir le clavier du PIN — seulement si CE
