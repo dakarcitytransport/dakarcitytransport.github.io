@@ -102,11 +102,16 @@ un prestataire.
   lui laisse un mémo à jour (`dct_planning_participants`) chaque fois que
   la case Planning s'affiche.
 
-  **Reste : recoller le fichier chez Cloudflare.** Comme à chaque
-  modification de `cloudflare-worker.js`, la version déjà collée ne
-  bouge pas toute seule — il faut recopier le fichier à jour depuis
-  GitHub et le recoller dans l'éditeur Cloudflare (Overview → Edit code),
-  puis Deploy.
+  *Recoll&eacute; chez Cloudflare le 26/09, v&eacute;rifi&eacute; en ouvrant l'adresse du
+  Worker : `"planning"` appara&icirc;t bien &agrave; c&ocirc;t&eacute; de `"envoi"`.*
+
+  **v2.6.1 :** Cobey, apr&egrave;s avoir vu l'aper&ccedil;u des nouveaux messages :
+  « je veux en revoir un pour tester ». Un deuxi&egrave;me bouton d'essai,
+  &agrave; c&ocirc;t&eacute; de celui d&eacute;j&agrave; en place, r&eacute;serv&eacute; &agrave; la direction et Aminata :
+  « Tester le rappel du d&eacute;lai (texte r&eacute;el) », dans Planning. Il envoie,
+  &agrave; soi-m&ecirc;me, exactement le texte que recevront lundi/mercredi/jeudi
+  ceux qui n'ont pas r&eacute;pondu — pas juste la confirmation g&eacute;n&eacute;rique de
+  l'autre bouton.
 
 - ~~**La notification de relance amène directement sur Planning.**~~
   *Fait le 26/09 (v3.89.3 / v2.5.3).* Cobey : « comment ça sera quand

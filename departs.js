@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.6.0';
+var DEP_VERSION = 'v2.6.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19458,12 +19458,48 @@ window.depTesterNotif = function(){
 
 function _depHtmlBoutonEssai(){
   if(_depEtatNotifs() !== 'ok') return '';
-  return '<div onclick="depTesterNotif()" style="text-align:center;font-size:12px;'
+  var h = '<div onclick="depTesterNotif()" style="text-align:center;font-size:12px;'
     + 'font-weight:700;color:#00838F;background:#DDEEF0;border:1px solid #9fcdd4;'
-    + 'border-radius:9px;padding:9px;margin-bottom:13px;cursor:pointer;">'
+    + 'border-radius:9px;padding:9px;margin-bottom:9px;cursor:pointer;">'
     + '&#128276; Tester la notification sur mon t&eacute;l&eacute;phone</div>';
+  // v2.6.1 : Cobey, le 26/09/2026, après avoir vu l'aperçu des nouveaux
+  // messages du délai : « je veux en revoir un pour tester ». Un essai
+  // avec le texte exact du rappel envoyé le lundi/mercredi/jeudi — pas
+  // seulement la confirmation générique ci-dessus. Réservé à la
+  // direction et à Aminata : les collaborateurs recevront les vrais
+  // rappels tout seuls, pas besoin de les tester eux-mêmes.
+  if(typeof _depPeutOrganiserPlanning === 'function' && _depPeutOrganiserPlanning()){
+    h += '<div onclick="depTesterRappelDelai()" style="text-align:center;font-size:12px;'
+      + 'font-weight:700;color:#8a5a00;background:#FFF3CD;border:1px solid #e0c589;'
+      + 'border-radius:9px;padding:9px;margin-bottom:13px;cursor:pointer;">'
+      + '&#128276; Tester le rappel du d&eacute;lai (texte r&eacute;el)</div>';
+  }
+  return h;
 }
 window._depHtmlBoutonEssai = _depHtmlBoutonEssai;
+
+window.depTesterRappelDelai = function(){
+  var u = window.currentUser || {};
+  if(_depEtatNotifs() !== 'ok'){ depActiverNotifs(); return; }
+  if(!u.id || !window.db){ toast('❌ Pas de connexion.'); return; }
+  var dim = _depProchainsDimanches(1)[0];
+  db.ref('dct_file_push').push({
+    titre  : 'Dakar City Transport',
+    corps  : 'Êtes-vous disponible dimanche ' + dim.libelle + ' ? Merci de r&eacute;pondre dans '
+           + 'Planning avant jeudi 22h — pass&eacute; ce d&eacute;lai, vous serez not&eacute; absent.',
+    sujet  : 'essai-rappel-delai',
+    url    : './dct-app.html?ouvrir=planning',
+    cibles : [u.id],
+    par    : u.id,
+    creeLe : Date.now(),
+    envoye : false
+  }).then(function(){
+    toast('⏳ Essai envoy&eacute;. La notification arrive d\'ici une minute.');
+  }).catch(function(e){
+    console.error('departs: essai rappel délai', e);
+    toast('❌ Échec de l\'essai.');
+  });
+};
 
 // Le service worker prévient quand le navigateur a renouvelé l'abonnement
 // de lui-même : on le réenregistre aussitôt.
