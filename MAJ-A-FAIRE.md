@@ -122,6 +122,17 @@ un prestataire.
   n'est pas une page web, le texte s'affiche tel quel. Corrigé : texte
   brut, accents normaux.
 
+  **v2.6.3 :** Eric, capture d'écran à l'appui : « moi, il me met absent
+  alors que je ne participe pas. Il faudrait changer ça et je pense que
+  Aminata doit aussi avoir la même chose ». « Mes disponibilités »
+  n'avait jamais vérifié qui a vraiment une disponibilité à donner — Eric
+  et Aminata, exclus de Planning depuis le début (ils organisent, sans
+  rouler le dimanche), s'y voyaient quand même proposer des boutons, puis
+  un « Noté absent » trompeur une fois le délai passé. Corrigé : pour eux
+  deux, cet onglet affiche désormais un simple rappel de leur rôle
+  d'organisateurs, sans bouton ni statut — la place pour suivre les
+  réponses reste « L'équipe », déjà correcte de son côté.
+
 - ~~**La notification de relance amène directement sur Planning.**~~
   *Fait le 26/09 (v3.89.3 / v2.5.3).* Cobey : « comment ça sera quand
   l'équipe recevra les notifications de rappel ? ». En touchant la

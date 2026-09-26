@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.6.2';
+var DEP_VERSION = 'v2.6.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20025,8 +20025,32 @@ window.depOuvrirEspacePlanning = function(){
 
 function _depPlanningBlocMien(dim){
   var u = window.currentUser || {};
-  var r = _depDispoDe(dim.iso, u.id);
   var col = _depCollecteDuJour(dim);
+
+  // v2.6.3 : Eric, en voyant son statut passer à « Noté absent » sur un
+  // dimanche verrouillé : « moi, il me met absent alors que je ne
+  // participe pas […] Aminata doit aussi avoir la même chose ». Ni l'un
+  // ni l'autre ne donne de disponibilité — ils organisent, sans rouler
+  // le dimanche (déjà exclus de _depGensPlanning). Cet onglet n'a jamais
+  // rien à leur demander, verrouillé ou non.
+  var estParticipant = _depGensPlanning().some(function(c){ return c.id === u.id; });
+  if(!estParticipant){
+    return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:13px;'
+      +   'padding:13px 14px;margin-bottom:10px;">'
+      + '<div style="display:flex;align-items:baseline;gap:8px;">'
+      +   '<div style="font-size:15.5px;font-weight:800;color:var(--text);">Dimanche '
+      +     esc(dim.libelle) + '</div>'
+      +   (col ? '<span style="font-size:10.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
+      +     'padding:2px 8px;border-radius:20px;">collecte créée</span>' : '')
+      + '</div>'
+      + '<div style="margin-top:9px;font-size:12px;color:var(--text3);font-weight:600;">'
+      +   'Vous organisez Planning — vous n\'avez pas de disponibilité à donner ici. '
+      +   'Ouvrez « L\'équipe » pour suivre les réponses.'
+      + '</div>'
+      + '</div>';
+  }
+
+  var r = _depDispoDe(dim.iso, u.id);
   var verrouille = _depPlVerrouille(dim.iso);
   var choisi = function(oui){
     var actif = r && r.dispo === oui;
