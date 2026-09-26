@@ -73,6 +73,15 @@ un prestataire.
   Volontairement en dehors des compteurs « X dispo / X non » de l'équipe
   fixe, pour ne pas les rendre illisibles d'une semaine à l'autre.
 
+- ~~**La notification de relance amène directement sur Planning.**~~
+  *Fait le 26/09 (v3.89.3 / v2.5.3).* Cobey : « comment ça sera quand
+  l'équipe recevra les notifications de rappel ? ». En touchant la
+  notification, l'équipe se retrouvait sur l'application, mais pas
+  forcément sur l'écran Planning — il fallait rouvrir la case soi-même.
+  Corrigé dans les deux cas : application fermée (l'adresse ouverte porte
+  la destination) et application déjà ouverte en arrière-plan (le service
+  worker prévient l'onglet, qui navigue tout seul).
+
 - ~~**Planning, corrigé après le premier essai.**~~ *Fait le 26/09
   (v3.88.2 / v2.4.2).* Cobey, après avoir testé avec Samba :
   - la case Planning passe **avant** Collecte, et porte sa propre icône

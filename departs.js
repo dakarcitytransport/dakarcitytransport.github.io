@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.5.2';
+var DEP_VERSION = 'v2.5.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13532,6 +13532,14 @@ function greffer(){
            partagé continuerait d'envoyer les notifications du
            précédent. */
         try{ _depRattacherAbonnement(); }catch(e){}
+        /* v2.5.3 : si on vient de toucher une notification (relance du
+           planning), on va directement à Planning plutôt que de laisser
+           la personne chercher la case elle-même — Cobey, le 26/09/2026.
+           _depAppliquerIntentionOuverture() consomme l'intention une
+           seule fois, qu'elle vienne de l'adresse de la page (premier
+           lancement) ou du service worker (application déjà en tâche
+           de fond, voir plus bas). */
+        try{ _depAppliquerIntentionOuverture(); }catch(e){}
       }catch(e){}
     };
     window._finalisLoginCore._depPatch = true;
@@ -19502,6 +19510,66 @@ window.planningData = window.planningData || {};
    et posent leurs disponibilités. */
 var DEP_IDS_PLANNING = ['AM'];
 
+/* ═══ v2.5.3 — TOUCHER LA NOTIFICATION MÈNE DIRECTEMENT À PLANNING ═══
+
+   Cobey, le 26/09/2026, après avoir vu l'aperçu de la notification :
+   « ça ouvre l'application, mais pas directement sur Planning ». Juste —
+   la relance existait déjà pour rappeler de répondre, mais son clic
+   renvoyait juste à l'accueil, laissant chacun retrouver la case
+   lui-même. Le seul but de cette notification est de faire remplir
+   Planning ; l'y déposer directement supprime l'étape de trop.
+
+   Deux chemins bien différents, et il faut couvrir les deux :
+
+     1. l'application était fermée : le clic en ouvre une neuve, sur
+        l'adresse portée par la notification (?ouvrir=planning) ;
+     2. l'application tournait déjà en tâche de fond (cas fréquent — un
+        onglet resté ouvert) : le clic se contente de la ramener au
+        premier plan, sans changer son adresse. sw.js lui envoie donc un
+        message en plus, que la page écoute plus bas.
+
+   Dans les deux cas, si la personne n'est pas encore connectée, on garde
+   l'intention de côté (_depIntentionApresLogin) et on l'applique juste
+   après la connexion, au même endroit que le reste de la mise en place
+   post-connexion. */
+
+var _depIntentionApresLogin = '';
+
+function _depAppliquerIntentionOuverture(){
+  if(_depIntentionApresLogin === 'planning'){
+    _depIntentionApresLogin = '';
+    depOuvrirEspacePlanning();
+  }
+}
+window._depAppliquerIntentionOuverture = _depAppliquerIntentionOuverture;
+
+try{
+  /* Chemin 1 — l'adresse portée par une notification qui vient d'ouvrir
+     une application neuve. Ce code s'exécute pendant le chargement même
+     du fichier, avant que depOuvrirEspacePlanning (plus bas dans ce
+     même module) n'existe encore, et forcément avant toute connexion —
+     on se contente donc de mettre l'intention de côté, jamais de
+     l'appliquer ici tout de suite. */
+  if(/[?&]ouvrir=planning\b/.test(window.location.search)) _depIntentionApresLogin = 'planning';
+}catch(e){}
+
+try{
+  /* Chemin 2 — le message envoyé par sw.js quand l'application tournait
+     déjà en tâche de fond : on ne rejoue pas toute la logique de
+     connexion, on redirige juste ce qui est déjà ouvert. Cet
+     écouteur ne se déclenche qu'après coup, une fois le fichier
+     entièrement chargé — depOuvrirEspacePlanning existe alors bel et
+     bien. */
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.addEventListener('message', function(e){
+      if(e && e.data && e.data.dct === 'ouvrir' && e.data.cible === 'planning'){
+        if(window.currentUser && window.currentUser.id) depOuvrirEspacePlanning();
+        else _depIntentionApresLogin = 'planning';
+      }
+    });
+  }
+}catch(e){}
+
 function _depPeutOrganiserPlanning(){
   var u = window.currentUser || {};
   if(typeof estDirection === 'function' && estDirection()) return true;
@@ -19847,6 +19915,10 @@ window.depPlanningRelancer = function(iso){
     titre  : 'Dakar City Transport',
     corps  : 'Êtes-vous disponible dimanche ' + quand + ' ? Merci de répondre dans Planning.',
     sujet  : 'planning-' + iso,
+    // v2.5.3 : toucher la notification doit mener droit à Planning, pas
+    // juste rouvrir l'application — sinon la personne doit encore
+    // chercher la case elle-même (Cobey, le 26/09/2026).
+    url    : './dct-app.html?ouvrir=planning',
     cibles : aRelancer.map(function(x){ return x.id; }),
     par    : u.id || '',
     creeLe : Date.now(),

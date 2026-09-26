@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — Service worker, uniquement pour les notifications
-   v1.0.0 · 26/09/2026
+   v1.1.0 · 26/09/2026
 
    Cobey, le 26/09/2026 : « c'est possible d'avoir des notifications push
    de l'appli ? ». Oui, mais il faut ce fichier : un téléphone ne peut
@@ -59,14 +59,27 @@ self.addEventListener('push', function(e){
 /* On touche la notification : on revient sur l'application si elle est
    déjà ouverte quelque part, sinon on l'ouvre. Rouvrir un deuxième
    onglet alors qu'un premier existe ferait perdre à l'utilisateur ce
-   qu'il était en train de saisir. */
+   qu'il était en train de saisir.
+
+   v2.5.3 : la notification porte parfois une destination précise (par
+   exemple « amène-moi sur Planning », pour la relance des
+   disponibilités — Cobey, le 26/09/2026 : « ça ouvre l'application, mais
+   pas directement sur Planning »). Une adresse neuve suffit à y
+   atterrir directement ; un onglet qu'on ramène au premier plan, lui, ne
+   change pas de page tout seul — on le prévient donc par message, que
+   dct-app.html écoute pour naviguer à sa place. */
 self.addEventListener('notificationclick', function(e){
   e.notification.close();
   var cible = (e.notification.data && e.notification.data.url) || './dct-app.html';
+  var m = /[?&]ouvrir=([^&]+)/.exec(cible);
+  var destination = m ? decodeURIComponent(m[1]) : '';
   e.waitUntil(
     self.clients.matchAll({ type:'window', includeUncontrolled:true }).then(function(liste){
       for(var i = 0; i < liste.length; i++){
-        if(liste[i].url.indexOf('dct-app') >= 0 && 'focus' in liste[i]) return liste[i].focus();
+        if(liste[i].url.indexOf('dct-app') >= 0 && 'focus' in liste[i]){
+          if(destination) liste[i].postMessage({ dct:'ouvrir', cible: destination });
+          return liste[i].focus();
+        }
       }
       if(self.clients.openWindow) return self.clients.openWindow(cible);
     })
