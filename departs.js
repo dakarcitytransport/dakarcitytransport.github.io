@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.8.1';
+var DEP_VERSION = 'v2.8.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20477,15 +20477,26 @@ function _depBioConnexion(collab, credIdB64, suite){
 
 // Proposée une fois, juste après une connexion réussie par PIN — jamais
 // si ce téléphone l'a déjà activée ou déjà refusée pour cette personne.
+// v2.8.2 : diagnostic temporaire — Cobey a testé sur un iPhone avec
+// Face ID pourtant bien réglé, et rien ne s'est proposé. Sans moyen
+// d'inspecter son téléphone moi-même, ces messages disent exactement
+// où ça s'arrête, pour comprendre quoi corriger. À retirer une fois le
+// souci trouvé.
 function _depOffrirBiometrie(collab){
   if(!collab || !collab.id || collab.role === 'poste' || collab.societe) return;
-  if(!_depBioDispo()) return;
+  if(!_depBioDispo()){ toast('🔎 Diag Face ID : WebAuthn indisponible sur ce navigateur.'); return; }
   if(localStorage.getItem('dct_bio_' + collab.id)) return;
-  if(localStorage.getItem('dct_bio_refuse_' + collab.id)) return;
-  if(!window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return;
+  if(localStorage.getItem('dct_bio_refuse_' + collab.id)){ toast('🔎 Diag Face ID : d&eacute;j&agrave; refus&eacute; sur ce t&eacute;l&eacute;phone (localStorage).'); return; }
+  if(!window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable){
+    toast('🔎 Diag Face ID : m&eacute;thode de v&eacute;rification absente sur ce navigateur.');
+    return;
+  }
   PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function(dispo){
     if(dispo) _depBioProposerModal(collab);
-  }).catch(function(){});
+    else toast('🔎 Diag Face ID : aucun capteur biom&eacute;trique d&eacute;tect&eacute; (r&eacute;ponse : ' + dispo + ').');
+  }).catch(function(e){
+    toast('🔎 Diag Face ID : erreur — ' + (e && e.message ? e.message : e));
+  });
 }
 window._depOffrirBiometrie = _depOffrirBiometrie;
 
