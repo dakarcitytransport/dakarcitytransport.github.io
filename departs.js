@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.6.3';
+var DEP_VERSION = 'v2.7.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2194,7 +2194,8 @@ var DEP_CASES = [
   { cle:'archive',  el:'dep-case-arch'     },
   { cle:'rapfin',   el:'dep-case-rapfin'   },
   { cle:'stats',    el:'dep-case-stats'    },
-  { cle:'reglages', el:'dep-case-reglages' }
+  { cle:'reglages', el:'dep-case-reglages' },
+  { cle:'annonce',  el:'dep-case-annonce'  }
 ];
 
 var DEP_CASES_TOUTES = DEP_CASES.map(function(c){ return c.cle; });
@@ -2207,9 +2208,13 @@ var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles'
    v1.99.1 : Cobey, le 26/09/2026 — « QR code on peut lui laisser,
    archivage aussi et statistiques ». Restent fermés les trois écrans qui
    portent l'argent de l'entreprise et ses réglages : Départs, Rapport
-   financier, Réglages. */
+   financier, Réglages.
+   v2.7.0 : « annonce » (case Notification) s'y ajoute — Cobey, le
+   26/09/2026 : « une case notification pour les admin, moi et Aminata »,
+   confirmé pour Issyaka et Abdoulaye aussi (déjà couverts par
+   IDS_DIRECTION un peu plus bas, qui leur donne toutes les cases). */
 var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot',
-                        'qr','archive','stats','planning'];
+                        'qr','archive','stats','planning','annonce'];
 
 var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU };
 
@@ -2238,6 +2243,7 @@ var DEP_GARDES_CASES = {
   depCarreDepotOuvrir              : 'depot',
   depOuvrirEspaceDevis             : 'devis',
   depOuvrirEspacePlanning          : 'planning',
+  depOuvrirEspaceAnnonce           : 'annonce',
   depOuvrirEspacePrixArticles      : 'articles',
   depOuvrirScanQR                  : 'qr',
   depOuvrirEspaceArchive           : 'archive',
@@ -3028,6 +3034,17 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#455A64;">R&Eacute;GLAGES</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-regl">—</div>'
   +       '</div>'
+  // v2.7.0 : nouveau carré NOTIFICATION, réservé à la direction et à
+  // Aminata — Cobey, le 26/09/2026 : « une case notification pour les
+  // admin, moi et Aminata, qui va permettre d'envoyer une notification à
+  // tout le monde, moi y compris ». Un message libre, décidé par un
+  // humain à chaque fois plutôt que déclenché par un évènement du
+  // métier — plus simple, et jamais du bruit non voulu.
+  +       '<div class="dep-case" id="dep-case-annonce" style="background:#FBE4E4;" onclick="depOuvrirEspaceAnnonce()">'
+  +         '<div class="dep-case-ico">&#128227;</div>'
+  +         '<div class="dep-case-tit" style="color:#C0392B;">NOTIFICATION</div>'
+  +         '<div class="dep-case-sub">Envoyer un message &agrave; toute l\'&eacute;quipe</div>'
+  +       '</div>'
   +     '</div>'
   +     '<div style="text-align:center;color:#bbb;font-size:10.5px;margin-top:22px;">Module départs '+DEP_VERSION+'</div>'
   +   '</div>'
@@ -3817,6 +3834,17 @@ function injecterEcrans(){
   +     '<div style="width:60px;"></div>'
   +   '</div>'
   +   '<div class="content"><div id="pl-contenu"></div></div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v2.7.0) : NOTIFICATION — un message libre à toute
+     l'équipe, écrit par la direction ou Aminata (case réservée). ---- */
+  + '<div class="screen" id="s-annonce">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-espaces\');depRenderEspaces();">&larr; Espaces</button>'
+  +     '<div class="h-title">Notification</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="an-contenu"></div></div>'
   + '</div>'
 
   /* ---- ÉCRAN (v1.19.96) : RAPPORT FINANCIER — simple emplacement en
@@ -4965,6 +4993,14 @@ function ecouterDeparts(){
     window.planningData = snap.val() || {};
     try{ if($('s-planning') && $('s-planning').classList.contains('active')) depRenderPlanning(); }catch(e){}
     try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+  });
+
+  // v2.7.0 : l'historique des messages déjà envoyés dans la case
+  // Notification — à part de dct_file_push (qui se vide au fur et à
+  // mesure), pour rester consultable même longtemps après l'envoi.
+  db.ref('dct_annonces').on('value', function(snap){
+    window.annoncesData = snap.val() || {};
+    try{ if($('s-annonce') && $('s-annonce').classList.contains('active')) depRenderAnnonce(); }catch(e){}
   });
 
   db.ref('departs').on('value', function(snap){
@@ -20332,5 +20368,116 @@ function _depMajParticipantsPourCloudflare(){
   _depPlanningMemoEnvoye = json;
   db.ref('dct_planning_participants').set(memo);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   NOTIFICATION — un message libre à toute l'équipe (v2.7.0)
+
+   Cobey, le 26/09/2026, après avoir vu les notifications automatiques
+   proposées (colis en attente, paiement encaissé, camion qui a fini sa
+   tournée) : « on va changer de méthode, tu vas plutôt faire une case
+   notification pour les admin, moi et Aminata, qui va permettre
+   d'envoyer une notification à tout le monde, moi y compris ». Puis,
+   pour la liste des admins : « si Issyaka et Abdoulaye aussi ».
+
+   Plus simple qu'une détection automatique par évènement métier : un
+   humain décide quoi dire et quand — l'application se contente de
+   porter le message à tout le monde, l'auteur compris (pour qu'il
+   confirme lui-même que ça part bien, sans dépendre d'un collègue).
+   Réservée à Direction + Aminata via la case 'annonce' (voir
+   DEP_CASES_BUREAU et IDS_DIRECTION : Issyaka et Abdoulaye ont déjà
+   toutes les cases, Aminata les a une à une). ═══════════════════ */
+
+window.depOuvrirEspaceAnnonce = function(){
+  goTo('s-annonce');
+  depRenderAnnonce();
+};
+
+function _depAnnoncesListe(){
+  var a = window.annoncesData || {};
+  return Object.keys(a).map(function(k){
+    var x = {}; for(var p in a[k]) x[p] = a[k][p];
+    x._id = k; return x;
+  }).sort(function(x, y){ return (y.creeLe || 0) - (x.creeLe || 0); });
+}
+
+window.depAnnonceEnvoyer = function(){
+  if(!_depPeutCase('annonce')){ toast('⛔ Réservé à la direction.'); return; }
+  if(!window.db){ toast('❌ Pas de connexion.'); return; }
+  var champ = document.getElementById('an-texte');
+  var texte = champ ? (champ.value || '').trim() : '';
+  if(!texte){ toast('❌ Écrivez un message avant d\'envoyer.'); return; }
+  var u = window.currentUser || {};
+  // « Tout le monde, moi y compris » — contrairement à la relance de
+  // Planning, on ne retire jamais l'auteur des destinataires : il doit
+  // voir lui-même que le message est bien arrivé.
+  var cibles = (window.COLLABS || []).filter(function(c){ return c && !c.desactive; })
+    .map(function(c){ return c.id; });
+  var maintenant = Date.now();
+
+  // Trace gardée à part de la file d'envoi (dct_file_push, qui se vide
+  // au fur et à mesure) — pour rester consultable même longtemps après.
+  db.ref('dct_annonces').push({
+    texte  : texte,
+    par    : u.id || '',
+    parNom : u.name || '',
+    creeLe : maintenant
+  });
+
+  db.ref('dct_file_push').push({
+    titre  : 'Dakar City Transport',
+    corps  : texte,
+    // Un sujet différent à chaque envoi : deux annonces de suite ne
+    // doivent jamais s'effacer l'une l'autre sur l'écran verrouillé du
+    // téléphone, contrairement aux rappels de Planning qui, eux,
+    // remplacent volontairement le précédent (même sujet à chaque fois).
+    sujet  : 'annonce-' + maintenant,
+    cibles : cibles,
+    par    : u.id || '',
+    creeLe : maintenant,
+    envoye : false
+  }).then(function(){
+    if(champ) champ.value = '';
+    toast('📨 Envoy&eacute; &agrave; toute l\'&eacute;quipe.');
+    depRenderAnnonce();
+  }).catch(function(e){
+    console.error('departs: envoi annonce', e);
+    toast('❌ Échec de l\'envoi.');
+  });
+};
+
+function _depAnnonceCarte(a){
+  return '<div class="dep-card" style="border-left-color:#C0392B;">'
+    +   '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">'
+    +     '<b style="color:var(--text);font-size:13px;">' + esc(a.parNom || a.par || '?') + '</b>'
+    +     '<span style="color:var(--text3);font-weight:600;font-size:11.5px;">'
+    +       _depPlDateHeure(a.creeLe) + '</span>'
+    +   '</div>'
+    +   '<div style="margin-top:5px;font-size:13.5px;color:var(--text);line-height:1.4;'
+    +     'white-space:pre-wrap;">' + esc(a.texte) + '</div>'
+    + '</div>';
+}
+
+window.depRenderAnnonce = function(){
+  var box = document.getElementById('an-contenu');
+  if(!box) return;
+  var h = '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:11px;'
+    + 'line-height:1.45;">Ce message part imm&eacute;diatement &agrave; toute l\'&eacute;quipe, '
+    + 'vous y compris.</div>'
+    + '<textarea class="fi" id="an-texte" rows="4" maxlength="500" '
+    +   'placeholder="&Eacute;crivez votre message ici..." '
+    +   'style="margin-bottom:10px;font-size:13.5px;resize:vertical;width:100%;'
+    +   'box-sizing:border-box;"></textarea>'
+    + '<div onclick="depAnnonceEnvoyer()" style="text-align:center;background:#C0392B;color:#fff;'
+    +   'border:2px solid #922B21;border-radius:10px;padding:12px;font-size:14px;font-weight:800;'
+    +   'cursor:pointer;margin-bottom:18px;">&#128227; Envoyer &agrave; toute l\'&eacute;quipe</div>';
+
+  var liste = _depAnnoncesListe();
+  if(liste.length){
+    h += '<div style="font-size:10.5px;font-weight:800;color:#8a8a8a;letter-spacing:.04em;'
+      + 'margin-bottom:8px;">D&Eacute;J&Agrave; ENVOY&Eacute;</div>';
+    h += liste.map(_depAnnonceCarte).join('');
+  }
+  box.innerHTML = h;
+};
 
 })();

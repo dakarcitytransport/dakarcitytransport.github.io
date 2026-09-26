@@ -174,28 +174,31 @@ un prestataire.
   **Reste :** brancher l'envoi (voir les notifications ci-dessous). En
   attendant, la relance se dépose mais ne part pas.
 
-- **Notifications sur le téléphone** — *partie application faite le 26/09
-  (v3.87.0 / v2.3.0). Reste l'envoi, à installer chez Cloudflare.*
+- ~~**Notifications sur le téléphone.**~~ *Fait le 26/09 (v3.87.0 /
+  v2.3.0 pour la partie application ; Cloudflare recollé et vérifié le
+  même jour pour l'envoi réel).* Manifeste, service worker (sans aucun
+  cache, pour ne jamais bloquer l'équipe sur une vieille version),
+  demande d'autorisation, abonnement rangé dans `dct_push/<téléphone>`,
+  bandeau qui explique aux iPhone qu'il faut d'abord ajouter l'application
+  à l'écran d'accueil, et `cloudflare-worker.js` qui vide la file toutes
+  les minutes.
 
-  Trois notifications retenues : un colis qui attend depuis plus de 30
-  jours (Direction + Bureau), un paiement encaissé (Direction + Cobey), un
-  camion qui a fini sa tournée (Direction). Chacun ne reçoit que ce qui
-  concerne son espace.
+  **Trois notifications automatiques par évènement métier avaient été
+  envisagées** (colis en attente depuis 30 jours, paiement encaissé,
+  camion qui a fini sa tournée) — abandonnées avant d'être construites.
+  Cobey, le 26/09/2026 : « on va changer de méthode […] une case
+  notification pour les admin, moi et Aminata, qui va permettre d'envoyer
+  une notification à tout le monde, moi y compris ». Plus simple qu'une
+  détection automatique : voir la case **Notification** ci-dessous.
 
-  **Fait :** manifeste, service worker (sans aucun cache, pour ne jamais
-  bloquer l'équipe sur une vieille version), demande d'autorisation,
-  abonnement rangé dans `dct_push/<téléphone>`, bandeau qui explique aux
-  iPhone qu'il faut d'abord ajouter l'application à l'écran d'accueil.
-
-  **Reste à faire :**
-  1. Cobey crée un compte Cloudflare (gratuit, sans carte).
-  2. Y déposer la clé privée VAPID — *elle est dans le message du 26/09,
-     à ne jamais mettre dans le code*.
-  3. Écrire le programme qui lit Firebase toutes les minutes et envoie.
-
-  *Non testable ici : la souscription réelle exige de joindre le service
-  de Google, bloqué dans l'environnement de développement. À vérifier sur
-  un vrai téléphone.*
+- ~~**Case Notification.**~~ *Fait le 26/09 (v3.91.0 / v2.7.0).* Un
+  message libre, écrit par la direction ou Aminata, envoyé immédiatement
+  à toute l'équipe — l'auteur compris, pour qu'il voie lui-même que ça
+  part bien. Réservée à Issyaka, Abdoulaye, Aminata et Cobey (case
+  `annonce`, dans `DEP_CASES_BUREAU` pour Aminata, incluse d'office pour
+  la direction). Chaque envoi garde une trace dans un petit historique
+  sous le champ de saisie (qui a écrit quoi, et quand), séparé de la file
+  d'envoi qui se vide au fur et à mesure — l'historique, lui, reste.
 
 - ~~**L'écran de connexion était froid.**~~
   **Fait le 26/09 (v3.84.0 / v2.0.0).** Cobey : « je la trouve pas très
