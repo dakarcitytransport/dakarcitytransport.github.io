@@ -358,6 +358,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 <div class="app">
@@ -1154,6 +1155,19 @@ function initFirebase(){
     };
     firebase.initializeApp(firebaseConfig);
     db = firebase.database();
+    // v3.93.1 : connexion anonyme, invisible pour l'équipe (aucun écran,
+    // aucun mot de passe) — Cobey, 26/09/2026 : « il manquerait une
+    // étape » côté sécurité — la base Firebase est aujourd'hui ouverte à
+    // qui connaît son adresse. Cette connexion prouve juste à Firebase
+    // que la demande vient de cette application ; elle ne bloque rien
+    // pour l'instant (les règles d'accès restent ouvertes le temps de
+    // vérifier que cette étape marche en vrai), et servira à les
+    // resserrer dans un second temps.
+    try{
+      firebase.auth().signInAnonymously().catch(function(e){
+        console.warn('Connexion Firebase anonyme :', e);
+      });
+    }catch(e){ console.warn('Connexion Firebase anonyme indisponible :', e); }
     firebaseReady = true;
     console.log("Firebase OK");
     // Charger le message admin dès que Firebase est prêt
@@ -1677,7 +1691,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.93.0';
+var APP_VERSION = 'v3.93.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},

@@ -86,6 +86,30 @@ un prestataire.
   Comme pour le reste de l'app, un admin (Eric) reste invisible dans ce
   fil — règle déjà en place, pas quelque chose d'ajouté ici.
 
+- **Sécurité de la base Firebase — en cours.** Cobey : « il manquerait
+  une étape qu'on n'avait pas faite » côté sécurité. Vrai trou : la base
+  Firebase est aujourd'hui ouverte à qui connaît son adresse (visible
+  dans le code de l'application), sans rien qui prouve que la demande
+  vient bien de l'application elle-même.
+
+  **Étape 1 — faite le 26/09 (v3.93.1).** Une connexion anonyme à
+  Firebase (invisible pour l'équipe, aucun écran, aucun mot de passe)
+  se fait maintenant au démarrage. Volontairement sans rien bloquer pour
+  l'instant : les règles d'accès restent ouvertes le temps de vérifier
+  que cette étape marche en vrai.
+
+  **Reste à faire :**
+  1. Cobey active l'authentification anonyme dans la console Firebase
+     (Authentication → Sign-in method → Anonymous → Enable) — sans ce
+     réglage, la connexion échoue.
+  2. Vérifier sur un vrai téléphone qu'un nouvel utilisateur anonyme
+     apparaît bien dans Authentication → Users après avoir ouvert
+     l'application.
+  3. Seulement une fois l'étape 1 confirmée : resserrer les règles de la
+     base (Realtime Database → Rules) pour exiger cette connexion —
+     *étape 2, pas encore faite, risque de bloquer toute l'équipe si
+     elle est faite avant que l'étape 1 soit vérifiée.*
+
 - ~~**Ablaye** passe administrateur, comme Issyaka.~~
   **Fait le 24/09 (v1.55.0).** Abdoulaye (AB) rejoint la direction, aux
   mêmes conditions qu'Issyaka : il garde son profil, son PIN et sa
