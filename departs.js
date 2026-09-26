@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.3.0';
+var DEP_VERSION = 'v2.4.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2188,6 +2188,7 @@ var DEP_CASES = [
   { cle:'france',   el:'dep-case-france'   },
   { cle:'depot',    el:'dep-case-depot'    },
   { cle:'devis',    el:'dep-case-devis'    },
+  { cle:'planning', el:'dep-case-planning' },
   { cle:'articles', el:'dep-case-pa'       },
   { cle:'qr',       el:'dep-case-qr'       },
   { cle:'archive',  el:'dep-case-arch'     },
@@ -2200,7 +2201,7 @@ var DEP_CASES_TOUTES = DEP_CASES.map(function(c){ return c.cle; });
 
 // Ce que les collaborateurs voyaient déjà : tout sauf les quatre cases
 // de la direction. C'est le repli, donc personne ne perd un accès.
-var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles','qr','archive'];
+var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles','qr','archive','planning'];
 
 /* Le Bureau : les appels, les devis, les clients, les dispatchs.
    v1.99.1 : Cobey, le 26/09/2026 — « QR code on peut lui laisser,
@@ -2208,7 +2209,7 @@ var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles'
    portent l'argent de l'entreprise et ses réglages : Départs, Rapport
    financier, Réglages. */
 var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot',
-                        'qr','archive','stats'];
+                        'qr','archive','stats','planning'];
 
 var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU };
 
@@ -2236,6 +2237,7 @@ var DEP_GARDES_CASES = {
   ouvrirFrance                     : 'france',
   depCarreDepotOuvrir              : 'depot',
   depOuvrirEspaceDevis             : 'devis',
+  depOuvrirEspacePlanning          : 'planning',
   depOuvrirEspacePrixArticles      : 'articles',
   depOuvrirScanQR                  : 'qr',
   depOuvrirEspaceArchive           : 'archive',
@@ -2969,6 +2971,14 @@ function injecterEcrans(){
   // v1.19.95 : nouveau carré PRIX ARTICLES, ouvert à tout le monde comme le
   // carré Devis (retour de Cobey du 30/08/2026) — grille tarifaire de
   // référence, placée juste après Devis.
+  // v2.4.0 : case PLANNING — les disponibilités de l'équipe. Placée après
+  // Devis, avant Prix Articles : c'est une case de préparation, pas de
+  // consultation.
+  +       '<div class="dep-case" id="dep-case-planning" style="background:#FDEBDD;" onclick="depOuvrirEspacePlanning()">'
+  +         '<div class="dep-case-ico">&#128197;</div>'
+  +         '<div class="dep-case-tit" style="color:#E65100;">PLANNING</div>'
+  +         '<div class="dep-case-sub" id="dep-case-sub-planning">&mdash;</div>'
+  +       '</div>'
   +       '<div class="dep-case" id="dep-case-pa" style="background:#F7E0E9;" onclick="depOuvrirEspacePrixArticles()">'
   +         '<div class="dep-case-ico">&#127991;&#65039;</div>'
   +         '<div class="dep-case-tit" style="color:#C2185B;">PRIX ARTICLES</div>'
@@ -3792,6 +3802,18 @@ function injecterEcrans(){
   +     '<div id="pa-chips" class="pa-chips"></div>'
   +     '<div id="pa-liste"></div>'
   +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v2.4.0) : PLANNING — les disponibilités de l'équipe pour
+     les dimanches à venir. Ouvert à tous : chacun pose les siennes, tout
+     le monde consulte, la direction et Aminata relancent. ---- */
+  + '<div class="screen" id="s-planning">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-espaces\');depRenderEspaces();">&larr; Espaces</button>'
+  +     '<div class="h-title">Planning</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="pl-contenu"></div></div>'
   + '</div>'
 
   /* ---- ÉCRAN (v1.19.96) : RAPPORT FINANCIER — simple emplacement en
@@ -4933,6 +4955,15 @@ function ecouterDeparts(){
     setTimeout(appliquerProfils, 400);
   });
 
+  /* v2.4.0 : les demandes de disponibilité. En écoute permanente, pour
+     que Issyaka voie les réponses arriver sans rien rafraîchir, et que la
+     pastille de la case Planning soit juste à tout moment. */
+  db.ref('dct_planning').on('value', function(snap){
+    window.planningData = snap.val() || {};
+    try{ if($('s-planning') && $('s-planning').classList.contains('active')) depRenderPlanning(); }catch(e){}
+    try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+  });
+
   db.ref('departs').on('value', function(snap){
     window.departsData = snap.val() || {};
     // v1.19.44 : réinjecté à chaque mise à jour temps réel — voir DEP_ID_DEPOT.
@@ -5191,6 +5222,30 @@ window.depRenderEspaces = function(){
       srg.innerHTML = nbAl > 0
         ? '<b style="color:#c0392b;">&#9888;&#65039; '+nbAl+'</b> alerte'+(nbAl>1?'s':'')+' non lue'+(nbAl>1?'s':'')
         : '&Eacute;quipe, acc&egrave;s, donn&eacute;es&hellip;';
+    }
+  }
+
+  /* Case PLANNING (v2.4.0). Le chiffre utile n'est pas le même selon qui
+     regarde : celui qui doit remplir veut voir ce qu'il lui reste, celui
+     qui organise veut voir qui manque à l'appel. */
+  var spl = $('dep-case-sub-planning');
+  if(spl && _voit('planning')){
+    var _amoi = (typeof _depDimanchesSansMaReponse === 'function')
+      ? _depDimanchesSansMaReponse() : 0;
+    var _organise = (typeof _depPeutOrganiserPlanning === 'function') && _depPeutOrganiserPlanning();
+    if(_amoi){
+      spl.innerHTML = '<b style="color:#E65100;">' + _amoi + '</b> dimanche'
+        + (_amoi > 1 ? 's' : '') + '<br>&agrave; renseigner';
+    } else if(_organise){
+      var _muets = 0;
+      try{
+        _depProchainsDimanches(2).forEach(function(d){ _muets += _depCompteDispo(d.iso).muets.length; });
+      }catch(e){}
+      spl.innerHTML = _muets
+        ? '<b style="color:#E65100;">' + _muets + '</b> sans r&eacute;ponse<br>&agrave; venir'
+        : 'Disponibilit&eacute;s<br>&agrave; jour';
+    } else {
+      spl.innerHTML = 'Disponibilit&eacute;s<br>de l\'&eacute;quipe';
     }
   }
 
@@ -19364,5 +19419,293 @@ try{
     });
   }
 }catch(e){}
+
+
+
+/* ═══════════════════════════════════════════════════════════
+   v2.4.0 — PLANNING
+
+   Cobey, le 26/09/2026. D'abord le problème : « ses frères, des fois, il
+   n'a pas de réponse pour savoir s'ils seront disponibles le dimanche.
+   Du coup il a du mal à s'organiser, s'il prend des chauffeurs externes
+   ou pas ». Puis la forme : « tout le monde aura la possibilité de
+   consulter le planning et de pouvoir y mettre ses disponibilités quand
+   ils peuvent travailler ou pas. Et les admins pourront envoyer des
+   questions en notification pour relancer les frères ».
+
+   Deux idées, dans cet ordre :
+
+     1. chacun pose ses disponibilités de lui-même, à l'avance, sans
+        attendre qu'on lui demande. C'est le fond du sujet — le va-et-vient
+        de questions n'existait que faute d'un endroit pour les écrire ;
+     2. la relance n'est que le rattrapage, pour ceux qui n'ont rien mis.
+
+   Ce que WhatsApp ne sait pas faire et qui manquait : voir d'un coup
+   d'œil QUI n'a pas répondu. Sur un fil, les réponses se noient et
+   personne ne tient le compte.
+
+   Le tableau porte sur les dimanches à venir, jour de la collecte. Une
+   date qui correspond à une collecte déjà créée le dit.
+   ═══════════════════════════════════════════════════════════ */
+
+window.planningData = window.planningData || {};
+
+/* Organisent et relancent : la direction et Aminata — le Bureau prend les
+   appels et connaît les contraintes de chacun. Tous les autres consultent
+   et posent leurs disponibilités. */
+var DEP_IDS_PLANNING = ['AM'];
+
+function _depPeutOrganiserPlanning(){
+  var u = window.currentUser || {};
+  if(typeof estDirection === 'function' && estDirection()) return true;
+  return DEP_IDS_PLANNING.indexOf(u.id) >= 0;
+}
+window._depPeutOrganiserPlanning = _depPeutOrganiserPlanning;
+
+var DEP_PL_MOIS = ['janvier','février','mars','avril','mai','juin','juillet',
+                   'août','septembre','octobre','novembre','décembre'];
+
+// Les dimanches à venir, celui d'aujourd'hui compris s'il l'est encore.
+function _depProchainsDimanches(n){
+  var out = [], d = new Date();
+  d.setHours(12, 0, 0, 0);
+  if(d.getDay() !== 0) d.setDate(d.getDate() + ((7 - d.getDay()) % 7));
+  for(var i = 0; i < (n || 5); i++){
+    var iso = d.getFullYear() + '-'
+      + String(d.getMonth() + 1).padStart(2, '0') + '-'
+      + String(d.getDate()).padStart(2, '0');
+    out.push({ iso: iso, libelle: d.getDate() + ' ' + DEP_PL_MOIS[d.getMonth()],
+               annee: d.getFullYear() });
+    d.setDate(d.getDate() + 7);
+  }
+  return out;
+}
+
+// La collecte déjà créée pour ce dimanche, s'il y en a une. Les dates de
+// collecte sont écrites en toutes lettres — on compare sur le jour.
+function _depCollecteDuJour(dim){
+  var cols = window.collectes || [];
+  for(var i = 0; i < cols.length; i++){
+    var c = cols[i];
+    if(!c || !c.date) continue;
+    var d = (typeof parseDate === 'function') ? parseDate(c.date) : null;
+    if(!d || isNaN(d)) continue;
+    var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+            + '-' + String(d.getDate()).padStart(2, '0');
+    if(iso === dim.iso) return c;
+  }
+  return null;
+}
+
+/* Qui est concerné : toute l'équipe en activité, administrateurs
+   compris. Cobey : « tout le monde aura la possibilité de […] mettre ses
+   disponibilités ». Une première version les écartait — on les remet. */
+function _depGensPlanning(){
+  return (window.COLLABS || []).filter(function(c){ return c && !c.desactive; });
+}
+
+function _depDispoDe(iso, id){
+  return ((window.planningData || {})[iso] || {})[id] || null;
+}
+
+function _depCompteDispo(iso){
+  var gens = _depGensPlanning(), oui = 0, non = 0, muets = [];
+  gens.forEach(function(c){
+    var r = _depDispoDe(iso, c.id);
+    if(!r) muets.push(c);
+    else if(r.dispo) oui++;
+    else non++;
+  });
+  return { total: gens.length, oui: oui, non: non, muets: muets };
+}
+
+// Ce qui me reste à remplir : le chiffre de la pastille sur la case.
+function _depDimanchesSansMaReponse(){
+  var u = window.currentUser || {};
+  if(!u.id) return 0;
+  return _depProchainsDimanches(5).filter(function(d){
+    return !_depDispoDe(d.iso, u.id);
+  }).length;
+}
+window._depDimanchesSansMaReponse = _depDimanchesSansMaReponse;
+
+/* ─── Poser sa disponibilité ─── */
+
+window.depPlanningPoser = function(iso, dispo){
+  var u = window.currentUser || {};
+  if(!u.id){ toast('❌ Reconnectez-vous.'); return; }
+  if(!window.db){ toast('❌ Pas de connexion.'); return; }
+  var champ = document.getElementById('pl-mot-' + iso);
+  var mot = champ ? (champ.value || '').trim().slice(0, 140) : '';
+  db.ref('dct_planning/' + iso + '/' + u.id).set({
+    dispo : !!dispo,
+    mot   : mot,
+    nom   : u.name || '',
+    le    : Date.now()
+  }).then(function(){
+    toast(dispo ? '✅ Not&eacute; : disponible.' : '✅ Not&eacute; : pas disponible.');
+    depRenderPlanning();
+  }).catch(function(e){
+    console.error('departs: pose disponibilité', e);
+    toast('❌ Échec, réessayez.');
+  });
+};
+
+/* ─── La relance ─────────────────────────────────────────────
+   On ne l'envoie pas soi-même : on la dépose dans une file que
+   Cloudflare vide toutes les minutes. Ça évite d'avoir la clé d'envoi
+   dans l'application, et ça marchera pour les autres notifications sans
+   rien réécrire. */
+window.depPlanningRelancer = function(iso){
+  if(!_depPeutOrganiserPlanning()){ toast('⛔ Réservé à la direction.'); return; }
+  if(!window.db){ toast('❌ Pas de connexion.'); return; }
+  var c = _depCompteDispo(iso);
+  // On ne se relance pas soi-même : le test l'a montré, Issyaka figurait
+  // dans la liste des gens à rappeler dès qu'il n'avait pas rempli la
+  // sienne.
+  var moi = (window.currentUser || {}).id;
+  var aRelancer = c.muets.filter(function(x){ return x.id !== moi; });
+  if(!aRelancer.length){ toast('✅ Tout le monde a déjà répondu.'); return; }
+  var dim = _depProchainsDimanches(8).filter(function(d){ return d.iso === iso; })[0];
+  var quand = dim ? dim.libelle : iso;
+  var u = window.currentUser || {};
+  db.ref('dct_file_push').push({
+    titre  : 'Dakar City Transport',
+    corps  : 'Êtes-vous disponible dimanche ' + quand + ' ? Merci de répondre dans Planning.',
+    sujet  : 'planning-' + iso,
+    cibles : aRelancer.map(function(x){ return x.id; }),
+    par    : u.id || '',
+    creeLe : Date.now(),
+    envoye : false
+  }).then(function(){
+    toast('📨 Relance envoyée à ' + aRelancer.length + ' personne'
+      + (aRelancer.length > 1 ? 's' : '') + '.');
+  }).catch(function(e){
+    console.error('departs: relance planning', e);
+    toast('❌ Échec de la relance.');
+  });
+};
+
+/* ─── L'écran ─── */
+
+window.depOuvrirEspacePlanning = function(){
+  goTo('s-planning');
+  depRenderPlanning();
+};
+
+function _depPlanningBlocMien(dim){
+  var u = window.currentUser || {};
+  var r = _depDispoDe(dim.iso, u.id);
+  var col = _depCollecteDuJour(dim);
+  var choisi = function(oui){
+    var actif = r && r.dispo === oui;
+    var vert = 'background:#009A44;color:#fff;border:2px solid #006b2d;';
+    var rouge = 'background:#c0392b;color:#fff;border:2px solid #922b21;';
+    var creux = 'background:#fff;color:' + (oui ? '#006b2d' : '#c0392b')
+              + ';border:2px solid ' + (oui ? '#009A44' : '#c0392b') + ';';
+    return 'flex:1;text-align:center;border-radius:11px;padding:12px;font-size:14.5px;'
+      + 'font-weight:800;cursor:pointer;' + (actif ? (oui ? vert : rouge) : creux);
+  };
+
+  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:13px;'
+    +   'padding:13px 14px;margin-bottom:10px;">'
+    + '<div style="display:flex;align-items:baseline;gap:8px;">'
+    +   '<div style="font-size:15.5px;font-weight:800;color:var(--text);">Dimanche '
+    +     esc(dim.libelle) + '</div>'
+    +   (col ? '<span style="font-size:10.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
+    +     'padding:2px 8px;border-radius:20px;">collecte cr&eacute;&eacute;e</span>' : '')
+    + '</div>'
+    + (r && r.mot ? '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:3px;">'
+        + '&laquo;&nbsp;' + esc(r.mot) + '&nbsp;&raquo;</div>' : '')
+    + '<input class="fi" id="pl-mot-' + dim.iso + '" maxlength="140" value="'
+    +   esc((r && r.mot) || '') + '" placeholder="Un mot, si besoin (facultatif)" '
+    +   'style="margin:10px 0 9px;font-size:13px;">'
+    + '<div style="display:flex;gap:9px;">'
+    +   '<div onclick="depPlanningPoser(\'' + dim.iso + '\',true)" style="' + choisi(true) + '">'
+    +     'Disponible</div>'
+    +   '<div onclick="depPlanningPoser(\'' + dim.iso + '\',false)" style="' + choisi(false) + '">'
+    +     'Pas dispo</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function _depPlanningBlocEquipe(dim){
+  var c = _depCompteDispo(dim.iso);
+  var gens = _depGensPlanning();
+  var lignes = gens.map(function(pers){
+    var r = _depDispoDe(dim.iso, pers.id);
+    var ic, coul, txt;
+    if(!r){ ic = '&#9203;'; coul = '#8a8a8a'; txt = 'rien mis'; }
+    else if(r.dispo){ ic = '&#9989;'; coul = '#006b2d'; txt = 'Disponible' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
+    else { ic = '&#10060;'; coul = '#992020'; txt = 'Pas dispo' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
+    return '<div style="display:flex;align-items:baseline;gap:8px;padding:6px 0;'
+      + 'border-bottom:1px dashed var(--border);font-size:13.5px;">'
+      + '<span>' + ic + '</span>'
+      + '<b style="color:var(--text);min-width:80px;">' + esc(pers.name) + '</b>'
+      + '<span style="color:' + coul + ';font-weight:600;flex:1;">' + txt + '</span>'
+      + '</div>';
+  }).join('');
+
+  var relance = '';
+  var moi = (window.currentUser || {}).id;
+  var nbRelance = c.muets.filter(function(x){ return x.id !== moi; }).length;
+  if(nbRelance && _depPeutOrganiserPlanning()){
+    relance = '<div onclick="depPlanningRelancer(\'' + dim.iso + '\')" '
+      + 'style="margin-top:11px;text-align:center;background:#FFF3E0;color:#E65100;'
+      + 'border:1.5px solid #E65100;border-radius:10px;padding:10px;font-size:13px;'
+      + 'font-weight:800;cursor:pointer;">&#128276; Relancer '
+      + (nbRelance > 1 ? ('les ' + nbRelance + ' qui n\'ont rien mis') : 'celui qui n\'a rien mis')
+      + '</div>';
+  }
+
+  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:13px;'
+    +   'padding:13px 14px;margin-bottom:10px;">'
+    + '<div style="font-size:15px;font-weight:800;color:var(--text);">Dimanche '
+    +   esc(dim.libelle) + '</div>'
+    + '<div style="display:flex;gap:7px;margin:9px 0 10px;flex-wrap:wrap;">'
+    +   '<span style="font-size:11.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
+    +     'padding:3px 10px;border-radius:20px;">' + c.oui + ' dispo</span>'
+    +   '<span style="font-size:11.5px;font-weight:800;color:#992020;background:#fde0e0;'
+    +     'padding:3px 10px;border-radius:20px;">' + c.non + ' non</span>'
+    +   (c.muets.length ? '<span style="font-size:11.5px;font-weight:800;color:#8a5a00;'
+    +     'background:#fff3cd;padding:3px 10px;border-radius:20px;">'
+    +     c.muets.length + ' sans r&eacute;ponse</span>' : '')
+    + '</div>'
+    + lignes
+    + relance
+    + '</div>';
+}
+
+var _depPlanningOnglet = 'moi';
+window.depPlanningOnglet = function(o){ _depPlanningOnglet = o; depRenderPlanning(); };
+
+window.depRenderPlanning = function(){
+  var box = document.getElementById('pl-contenu');
+  if(!box) return;
+  var dims = _depProchainsDimanches(5);
+
+  var onglet = function(cle, libelle){
+    var actif = _depPlanningOnglet === cle;
+    return '<div onclick="depPlanningOnglet(\'' + cle + '\')" style="flex:1;text-align:center;'
+      + 'padding:11px;font-size:13.5px;font-weight:800;cursor:pointer;border-radius:10px;'
+      + (actif ? 'background:#E65100;color:#fff;' : 'background:#fff;color:#8a8a8a;'
+                 + 'border:1.5px solid var(--border);') + '">' + libelle + '</div>';
+  };
+
+  var h = '<div style="display:flex;gap:8px;margin-bottom:14px;">'
+    + onglet('moi', 'Mes disponibilit&eacute;s')
+    + onglet('equipe', 'L\'&eacute;quipe')
+    + '</div>';
+
+  if(_depPlanningOnglet === 'moi'){
+    h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:11px;'
+      + 'line-height:1.45;">Dites &agrave; l\'avance quand vous pouvez travailler. '
+      + 'Vous pouvez changer d\'avis &agrave; tout moment.</div>';
+    h += dims.map(_depPlanningBlocMien).join('');
+  } else {
+    h += dims.map(_depPlanningBlocEquipe).join('');
+  }
+  box.innerHTML = h;
+};
 
 })();

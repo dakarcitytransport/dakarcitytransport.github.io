@@ -31,6 +31,20 @@ un prestataire.
   couleur, et voit en plus DÉPARTS, RAPPORT FINANCIER, STATISTIQUES et
   RÉGLAGES. Seule la case MAINTENANCE (passe-partout) reste à Cobey —
   comme pour Issyaka.
+- ~~**Case Planning**~~ — *faite le 26/09 (v3.88.0 / v2.4.0).*
+  Le problème d'Issyaka : ses frères ne répondaient pas toujours quand il
+  demandait qui serait là le dimanche, et il ne pouvait pas décider s'il
+  fallait un chauffeur externe.
+
+  Chacun pose ses disponibilités à l'avance sur les 5 dimanches à venir,
+  avec un mot facultatif. Tout le monde consulte le tableau de l'équipe —
+  qui est dispo, qui ne l'est pas, **et qui n'a rien mis**, ce que WhatsApp
+  ne savait pas montrer. La direction et Aminata peuvent relancer ceux qui
+  n'ont rien mis ; la relance part dans une file que Cloudflare videra.
+
+  **Reste :** brancher l'envoi (voir les notifications ci-dessous). En
+  attendant, la relance se dépose mais ne part pas.
+
 - **Notifications sur le téléphone** — *partie application faite le 26/09
   (v3.87.0 / v2.3.0). Reste l'envoi, à installer chez Cloudflare.*
 
