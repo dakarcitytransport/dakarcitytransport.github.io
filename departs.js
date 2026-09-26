@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.8.2';
+var DEP_VERSION = 'v2.8.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10560,7 +10560,7 @@ window.depEnregistrerNoteFiche = function(){
   if(!ctx){ closeModal('modal-dep-note-fiche'); return; }
   var t = $('dep-note-fiche-texte');
   var texte = (t && t.value || '').trim();
-  if(!texte){ toast('⚠️ &Eacute;crivez une note avant d\'enregistrer.'); return; }
+  if(!texte){ toast('⚠️ Écrivez une note avant d\'enregistrer.'); return; }
 
   var fiche = ctx.depot ? (window.depotClients||{})[ctx.clientId] : ((window.clientsParCollecte||{})[ctx.colId]||{})[ctx.clientId];
   if(!fiche){ closeModal('modal-dep-note-fiche'); return; }
@@ -19701,7 +19701,7 @@ window.depPlanningPoser = function(iso, dispo){
   // v2.6.0 : passé jeudi 22h, seule la direction (et Aminata) peut encore
   // toucher une réponse — voir _depPlEcheance.
   if(_depPlVerrouille(iso) && !_depPeutOrganiserPlanning()){
-    toast('⛔ D&eacute;lai d&eacute;pass&eacute; (jeudi 22h). Voyez la direction.');
+    toast('⛔ Délai dépassé (jeudi 22h). Voyez la direction.');
     return;
   }
   var champ = document.getElementById('pl-mot-' + iso);
@@ -19712,7 +19712,7 @@ window.depPlanningPoser = function(iso, dispo){
     nom   : u.name || '',
     le    : Date.now()
   }).then(function(){
-    toast(dispo ? '✅ Not&eacute; : disponible.' : '✅ Not&eacute; : pas disponible.');
+    toast(dispo ? '✅ Noté : disponible.' : '✅ Noté : pas disponible.');
     depRenderPlanning();
   }).catch(function(e){
     console.error('departs: pose disponibilité', e);
@@ -19729,11 +19729,11 @@ window.depPlanningRetirer = function(iso){
   var u = window.currentUser || {};
   if(!u.id || !window.db){ toast('❌ Pas de connexion.'); return; }
   if(_depPlVerrouille(iso) && !_depPeutOrganiserPlanning()){
-    toast('⛔ D&eacute;lai d&eacute;pass&eacute; (jeudi 22h). Voyez la direction.');
+    toast('⛔ Délai dépassé (jeudi 22h). Voyez la direction.');
     return;
   }
   db.ref('dct_planning/' + iso + '/' + u.id).remove().then(function(){
-    toast('↩️ R&eacute;ponse retir&eacute;e.');
+    toast('↩️ Réponse retirée.');
     depRenderPlanning();
   }).catch(function(e){
     console.error('departs: retrait disponibilité', e);
@@ -19796,7 +19796,7 @@ window.depPlanningForcer = function(iso, id, dispo, nomExterne){
     modifiePar   : u.id || '',
     modifieParNom: u.name || ''
   }).then(function(){
-    toast('✅ Modifi&eacute; pour ' + nom + '.');
+    toast('✅ Modifié pour ' + nom + '.');
     depRenderPlanning();
   }).catch(function(e){
     console.error('departs: forcer disponibilité', e);
@@ -19811,7 +19811,7 @@ window.depPlanningForcerRetirer = function(iso, id){
   if(!_depPeutOrganiserPlanning()){ toast('⛔ Réservé à la direction.'); return; }
   if(!window.db){ toast('❌ Pas de connexion.'); return; }
   db.ref('dct_planning/' + iso + '/' + id).remove().then(function(){
-    toast('↩️ R&eacute;ponse effac&eacute;e.');
+    toast('↩️ Réponse effacée.');
     depRenderPlanning();
   }).catch(function(e){
     console.error('departs: retrait (admin) disponibilité', e);
@@ -19885,7 +19885,7 @@ window.depPlanningExterneAjouter = function(iso, dispo){
     modifiePar   : u.id || '',
     modifieParNom: u.name || ''
   }).then(function(){
-    toast('✅ ' + nom + ' ajout&eacute;.');
+    toast('✅ ' + nom + ' ajouté.');
     _depPlanningExterneOuvert = '';
     depRenderPlanning();
   }).catch(function(e){
@@ -20365,7 +20365,7 @@ window.depAnnonceEnvoyer = function(){
     envoye : false
   }).then(function(){
     if(champ) champ.value = '';
-    toast('📨 Envoy&eacute; &agrave; toute l\'&eacute;quipe.');
+    toast('📨 Envoyé à toute l\'équipe.');
     depRenderAnnonce();
   }).catch(function(e){
     console.error('departs: envoi annonce', e);
@@ -20477,26 +20477,25 @@ function _depBioConnexion(collab, credIdB64, suite){
 
 // Proposée une fois, juste après une connexion réussie par PIN — jamais
 // si ce téléphone l'a déjà activée ou déjà refusée pour cette personne.
-// v2.8.2 : diagnostic temporaire — Cobey a testé sur un iPhone avec
-// Face ID pourtant bien réglé, et rien ne s'est proposé. Sans moyen
-// d'inspecter son téléphone moi-même, ces messages disent exactement
-// où ça s'arrête, pour comprendre quoi corriger. À retirer une fois le
-// souci trouvé.
+// v2.8.3 : le diagnostic de la v2.8.2 a trouvé la vraie cause — Cobey,
+// test réel sur son iPhone (Face ID bien réglé) : « aucun capteur
+// biométrique détecté (réponse : false) ». Ce n'était pas son
+// téléphone : depuis iOS 26.2, Apple a durci
+// isUserVerifyingPlatformAuthenticatorAvailable() pour qu'elle ne
+// réponde « oui » que s'il existe déjà AU MOINS UNE clé — impossible à
+// satisfaire avant même la toute première activation. Elle est aussi
+// connue pour répondre « false » à tort dans certains navigateurs non
+// natifs sur iOS. Ce test préalable n'a donc plus rien de fiable ; on
+// le retire, et c'est la création elle-même (navigator.credentials.
+// create, dans _depBioActiver) qui sert désormais de seul vrai test —
+// si le téléphone ne sait pas faire, elle échouera proprement et le
+// dira à ce moment-là, plutôt que de refuser même d'essayer.
 function _depOffrirBiometrie(collab){
   if(!collab || !collab.id || collab.role === 'poste' || collab.societe) return;
-  if(!_depBioDispo()){ toast('🔎 Diag Face ID : WebAuthn indisponible sur ce navigateur.'); return; }
+  if(!_depBioDispo()) return;
   if(localStorage.getItem('dct_bio_' + collab.id)) return;
-  if(localStorage.getItem('dct_bio_refuse_' + collab.id)){ toast('🔎 Diag Face ID : d&eacute;j&agrave; refus&eacute; sur ce t&eacute;l&eacute;phone (localStorage).'); return; }
-  if(!window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable){
-    toast('🔎 Diag Face ID : m&eacute;thode de v&eacute;rification absente sur ce navigateur.');
-    return;
-  }
-  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function(dispo){
-    if(dispo) _depBioProposerModal(collab);
-    else toast('🔎 Diag Face ID : aucun capteur biom&eacute;trique d&eacute;tect&eacute; (r&eacute;ponse : ' + dispo + ').');
-  }).catch(function(e){
-    toast('🔎 Diag Face ID : erreur — ' + (e && e.message ? e.message : e));
-  });
+  if(localStorage.getItem('dct_bio_refuse_' + collab.id)) return;
+  _depBioProposerModal(collab);
 }
 window._depOffrirBiometrie = _depOffrirBiometrie;
 
@@ -20550,12 +20549,12 @@ window._depBioActiver = function(id){
       }
     }).then(function(cred){
       localStorage.setItem('dct_bio_' + id, _depBioB64url(cred.rawId));
-      toast('✅ Activ&eacute; — ' + _depBioLibelle() + ' remplace votre code sur ce t&eacute;l&eacute;phone.');
+      toast('✅ Activé — ' + _depBioLibelle() + ' remplace votre code sur ce téléphone.');
     }).catch(function(e){
       console.warn('departs: activation biométrique', e);
-      toast('❌ &Eacute;chec de l\'activation.');
+      toast('❌ Échec de l\'activation.');
     });
-  }catch(e){ toast('❌ &Eacute;chec de l\'activation.'); }
+  }catch(e){ toast('❌ Échec de l\'activation.'); }
 };
 
 // login() tente la biométrie en premier si ce téléphone a une clé pour

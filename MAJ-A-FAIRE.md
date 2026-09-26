@@ -49,6 +49,32 @@ un prestataire.
   personne habituellement — sur un appareil partagé entre plusieurs
   collaborateurs, mieux vaut continuer à taper le code.*
 
+  **v2.8.1 :** Cobey a demandé ce qui s'affichait sur Android — bonne
+  remarque, le texte disait toujours « l'empreinte digitale » à tort
+  (certains Android utilisent aussi le visage). Texte neutre qui ne
+  présume plus laquelle des deux c'est, sauf pour l'iPhone où Face ID
+  reste la norme.
+
+  **v2.8.2-v2.8.3 : rien ne se proposait, même Face ID bien réglé.**
+  Cobey a testé en vrai : après le code, aucune proposition. Un
+  diagnostic temporaire (v2.8.2) a trouvé la cause exacte : « aucun
+  capteur biométrique détecté (réponse : false) ». Pas son téléphone —
+  depuis iOS 26.2, Apple a durci `isUserVerifyingPlatformAuthenticator
+  Available()` pour qu'elle ne réponde « oui » que s'il existe déjà au
+  moins une clé, ce qui la rend impossible à satisfaire avant même la
+  toute première activation (et elle est connue pour répondre « false »
+  à tort dans d'autres cas sur iOS). Ce test préalable n'avait donc plus
+  rien de fiable — retiré en v2.8.3 : c'est désormais la création de la
+  clé elle-même qui sert de seul vrai test, avec un message clair en cas
+  d'échec.
+
+  Au passage (v2.8.3) : les messages du diagnostic, comme plusieurs
+  autres dans Planning et la case Notification, affichaient des accents
+  en toutes lettres (« biom&eacute;trique » au lieu de « biométrique »)
+  — un `toast()` affiche du texte brut, pas du HTML, contrairement au
+  reste de l'écran ; toutes les entités HTML qui s'y étaient glissées
+  sont corrigées.
+
 - ~~**Ablaye** passe administrateur, comme Issyaka.~~
   **Fait le 24/09 (v1.55.0).** Abdoulaye (AB) rejoint la direction, aux
   mêmes conditions qu'Issyaka : il garde son profil, son PIN et sa
