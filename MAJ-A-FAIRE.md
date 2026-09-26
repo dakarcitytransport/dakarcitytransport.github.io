@@ -31,6 +31,12 @@ un prestataire.
   couleur, et voit en plus DÉPARTS, RAPPORT FINANCIER, STATISTIQUES et
   RÉGLAGES. Seule la case MAINTENANCE (passe-partout) reste à Cobey —
   comme pour Issyaka.
+- ~~**Le bouton « Relancer » aussi.**~~ *Fait le 26/09 (v3.89.2 /
+  v2.5.2).* Cobey : « le bouton relancer laisse dans la modification et
+  non dans la lecture seule ». Oubli du commit précédent — c'est une
+  action, comme les corrections, elle n'a rien à faire dans la lecture
+  seule.
+
 - ~~**Les corrections passent derrière un bouton « Modifier ».**~~
   *Fait le 26/09 (v3.89.1 / v2.5.1).* Cobey, aussitôt après la
   fonctionnalité précédente : « les modifications […] doivent se faire

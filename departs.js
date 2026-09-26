@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.5.1';
+var DEP_VERSION = 'v2.5.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19939,10 +19939,14 @@ function _depPlanningBlocEquipe(dim){
       + ligne + _depPlControles(dim.iso, pers.id, r, enModif) + '</div>';
   }).join('');
 
+  // v2.5.2 : rangé lui aussi derrière « Modifier ce dimanche » — Cobey, le
+  // 26/09/2026 : « le bouton relancer laisse dans la modification et non
+  // dans la lecture seule ». C'est une action, comme les corrections : la
+  // lecture seule ne doit en garder aucune.
   var relance = '';
   var moi = (window.currentUser || {}).id;
   var nbRelance = c.muets.filter(function(x){ return x.id !== moi; }).length;
-  if(nbRelance && _depPeutOrganiserPlanning()){
+  if(nbRelance && enModif && _depPeutOrganiserPlanning()){
     relance = '<div onclick="depPlanningRelancer(\'' + dim.iso + '\')" '
       + 'style="margin-top:11px;text-align:center;background:#FFF3E0;color:#E65100;'
       + 'border:1.5px solid #E65100;border-radius:10px;padding:10px;font-size:13px;'
