@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.7.2';
+var DEP_VERSION = 'v2.8.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13576,6 +13576,12 @@ function greffer(){
            lancement) ou du service worker (application déjà en tâche
            de fond, voir plus bas). */
         try{ _depAppliquerIntentionOuverture(); }catch(e){}
+        /* v2.8.0 : propose Face ID/l'empreinte à la place du code, une
+           fois la connexion par PIN réussie — jamais si déjà activé ou
+           déjà refusé sur ce téléphone (voir _depOffrirBiometrie). Un
+           court délai laisse l'écran Espaces se poser avant que la
+           question n'arrive par-dessus. */
+        setTimeout(function(){ try{ _depOffrirBiometrie(collab); }catch(e){} }, 400);
       }catch(e){}
     };
     window._finalisLoginCore._depPatch = true;
@@ -20401,5 +20407,158 @@ window.depRenderAnnonce = function(){
   }
   box.innerHTML = h;
 };
+
+/* ═══════════════════════════════════════════════════════════
+   CONNEXION PAR FACE ID / EMPREINTE (v2.8.0)
+
+   Cobey, le 26/09/2026 : « est-il possible d'accéder à chaque profil
+   par la reconnaissance faciale ? ». Pas une vraie reconnaissance
+   faciale — ça devinerait tout seul qui pose son visage devant
+   n'importe quel téléphone de l'équipe, ce qui suppose de garder le
+   visage de chacun quelque part (une vraie question de vie privée), et
+   ne sert à rien tant que les téléphones restent surtout personnels.
+
+   Ici, Face ID (iPhone) ou l'empreinte (Android) remplacent juste la
+   saisie du code, sur SON PROPRE téléphone, une fois qu'on a déjà choisi
+   son nom — exactement comme ces mêmes capteurs déverrouillent déjà le
+   téléphone lui-même. La technologie s'appelle WebAuthn : la clé créée
+   à l'activation reste enfermée dans le téléphone, jamais envoyée à
+   Firebase ni ailleurs — seul un petit repère (« ce téléphone a une clé
+   pour Samba ») est gardé, en local, dans ce même téléphone. */
+
+function _depBioDispo(){
+  return !!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext);
+}
+
+function _depBioB64url(buf){
+  var bytes = new Uint8Array(buf), bin = '';
+  for(var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function _depBioOctets(b64url){
+  var s = String(b64url).replace(/-/g, '+').replace(/_/g, '/');
+  s += '='.repeat((4 - s.length % 4) % 4);
+  var bin = atob(s), out = new Uint8Array(bin.length);
+  for(var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function _depBioLibelle(){
+  return (typeof _depSurIPhone === 'function' && _depSurIPhone()) ? 'Face ID' : "l'empreinte digitale";
+}
+
+// Tentée avant même d'ouvrir le clavier du PIN — seulement si CE
+// téléphone a déjà une clé enregistrée pour cette personne.
+function _depBioConnexion(collab, credIdB64, suite){
+  try{
+    navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        allowCredentials: [{ type: 'public-key', id: _depBioOctets(credIdB64) }],
+        userVerification: 'required',
+        timeout: 30000
+      }
+    }).then(function(assertion){
+      if(assertion && typeof window.finalisLogin === 'function') window.finalisLogin(collab);
+      suite(!!assertion);
+    }).catch(function(e){
+      console.warn('departs: connexion biométrique', e);
+      suite(false);
+    });
+  }catch(e){ suite(false); }
+}
+
+// Proposée une fois, juste après une connexion réussie par PIN — jamais
+// si ce téléphone l'a déjà activée ou déjà refusée pour cette personne.
+function _depOffrirBiometrie(collab){
+  if(!collab || !collab.id || collab.role === 'poste' || collab.societe) return;
+  if(!_depBioDispo()) return;
+  if(localStorage.getItem('dct_bio_' + collab.id)) return;
+  if(localStorage.getItem('dct_bio_refuse_' + collab.id)) return;
+  if(!window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return;
+  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function(dispo){
+    if(dispo) _depBioProposerModal(collab);
+  }).catch(function(){});
+}
+window._depOffrirBiometrie = _depOffrirBiometrie;
+
+function _depBioProposerModal(collab){
+  var id = 'dep-modal-bio';
+  var ancien = document.getElementById(id);
+  if(ancien) ancien.remove();
+  var div = document.createElement('div');
+  div.id = id;
+  div.className = 'modal-overlay';
+  div.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">🔐</div>'
+    + '<div class="modal-confirm-title">Utiliser ' + _depBioLibelle() + ' ?</div>'
+    + '<div style="font-size:12.5px;color:#666;margin:0 4px 16px;line-height:1.45;">'
+    +   'Pour ne plus taper votre code sur ce t&eacute;l&eacute;phone. '
+    +   'La cl&eacute; reste uniquement sur cet appareil, elle n\'est '
+    +   'envoy&eacute;e nulle part.</div>'
+    + '<div class="modal-confirm-btns">'
+    +   '<button class="btn-modal-cancel" onclick="_depBioRefuser(\'' + collab.id + '\')">Non merci</button>'
+    +   '<button class="btn-modal-confirm" style="background:#009A44;border-color:#006b2d;" '
+    +     'onclick="_depBioActiver(\'' + collab.id + '\')">Activer</button>'
+    + '</div>'
+    + '</div></div>';
+  document.body.appendChild(div);
+  if(typeof openModal === 'function') openModal(id);
+}
+
+window._depBioRefuser = function(id){
+  localStorage.setItem('dct_bio_refuse_' + id, '1');
+  if(typeof closeModal === 'function') closeModal('dep-modal-bio');
+};
+
+window._depBioActiver = function(id){
+  if(typeof closeModal === 'function') closeModal('dep-modal-bio');
+  var collab = (typeof getProfil === 'function') ? getProfil(id) : null;
+  if(!collab) return;
+  try{
+    navigator.credentials.create({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rp: { name: 'Dakar City Transport', id: location.hostname },
+        user: {
+          id: new TextEncoder().encode(collab.id),
+          name: collab.id,
+          displayName: collab.name || collab.id
+        },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+        timeout: 60000,
+        attestation: 'none'
+      }
+    }).then(function(cred){
+      localStorage.setItem('dct_bio_' + id, _depBioB64url(cred.rawId));
+      toast('✅ Activ&eacute; — ' + _depBioLibelle() + ' remplace votre code sur ce t&eacute;l&eacute;phone.');
+    }).catch(function(e){
+      console.warn('departs: activation biométrique', e);
+      toast('❌ &Eacute;chec de l\'activation.');
+    });
+  }catch(e){ toast('❌ &Eacute;chec de l\'activation.'); }
+};
+
+// login() tente la biométrie en premier si ce téléphone a une clé pour
+// cette personne — avant même d'ouvrir le clavier du PIN.
+try{
+  if(typeof window.login === 'function' && !window.login._depBioPatch){
+    var _depLoginOriginal = window.login;
+    window.login = function(id){
+      var collab = (typeof getProfil === 'function') ? getProfil(id) : null;
+      var credId = collab ? localStorage.getItem('dct_bio_' + collab.id) : null;
+      if(collab && credId && !collab.desactive && collab.role !== 'poste' && _depBioDispo()){
+        _depBioConnexion(collab, credId, function(reussi){
+          if(!reussi) _depLoginOriginal(id);
+        });
+        return;
+      }
+      _depLoginOriginal(id);
+    };
+    window.login._depBioPatch = true;
+  }
+}catch(e){}
 
 })();

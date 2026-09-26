@@ -25,6 +25,30 @@ un prestataire.
 
 ## 1 · Droits et profils
 
+- ~~**Connexion par Face ID / empreinte.**~~ *Fait le 26/09 (v3.92.0 /
+  v2.8.0).* Cobey : « est-il possible d'accéder à chaque profil par la
+  reconnaissance faciale ? ». Pas une vraie reconnaissance faciale
+  (deviner tout seul qui pose son visage devant n'importe quel téléphone
+  de l'équipe — ça suppose de garder le visage de chacun quelque part,
+  une vraie question de vie privée) : « ah nan la version 2 je veux pas
+  ça, je veux un collaborateur sur son téléphone ». Face ID (iPhone) ou
+  l'empreinte (Android) remplacent donc le code PIN, sur son propre
+  téléphone, une fois qu'on a déjà choisi son nom — exactement comme ces
+  capteurs déverrouillent déjà l'appareil lui-même.
+
+  Proposé une fois, juste après une connexion réussie par PIN (jamais
+  si déjà activé ou déjà refusé sur ce téléphone). La clé créée à
+  l'activation (WebAuthn) reste enfermée dans le téléphone — rien
+  n'est envoyé à Firebase ni ailleurs, seul un petit repère local
+  (« ce téléphone a une clé pour Samba ») est gardé sur l'appareil. Une
+  fois activée, ouvrir son nom tente Face ID/l'empreinte en premier,
+  avant même d'afficher le clavier du code — qui reste disponible si la
+  biométrie échoue ou n'est pas encore activée.
+
+  *Ne remplace le code que sur les téléphones utilisés par une seule
+  personne habituellement — sur un appareil partagé entre plusieurs
+  collaborateurs, mieux vaut continuer à taper le code.*
+
 - ~~**Ablaye** passe administrateur, comme Issyaka.~~
   **Fait le 24/09 (v1.55.0).** Abdoulaye (AB) rejoint la direction, aux
   mêmes conditions qu'Issyaka : il garde son profil, son PIN et sa
