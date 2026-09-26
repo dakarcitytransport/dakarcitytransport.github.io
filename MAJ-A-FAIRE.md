@@ -102,16 +102,25 @@ un prestataire.
   lui laisse un mémo à jour (`dct_planning_participants`) chaque fois que
   la case Planning s'affiche.
 
-  *Recoll&eacute; chez Cloudflare le 26/09, v&eacute;rifi&eacute; en ouvrant l'adresse du
-  Worker : `"planning"` appara&icirc;t bien &agrave; c&ocirc;t&eacute; de `"envoi"`.*
+  *Recollé chez Cloudflare le 26/09, vérifié en ouvrant l'adresse du
+  Worker : `"planning"` apparaît bien à côté de `"envoi"`.*
 
-  **v2.6.1 :** Cobey, apr&egrave;s avoir vu l'aper&ccedil;u des nouveaux messages :
-  « je veux en revoir un pour tester ». Un deuxi&egrave;me bouton d'essai,
-  &agrave; c&ocirc;t&eacute; de celui d&eacute;j&agrave; en place, r&eacute;serv&eacute; &agrave; la direction et Aminata :
-  « Tester le rappel du d&eacute;lai (texte r&eacute;el) », dans Planning. Il envoie,
-  &agrave; soi-m&ecirc;me, exactement le texte que recevront lundi/mercredi/jeudi
-  ceux qui n'ont pas r&eacute;pondu — pas juste la confirmation g&eacute;n&eacute;rique de
+  **v2.6.1 :** Cobey, après avoir vu l'aperçu des nouveaux messages :
+  « je veux en revoir un pour tester ». Un deuxième bouton d'essai,
+  à côté de celui déjà en place, réservé à la direction et Aminata :
+  « Tester le rappel du délai (texte réel) », dans Planning. Il envoie,
+  à soi-même, exactement le texte que recevront lundi/mercredi/jeudi
+  ceux qui n'ont pas répondu — pas juste la confirmation générique de
   l'autre bouton.
+
+  **v2.6.2 :** Cobey, capture d'écran à l'appui : « le texte sur les
+  notifications n'est pas toujours correct. Il n'est jamais correct, si
+  je puis dire » — les accents s'affichaient en toutes lettres
+  (« r&eacute;ussi » au lieu de « réussi »). Les deux textes d'essai
+  ci-dessus avaient été écrits avec des entités HTML (`&eacute;` et
+  consorts), qui ne veulent rien dire pour une vraie notification — ce
+  n'est pas une page web, le texte s'affiche tel quel. Corrigé : texte
+  brut, accents normaux.
 
 - ~~**La notification de relance amène directement sur Planning.**~~
   *Fait le 26/09 (v3.89.3 / v2.5.3).* Cobey : « comment ça sera quand

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.6.1';
+var DEP_VERSION = 'v2.6.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19442,7 +19442,12 @@ window.depTesterNotif = function(){
   if(!u.id || !window.db){ toast('❌ Pas de connexion.'); return; }
   db.ref('dct_file_push').push({
     titre  : 'Dakar City Transport',
-    corps  : 'Essai r&eacute;ussi : les notifications fonctionnent sur ce t&eacute;l&eacute;phone.',
+    // v2.6.2 : Cobey, le 26/09/2026, capture d'écran à l'appui : le texte
+    // affichait « r&eacute;ussi » au lieu de « réussi ». Une notification
+    // n'est pas une page web — son texte s'affiche tel quel, sans
+    // interpréter les entités HTML (&eacute; et consorts) qui servaient
+    // ailleurs dans ce fichier pour du innerHTML. Ici, du texte brut.
+    corps  : 'Essai réussi : les notifications fonctionnent sur ce téléphone.',
     sujet  : 'essai',
     cibles : [u.id],
     par    : u.id,
@@ -19485,8 +19490,8 @@ window.depTesterRappelDelai = function(){
   var dim = _depProchainsDimanches(1)[0];
   db.ref('dct_file_push').push({
     titre  : 'Dakar City Transport',
-    corps  : 'Êtes-vous disponible dimanche ' + dim.libelle + ' ? Merci de r&eacute;pondre dans '
-           + 'Planning avant jeudi 22h — pass&eacute; ce d&eacute;lai, vous serez not&eacute; absent.',
+    corps  : 'Êtes-vous disponible dimanche ' + dim.libelle + ' ? Merci de répondre dans '
+           + 'Planning avant jeudi 22h — passé ce délai, vous serez noté absent.',
     sujet  : 'essai-rappel-delai',
     url    : './dct-app.html?ouvrir=planning',
     cibles : [u.id],
