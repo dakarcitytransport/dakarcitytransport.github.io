@@ -75,6 +75,17 @@ un prestataire.
   reste de l'écran ; toutes les entités HTML qui s'y étaient glissées
   sont corrigées.
 
+- ~~**Planning et Notification manquaient dans le fil Activité.**~~
+  *Fait le 26/09 (v3.93.0 / v2.9.0).* Cobey : « chaque action du
+  collaborateur doit y être inscrite ». Le fil Activité (onglet du bas,
+  pastille rouge) couvrait déjà départs, clients, dispatch, France — mais
+  rien de ce qui a été construit cette semaine. Ajoutés : poser/retirer sa
+  disponibilité, une correction ou un ajout d'intervenant ponctuel par un
+  admin, une relance envoyée (Planning), un message envoyé à toute
+  l'équipe (case Notification), et l'activation de Face ID/l'empreinte.
+  Comme pour le reste de l'app, un admin (Eric) reste invisible dans ce
+  fil — règle déjà en place, pas quelque chose d'ajouté ici.
+
 - ~~**Ablaye** passe administrateur, comme Issyaka.~~
   **Fait le 24/09 (v1.55.0).** Abdoulaye (AB) rejoint la direction, aux
   mêmes conditions qu'Issyaka : il garde son profil, son PIN et sa

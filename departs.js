@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.8.3';
+var DEP_VERSION = 'v2.9.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19714,6 +19714,16 @@ window.depPlanningPoser = function(iso, dispo){
   }).then(function(){
     toast(dispo ? '✅ Noté : disponible.' : '✅ Noté : pas disponible.');
     depRenderPlanning();
+    // v2.9.0 : Cobey : « chaque action du collaborateur doit y être
+    // inscrite » (dans le fil Activité) — le fil couvrait déjà les
+    // départs, clients, dispatch..., mais rien de ce qui a été construit
+    // depuis (Planning, Notification).
+    try{
+      addActivity(dispo ? '✅' : '❌', u.bg,
+        '<strong style="color:' + u.color + '">' + u.name + '</strong> '
+        + (dispo ? 'se dit disponible' : 'se dit pas disponible')
+        + ' pour le dimanche <strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+    }catch(e){}
   }).catch(function(e){
     console.error('departs: pose disponibilité', e);
     toast('❌ Échec, réessayez.');
@@ -19735,11 +19745,24 @@ window.depPlanningRetirer = function(iso){
   db.ref('dct_planning/' + iso + '/' + u.id).remove().then(function(){
     toast('↩️ Réponse retirée.');
     depRenderPlanning();
+    try{
+      addActivity('↩️', u.bg,
+        '<strong style="color:' + u.color + '">' + u.name + '</strong> a retiré sa réponse '
+        + 'pour le dimanche <strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+    }catch(e){}
   }).catch(function(e){
     console.error('departs: retrait disponibilité', e);
     toast('❌ Échec, réessayez.');
   });
 };
+
+// « 27 septembre » — pour nommer un dimanche dans le fil Activité, sans
+// dépendre de la fenêtre des 5 prochains dimanches (une correction tardive
+// peut viser un dimanche qui n'y est déjà plus).
+function _depActiviteDate(iso){
+  var d = new Date(iso + 'T00:00:00');
+  return d.getDate() + ' ' + DEP_PL_MOIS[d.getMonth()];
+}
 
 // « 26/09 à 14h05 » — pour savoir quand quelqu'un a répondu, pas
 // seulement ce qu'il a répondu (Cobey, le 26/09/2026).
@@ -19798,6 +19821,12 @@ window.depPlanningForcer = function(iso, id, dispo, nomExterne){
   }).then(function(){
     toast('✅ Modifié pour ' + nom + '.');
     depRenderPlanning();
+    try{
+      addActivity('✏️', u.bg,
+        '<strong style="color:' + u.color + '">' + u.name + '</strong> a corrigé la réponse '
+        + 'de <strong>' + nom + '</strong> (' + (dispo ? 'disponible' : 'pas disponible') + ') '
+        + 'pour le dimanche <strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+    }catch(e){}
   }).catch(function(e){
     console.error('departs: forcer disponibilité', e);
     toast('❌ Échec, réessayez.');
@@ -19810,9 +19839,16 @@ window.depPlanningForcer = function(iso, id, dispo, nomExterne){
 window.depPlanningForcerRetirer = function(iso, id){
   if(!_depPeutOrganiserPlanning()){ toast('⛔ Réservé à la direction.'); return; }
   if(!window.db){ toast('❌ Pas de connexion.'); return; }
+  var u = window.currentUser || {};
+  var nom = (_depDispoDe(iso, id) || {}).nom || id;
   db.ref('dct_planning/' + iso + '/' + id).remove().then(function(){
     toast('↩️ Réponse effacée.');
     depRenderPlanning();
+    try{
+      addActivity('↩️', u.bg,
+        '<strong style="color:' + u.color + '">' + u.name + '</strong> a effacé la réponse '
+        + 'de <strong>' + nom + '</strong> pour le dimanche <strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+    }catch(e){}
   }).catch(function(e){
     console.error('departs: retrait (admin) disponibilité', e);
     toast('❌ Échec, réessayez.');
@@ -19888,6 +19924,12 @@ window.depPlanningExterneAjouter = function(iso, dispo){
     toast('✅ ' + nom + ' ajouté.');
     _depPlanningExterneOuvert = '';
     depRenderPlanning();
+    try{
+      addActivity('➕', u.bg,
+        '<strong style="color:' + u.color + '">' + u.name + '</strong> a ajouté '
+        + '<strong>' + nom + '</strong> (intervenant ponctuel) pour le dimanche '
+        + '<strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+    }catch(e){}
   }).catch(function(e){
     console.error('departs: ajout intervenant ponctuel', e);
     toast('❌ Échec, réessayez.');
@@ -19971,6 +20013,12 @@ window.depPlanningRelancer = function(iso){
   }).then(function(){
     toast('📨 Relance envoyée à ' + aRelancer.length + ' personne'
       + (aRelancer.length > 1 ? 's' : '') + '.');
+    try{
+      addActivity('🔔', u.bg,
+        '<strong style="color:' + u.color + '">' + u.name + '</strong> a relancé '
+        + aRelancer.length + ' personne' + (aRelancer.length > 1 ? 's' : '')
+        + ' pour le dimanche <strong>' + quand + '</strong>', "À l'instant");
+    }catch(e){}
   }).catch(function(e){
     console.error('departs: relance planning', e);
     toast('❌ Échec de la relance.');
@@ -20367,6 +20415,12 @@ window.depAnnonceEnvoyer = function(){
     if(champ) champ.value = '';
     toast('📨 Envoyé à toute l\'équipe.');
     depRenderAnnonce();
+    try{
+      var apercu = esc(texte.length > 80 ? texte.slice(0, 80) + '…' : texte);
+      addActivity('📢', u.bg,
+        '<strong style="color:' + u.color + '">' + u.name + '</strong> a envoyé un message '
+        + 'à toute l\'équipe : « ' + apercu + ' »', "À l'instant");
+    }catch(e){}
   }).catch(function(e){
     console.error('departs: envoi annonce', e);
     toast('❌ Échec de l\'envoi.');
@@ -20550,6 +20604,15 @@ window._depBioActiver = function(id){
     }).then(function(cred){
       localStorage.setItem('dct_bio_' + id, _depBioB64url(cred.rawId));
       toast('✅ Activé — ' + _depBioLibelle() + ' remplace votre code sur ce téléphone.');
+      try{
+        // v2.9.0 : _depBioLibelle() est écrite en « votre » (adressée
+        // directement à la personne, comme dans le toast juste au-dessus)
+        // — mal venu ici où la phrase parle de Samba à la 3e personne.
+        addActivity('🔐', collab.bg,
+          '<strong style="color:' + collab.color + '">' + collab.name + '</strong> a activé la '
+          + 'connexion par ' + ((typeof _depSurIPhone === 'function' && _depSurIPhone())
+              ? 'Face ID' : 'empreinte/visage') + ' sur son téléphone', "À l'instant");
+      }catch(e){}
     }).catch(function(e){
       console.warn('departs: activation biométrique', e);
       toast('❌ Échec de l\'activation.');
