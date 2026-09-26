@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.4.2';
+var DEP_VERSION = 'v2.5.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19637,6 +19637,167 @@ function _depPlDateHeure(ts){
     + ' &agrave; ' + String(d.getHours()).padStart(2, '0') + 'h' + String(d.getMinutes()).padStart(2, '0');
 }
 
+/* ═══ v2.5.0 — L'ADMIN PEUT CORRIGER, ET AJOUTER DES PONCTUELS ═══
+
+   Cobey, le 26/09/2026 : « les admins doivent avoir la possibilité de
+   gérer l'organisation, même si un collaborateur dit qu'il est dispo
+   mais qu'au final non, l'admin peut moduler le planning, car il se peut
+   que l'autre collaborateur ne changera pas son statut. Et il va falloir
+   aussi que les admins puissent mettre des intervenants externes pour le
+   planning (chauffeur externe ou aide d'un neveu d'un frère), des
+   personnes qui peuvent être là ponctuellement ».
+
+   Deux besoins, une même mécanique : forcer une réponse à la place de
+   quelqu'un. La différence entre « corriger Boubacar » et « ajouter le
+   neveu de Boubacar » n'est que l'origine de l'identifiant — celui d'un
+   collaborateur existant, ou une clé toute neuve pour quelqu'un qui n'a
+   pas de profil. Une seule fonction (depPlanningForcer) gère les deux ;
+   ajouter un ponctuel n'est jamais qu'un premier appel avec un nom.
+
+   Réservé à Direction + Aminata (_depPeutOrganiserPlanning), comme la
+   relance. Chaque correction garde une trace : qui a changé quoi, et
+   quand — sinon on perdrait, pour l'entourage, la certitude que la
+   réponse vient bien de la personne elle-même. */
+
+/* L'admin fixe une réponse à la place de quelqu'un — un collaborateur du
+   planning, ou un intervenant ponctuel qu'on ajoute au passage (nomExterne
+   fourni seulement à la création). Le mot et la provenance déjà en place
+   sont conservés ; seule la case dispo et l'auteur de la modification
+   changent. */
+window.depPlanningForcer = function(iso, id, dispo, nomExterne){
+  if(!_depPeutOrganiserPlanning()){ toast('⛔ Réservé à la direction.'); return; }
+  if(!window.db){ toast('❌ Pas de connexion.'); return; }
+  var u = window.currentUser || {};
+  var existant = _depDispoDe(iso, id) || {};
+  var nom = nomExterne || existant.nom
+    || (((window.COLLABS || []).filter(function(c){ return c.id === id; })[0] || {}).name) || '';
+  db.ref('dct_planning/' + iso + '/' + id).set({
+    dispo        : !!dispo,
+    mot          : existant.mot || '',
+    nom          : nom,
+    externe      : !!(existant.externe || nomExterne),
+    ajoutePar    : existant.ajoutePar || u.id || '',
+    ajouteParNom : existant.ajouteParNom || u.name || '',
+    le           : Date.now(),
+    parAdmin     : true,
+    modifiePar   : u.id || '',
+    modifieParNom: u.name || ''
+  }).then(function(){
+    toast('✅ Modifi&eacute; pour ' + nom + '.');
+    depRenderPlanning();
+  }).catch(function(e){
+    console.error('departs: forcer disponibilité', e);
+    toast('❌ Échec, réessayez.');
+  });
+};
+
+// Efface une réponse à la place de quelqu'un. Pour un collaborateur du
+// planning, il redevient « rien mis » ; pour un ponctuel, qui n'existe
+// que par cette fiche, il disparaît du dimanche.
+window.depPlanningForcerRetirer = function(iso, id){
+  if(!_depPeutOrganiserPlanning()){ toast('⛔ Réservé à la direction.'); return; }
+  if(!window.db){ toast('❌ Pas de connexion.'); return; }
+  db.ref('dct_planning/' + iso + '/' + id).remove().then(function(){
+    toast('↩️ R&eacute;ponse effac&eacute;e.');
+    depRenderPlanning();
+  }).catch(function(e){
+    console.error('departs: retrait (admin) disponibilité', e);
+    toast('❌ Échec, réessayez.');
+  });
+};
+
+// Les intervenants ponctuels d'un dimanche : toute fiche marquée
+// `externe`, quelle que soit sa clé (générée, pas un identifiant connu).
+function _depExternesDe(iso){
+  var jour = (window.planningData || {})[iso] || {};
+  return Object.keys(jour).filter(function(k){ return jour[k] && jour[k].externe; })
+    .map(function(k){
+      var x = {}; for(var p in jour[k]) x[p] = jour[k][p];
+      x._id = k; return x;
+    });
+}
+
+// L'iso du dimanche dont le petit formulaire d'ajout est déplié — un
+// seul à la fois, pour ne pas encombrer l'écran.
+var _depPlanningExterneOuvert = '';
+
+window.depPlanningExterneOuvrir = function(iso){
+  if(!_depPeutOrganiserPlanning()) return;
+  _depPlanningExterneOuvert = iso;
+  depRenderPlanning();
+};
+window.depPlanningExterneFermer = function(){
+  _depPlanningExterneOuvert = '';
+  depRenderPlanning();
+};
+
+window.depPlanningExterneAjouter = function(iso, dispo){
+  if(!_depPeutOrganiserPlanning()){ toast('⛔ Réservé à la direction.'); return; }
+  if(!window.db){ toast('❌ Pas de connexion.'); return; }
+  var champNom = document.getElementById('pl-ext-nom-' + iso);
+  var nom = champNom ? (champNom.value || '').trim().slice(0, 60) : '';
+  if(!nom){ toast('✏️ Indiquez un nom.'); return; }
+  var champMot = document.getElementById('pl-ext-mot-' + iso);
+  var mot = champMot ? (champMot.value || '').trim().slice(0, 140) : '';
+  var u = window.currentUser || {};
+  db.ref('dct_planning/' + iso).push({
+    dispo        : !!dispo,
+    mot          : mot,
+    nom          : nom,
+    externe      : true,
+    ajoutePar    : u.id || '',
+    ajouteParNom : u.name || '',
+    le           : Date.now(),
+    parAdmin     : true,
+    modifiePar   : u.id || '',
+    modifieParNom: u.name || ''
+  }).then(function(){
+    toast('✅ ' + nom + ' ajout&eacute;.');
+    _depPlanningExterneOuvert = '';
+    depRenderPlanning();
+  }).catch(function(e){
+    console.error('departs: ajout intervenant ponctuel', e);
+    toast('❌ Échec, réessayez.');
+  });
+};
+
+/* Les trois petits boutons de correction — mêmes réglages pour un
+   collaborateur du planning et pour un intervenant ponctuel, puisque la
+   mécanique (depPlanningForcer / depPlanningForcerRetirer) est
+   identique des deux côtés. */
+function _depPlControles(iso, id, r){
+  if(!_depPeutOrganiserPlanning()) return '';
+  var actifOui = r && r.dispo === true;
+  var actifNon = r && r.dispo === false;
+  return '<div style="display:flex;gap:6px;margin:4px 0 6px 24px;flex-wrap:wrap;">'
+    + '<div onclick="depPlanningForcer(\'' + iso + '\',\'' + id + '\',true)" style="'
+    +   'padding:5px 11px;border-radius:8px;font-size:11.5px;font-weight:800;cursor:pointer;'
+    +   (actifOui ? 'background:#009A44;color:#fff;border:1.5px solid #006b2d;'
+                  : 'background:#fff;color:#006b2d;border:1.5px solid #009A44;') + '">Dispo</div>'
+    + '<div onclick="depPlanningForcer(\'' + iso + '\',\'' + id + '\',false)" style="'
+    +   'padding:5px 11px;border-radius:8px;font-size:11.5px;font-weight:800;cursor:pointer;'
+    +   (actifNon ? 'background:#c0392b;color:#fff;border:1.5px solid #922b21;'
+                  : 'background:#fff;color:#992020;border:1.5px solid #c0392b;') + '">Pas dispo</div>'
+    + (r ? ('<div onclick="depPlanningForcerRetirer(\'' + iso + '\',\'' + id + '\')" style="'
+        + 'padding:5px 11px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;'
+        + 'background:#f0f0f0;color:#666;border:1.5px solid #ccc;">Effacer</div>') : '')
+    + '</div>';
+}
+
+/* « répondu le 26/09 à 14h05 », ou « modifié par Cobey, 26/09 à 14h05 »
+   quand ce n'est pas la personne elle-même qui a répondu — pour que
+   Boubacar, en ouvrant sa propre fiche, comprenne que ce n'est pas lui
+   qui a changé son statut. `avecTiret` ajoute le tiret d'introduction
+   utilisé dans le tableau de l'équipe ; sans lui, la phrase s'emploie
+   telle quelle (fiche personnelle). */
+function _depPlQuiEtQuand(r, avecTiret){
+  if(!r) return '';
+  var texte = r.parAdmin
+    ? ('modifi&eacute; par ' + esc(r.modifieParNom || '?') + ', ' + _depPlDateHeure(r.le))
+    : ('r&eacute;pondu le ' + _depPlDateHeure(r.le));
+  return (avecTiret ? '&mdash; ' : '') + texte;
+}
+
 /* ─── La relance ─────────────────────────────────────────────
    On ne l'envoie pas soi-même : on la dépose dans une file que
    Cloudflare vide toutes les minutes. Ça évite d'avoir la clé d'envoi
@@ -19703,7 +19864,7 @@ function _depPlanningBlocMien(dim){
     + '</div>'
     + (r ? ('<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;">'
         + (r.mot ? ('&laquo;&nbsp;' + esc(r.mot) + '&nbsp;&raquo; &mdash; ') : '')
-        + 'r&eacute;pondu le ' + _depPlDateHeure(r.le) + '</div>') : '')
+        + _depPlQuiEtQuand(r, false) + '</div>') : '')
     + '<input class="fi" id="pl-mot-' + dim.iso + '" maxlength="140" value="'
     +   esc((r && r.mot) || '') + '" placeholder="Un mot, si besoin (facultatif)" '
     +   'style="margin:10px 0 9px;font-size:13px;">'
@@ -19731,18 +19892,23 @@ function _depPlanningBlocEquipe(dim){
     if(!r){ ic = '&#9203;'; coul = '#8a8a8a'; txt = 'rien mis'; }
     else if(r.dispo){ ic = '&#9989;'; coul = '#006b2d'; txt = 'Disponible' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
     else { ic = '&#10060;'; coul = '#992020'; txt = 'Pas dispo' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
-    // v2.4.2 : la date et l'heure de la réponse, pour savoir QUAND
-    // quelqu'un a répondu, pas seulement ce qu'il a répondu (Cobey, le
-    // 26/09/2026).
+    // v2.4.2 : la date et l'heure de la réponse, pas seulement ce qui a
+    // été répondu. v2.5.0 : « modifié par X » quand ce n'est pas la
+    // personne elle-même — un admin a pu corriger à sa place.
     var quand = r ? ('<span style="color:var(--text3);font-weight:600;font-size:11.5px;">'
-      + ' &mdash; ' + _depPlDateHeure(r.le) + '</span>') : '';
-    return '<div style="display:flex;align-items:baseline;gap:8px;padding:6px 0;'
-      + 'border-bottom:1px dashed var(--border);font-size:13.5px;flex-wrap:wrap;">'
+      + _depPlQuiEtQuand(r, true) + '</span>') : '';
+    var ligne = '<div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 2px;'
+      + 'font-size:13.5px;flex-wrap:wrap;">'
       + '<span>' + ic + '</span>'
       + '<b style="color:var(--text);min-width:80px;">' + esc(pers.name) + '</b>'
       + '<span style="color:' + coul + ';font-weight:600;">' + txt + '</span>'
       + quand
       + '</div>';
+    // v2.5.0 : les trois boutons de correction (Direction + Aminata
+    // seulement) — « l'admin peut moduler le planning, car il se peut
+    // que l'autre collaborateur ne changera pas son statut ».
+    return '<div style="border-bottom:1px dashed var(--border);padding-bottom:2px;">'
+      + ligne + _depPlControles(dim.iso, pers.id, r) + '</div>';
   }).join('');
 
   var relance = '';
@@ -19754,6 +19920,68 @@ function _depPlanningBlocEquipe(dim){
       + 'border:1.5px solid #E65100;border-radius:10px;padding:10px;font-size:13px;'
       + 'font-weight:800;cursor:pointer;">&#128276; Relancer '
       + (nbRelance > 1 ? ('les ' + nbRelance + ' qui n\'ont rien mis') : 'celui qui n\'a rien mis')
+      + '</div>';
+  }
+
+  /* v2.5.0 : les intervenants ponctuels de ce dimanche — chauffeurs
+     externes, coup de main d'un jour. Volontairement en dehors des
+     compteurs « X dispo / X non / X sans réponse » ci-dessus, qui
+     portent sur l'équipe fixe : mélanger les deux aurait rendu le
+     compteur illisible d'une semaine à l'autre. */
+  var blocExternes = '';
+  if(_depPeutOrganiserPlanning()){
+    var externes = _depExternesDe(dim.iso);
+    var lignesExt = externes.map(function(ext){
+      var ic2, coul2, txt2;
+      if(ext.dispo){ ic2 = '&#9989;'; coul2 = '#006b2d'; txt2 = 'Disponible' + (ext.mot ? ' &middot; ' + esc(ext.mot) : ''); }
+      else { ic2 = '&#10060;'; coul2 = '#992020'; txt2 = 'Pas dispo' + (ext.mot ? ' &middot; ' + esc(ext.mot) : ''); }
+      var quand2 = '<span style="color:var(--text3);font-weight:600;font-size:11.5px;">'
+        + _depPlQuiEtQuand(ext, true) + '</span>';
+      var ligneExt = '<div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 2px;'
+        + 'font-size:13.5px;flex-wrap:wrap;">'
+        + '<span>' + ic2 + '</span>'
+        + '<b style="color:var(--text);">' + esc(ext.nom) + '</b>'
+        + '<span style="font-size:9.5px;font-weight:800;color:#7c3aed;background:#EDE5FC;'
+        +   'padding:1px 7px;border-radius:20px;">PONCTUEL</span>'
+        + '<span style="color:' + coul2 + ';font-weight:600;">' + txt2 + '</span>'
+        + quand2
+        + '</div>';
+      return '<div style="border-bottom:1px dashed var(--border);padding-bottom:2px;">'
+        + ligneExt + _depPlControles(dim.iso, ext._id, ext) + '</div>';
+    }).join('');
+
+    var formAjout = '';
+    if(_depPlanningExterneOuvert === dim.iso){
+      formAjout = '<div style="background:#F9F6FF;border:1.5px dashed #7c3aed;border-radius:10px;'
+        + 'padding:10px;margin-top:8px;">'
+        + '<input class="fi" id="pl-ext-nom-' + dim.iso + '" maxlength="60" '
+        +   'placeholder="Nom (ex : Modou, chauffeur externe)" style="margin:0 0 8px;font-size:13px;">'
+        + '<input class="fi" id="pl-ext-mot-' + dim.iso + '" maxlength="140" '
+        +   'placeholder="Un mot, si besoin (facultatif)" style="margin:0 0 9px;font-size:13px;">'
+        + '<div style="display:flex;gap:8px;">'
+        +   '<div onclick="depPlanningExterneAjouter(\'' + dim.iso + '\',true)" style="flex:1;'
+        +     'text-align:center;background:#009A44;color:#fff;border:2px solid #006b2d;'
+        +     'border-radius:9px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">'
+        +     'Disponible</div>'
+        +   '<div onclick="depPlanningExterneAjouter(\'' + dim.iso + '\',false)" style="flex:1;'
+        +     'text-align:center;background:#fff;color:#c0392b;border:2px solid #c0392b;'
+        +     'border-radius:9px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">'
+        +     'Pas dispo</div>'
+        + '</div>'
+        + '<div onclick="depPlanningExterneFermer()" style="text-align:center;margin-top:8px;'
+        +   'font-size:12px;color:var(--text3);font-weight:700;cursor:pointer;">Annuler</div>'
+        + '</div>';
+    }
+
+    blocExternes = '<div style="margin-top:14px;padding-top:11px;border-top:1px solid var(--border);">'
+      + '<div style="font-size:10.5px;font-weight:800;color:#7c3aed;letter-spacing:.04em;'
+      +   'margin-bottom:7px;">INTERVENANTS PONCTUELS</div>'
+      + lignesExt
+      + (_depPlanningExterneOuvert === dim.iso ? formAjout
+          : '<div onclick="depPlanningExterneOuvrir(\'' + dim.iso + '\')" style="text-align:center;'
+            + 'background:#F9F6FF;color:#7c3aed;border:1.5px dashed #7c3aed;border-radius:9px;'
+            + 'padding:9px;font-size:12.5px;font-weight:800;cursor:pointer;margin-top:6px;">'
+            + '+ Ajouter quelqu\'un pour ce dimanche</div>')
       + '</div>';
   }
 
@@ -19772,6 +20000,7 @@ function _depPlanningBlocEquipe(dim){
     + '</div>'
     + lignes
     + relance
+    + blocExternes
     + '</div>';
 }
 

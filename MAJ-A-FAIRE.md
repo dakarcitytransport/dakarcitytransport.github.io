@@ -31,6 +31,28 @@ un prestataire.
   couleur, et voit en plus DÉPARTS, RAPPORT FINANCIER, STATISTIQUES et
   RÉGLAGES. Seule la case MAINTENANCE (passe-partout) reste à Cobey —
   comme pour Issyaka.
+- ~~**L'admin peut corriger le planning, et ajouter des ponctuels.**~~
+  *Fait le 26/09 (v3.89.0 / v2.5.0).* Cobey : « même si un collaborateur
+  dit qu'il est dispo mais qu'au final non, l'admin peut moduler le
+  planning, car il se peut que l'autre collaborateur ne changera pas son
+  statut ». Et : « il va falloir que les admins puissent mettre des
+  intervenants externes (chauffeur externe, aide d'un neveu) — des
+  personnes ponctuelles ».
+
+  Sous chaque collaborateur, dans l'équipe (Direction + Aminata
+  seulement) : trois petits boutons **Dispo / Pas dispo / Effacer**, qui
+  écrivent à sa place. La personne concernée voit alors « modifié par
+  Eric » à la place de « répondu le » sur sa propre fiche, pour
+  comprendre que ce n'est pas elle qui a changé quoi que ce soit.
+
+  Sous l'équipe, une section **Intervenants ponctuels** : un bouton
+  « + Ajouter quelqu'un pour ce dimanche » ouvre un petit formulaire
+  (nom, mot facultatif, Disponible/Pas dispo). Ces personnes n'ont pas de
+  profil ni de connexion ; elles n'existent que pour ce dimanche-là, et
+  les mêmes trois boutons servent à corriger ou retirer leur fiche.
+  Volontairement en dehors des compteurs « X dispo / X non » de l'équipe
+  fixe, pour ne pas les rendre illisibles d'une semaine à l'autre.
+
 - ~~**Planning, corrigé après le premier essai.**~~ *Fait le 26/09
   (v3.88.2 / v2.4.2).* Cobey, après avoir testé avec Samba :
   - la case Planning passe **avant** Collecte, et porte sa propre icône
