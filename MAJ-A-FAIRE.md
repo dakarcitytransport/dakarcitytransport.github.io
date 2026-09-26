@@ -212,6 +212,15 @@ un prestataire.
   nom de l'auteur pour la case Notification (« from Eric », par
   exemple) — plus utile que de répéter le nom de l'application.
 
+- ~~**Les boutons d'essai, retirés.**~~ *Fait le 26/09 (v3.91.2 /
+  v2.7.2).* Ils avaient servi à vérifier que les notifications
+  marchaient bien (dont à retrouver, avec Issyaka, qu'il n'avait tout
+  simplement pas encore activé les siennes — pas un bug). Une fois la
+  chaîne complète vérifiée bout en bout, Cobey : « tu peux supprimer les
+  boutons de test qu'on avait mis, c'est plus la peine de les avoir ».
+  `depTesterNotif`, `depTesterRappelDelai` et le bouton qui les affichait
+  dans Planning sont retirés.
+
 - ~~**L'écran de connexion était froid.**~~
   **Fait le 26/09 (v3.84.0 / v2.0.0).** Cobey : « je la trouve pas très
   esthétique […] assez froid en fait. Il n'y a pas de modèle de design ? ».

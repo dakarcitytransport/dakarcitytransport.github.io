@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.7.1';
+var DEP_VERSION = 'v2.7.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19461,94 +19461,6 @@ function _depMajBandeauNotifs(){
 }
 window._depMajBandeauNotifs = _depMajBandeauNotifs;
 
-/* Un essai sur son propre téléphone.
-
-   La relance du planning ne se vise jamais soi-même — c'est voulu, on ne
-   se rappelle pas à l'ordre tout seul. Mais du coup, le premier à activer
-   les notifications n'avait aucun moyen de vérifier que ça marche : il
-   relançait, personne d'autre n'était abonné, et rien n'arrivait. De quoi
-   croire à une panne alors que tout va bien.
-
-   D'où ce bouton, qui dépose dans la file un message pour soi seul. Il
-   sert aussi plus tard : chacun peut contrôler son téléphone après avoir
-   changé d'appareil ou touché à ses réglages. */
-window.depTesterNotif = function(){
-  var u = window.currentUser || {};
-  if(_depEtatNotifs() !== 'ok'){ depActiverNotifs(); return; }
-  if(!u.id || !window.db){ toast('❌ Pas de connexion.'); return; }
-  db.ref('dct_file_push').push({
-    // v2.7.1 : Cobey, capture d'écran à l'appui : « Dakar City Transport,
-    // from Dakar City Transport […] ça parle deux fois du titre ».
-    // L'iPhone affiche déjà le nom de l'application (celui du manifeste)
-    // en gras tout seul ; répéter ce même nom comme titre de la
-    // notification l'affiche une seconde fois, précédé de « from ».
-    // Un titre court et différent du nom de l'application évite le
-    // doublon.
-    titre  : 'Essai',
-    // v2.6.2 : Cobey, le 26/09/2026, capture d'écran à l'appui : le texte
-    // affichait « r&eacute;ussi » au lieu de « réussi ». Une notification
-    // n'est pas une page web — son texte s'affiche tel quel, sans
-    // interpréter les entités HTML (&eacute; et consorts) qui servaient
-    // ailleurs dans ce fichier pour du innerHTML. Ici, du texte brut.
-    corps  : 'Essai réussi : les notifications fonctionnent sur ce téléphone.',
-    sujet  : 'essai',
-    cibles : [u.id],
-    par    : u.id,
-    creeLe : Date.now(),
-    envoye : false
-  }).then(function(){
-    toast('⏳ Essai envoy&eacute;. La notification arrive d\'ici une minute.');
-  }).catch(function(e){
-    console.error('departs: essai notification', e);
-    toast('❌ Échec de l\'essai.');
-  });
-};
-
-function _depHtmlBoutonEssai(){
-  if(_depEtatNotifs() !== 'ok') return '';
-  var h = '<div onclick="depTesterNotif()" style="text-align:center;font-size:12px;'
-    + 'font-weight:700;color:#00838F;background:#DDEEF0;border:1px solid #9fcdd4;'
-    + 'border-radius:9px;padding:9px;margin-bottom:9px;cursor:pointer;">'
-    + '&#128276; Tester la notification sur mon t&eacute;l&eacute;phone</div>';
-  // v2.6.1 : Cobey, le 26/09/2026, après avoir vu l'aperçu des nouveaux
-  // messages du délai : « je veux en revoir un pour tester ». Un essai
-  // avec le texte exact du rappel envoyé le lundi/mercredi/jeudi — pas
-  // seulement la confirmation générique ci-dessus. Réservé à la
-  // direction et à Aminata : les collaborateurs recevront les vrais
-  // rappels tout seuls, pas besoin de les tester eux-mêmes.
-  if(typeof _depPeutOrganiserPlanning === 'function' && _depPeutOrganiserPlanning()){
-    h += '<div onclick="depTesterRappelDelai()" style="text-align:center;font-size:12px;'
-      + 'font-weight:700;color:#8a5a00;background:#FFF3CD;border:1px solid #e0c589;'
-      + 'border-radius:9px;padding:9px;margin-bottom:13px;cursor:pointer;">'
-      + '&#128276; Tester le rappel du d&eacute;lai (texte r&eacute;el)</div>';
-  }
-  return h;
-}
-window._depHtmlBoutonEssai = _depHtmlBoutonEssai;
-
-window.depTesterRappelDelai = function(){
-  var u = window.currentUser || {};
-  if(_depEtatNotifs() !== 'ok'){ depActiverNotifs(); return; }
-  if(!u.id || !window.db){ toast('❌ Pas de connexion.'); return; }
-  var dim = _depProchainsDimanches(1)[0];
-  db.ref('dct_file_push').push({
-    titre  : 'Planning',
-    corps  : 'Êtes-vous disponible dimanche ' + dim.libelle + ' ? Merci de répondre dans '
-           + 'Planning avant jeudi 22h — passé ce délai, vous serez noté absent.',
-    sujet  : 'essai-rappel-delai',
-    url    : './dct-app.html?ouvrir=planning',
-    cibles : [u.id],
-    par    : u.id,
-    creeLe : Date.now(),
-    envoye : false
-  }).then(function(){
-    toast('⏳ Essai envoy&eacute;. La notification arrive d\'ici une minute.');
-  }).catch(function(e){
-    console.error('departs: essai rappel délai', e);
-    toast('❌ Échec de l\'essai.');
-  });
-};
-
 // Le service worker prévient quand le navigateur a renouvelé l'abonnement
 // de lui-même : on le réenregistre aussitôt.
 try{
@@ -20342,9 +20254,6 @@ window.depRenderPlanning = function(){
     + onglet('moi', 'Mes disponibilit&eacute;s')
     + onglet('equipe', 'L\'&eacute;quipe')
     + '</div>';
-  // v2.4.1 : de quoi vérifier son propre téléphone, sans dépendre de
-  // quelqu'un d'autre pour envoyer.
-  try{ h += _depHtmlBoutonEssai(); }catch(e){}
 
   if(_depPlanningOnglet === 'moi'){
     h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:11px;'
