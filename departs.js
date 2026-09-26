@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.2.1';
+var DEP_VERSION = 'v2.2.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2852,11 +2852,11 @@ function injecterStyles(){
        l'application n'est pas touché. */
     + '.login-screen.dep-clair{background:var(--bg);}'
     + '.dep-clair #dct-logo{box-shadow:0 6px 22px rgba(0,0,0,.13);}'
-    // Le drapeau sous le nom : trois traits, rien de plus.
-    + '.dep-drap{display:flex;gap:4px;justify-content:center;margin-top:12px;}'
-    + '.dep-drap i{width:26px;height:3px;border-radius:2px;display:block;}'
-    // Le drapeau ne fait que 3px de haut : sans cette marge, le titre
-    // venait s'appuyer dessus.
+    // Le drapeau du Sénégal sous le nom. v2.2.2 : un vrai drapeau, avec
+    // son étoile — sans elle, les trois couleurs sont aussi celles du Mali.
+    + '.dep-drap{display:flex;justify-content:center;margin-top:11px;line-height:0;}'
+    + '.dep-drap svg{border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.22);display:block;}'
+    // Sans cette marge, le titre venait s'appuyer sur le drapeau.
     + '.dep-clair #login-titre{letter-spacing:.16em !important;font-weight:700 !important;'
     +   'margin-top:20px !important;}'
     // La carte d'un espace : couleur pleine, icône en médaillon.
@@ -13198,8 +13198,28 @@ function greffer(){
           var d = document.createElement('div');
           d.id = 'dep-drapeau';
           d.className = 'dep-drap';
-          d.innerHTML = '<i style="background:#009A44"></i><i style="background:#FCD116"></i>'
-                      + '<i style="background:#E31B23"></i>';
+          /* v2.2.2 — Cobey, le 26/09/2026 : « sachant que les couleurs
+             vert, jaune et rouge c'est aussi la couleur du Mali, la
+             différence avec le Sénégal c'est l'étoile ».
+
+             Juste, et pas anodin ici : DCT dessert les deux pays. Trois
+             barres vert-jaune-rouge ne désignaient donc rien du tout —
+             elles pouvaient tout aussi bien dire Mali. C'est l'étoile
+             verte, au centre de la bande jaune, qui fait le Sénégal.
+
+             D'où un vrai drapeau plutôt que trois traits : trois bandes
+             verticales aux proportions du drapeau (2:3) et l'étoile à
+             cinq branches au milieu. En SVG, pour rester net quelle que
+             soit la taille de l'écran. */
+          d.innerHTML = '<svg width="30" height="20" viewBox="0 0 30 20" '
+            + 'role="img" aria-label="Drapeau du S&eacute;n&eacute;gal">'
+            + '<rect width="10" height="20" x="0"  fill="#00853F"/>'
+            + '<rect width="10" height="20" x="10" fill="#FDEF42"/>'
+            + '<rect width="10" height="20" x="20" fill="#E31B23"/>'
+            + '<polygon fill="#00853F" points="15.00,5.70 16.01,8.61 19.09,8.67 '
+            +   '16.64,10.53 17.53,13.48 15.00,11.72 12.47,13.48 13.36,10.53 '
+            +   '10.91,8.67 13.99,8.61"/>'
+            + '</svg>';
           pays.parentNode.insertBefore(d, pays.nextSibling);
         }
       }
