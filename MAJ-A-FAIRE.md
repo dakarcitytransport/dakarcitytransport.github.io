@@ -31,6 +31,17 @@ un prestataire.
   couleur, et voit en plus DÉPARTS, RAPPORT FINANCIER, STATISTIQUES et
   RÉGLAGES. Seule la case MAINTENANCE (passe-partout) reste à Cobey —
   comme pour Issyaka.
+- ~~**L'écran de connexion était froid.**~~
+  **Fait le 26/09 (v3.84.0 / v2.0.0).** Cobey : « je la trouve pas très
+  esthétique […] assez froid en fait. Il n'y a pas de modèle de design ? ».
+  Il n'y en avait aucun : quatre rectangles blancs identiques et des
+  emojis pris au téléphone, dessinés dans quatre styles différents.
+  Trois maquettes proposées, **« Chaleur » retenue** : fond de nuit qui
+  met le logo en valeur, cartes en couleur pleine, icônes tracées d'un
+  même trait, drapeau du Sénégal sous le nom, et les numéros de version
+  descendus en bas — c'est du dépannage, pas de la bienvenue.
+  Le deuxième niveau (les prénoms) suit le même fond.
+
 - ~~**L'accueil s'allongeait** d'une case par personne.~~
   **Fait le 25/09 (v3.82.0 / v1.94.0).** Quatre espaces, nommés par le
   métier et non par la personne, dans l'ordre d'usage réel :

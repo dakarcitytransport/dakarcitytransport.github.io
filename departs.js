@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v1.99.1';
+var DEP_VERSION = 'v2.0.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2827,7 +2827,77 @@ function injecterStyles(){
     // dans le code, jamais tenue à jour — retour de Cobey du 29/08/2026
     // ("la date et l'heure de mise à jour n'est jamais la bonne"). On la
     // masque, le numéro de version du module juste en dessous suffit.
-    + '#app-update{display:none !important;}';
+    + '#app-update{display:none !important;}'
+
+    /* ═══════ v2.0.0 — L'ÉCRAN DE CONNEXION, HABILLÉ ═══════
+
+       Cobey, le 26/09/2026 : « je la trouve pas très esthétique […] assez
+       froid en fait. Il n'y a pas de modèle de design ? ». Il n'y en avait
+       aucun : quatre rectangles blancs identiques, séparés par un mince
+       trait de couleur, et des emojis en guise d'icônes — une cravate, un
+       immeuble, un camion, tous dessinés dans un style différent puisque
+       chaque plateforme fabrique les siens.
+
+       D'où un fond de nuit qui met le logo en valeur (il est vif, coloré,
+       c'est la seule chose de l'écran qui porte la marque), des cartes en
+       couleur pleine plutôt que blanches, et des icônes dessinées d'un
+       même trait. Les couleurs restent celles déjà attribuées à chaque
+       espace : on habille, on ne renomme rien.
+
+       Tout est sous .dep-nuit, posé sur .login-screen : le reste de
+       l'application n'est pas touché. */
+    + '.login-screen.dep-nuit{background:#0F1A24;position:relative;}'
+    + '.login-screen.dep-nuit::before{content:"";position:absolute;top:0;left:0;right:0;'
+    +   'height:330px;pointer-events:none;'
+    +   'background:radial-gradient(120% 100% at 50% 0%,#12603A 0%,rgba(15,26,36,0) 72%);}'
+    + '.login-screen.dep-nuit > *{position:relative;}'
+    + '.dep-nuit #dct-logo{border:3px solid rgba(255,255,255,.9);'
+    +   'box-shadow:0 10px 34px rgba(0,0,0,.45);}'
+    // Le drapeau sous le nom : trois traits, rien de plus.
+    + '.dep-drap{display:flex;gap:4px;justify-content:center;margin-top:12px;}'
+    + '.dep-drap i{width:26px;height:3px;border-radius:2px;display:block;}'
+    // Le drapeau ne fait que 3px de haut : sans cette marge, le titre
+    // venait s'appuyer dessus.
+    + '.dep-nuit #login-titre{color:#7C8A99 !important;letter-spacing:.16em !important;'
+    +   'font-weight:700 !important;margin-top:20px !important;}'
+    // La carte d'un espace : couleur pleine, icône en médaillon.
+    + '.dep-nuit .dep-esp-c{display:flex;align-items:center;gap:15px;border-radius:20px;'
+    +   'padding:17px 18px;margin-bottom:12px;cursor:pointer;'
+    +   'box-shadow:0 8px 22px rgba(0,0,0,.34);transition:transform .12s;}'
+    + '.dep-nuit .dep-esp-c:active{transform:scale(.975);}'
+    + '.dep-nuit .dep-esp-c-ic{width:52px;height:52px;border-radius:15px;flex:none;'
+    +   'display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.17);}'
+    + '.dep-nuit .dep-esp-c-t{font-size:17.5px;font-weight:800;color:#fff;letter-spacing:-.2px;}'
+    + '.dep-nuit .dep-esp-c-s{font-size:12.5px;color:rgba(255,255,255,.78);margin-top:2px;'
+    +   'font-weight:500;}'
+    + '.dep-nuit .dep-esp-c-n{font-size:11px;font-weight:800;color:rgba(255,255,255,.95);'
+    +   'background:rgba(0,0,0,.24);padding:3px 10px;border-radius:20px;margin-top:8px;'
+    +   'display:inline-block;}'
+    /* Le deuxième niveau (les prénoms) vit sur le même fond : ses cartes
+       blanches y feraient une tache. Elles passent en verre dépoli. */
+    + '.dep-nuit .login-card{background:rgba(255,255,255,.07) !important;'
+    +   'border:1.5px solid rgba(255,255,255,.13) !important;border-radius:16px !important;'
+    +   'box-shadow:none !important;}'
+    + '.dep-nuit .login-card:active{background:rgba(255,255,255,.12) !important;}'
+    + '.dep-nuit .login-name{color:#fff !important;}'
+    + '.dep-nuit .login-role{color:rgba(255,255,255,.6) !important;}'
+    + '.dep-nuit #login-soc-nom{color:#fff !important;}'
+    + '.dep-nuit #login-soc-sous{color:rgba(255,255,255,.62) !important;}'
+    + '.dep-nuit #login-retour > div > div:first-child{background:rgba(255,255,255,.1) !important;'
+    +   'border-color:rgba(255,255,255,.2) !important;color:#fff !important;}'
+    + '.dep-nuit .dep-esp-mini{background:rgba(255,255,255,.07);'
+    +   'border:1.5px solid rgba(255,255,255,.13);}'
+    + '.dep-nuit .dep-esp-mini-ttl{color:#fff;}'
+    + '.dep-nuit .dep-esp-mini-sub{color:rgba(255,255,255,.6);}'
+    + '.dep-nuit .dep-esp-mini-badge{background:rgba(0,0,0,.28);color:rgba(255,255,255,.8);}'
+    + '.dep-nuit .dep-esp-section-lbl{color:#7C8A99;}'
+    + '.dep-nuit .dep-vide{color:rgba(255,255,255,.55);}'
+    /* Les numéros de version trônaient au milieu de l'accueil. Ils
+       descendent en bas, discrets : c'est une information de dépannage,
+       pas un élément de bienvenue. */
+    + '.dep-nuit #app-version{background:transparent !important;color:#3E4A56 !important;'
+    +   'order:99;margin-top:18px;padding:0 !important;font-size:10px !important;}'
+    + '.dep-nuit #dep-login-version{color:#3E4A56 !important;order:100;margin:2px 0 0 !important;}';
   document.head.appendChild(s);
 }
 
@@ -13022,6 +13092,9 @@ function greffer(){
       var av = document.getElementById('app-version');
       var sousTitre = av ? av.previousElementSibling : null;
       if(sousTitre) sousTitre.textContent = 'Sénégal';
+      // v2.0.0 : le libellé doit être posé avant l'habillage, qui le
+      // repeint et glisse le drapeau juste en dessous.
+      _depHabillerLoginNuit();
     }catch(e){}
   }
   // L'appel natif buildLogin() du tout premier chargement (avant que ce
@@ -13069,12 +13142,66 @@ function greffer(){
      Abdoulaye ouvrent l'application tous les jours, Aminata
      régulièrement, les trois frères le dimanche de la collecte.
      ═══════════════════════════════════════════════════════════ */
+  /* v2.0.0 : chaque espace porte en plus son dégradé (`deg`) et son icône
+     dessinée (`svg`). Les emojis d'avant venaient du téléphone : une
+     cravate, un immeuble, un camion et un cadenas fabriqués par quatre
+     dessinateurs différents, qui ne tenaient pas ensemble. Ceux-ci sont
+     tracés d'un même trait, à la même épaisseur. `ico` et `fond` restent
+     utilisés ailleurs (la liste de l'équipe, les Réglages). */
+  function _depIco(d){
+    return '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#fff" '
+      + 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+  }
   var DEP_ESPACES = [
-    { id:'DIR', nom:'Direction',      sous:'Clients, prix, containers', ico:'&#128084;', coul:'#252599', fond:'#E0E4FF' },
-    { id:'BUR', nom:'Bureau',         sous:'Devis, appels, inscriptions', ico:'&#127970;', coul:'#9D174D', fond:'#FCE7F3' },
-    { id:'TER', nom:'Terrain',        sous:'La collecte du dimanche',   ico:'&#128666;', coul:'#0e7490', fond:'#CFFAFE' },
-    { id:'ADM', nom:'Administration', sous:'',                          ico:'&#128274;', coul:'#A31118', fond:'#FDE4E5' }
+    { id:'DIR', nom:'Direction',      sous:'Clients, prix, containers', ico:'&#128084;', coul:'#252599', fond:'#E0E4FF',
+      deg:'linear-gradient(135deg,#3A3AB8,#1E1E7A)',
+      svg:_depIco('<rect x="2.5" y="7.5" width="19" height="12.5" rx="2.4"/>'
+        + '<path d="M9 7.5V5.6A1.6 1.6 0 0110.6 4h2.8A1.6 1.6 0 0115 5.6v1.9"/><path d="M2.5 13h19"/>') },
+    { id:'BUR', nom:'Bureau',         sous:'Devis, appels, inscriptions', ico:'&#127970;', coul:'#9D174D', fond:'#FCE7F3',
+      deg:'linear-gradient(135deg,#C2266B,#8E1246)',
+      svg:_depIco('<path d="M4 21V5a2 2 0 012-2h8a2 2 0 012 2v16"/><path d="M16 9h3a2 2 0 012 2v10"/>'
+        + '<path d="M2 21h20"/><path d="M8 7h2M8 11h2M8 15h2"/>') },
+    { id:'TER', nom:'Terrain',        sous:'La collecte du dimanche',   ico:'&#128666;', coul:'#0e7490', fond:'#CFFAFE',
+      deg:'linear-gradient(135deg,#0F93B4,#0A5E75)',
+      svg:_depIco('<path d="M1 6h12v11H1z"/><path d="M13 9h4.5l3.5 3.5V17h-8"/>'
+        + '<circle cx="6" cy="18.5" r="1.9"/><circle cx="17" cy="18.5" r="1.9"/>') },
+    { id:'ADM', nom:'Administration', sous:'',                          ico:'&#128274;', coul:'#A31118', fond:'#FDE4E5',
+      deg:'linear-gradient(135deg,#C4262C,#7E0D13)',
+      svg:_depIco('<rect x="4" y="10.5" width="16" height="10.5" rx="2.2"/>'
+        + '<path d="M8 10.5V7a4 4 0 018 0v3.5"/>') }
   ];
+
+  /* L'habillage de l'écran de connexion. Le titre et le sous-titre sont
+     écrits en dur dans index.html, avec leur couleur dans l'attribut
+     style : une règle CSS ne peut pas les atteindre, on les repeint donc
+     ici. Posé à chaque construction de l'écran, et sans effet la
+     deuxième fois. */
+  function _depHabillerLoginNuit(){
+    try{
+      var ecran = document.querySelector('.login-screen');
+      if(!ecran) return;
+      ecran.classList.add('dep-nuit');
+      var av = document.getElementById('app-version');
+      var pays = av ? av.previousElementSibling : null;              // « Sénégal »
+      var nom  = pays ? pays.previousElementSibling : null;          // « Dakar City Transport »
+      if(nom){ nom.style.color = '#fff'; }
+      if(pays){
+        pays.style.color = '#8FCBAA';
+        pays.style.fontWeight = '600';
+        pays.style.letterSpacing = '.14em';
+        pays.style.textTransform = 'uppercase';
+        pays.style.marginBottom = '0';
+        if(!document.getElementById('dep-drapeau')){
+          var d = document.createElement('div');
+          d.id = 'dep-drapeau';
+          d.className = 'dep-drap';
+          d.innerHTML = '<i style="background:#009A44"></i><i style="background:#FCD116"></i>'
+                      + '<i style="background:#E31B23"></i>';
+          pays.parentNode.insertBefore(d, pays.nextSibling);
+        }
+      }
+    }catch(e){ console.error('departs: habillage login', e); }
+  }
 
   /* À quel espace appartient quelqu'un.
 
@@ -13160,6 +13287,7 @@ function greffer(){
       if(cards){ cards.innerHTML = ''; cards.style.display = 'none'; }
       if(!esp) return;
       esp.style.display = 'block';
+      _depHabillerLoginNuit();
 
       var partenaires = SOCIETES.filter(function(s){ return s.id !== 'DCT' && s.id !== 'ADM'; });
 
@@ -13170,22 +13298,20 @@ function greffer(){
       DEP_ESPACES.forEach(function(e){
         var gens = _depGensDe(e.id);
         if(!gens.length) return;
-        html += '<div class="login-card" style="border-top:5px solid ' + e.coul + ';'
-          +   'border-left:2px solid var(--border);align-items:center;" '
+        // v2.0.0 : carte en couleur pleine, icône dessinée en médaillon.
+        html += '<div class="dep-esp-c" style="background:' + e.deg + ';" '
           +   'onclick="depOuvrirEspaceAccueil(\'' + e.id + '\')">'
-          + '<div style="width:56px;height:56px;border-radius:50%;background:' + e.fond + ';'
-          +   'border:2px solid ' + e.coul + ';display:flex;align-items:center;'
-          +   'justify-content:center;flex-shrink:0;font-size:24px;">' + e.ico + '</div>'
-          + '<div style="flex:1;">'
-          +   '<div class="login-name">' + e.nom + '</div>'
-          +   (e.sous ? ('<div class="login-role">' + e.sous + '</div>') : '')
-          +   '<div style="display:inline-block;font-size:11px;font-weight:700;color:' + e.coul + ';'
-          +     'background:' + e.fond + ';padding:3px 9px;border-radius:20px;margin-top:6px;">'
+          + '<div class="dep-esp-c-ic">' + e.svg + '</div>'
+          + '<div style="flex:1;min-width:0;">'
+          +   '<div class="dep-esp-c-t">' + e.nom + '</div>'
+          +   (e.sous ? ('<div class="dep-esp-c-s">' + e.sous + '</div>') : '')
+          +   '<div class="dep-esp-c-n">'
           +     (e.id === 'ADM' ? '🔒 ' : '') + gens.length + ' personne' + (gens.length > 1 ? 's' : '')
           +   '</div>'
           + '</div>'
-          + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="' + e.coul
-          +   '" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>'
+          + '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" '
+          +   'stroke-width="2.6" stroke-linecap="round" style="flex:none;opacity:.7;">'
+          +   '<path d="M9 18l6-6-6-6"/></svg>'
           + '</div>';
       });
 
