@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.2.0';
+var DEP_VERSION = 'v2.2.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13069,8 +13069,7 @@ function greffer(){
       // (retour de Cobey du 29/08/2026 : "l'application maintenant englobe
       // tout") — ce sous-titre statique (index.html) n'a pas d'id, on le
       // récupère via sa position (juste avant #app-version).
-      var av = document.getElementById('app-version');
-      var sousTitre = av ? av.previousElementSibling : null;
+      var sousTitre = _depLignePays();
       if(sousTitre) sousTitre.textContent = 'Sénégal';
       // v2.0.0 : le libellé doit être posé avant l'habillage, qui le
       // repeint et glisse le drapeau juste en dessous.
@@ -13156,13 +13155,37 @@ function greffer(){
      style : une règle CSS ne peut pas les atteindre, on les repeint donc
      ici. Posé à chaque construction de l'écran, et sans effet la
      deuxième fois. */
+  /* La ligne « Sénégal » de l'écran d'accueil.
+
+     v2.2.1 — Cobey, le 26/09/2026 : « ya marqué deux fois Sénégal dans
+     l'écran d'accueil ». Ce n'était pas le logo, c'était un vrai bug.
+
+     Cette ligne n'a pas d'id dans index.html : on la repérait comme la
+     voisine précédente du numéro de version. Or l'habillage glisse le
+     drapeau juste après elle — au deuxième passage, la voisine précédente
+     du numéro de version n'est plus la ligne « Sénégal », c'est le
+     drapeau. On écrivait donc « Sénégal » par-dessus ses trois barres :
+     le drapeau disparaissait et le mot s'affichait deux fois. Un
+     rechargement de l'équipe ou un retour sur l'accueil suffisait.
+
+     On lui pose donc un id au premier passage, et on la retrouve par lui
+     ensuite. Rejouer l'habillage ne change plus rien. */
+  function _depLignePays(){
+    var marquee = document.getElementById('dep-ligne-pays');
+    if(marquee) return marquee;
+    var av = document.getElementById('app-version');
+    var ligne = av ? av.previousElementSibling : null;
+    if(!ligne || ligne.id === 'dep-drapeau') return null;
+    ligne.id = 'dep-ligne-pays';
+    return ligne;
+  }
+
   function _depHabillerLogin(){
     try{
       var ecran = document.querySelector('.login-screen');
       if(!ecran) return;
       ecran.classList.add('dep-clair');
-      var av = document.getElementById('app-version');
-      var pays = av ? av.previousElementSibling : null;              // « Sénégal »
+      var pays = _depLignePays();                                    // « Sénégal »
       var nom  = pays ? pays.previousElementSibling : null;          // « Dakar City Transport »
       if(nom){ nom.style.color = 'var(--text)'; }
       if(pays){
