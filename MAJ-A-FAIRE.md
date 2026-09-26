@@ -86,36 +86,37 @@ un prestataire.
   Comme pour le reste de l'app, un admin (Eric) reste invisible dans ce
   fil — règle déjà en place, pas quelque chose d'ajouté ici.
 
-- **Sécurité de la base Firebase — en cours.** Cobey : « il manquerait
-  une étape qu'on n'avait pas faite » côté sécurité. Vrai trou : la base
-  Firebase est aujourd'hui ouverte à qui connaît son adresse (visible
-  dans le code de l'application), sans rien qui prouve que la demande
-  vient bien de l'application elle-même.
+- ~~**Sécurité de la base Firebase.**~~ *Bouclé le 26/09.* Cobey : « il
+  manquerait une étape qu'on n'avait pas faite » côté sécurité. Vrai
+  trou : la base Firebase était ouverte à qui connaissait son adresse
+  (visible dans le code de l'application), sans rien qui prouve que la
+  demande vient bien de l'application elle-même.
 
-  **Étape 1, déjà faite depuis le 31/08 — pas quelque chose à refaire.**
-  La connexion anonyme à Firebase (« badge invisible », aucun écran,
-  aucun mot de passe) existe déjà : `_depConnexionAnonyme` dans
-  departs.js, posée sur `initFirebase()`, avec `firebase-auth-compat.js`
-  préchargé en parallèle (`_depPrechargerFirebaseAuth`). C'est cette
-  étape que Cobey a activée aujourd'hui dans la console Firebase
-  (Authentication → Sign-in method → Anonymous), et vérifiée en vrai :
-  un nouvel utilisateur anonyme apparaît bien dans Authentication → Users
+  **Étape 1, déjà faite depuis le 31/08** — la connexion anonyme à
+  Firebase (« badge invisible », aucun écran, aucun mot de passe) :
+  `_depConnexionAnonyme` dans departs.js, posée sur `initFirebase()`,
+  avec `firebase-auth-compat.js` préchargé en parallèle
+  (`_depPrechargerFirebaseAuth`) — présente aussi dans `chauffeur.html`
+  et `facture.html` (`_connexionAnonyme`). Cobey a activé
+  l'authentification anonyme dans la console Firebase (Authentication →
+  Sign-in method → Anonymous) et vérifié qu'un utilisateur apparaît bien
   après ouverture de l'application.
 
-  *Correction du 26/09 : sans le savoir (l'historique de cette étape
-  remonte à avant cette session), une deuxième connexion anonyme a été
+  *Au passage : sans le savoir (l'historique de cette étape remonte à
+  avant cette session), une deuxième connexion anonyme avait été
   ajoutée par erreur directement dans dct-app.html — doublon avec
-  `_depConnexionAnonyme`, retiré aussitôt repéré (le SDK Firebase Auth se
-  chargeait alors deux fois). v3.93.2 : dct-app.html revenu identique à
-  avant, rien à en garder.*
+  `_depConnexionAnonyme`, retiré aussitôt repéré (v3.93.2).*
 
-  **Reste à faire — étape 2, jamais faite :** resserrer les règles de la
-  base (Realtime Database → Rules, console Firebase) pour exiger cette
-  connexion. *Ne pas faire avant d'avoir, sur ce projet Firebase précis,
-  la définition exacte des chemins utilisés par l'application (dct,
-  france, dct_config, dct_planning, dct_annonces, dct_push,
-  dct_file_push, activite_items, dct_photos_colis...) — une règle mal
-  écrite bloquerait toute l'équipe d'un coup.*
+  **Étape 2, faite le 26/09** — règles resserrées dans la console
+  Firebase (Realtime Database → Rules) :
+  ```json
+  { "rules": { ".read": "auth != null", ".write": "auth != null" } }
+  ```
+  Une seule règle à la racine plutôt qu'un détail par chemin : les trois
+  points d'entrée (application, chauffeur, facture) passent tous par la
+  même connexion anonyme, il n'y a pas de chemin qui doive rester public.
+  Vérifié en conditions réelles par Cobey : connexion normale, lien
+  chauffeur et facture fonctionnent toujours.
 
 - ~~**Ablaye** passe administrateur, comme Issyaka.~~
   **Fait le 24/09 (v1.55.0).** Abdoulaye (AB) rejoint la direction, aux
