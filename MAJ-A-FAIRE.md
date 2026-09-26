@@ -92,23 +92,30 @@ un prestataire.
   dans le code de l'application), sans rien qui prouve que la demande
   vient bien de l'application elle-même.
 
-  **Étape 1 — faite le 26/09 (v3.93.1).** Une connexion anonyme à
-  Firebase (invisible pour l'équipe, aucun écran, aucun mot de passe)
-  se fait maintenant au démarrage. Volontairement sans rien bloquer pour
-  l'instant : les règles d'accès restent ouvertes le temps de vérifier
-  que cette étape marche en vrai.
+  **Étape 1, déjà faite depuis le 31/08 — pas quelque chose à refaire.**
+  La connexion anonyme à Firebase (« badge invisible », aucun écran,
+  aucun mot de passe) existe déjà : `_depConnexionAnonyme` dans
+  departs.js, posée sur `initFirebase()`, avec `firebase-auth-compat.js`
+  préchargé en parallèle (`_depPrechargerFirebaseAuth`). C'est cette
+  étape que Cobey a activée aujourd'hui dans la console Firebase
+  (Authentication → Sign-in method → Anonymous), et vérifiée en vrai :
+  un nouvel utilisateur anonyme apparaît bien dans Authentication → Users
+  après ouverture de l'application.
 
-  **Reste à faire :**
-  1. Cobey active l'authentification anonyme dans la console Firebase
-     (Authentication → Sign-in method → Anonymous → Enable) — sans ce
-     réglage, la connexion échoue.
-  2. Vérifier sur un vrai téléphone qu'un nouvel utilisateur anonyme
-     apparaît bien dans Authentication → Users après avoir ouvert
-     l'application.
-  3. Seulement une fois l'étape 1 confirmée : resserrer les règles de la
-     base (Realtime Database → Rules) pour exiger cette connexion —
-     *étape 2, pas encore faite, risque de bloquer toute l'équipe si
-     elle est faite avant que l'étape 1 soit vérifiée.*
+  *Correction du 26/09 : sans le savoir (l'historique de cette étape
+  remonte à avant cette session), une deuxième connexion anonyme a été
+  ajoutée par erreur directement dans dct-app.html — doublon avec
+  `_depConnexionAnonyme`, retiré aussitôt repéré (le SDK Firebase Auth se
+  chargeait alors deux fois). v3.93.2 : dct-app.html revenu identique à
+  avant, rien à en garder.*
+
+  **Reste à faire — étape 2, jamais faite :** resserrer les règles de la
+  base (Realtime Database → Rules, console Firebase) pour exiger cette
+  connexion. *Ne pas faire avant d'avoir, sur ce projet Firebase précis,
+  la définition exacte des chemins utilisés par l'application (dct,
+  france, dct_config, dct_planning, dct_annonces, dct_push,
+  dct_file_push, activite_items, dct_photos_colis...) — une règle mal
+  écrite bloquerait toute l'équipe d'un coup.*
 
 - ~~**Ablaye** passe administrateur, comme Issyaka.~~
   **Fait le 24/09 (v1.55.0).** Abdoulaye (AB) rejoint la direction, aux
