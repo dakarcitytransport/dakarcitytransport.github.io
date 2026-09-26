@@ -1677,7 +1677,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.86.0';
+var APP_VERSION = 'v3.86.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2610,6 +2610,21 @@ function ouvrirEspace(socId){
 
 // v3.63.0 : une seule fabrique de carte profil, partagée entre l'accueil
 // (collaborateurs DCT listés directement) et l'écran d'un espace.
+/* La pastille « ajouté par », à la couleur du collaborateur.
+
+   v3.86.1 : la liste des clients d'une collecte la dessinait en lisant
+   bg, color et by sur le client lui-même. Ces trois champs appartiennent
+   au collaborateur, pas au client : la pastille affichait donc le mot
+   « undefined » sur un fond « undefined ». La feuille de route du camion
+   faisait déjà la bonne chose — retrouver le collaborateur par son nom,
+   avec un gris de repli. On s'aligne dessus, ici et partout ailleurs. */
+function _pastilleAuteurClient(nom){
+  if(!nom) return '';
+  var co = COLLABS.find(function(x){ return x.name === nom; }) || {bg:'#e0e0e0', color:'#555'};
+  return '<span style="background:'+co.bg+';color:'+co.color+';font-size:10px;padding:2px 8px;'
+       + 'border-radius:20px;font-weight:700;border:1px solid '+co.color+';">'+nom+'</span>';
+}
+
 function _carteProfil(c, marque){
   var sous=_sousTitreProfil(c);
   var _pc = (c.role==='poste') ? getPc(c.id) : {bg:c.bg,color:c.color,bar:c.color};
@@ -7590,7 +7605,10 @@ function renderDispatchTab(){
       var tk2=asgn[c.id],tc2=tk2?getTc(tk2):null;
       var row=document.createElement('div');row.className='client-row';
       var init=initiales(c.prenom,c.nom);
-      row.innerHTML='<div class="av" style="background:'+c.bg+';color:'+c.color+';font-size:12px;">'+init+'</div>'
+      // v3.86.1 : bg et color n'existent pas sur un client — l'avatar
+      // recevait « background:undefined », que le navigateur jette, et
+      // s'affichait donc sans couleur. Gris de repli, comme ailleurs.
+      row.innerHTML='<div class="av" style="background:'+(c.bg||'#e8eaed')+';color:'+(c.color||'#555')+';font-size:12px;">'+init+'</div>'
         +'<div class="client-info"><div class="client-name">'+c.name+'</div><div class="client-sub">'+c.ville+' · '+c.colis+' · '+c.prix+' €</div></div>';
       var pill=document.createElement('span');
       if(tk2){pill.className='truck-pill';pill.style.cssText='background:'+tc2.bg+';color:'+tc2.color+';border-color:'+tc2.color+';';pill.textContent=(trks[tk2]?trks[tk2].name:tk2)+' ✅';}
@@ -8255,13 +8273,22 @@ function renderClientsTab(){
       var init=initiales(c.prenom,c.nom);
       var asgn=getAssigned()[c.id];var tc2=asgn?getTc(asgn):null;var trks=getTrucks();
       var pillHtml=asgn?'<span style="background:'+tc2.bg+';color:'+tc2.color+';font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;border:1px solid '+tc2.color+';">\ud83d\ude9b '+(trks[asgn]?trks[asgn].name:asgn)+'</span>':'';
-      row.innerHTML='<div class="av" style="background:'+c.bg+';color:'+c.color+';font-size:12px;">'+init+'</div>'
+      // v3.86.1 : bg et color n'existent pas sur un client — l'avatar
+      // recevait « background:undefined », que le navigateur jette, et
+      // s'affichait donc sans couleur. Gris de repli, comme ailleurs.
+      row.innerHTML='<div class="av" style="background:'+(c.bg||'#e8eaed')+';color:'+(c.color||'#555')+';font-size:12px;">'+init+'</div>'
         +'<div class="client-info"><div class="client-name">'+c.name+'</div>'
         +'<div class="client-sub">'+(c.adresse?c.adresse+', ':'')+c.cp+' '+c.ville+'</div>'
         +'<div class="client-sub" style="color:#888;font-size:11px;">'+c.colis+'</div></div>'
         +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
         +'<div class="client-price">'+c.prix+' €</div>'
-        +'<span style="background:'+c.bg+';color:'+c.color+';font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;border:1px solid '+c.color+';">'+c.by+'</span>'
+        // v3.86.1 : cette pastille lisait bg, color et by sur le client.
+        // Or ces champs appartiennent au collaborateur : elle affichait
+        // « undefined », sur un fond « undefined », pour tout client dont
+        // l'auteur n'est pas enregistré. On retrouve la couleur par le
+        // nom, comme le fait déjà la feuille de route du camion, et on ne
+        // dessine rien quand l'auteur est inconnu.
+        +_pastilleAuteurClient(c.by)
         +pillHtml+'</div>';
       (function(cid){row.onclick=function(){openClientFiche(cid,'s-collecte');};})(c.id);
       block.appendChild(row);
