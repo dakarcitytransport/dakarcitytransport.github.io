@@ -1677,7 +1677,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.88.2';
+var APP_VERSION = 'v3.88.3';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -13110,6 +13110,19 @@ setTimeout(function(){
   </div>
 </div>
 <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
-<script src="departs.js"></script>
+<!-- v3.88.3 — Cobey, le 26/09/2026 : « je suis sur 88.2 mais je vois pas
+     les modifs ». Il avait bien la dernière page (APP_VERSION vient
+     d'ici et s'affichait juste), mais pas le dernier departs.js : rien
+     ne forçait le téléphone à le retélécharger, un fichier sans numéro
+     dans son adresse se garde en cache indéfiniment. La page se
+     rafraîchissait, le code qui fait tout le reste restait vieux —
+     invisible tant qu'on ne compare pas les deux numéros de version.
+
+     Le correctif : l'adresse du fichier porte maintenant le numéro de
+     version (?v=...), pris sur APP_VERSION au moment où la page se
+     charge. Il change à chaque publication, donc chaque nouvelle version
+     est vue comme un fichier différent et se retélécharge — sans qu'on
+     ait plus jamais à y repenser à chaque mise à jour. -->
+<script>document.write('<script src="departs.js?v=' + encodeURIComponent(APP_VERSION) + '"><\/script>');</script>
 </body>
 </html>
