@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.0';
+var DEP_VERSION = 'v2.10.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5900,11 +5900,18 @@ window.depRenderStats = function(){
 
 // v1.94.0 : « faudrait un bouton pour exporter en pdf » (Cobey,
 // 27/09/2026) — exporte exactement le classement affiché à l'écran (même
-// mode, même année/mois ou conteneur choisi). Même technique que partout
-// ailleurs dans l'appli (exportCamionPDF, le récapitulatif de collecte) :
-// une page HTML autonome avec son propre bouton Imprimer, ouverte
-// directement sur iPhone (Partager → Imprimer → Enregistrer en PDF),
-// téléchargée ailleurs — pas de vraie génération de PDF côté téléphone.
+// mode, même année/mois ou conteneur choisi).
+// v1.94.1 : « ça ne va pas très bien quand j'appuie [...] je veux un
+// bouton qui permet de l'exporter en pdf directement sans avoir besoin
+// d'imprimer autre chose ». La première version ouvrait une page à
+// imprimer soi-même (Partager → Imprimer → Enregistrer en PDF) — déjà
+// abandonné une fois pour les factures pour la même raison ("je veux que
+// ça génère directement la facture pdf", Cobey le 23/08/2026). Même
+// remède ici : html2canvas + jsPDF, chargés à la demande, génèrent un
+// vrai fichier .pdf et le téléchargent directement — aucune étape
+// intermédiaire. Le classement est d'abord reconstruit dans un document
+// hors écran (jamais affiché, juste capturé), puis "contenu" sur une
+// page A4 comme pour la facture.
 window.depExporterStatsPDF = function(){
   var medailles = ['🥇','🥈','🥉'];
   var titre, sousTitre = '', liste;
@@ -5923,60 +5930,65 @@ window.depExporterStatsPDF = function(){
   }
   if(!liste.length){ toast('⚠️ Rien à exporter pour l\'instant.'); return; }
 
+  toast('⏳ Génération du PDF…');
   var dateGen = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
 
-  var css = '*{box-sizing:border-box;margin:0;padding:0;}'
-    + 'body{font-family:Arial,sans-serif;color:#1a1a2e;font-size:13px;padding:20px;}'
-    + '.header{margin-bottom:18px;border-bottom:2px solid #B8860B;padding-bottom:12px;}'
-    + '.title{font-size:20px;font-weight:700;color:#B8860B;}'
-    + '.subtitle{font-size:13px;color:#555;margin-top:4px;}'
-    + '.collab{border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:12px;page-break-inside:avoid;}'
-    + '.collab-nom{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:8px;}'
-    + '.grp{margin-top:8px;padding-top:8px;border-top:1px solid #eee;}'
-    + '.grp:first-of-type{margin-top:0;padding-top:0;border-top:none;}'
-    + '.grp-tit{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}'
-    + '.grp-lignes{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:#333;}'
-    + '.grp-lignes b{color:#1a1a2e;}'
-    + '.footer{text-align:center;font-size:11px;color:#aaa;margin-top:20px;border-top:1px solid #eee;padding-top:10px;}'
-    + '@media print{.no-print{display:none;}}';
+  var page = document.createElement('div');
+  page.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px;background:#fff;'
+    + 'padding:28px;font-family:Arial,sans-serif;color:#1a1a2e;';
 
-  var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Statistiques — ' + titre + '</title><style>' + css + '</style></head><body>';
-  html += '<div class="header"><div class="title">📊 ' + esc(titre) + '</div>';
-  html += '<div class="subtitle">' + (sousTitre ? esc(sousTitre) + ' · ' : '') + 'Généré le ' + dateGen + '</div></div>';
-
+  var h = '<div style="border-bottom:3px solid #B8860B;padding-bottom:14px;margin-bottom:18px;">'
+    + '<div style="font-size:24px;font-weight:800;color:#B8860B;">📊 ' + esc(titre) + '</div>'
+    + '<div style="font-size:13px;color:#666;margin-top:4px;">' + (sousTitre ? esc(sousTitre) + ' · ' : '') + 'Généré le ' + dateGen + '</div>'
+    + '</div>';
   liste.forEach(function(s, i){
     var medaille = medailles[i] || ('#' + (i + 1));
-    html += '<div class="collab">';
-    html += '<div class="collab-nom">' + medaille + ' ' + esc(s.nom) + '</div>';
-    html += '<div class="grp"><div class="grp-tit">👤 Clients</div><div class="grp-lignes">'
-      + '<span><b>' + s.nbClients + '</b> inscrit' + (s.nbClients > 1 ? 's' : '') + '</span>'
-      + '<span>🇲🇱 <b>' + s.nbClientsMali + '</b> Mali</span></div></div>';
-    html += '<div class="grp"><div class="grp-tit">💰 Argent</div><div class="grp-lignes">'
-      + '<span><b>' + s.montantApporte + '</b> € apportés</span>'
-      + '<span><b>' + s.montantEncaisse + '</b> € encaissés</span></div></div>';
-    html += '<div class="grp"><div class="grp-tit">🚛 Terrain</div><div class="grp-lignes">'
-      + '<span>📦 <b>' + s.nbValidations + '</b> colis validé' + (s.nbValidations > 1 ? 's' : '') + '</span>'
-      + '<span>📅 <b>' + s.nbCollectes + '</b> jour' + (s.nbCollectes > 1 ? 's' : '') + ' de collecte</span>'
-      + '<span>⏳ <b>' + _depFormatDuree(s.dureeTourneeMoyenneMs) + '</b> tournée moyenne</span></div></div>';
-    html += '</div>';
+    var titreGrp = 'font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;';
+    var ligneGrp = 'font-size:13.5px;';
+    h += '<div style="border:1.5px solid #ddd;border-radius:10px;padding:16px;margin-bottom:14px;">'
+      +   '<div style="font-size:17px;font-weight:800;margin-bottom:10px;">' + medaille + ' ' + esc(s.nom) + '</div>'
+      +   '<div style="margin-bottom:8px;"><div style="' + titreGrp + '">👤 Clients</div>'
+      +     '<div style="' + ligneGrp + '"><b>' + s.nbClients + '</b> inscrit' + (s.nbClients > 1 ? 's' : '')
+      +       '&nbsp;&nbsp;&nbsp;🇲🇱 <b>' + s.nbClientsMali + '</b> Mali</div></div>'
+      +   '<div style="margin-bottom:8px;"><div style="' + titreGrp + '">💰 Argent</div>'
+      +     '<div style="' + ligneGrp + '"><b>' + s.montantApporte + '</b> € apportés'
+      +       '&nbsp;&nbsp;&nbsp;<b>' + s.montantEncaisse + '</b> € encaissés</div></div>'
+      +   '<div><div style="' + titreGrp + '">🚛 Terrain</div>'
+      +     '<div style="' + ligneGrp + '">📦 <b>' + s.nbValidations + '</b> colis validé' + (s.nbValidations > 1 ? 's' : '')
+      +       '&nbsp;&nbsp;&nbsp;📅 <b>' + s.nbCollectes + '</b> jour' + (s.nbCollectes > 1 ? 's' : '') + ' de collecte'
+      +       '&nbsp;&nbsp;&nbsp;⏳ <b>' + _depFormatDuree(s.dureeTourneeMoyenneMs) + '</b> tournée moyenne</div></div>'
+      + '</div>';
   });
+  h += '<div style="text-align:center;font-size:11px;color:#aaa;margin-top:20px;border-top:1px solid #eee;padding-top:10px;">Dakar City Transport · Statistiques</div>';
+  page.innerHTML = h;
+  document.body.appendChild(page);
 
-  html += '<div class="footer">Dakar City Transport · Statistiques · ' + dateGen + '</div>';
-  html += '<div class="no-print" style="margin-top:24px;padding:16px;background:#f0f0f0;border-radius:10px;text-align:center;">';
-  html += '<p style="font-size:13px;color:#555;margin-bottom:12px;">Sur iPhone : Partager → Imprimer → Pincer → Partager → Enregistrer en PDF</p>';
-  html += '<button onclick="window.print()" style="background:#B8860B;color:white;border:none;padding:14px 24px;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;width:100%;">🖨️ Imprimer</button>';
-  html += '</div></body></html>';
+  var nettoyer = function(){ if(page.parentNode) document.body.removeChild(page); };
 
-  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  var url = URL.createObjectURL(blob);
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if(isIOS){ window.open(url, '_blank'); }
-  else {
-    var a = document.createElement('a');
-    a.href = url; a.download = 'Statistiques_' + titre.replace(/ /g, '_') + '.html';
-    a.style.display = 'none'; document.body.appendChild(a); a.click();
-    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
-  }
+  _depChargerHtml2canvasEtJsPDF(function(){
+    if(!window.html2canvas || !window.jspdf){ nettoyer(); return; }
+    var pageW = 210, pageH = 297, marge = 8;
+    var largeurUtile = pageW - marge * 2, hauteurUtile = pageH - marge * 2;
+    window.html2canvas(page, { scale: DEP_PDF_SCALE_CAPTURE, useCORS: true, backgroundColor: '#ffffff' })
+      .then(function(canvas){
+        nettoyer();
+        var imgWmm = (canvas.width / DEP_PDF_SCALE_CAPTURE) * 25.4 / 96;
+        var imgHmm = (canvas.height / DEP_PDF_SCALE_CAPTURE) * 25.4 / 96;
+        var ratio = Math.min(largeurUtile / imgWmm, hauteurUtile / imgHmm);
+        var wMm = imgWmm * ratio, hMm = imgHmm * ratio;
+        var xMm = marge + (largeurUtile - wMm) / 2;
+        var yMm = marge;
+        var pdf = new window.jspdf.jsPDF({ unit: 'mm', format: [pageW, pageH], orientation: 'portrait' });
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', xMm, yMm, wMm, hMm);
+        try{ pdf.save('Statistiques_' + titre.replace(/ /g, '_') + '.pdf'); }
+        catch(e){ console.error('departs: échec génération PDF statistiques', e); toast('❌ Échec de la génération du PDF, réessayez.'); }
+      })
+      .catch(function(e){
+        nettoyer();
+        console.error('departs: échec capture statistiques', e);
+        toast('❌ Échec de la génération du PDF, réessayez.');
+      });
+  });
 };
 
 /* ═════════════════════════════════════════════

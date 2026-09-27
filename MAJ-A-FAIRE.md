@@ -418,10 +418,17 @@ mémoire en passant de l'un à l'autre.
   Mali) · 💰 Argent (apporté vs encaissé) · 🚛 Terrain (colis validés,
   jours de collecte, tournée moyenne).
 - **Export PDF** : « faudrait un bouton pour exporter en pdf » — bouton
-  📄 PDF dans l'en-tête, exporte exactement le classement affiché à
-  l'écran (même mode, même année/mois ou conteneur), même méthode que
-  partout ailleurs dans l'appli (page imprimable, « Enregistrer en PDF »
-  depuis le partage sur iPhone).
+  📄 PDF dans l'en-tête, exporte le classement affiché à l'écran (même
+  mode, même année/mois ou conteneur).
+
+  **v1.94.1 :** Cobey : « ça ne va pas très bien quand j'appuie [...]
+  ça ne fait rien. Je veux un bouton qui permet de l'exporter en pdf
+  directement sans avoir besoin d'imprimer autre chose ». La première
+  version ouvrait une page à imprimer soi-même (Partager → Imprimer →
+  Enregistrer en PDF) — déjà abandonné une fois pour les factures pour
+  la même raison. Remplacé par html2canvas + jsPDF (comme la facture,
+  les étiquettes) : un vrai fichier .pdf se télécharge directement, sans
+  étape intermédiaire.
 
 ### ~~« Collecté » et « ramassé » — deux mots pour deux choses différentes~~
 **Fait le 27/09 (v3.94.0 / v2.9.4).** Cobey, capture d'écran de l'écran
