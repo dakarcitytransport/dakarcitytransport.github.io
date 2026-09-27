@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.7';
+var DEP_VERSION = 'v2.10.8';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18679,9 +18679,18 @@ function _depCamionsParContainer(departId){
       }
       if(!n || !parDepart[departId]) return;
 
+      // v1.94.9 : colTs — un vrai instant pour trier, à côté de colDate
+      // (juste pour l'affichage). Cobey, capture d'écran à l'appui :
+      // « je vois pas d'ordre chronologique, tout a l'air un peu
+      // mélangé ». Le tri triait colDate comme du texte ("Dimanche 6
+      // septembre" passait AVANT "Dimanche 20 septembre", le "2" de 20
+      // étant alphabétiquement avant le "6") — jamais un vrai ordre de
+      // dates.
+      var dCol = _depParseDateSure(col.date);
       out.push({
         colId: colId,
         colDate: col.date || '',
+        colTs: (dCol && !isNaN(dCol.getTime())) ? dCol.getTime() : 0,
         camion: cam,
         nom: tk.name || 'Camion',
         clients: parDepart[departId],
@@ -18694,7 +18703,7 @@ function _depCamionsParContainer(departId){
       });
     });
   });
-  return out.sort(function(a,b){ return String(b.colDate||'').localeCompare(String(a.colDate||'')); });
+  return out.sort(function(a,b){ return b.colTs - a.colTs; });
 }
 
 function _depTotalCamionsDe(departId){
@@ -18794,39 +18803,62 @@ window.depRenderDepensesFixes = function(){
       + '&agrave; ce container.</div>';
   }
   if(!estMali && camions.length){
-    h += camions.map(function(o){
-      // v1.94.7 : détail par poste — le montant total du camion (pas
-      // reproraté par container : c'est bien "à quoi correspondent CES
-      // X €" pour toute la tournée, part comprise) juste en dessous.
-      var repartition = _depRepartitionDepenses(o.colId, o.camion);
-      return '<div class="dep-cli">'
-        + '<div class="dep-cli-n" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-        +   '<span>&#128666; ' + esc(o.nom) + '</span>'
-        +   '<span style="font-weight:800;color:#B3261E;">' + _depEuros(o.montant) + ' &euro;</span>'
-        + '</div>'
-        + '<div class="dep-cli-s" style="margin-top:3px;color:var(--text3);">'
-        +   'Collecte du ' + esc(o.colDate || '—') + ' &middot; ' + o.clients + ' client'
-        +   (o.clients>1?'s':'') + ' de ce container'
-        +   (o.partiel
-            ? ' <span style="color:#8A5200;">(part de ' + _depEuros(o.montantCamion) + ' &euro;, '
-              + 'le camion a rempli plusieurs containers)</span>'
-            : '')
-        +   (o.repli
-            ? '<br><span style="color:#8A5200;">ce camion n\'a ramass&eacute; que des colis Mali &mdash; '
-              + 'ses frais sont port&eacute;s par les containers S&eacute;n&eacute;gal du m&ecirc;me jour</span>'
-            : (o.mali
-              ? '<br><span style="color:#8A5200;">dont la tourn&eacute;e de ' + o.mali + ' colis Mali, '
-                + 'port&eacute;e ici &mdash; le container malien est chez le prestataire</span>'
-              : ''))
-        + '</div>'
-        +   (repartition.length
-            ? '<div class="dep-cli-s" style="margin-top:5px;display:flex;gap:10px;flex-wrap:wrap;">'
-              + repartition.map(function(r){
-                  return '<span>' + r.icone + ' ' + r.label + ' <b style="color:var(--text);">' + _depEuros(r.montant) + ' &euro;</b></span>';
-                }).join('')
-              + '</div>'
-            : '')
+    // v1.94.9 : regroupé par collecte, un en-tête de date par groupe —
+    // Cobey, capture d'écran à l'appui : « ça m'a l'air un peu
+    // brouillon, je vois pas d'ordre chronologique [...] il y a un peu
+    // trop d'infos. Essaye de me mettre ça bien organisé, avec une
+    // logique ». `camions` est déjà trié du plus récent au plus ancien
+    // (colTs) — il suffit de regrouper les entrées consécutives de même
+    // colId, sans retrier. La date, répétée sur chaque carte jusqu'ici,
+    // ne s'affiche plus qu'une fois par groupe.
+    var groupes = [];
+    camions.forEach(function(o){
+      var dernier = groupes[groupes.length - 1];
+      if(dernier && dernier.colId === o.colId) dernier.camions.push(o);
+      else groupes.push({ colId: o.colId, colDate: o.colDate, camions: [o] });
+    });
+    h += groupes.map(function(g){
+      var sousTotal = depArrondi2(g.camions.reduce(function(s,o){ return s + o.montant; }, 0));
+      var gh = '<div style="display:flex;justify-content:space-between;align-items:baseline;'
+        +   'margin:16px 0 7px;padding-top:12px;border-top:1px solid var(--border);">'
+        +   '<span style="font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;">'
+        +     '&#128197; ' + esc(g.colDate || '—') + '</span>'
+        +   '<span style="font-size:12px;font-weight:700;color:var(--text3);">' + _depEuros(sousTotal) + ' &euro;</span>'
         + '</div>';
+      gh += g.camions.map(function(o){
+        // v1.94.7 : détail par poste — le montant total du camion (pas
+        // reproraté par container : c'est bien "à quoi correspondent
+        // CES X €" pour toute la tournée, part comprise) juste en dessous.
+        var repartition = _depRepartitionDepenses(o.colId, o.camion);
+        return '<div class="dep-cli">'
+          + '<div class="dep-cli-n" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+          +   '<span>&#128666; ' + esc(o.nom) + '</span>'
+          +   '<span style="font-weight:800;color:#B3261E;">' + _depEuros(o.montant) + ' &euro;</span>'
+          + '</div>'
+          + '<div class="dep-cli-s" style="margin-top:3px;color:var(--text3);">'
+          +   o.clients + ' client' + (o.clients>1?'s':'') + ' de ce container'
+          +   (o.partiel
+              ? ' <span style="color:#8A5200;">(part de ' + _depEuros(o.montantCamion) + ' &euro;, '
+                + 'le camion a rempli plusieurs containers)</span>'
+              : '')
+          +   (o.repli
+              ? '<br><span style="color:#8A5200;">ce camion n\'a ramass&eacute; que des colis Mali &mdash; '
+                + 'ses frais sont port&eacute;s par les containers S&eacute;n&eacute;gal du m&ecirc;me jour</span>'
+              : (o.mali
+                ? '<br><span style="color:#8A5200;">dont la tourn&eacute;e de ' + o.mali + ' colis Mali, '
+                  + 'port&eacute;e ici &mdash; le container malien est chez le prestataire</span>'
+                : ''))
+          + '</div>'
+          +   (repartition.length
+              ? '<div class="dep-cli-s" style="margin-top:5px;display:flex;gap:10px;flex-wrap:wrap;">'
+                + repartition.map(function(r){
+                    return '<span>' + r.icone + ' ' + r.label + ' <b style="color:var(--text);">' + _depEuros(r.montant) + ' &euro;</b></span>';
+                  }).join('')
+                + '</div>'
+              : '')
+          + '</div>';
+      }).join('');
+      return gh;
     }).join('');
   }
 

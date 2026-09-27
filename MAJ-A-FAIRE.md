@@ -417,6 +417,19 @@ même jour, chaque poste est réparti dans la même proportion que le
 montant déjà affiché, pour que la somme des postes retombe pile sur ce
 total.
 
+**v1.94.9 :** Cobey, nouvelle capture d'écran à l'appui — les tournées
+s'affichaient dans le désordre (6 septembre, 20, 20, 13, 13…) : « ça
+m'a l'air un peu brouillon, je vois pas d'ordre chronologique [...] il
+y a un peu trop d'infos. Essaye de me mettre ça bien organisé, avec
+une logique ». Deux choses :
+- Le tri comparait les dates comme du **texte** (« Dimanche 6 » passait
+  après « Dimanche 20 », le "2" étant alphabétiquement avant le "6") —
+  jamais un vrai ordre chronologique. Corrigé : tri sur la vraie date.
+- Le report des tournées est désormais **regroupé par collecte** : un
+  en-tête de date (avec le sous-total du jour), les camions de ce
+  jour-là en dessous, sans répéter la date sur chaque carte — moins
+  d'infos redondantes, plus facile à parcourir.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
