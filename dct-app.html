@@ -1677,7 +1677,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.93.3';
+var APP_VERSION = 'v3.93.4';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2358,7 +2358,14 @@ function renderTimelineCamion(k){
   var b='<div style="padding:14px 16px;">';
   b+='<div style="display:flex;align-items:center;gap:10px;">';
   b+='<span onclick="goTo(\'s-suivi\');renderSuivi();" style="color:#fff;font-size:20px;font-weight:800;cursor:pointer;line-height:1;">\u2039</span>';
-  b+='<span style="color:#fff;font-size:16px;font-weight:800;word-break:break-word;">\ud83d\ude9b '+_esc(tk.name)+'</span></div>';
+  b+='<span style="color:#fff;font-size:16px;font-weight:800;word-break:break-word;flex:1;">\ud83d\ude9b '+_esc(tk.name)+'</span>';
+  // v3.93.4/v2.9.2 : Cobey, \u00ab ce serait bien de mettre le m\u00eame bouton de
+  // trajet de carte [...] pour pas \u00eatre oblig\u00e9 de ressortir, aller dans
+  // la collecte et aller dans le camion \u00bb \u2014 m\u00eame carte que dans Dispatch.
+  b+='<button onclick="depCarteCamionDepuisSuivi(\''+k+'\',\''+suiviCollecteId+'\')" style="background:rgba(255,255,255,.2);'
+   +   'color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:12px;font-weight:700;'
+   +   'cursor:pointer;font-family:var(--font);flex-shrink:0;white-space:nowrap;">\ud83d\uddfa\ufe0f Carte</button>';
+  b+='</div>';
   b+='<div style="color:rgba(255,255,255,0.75);font-size:12.5px;font-weight:600;margin-top:4px;margin-left:30px;">'+(col?_esc(col.date)+' \u00b7 ':'')+s.traites+'/'+s.total+' clients trait\u00e9s</div>';
   b+='</div>';
   var elB=document.getElementById('suivi-detail-band');

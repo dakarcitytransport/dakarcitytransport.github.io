@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.9.1';
+var DEP_VERSION = 'v2.9.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16350,6 +16350,21 @@ var _depCarteCamionK = '';
 var _depCarteMap = null;
 var _depCarteMarqueurs = {};
 var _depCarteTrace = null;
+var _depCarteCollecteAvant = null;
+
+// v2.9.2 : même carte, ouverte depuis l'onglet Suivi (collecte pas
+// forcément celle en cours d'édition dans Dispatch) — Cobey : « dans le
+// suivi des collectes par camion, ce serait bien de mettre le même
+// bouton de trajet de carte [...] puisque là, pour voir la carte, je
+// suis obligé de ressortir, aller dans la collecte et aller dans le
+// camion ». getTrucks()/getClients() lisent currentCollecteId : on le
+// bascule sur la collecte suivie pendant que la carte est ouverte, puis
+// on le restaure à la fermeture.
+window.depCarteCamionDepuisSuivi = function(k, collecteId){
+  _depCarteCollecteAvant = window.currentCollecteId;
+  window.currentCollecteId = collecteId;
+  depCarteCamion(k);
+};
 
 window.depCarteCamion = function(k){
   var trks = getTrucks(), tk = trks[k];
@@ -16391,6 +16406,11 @@ window.depFermerCarteCamion = function(){
   var m = $('modal-dep-carte-camion');
   if(m) m.remove();
   _depCarteMap = null; _depCarteMarqueurs = {}; _depCarteTrace = null;
+  if(_depCarteCollecteAvant !== null){
+    window.currentCollecteId = _depCarteCollecteAvant;
+    _depCarteCollecteAvant = null;
+    return;
+  }
   try{ renderCamion(_depCarteCamionK); }catch(e){}
 };
 

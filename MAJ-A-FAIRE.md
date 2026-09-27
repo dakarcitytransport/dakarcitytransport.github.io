@@ -395,6 +395,15 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### ~~Le bouton carte, aussi dans Suivi~~
+**Fait le 27/09 (v3.93.4 / v2.9.2).** Cobey : « dans le suivi des
+collectes par camion, ce serait bien de mettre le même bouton de trajet
+de carte [...] puisque là, pour voir la carte, je suis obligé de
+ressortir, aller dans la collecte et aller dans le camion ». Le bouton
+« 🗺️ Voir le trajet de ce camion », jusque-là seulement dans Dispatch >
+Camion, apparaît maintenant aussi dans l'onglet Suivi, sur la fiche de
+chaque camion — la même carte, sans repasser par Dispatch.
+
 ### ~~Carré Départ~~
 **Fait le 24/09, puis déplacé le même jour (v1.56.0 → v1.59.0).**
 
