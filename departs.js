@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.3';
+var DEP_VERSION = 'v2.10.4';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5601,6 +5601,40 @@ function _depStatsCalculer(periode){
     var dateCol = col ? _depParseDateSure(col.date) : null;
     var cls = window.clientsParCollecte[collecteId] || {};
     Object.keys(cls).forEach(function(clientId){ traiterFiche(cls[clientId], collecteId, dateCol); });
+
+    // v1.94.4 : Cobey : « tu dois aussi vérifier si son nom apparaît dans
+    // les camions [...] il est possible que le chauffeur ne valide pas
+    // le bouton sur l'application, mais si son nom est inscrit dans les
+    // camions, c'est qu'il a travaillé ». Un camion porte le nom de son
+    // équipage ("Samba + Issyaka", voir _confirmerAddTruck) — un
+    // collaborateur qui conduit sans jamais valider lui-même un colis
+    // restait invisible de "jours de collecte"/"tournée". Compte
+    // désormais aussi cette journée, dès que son nom figure dans un
+    // camion ayant ramené au moins un client du conteneur suivi (mode
+    // conteneur), ou tout simplement ce jour-là (mode période). Ne
+    // touche pas nbValidations (qui reste les vraies validations) ni
+    // tourneesTs (aucun horodatage à en tirer sans validation).
+    var trks = ((window.dispatchParCollecte || {})[collecteId] || {}).trucks || {};
+    Object.keys(trks).forEach(function(k){
+      var tk = trks[k];
+      if(!tk || !tk.name) return;
+      var dansCeConteneur;
+      if(periode && periode.conteneurId){
+        dansCeConteneur = (tk.clients || []).some(function(id){
+          var c = cls[id];
+          return c && c.departId === periode.conteneurId;
+        });
+      } else {
+        dansCeConteneur = dansPeriode(null, dateCol);
+      }
+      if(!dansCeConteneur) return;
+      var nomCamion = tk.name.toLowerCase();
+      Object.keys(nomsValides).forEach(function(nom){
+        if(nomCamion.indexOf(nom.toLowerCase()) === -1) return;
+        var l = ligne(nom);
+        if(l) l.collectesSet[collecteId] = true;
+      });
+    });
   });
   Object.keys(window.depotClients || {}).forEach(function(id){
     var c = window.depotClients[id];

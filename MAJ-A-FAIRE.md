@@ -441,6 +441,27 @@ mémoire en passant de l'un à l'autre.
   d'abord ; à égalité, la valeur de ces clients départage, puis
   l'encaissé en tout dernier recours.
 
+  **v1.94.3 :** en vérifiant ce classement avec Issyaka, Cobey a relevé
+  un écart sur « jours de collecte » (Abdoulaye : « a tourné 3 week-ends
+  sur 4 », le classement n'en montrait que 2). Fausse piste corrigée en
+  route : l'enregistrement d'un client au dépôt direct n'est PAS une
+  tournée de collecte (Cobey : « c'est l'enregistrement d'un client, là
+  on parle vraiment de tournée de collecte ») — aucun changement de
+  code là-dessus, juste un commentaire pour ne pas s'y reprendre deux
+  fois.
+
+  **v1.94.4 — la vraie cause :** Cobey : « tu dois aussi vérifier si son
+  nom apparaît dans les camions [...] le chauffeur, par exemple, ne
+  valide pas le bouton sur l'application, mais si son nom est inscrit
+  dans les camions, c'est qu'il a travaillé ». Un camion porte le nom de
+  son équipage (« Samba + Issyaka », choisi à la création) — un
+  collaborateur qui conduit sans jamais valider lui-même un colis
+  restait invisible de « jours de collecte » et « tournée moyenne ».
+  Compte désormais aussi cette journée dès que son nom figure dans un
+  camion ayant ramené au moins un client du conteneur (ou de la
+  période) suivi — sans toucher « colis validés », qui reste les vraies
+  validations.
+
 ### ~~« Collecté » et « ramassé » — deux mots pour deux choses différentes~~
 **Fait le 27/09 (v3.94.0 / v2.9.4).** Cobey, capture d'écran de l'écran
 Camion à l'appui : « c'est pas trop compréhensible, au niveau des
