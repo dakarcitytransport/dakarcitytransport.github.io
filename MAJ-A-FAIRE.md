@@ -462,6 +462,25 @@ mémoire en passant de l'un à l'autre.
   période) suivi — sans toucher « colis validés », qui reste les vraies
   validations.
 
+  **v1.94.5 :** Cobey : « comment faire pour vérifier ses collectes du
+  container ? [...] ce qu'il faudrait faire, à côté du nombre de
+  collectes que chaque collaborateur a fait, mettre la date des jours
+  de collecte qui ont été faits ». Les dates elles-mêmes s'affichent
+  maintenant entre parenthèses juste après le nombre (« 3 jours de
+  collecte (30/08, 06/09, 13/09) ») — sur l'écran comme dans le PDF —
+  pour vérifier soi-même quels jours précis sont comptés, sans
+  aller-retour.
+
+  **v1.94.6 :** en creusant l'écart sur le Mali, Cobey a compris tout
+  seul et demandé la correction : « c'est les stat du container
+  Sénégal, ça comprend pas les clients Mali, faut différencier [...]
+  enlève du coup client Mali des Stat du container Sénégal, et
+  inversement pour les container de Mali ». Dans un conteneur, tous les
+  clients partagent le même pays — le sous-compte Mali y est donc
+  toujours à 0 ou à 100 %, jamais informatif. Retiré en mode Par
+  conteneur (écran + PDF), gardé en mode Par année (qui mélange les
+  deux pays sur toute la période, là il a un sens).
+
 ### ~~« Collecté » et « ramassé » — deux mots pour deux choses différentes~~
 **Fait le 27/09 (v3.94.0 / v2.9.4).** Cobey, capture d'écran de l'écran
 Camion à l'appui : « c'est pas trop compréhensible, au niveau des

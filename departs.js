@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.4';
+var DEP_VERSION = 'v2.10.5';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5596,9 +5596,16 @@ function _depStatsCalculer(periode){
     });
   }
 
+  // v1.94.5 : Cobey : « ce qu'il faudrait faire, à côté du nombre de
+  // collectes que chaque collaborateur a fait, mettre la date des jours
+  // de collecte qui ont été faits » — pouvoir vérifier soi-même, sans
+  // repasser par un aller-retour, quels jours précis sont comptés.
+  var collecteDates = {}; // collecteId -> Date de cette collecte
+
   Object.keys(window.clientsParCollecte || {}).forEach(function(collecteId){
     var col = (window.collectes || []).filter(function(x){ return x && x.id === collecteId; })[0];
     var dateCol = col ? _depParseDateSure(col.date) : null;
+    collecteDates[collecteId] = dateCol;
     var cls = window.clientsParCollecte[collecteId] || {};
     Object.keys(cls).forEach(function(clientId){ traiterFiche(cls[clientId], collecteId, dateCol); });
 
@@ -5658,6 +5665,15 @@ function _depStatsCalculer(periode){
     var dureeMoyenneMs = durees.length
       ? (durees.reduce(function(a,b){ return a+b; }, 0) / durees.length)
       : null;
+    // v1.94.5 : les dates elles-mêmes, triées, pour vérification directe
+    // — un dépôt direct n'a pas de date de collecte propre (collecteId
+    // toujours présent dans collecteDates pour une vraie collecte, jamais
+    // ajouté pour un dépôt direct), donc n'apparaît jamais ici non plus.
+    var joursCollecte = Object.keys(s.collectesSet)
+      .map(function(id){ return collecteDates[id]; })
+      .filter(function(d){ return d && !isNaN(d.getTime()); })
+      .sort(function(a, b){ return a - b; })
+      .map(function(d){ return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); });
     return {
       nom: s.nom,
       nbClients: s.nbClients,
@@ -5665,6 +5681,7 @@ function _depStatsCalculer(periode){
       montantApporte: Math.round(s.montantApporte * 100) / 100,
       montantEncaisse: Math.round(s.montantEncaisse * 100) / 100,
       nbCollectes: Object.keys(s.collectesSet).length,
+      joursCollecte: joursCollecte,
       nbValidations: s.nbValidations,
       dureeTourneeMoyenneMs: dureeMoyenneMs
     };
@@ -5818,7 +5835,14 @@ function _depStatsBandeauMode(){
 // (Clients / Argent / Terrain) — remplace l'unique ligne en vrac d'avant,
 // pas assez lisible (Cobey, capture d'écran à l'appui : « c'est pas trop
 // compréhensible, au niveau des chiffres [...] pas trop parlant »).
-function _depStatsCarteCollab(s, i, medailles, couleur){
+// v1.94.6 : `afficherMali` — Cobey, après avoir compris pourquoi le Mali
+// ressortait à 0 partout sur un conteneur Sénégal : « enlève du coup
+// client Mali des Stat du container Sénégal, et inversement pour les
+// conteneurs de Mali ». Dans un conteneur, tous les clients partagent le
+// même pays (le conteneur EST ce pays) — le sous-compte Mali y est donc
+// toujours 0 ou 100 %, jamais informatif. Il ne sert qu'en mode Année,
+// qui mélange les deux pays sur toute la période.
+function _depStatsCarteCollab(s, i, medailles, couleur, afficherMali){
   var medaille = medailles[i] || ('#'+(i+1));
   return '<div class="dep-card" style="border-left-color:'+couleur+';cursor:default;">'
     +   '<div class="dep-card-top"><div class="dep-nom">'+medaille+' '+esc(s.nom)+'</div></div>'
@@ -5828,7 +5852,7 @@ function _depStatsCarteCollab(s, i, medailles, couleur){
     +       '<span><b>'+s.nbClients+'</b> inscrit'+(s.nbClients>1?'s':'')+'</span>'
     // v1.19.17 : dont combien pour le Mali — pas de classement séparé par
     // pays (pas utile selon Cobey), juste ce chiffre en plus.
-    +       '<span>&#127474;&#127473; <b>'+s.nbClientsMali+'</b> Mali</span>'
+    +       (afficherMali ? '<span>&#127474;&#127473; <b>'+s.nbClientsMali+'</b> Mali</span>' : '')
     +     '</div>'
     +   '</div>'
     +   '<div class="dep-stat-groupe">'
@@ -5842,7 +5866,13 @@ function _depStatsCarteCollab(s, i, medailles, couleur){
     +     '<div class="dep-stat-titre">&#128666; Terrain</div>'
     +     '<div class="dep-meta">'
     +       '<span>&#128230; <b>'+s.nbValidations+'</b> colis valid&eacute;'+(s.nbValidations>1?'s':'')+'</span>'
-    +       '<span>&#128197; <b>'+s.nbCollectes+'</b> jour'+(s.nbCollectes>1?'s':'')+' de collecte</span>'
+    // v1.94.5 : les dates elles-mêmes juste à côté du nombre, pour
+    // vérifier soi-même quels jours sont comptés — Cobey : « à côté du
+    // nombre de collectes que chaque collaborateur a fait, mettre la
+    // date des jours de collecte qui ont été faits ».
+    +       '<span>&#128197; <b>'+s.nbCollectes+'</b> jour'+(s.nbCollectes>1?'s':'')+' de collecte'
+    +         (s.joursCollecte.length ? ' <span style="color:var(--text3);font-weight:600;">('+s.joursCollecte.join(', ')+')</span>' : '')
+    +       '</span>'
     +       '<span>&#9203; <b>'+_depFormatDuree(s.dureeTourneeMoyenneMs)+'</b> tourn&eacute;e moyenne</span>'
     +     '</div>'
     +   '</div>'
@@ -5887,7 +5917,7 @@ window.depRenderStats = function(){
     if(!listeC.length){
       h2 += '<div class="dep-vide" style="padding:16px;">Aucune donn&eacute;e pour ce conteneur.</div>';
     } else {
-      listeC.forEach(function(s, i){ h2 += _depStatsCarteCollab(s, i, medailles, '#1565C0'); });
+      listeC.forEach(function(s, i){ h2 += _depStatsCarteCollab(s, i, medailles, '#1565C0', false); });
     }
     box.innerHTML = h2;
     _depStatsMajBoutonRetour();
@@ -5930,7 +5960,7 @@ window.depRenderStats = function(){
   if(!liste.length){
     h += '<div class="dep-vide" style="padding:16px;margin-bottom:14px;">Aucune donn&eacute;e pour cette p&eacute;riode.</div>';
   } else {
-    liste.forEach(function(s, i){ h += _depStatsCarteCollab(s, i, medailles, '#B8860B'); });
+    liste.forEach(function(s, i){ h += _depStatsCarteCollab(s, i, medailles, '#B8860B', true); });
   }
 
   // Dossiers pour affiner la période, juste sous le classement.
@@ -5989,6 +6019,10 @@ window.depExporterStatsPDF = function(){
   page.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px;background:#fff;'
     + 'padding:28px;font-family:Arial,sans-serif;color:#1a1a2e;';
 
+  // v1.94.6 : même règle que sur l'écran — le Mali n'est informatif
+  // qu'en mode Année (voir _depStatsCarteCollab).
+  var afficherMali = _depStatsNav.mode !== 'conteneur';
+
   var h = '<div style="border-bottom:3px solid #B8860B;padding-bottom:14px;margin-bottom:18px;">'
     + '<div style="font-size:24px;font-weight:800;color:#B8860B;">📊 ' + esc(titre) + '</div>'
     + '<div style="font-size:13px;color:#666;margin-top:4px;">' + (sousTitre ? esc(sousTitre) + ' · ' : '') + 'Généré le ' + dateGen + '</div>'
@@ -6001,13 +6035,14 @@ window.depExporterStatsPDF = function(){
       +   '<div style="font-size:17px;font-weight:800;margin-bottom:10px;">' + medaille + ' ' + esc(s.nom) + '</div>'
       +   '<div style="margin-bottom:8px;"><div style="' + titreGrp + '">👤 Clients</div>'
       +     '<div style="' + ligneGrp + '"><b>' + s.nbClients + '</b> inscrit' + (s.nbClients > 1 ? 's' : '')
-      +       '&nbsp;&nbsp;&nbsp;🇲🇱 <b>' + s.nbClientsMali + '</b> Mali</div></div>'
+      +       (afficherMali ? '&nbsp;&nbsp;&nbsp;🇲🇱 <b>' + s.nbClientsMali + '</b> Mali' : '') + '</div></div>'
       +   '<div style="margin-bottom:8px;"><div style="' + titreGrp + '">💰 Argent</div>'
       +     '<div style="' + ligneGrp + '"><b>' + s.montantApporte + '</b> € apportés'
       +       '&nbsp;&nbsp;&nbsp;<b>' + s.montantEncaisse + '</b> € encaissés</div></div>'
       +   '<div><div style="' + titreGrp + '">🚛 Terrain</div>'
       +     '<div style="' + ligneGrp + '">📦 <b>' + s.nbValidations + '</b> colis validé' + (s.nbValidations > 1 ? 's' : '')
       +       '&nbsp;&nbsp;&nbsp;📅 <b>' + s.nbCollectes + '</b> jour' + (s.nbCollectes > 1 ? 's' : '') + ' de collecte'
+      +       (s.joursCollecte.length ? ' (' + s.joursCollecte.join(', ') + ')' : '')
       +       '&nbsp;&nbsp;&nbsp;⏳ <b>' + _depFormatDuree(s.dureeTourneeMoyenneMs) + '</b> tournée moyenne</div></div>'
       + '</div>';
   });
