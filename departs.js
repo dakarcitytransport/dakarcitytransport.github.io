@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.9.0';
+var DEP_VERSION = 'v2.9.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20394,13 +20394,15 @@ window.depAnnonceEnvoyer = function(){
   });
 
   db.ref('dct_file_push').push({
-    // v2.7.1 : le nom de l'auteur, pas « Dakar City Transport » — déjà
-    // affiché tout seul par l'iPhone comme nom de l'application, le
-    // répéter comme titre créait « Dakar City Transport / from Dakar
-    // City Transport » (retour de Cobey, capture d'écran à l'appui).
-    // Le nom de l'auteur est aussi plus utile ici : « from Eric » dit
-    // tout de suite qui parle.
-    titre  : u.name || 'Notification',
+    // v2.7.1 : jamais « Dakar City Transport » — déjà affiché tout seul
+    // par l'iPhone comme nom de l'application, le répéter comme titre
+    // créait « Dakar City Transport / from Dakar City Transport »
+    // (retour de Cobey, capture d'écran à l'appui). v2.9.1 : le nom de
+    // l'auteur (« from Eric ») a fait l'aller-retour — Cobey, capture
+    // d'écran à l'appui : « je veux plus que les noms apparaissent dans
+    // les notifs, vaut mieux avoir un message de façon générale ». Un
+    // titre neutre à la place.
+    titre  : 'Message',
     corps  : texte,
     // Un sujet différent à chaque envoi : deux annonces de suite ne
     // doivent jamais s'effacer l'une l'autre sur l'écran verrouillé du

@@ -314,9 +314,12 @@ un prestataire.
   notifications reprenaient ce même nom comme titre, que l'iPhone
   affichait donc une seconde fois, précédé de « from ». Chaque
   notification a maintenant un titre court et différent : « Planning »
-  pour les rappels et résultats, « Essai » pour le bouton de test, et le
-  nom de l'auteur pour la case Notification (« from Eric », par
-  exemple) — plus utile que de répéter le nom de l'application.
+  pour les rappels et résultats, « Essai » pour le bouton de test.
+
+  *v2.9.1, retour en arrière partiel : la case Notification affichait le
+  nom de l'auteur (« from Eric »), le 27/09 Cobey préfère un titre neutre
+  — « je veux plus que les noms apparaissent dans les notifs, vaut mieux
+  avoir un message de façon générale ». Titre remplacé par « Message ».*
 
 - ~~**Les boutons d'essai, retirés.**~~ *Fait le 26/09 (v3.91.2 /
   v2.7.2).* Ils avaient servi à vérifier que les notifications
