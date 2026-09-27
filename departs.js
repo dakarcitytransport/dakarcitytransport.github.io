@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.8';
+var DEP_VERSION = 'v2.10.9';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18835,12 +18835,21 @@ window.depRenderDepensesFixes = function(){
           +   '<span>&#128666; ' + esc(o.nom) + '</span>'
           +   '<span style="font-weight:800;color:#B3261E;">' + _depEuros(o.montant) + ' &euro;</span>'
           + '</div>'
+          // v1.94.10 : Cobey, sur "X clients de ce container" : « ça veut
+          // dire quoi [...] je sais pas, il y a marqué ça ». Vu depuis
+          // l'écran du container, "de ce container" ne dit rien de plus
+          // que ce qu'on regarde déjà — la vraie information, c'est SUR
+          // COMBIEN au total ce camion a ramassé ce jour-là, seulement
+          // quand ce n'est qu'une partie (voir o.partiel : un camion qui a
+          // rempli plusieurs containers le même jour). Sinon, juste le
+          // nombre ramassé, sans qualificatif inutile.
           + '<div class="dep-cli-s" style="margin-top:3px;color:var(--text3);">'
-          +   o.clients + ' client' + (o.clients>1?'s':'') + ' de ce container'
           +   (o.partiel
-              ? ' <span style="color:#8A5200;">(part de ' + _depEuros(o.montantCamion) + ' &euro;, '
-                + 'le camion a rempli plusieurs containers)</span>'
-              : '')
+              ? (o.clients + ' client' + (o.clients>1?'s':'') + ' sur ' + o.clientsTotal
+                + ' ramass&eacute;' + (o.clientsTotal>1?'s':'') + ' ce jour-l&agrave; appartiennent &agrave; ce conteneur'
+                + ' <span style="color:#8A5200;">(le camion a aussi rempli d\'autres containers &mdash; '
+                + 'part de ' + _depEuros(o.montantCamion) + ' &euro; pour toute sa tourn&eacute;e)</span>')
+              : (o.clients + ' client' + (o.clients>1?'s':'') + ' ramass&eacute;' + (o.clients>1?'s':'')))
           +   (o.repli
               ? '<br><span style="color:#8A5200;">ce camion n\'a ramass&eacute; que des colis Mali &mdash; '
                 + 'ses frais sont port&eacute;s par les containers S&eacute;n&eacute;gal du m&ecirc;me jour</span>'

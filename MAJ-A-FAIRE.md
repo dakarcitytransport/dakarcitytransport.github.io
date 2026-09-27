@@ -430,6 +430,17 @@ une logique ». Deux choses :
   jour-là en dessous, sans répéter la date sur chaque carte — moins
   d'infos redondantes, plus facile à parcourir.
 
+**v1.94.10 :** Cobey, sur « X clients de ce container » (le nombre
+sous chaque camion) : « ça veut dire quoi [...] je sais pas, il y a
+marqué ça ». Vu depuis l'écran du container, « de ce container »
+n'apportait rien — la vraie information (sur combien de clients ramassés
+ce jour-là seule une partie appartient à ce container) ne comptait que
+si le camion avait aussi rempli un autre container. Simplifié : un
+camion qui n'a servi que ce container dit juste « X clients ramassés » ;
+un camion qui en a aussi ramassé pour un autre dit « X sur Y ramassés ce
+jour-là appartiennent à ce container », avec la part d'argent
+correspondante juste à côté.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
