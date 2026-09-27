@@ -1677,7 +1677,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.94.0';
+var APP_VERSION = 'v3.94.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -13129,7 +13129,15 @@ setTimeout(function(){
      version (?v=...), pris sur APP_VERSION au moment où la page se
      charge. Il change à chaque publication, donc chaque nouvelle version
      est vue comme un fichier différent et se retélécharge — sans qu'on
-     ait plus jamais à y repenser à chaque mise à jour. -->
+     ait plus jamais à y repenser à chaque mise à jour.
+
+     RÉCIDIVE le 27/09/2026 : deux commits (photos, puis statistiques)
+     n'ont touché QUE departs.js — DEP_VERSION bumpé, APP_VERSION oublié.
+     Comme c'est APP_VERSION qui fait l'adresse ci-dessous, l'adresse
+     n'avait pas changé : Cobey gardait l'ancien departs.js en cache,
+     malgré un DEP_VERSION à jour. RÈGLE : TOUT commit qui touche
+     departs.js bump AUSSI APP_VERSION, même si dct-app.html lui-même ne
+     change pas d'une ligne — sinon ce fichier ne se retélécharge pas. -->
 <script>document.write('<script src="departs.js?v=' + encodeURIComponent(APP_VERSION) + '"><\/script>');</script>
 </body>
 </html>
