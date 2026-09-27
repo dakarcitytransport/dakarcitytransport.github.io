@@ -448,10 +448,10 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <div style="background:#F9F9F7;border-radius:10px;padding:11px;border:1.5px solid var(--border);">
         <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:9px;">&#128176; Suivi financier</div>
         <div class="finance-row"><span class="finance-label">Total pr&eacute;vu</span><span class="finance-val" id="frc-prevu">0 &euro;</span></div>
-        <div class="finance-row"><span class="finance-label">&#9989; Collect&eacute;</span><span class="finance-val" id="frc-collecte" style="color:#006b2d;">0 &euro;</span></div>
-        <div class="finance-row" style="margin-bottom:8px;"><span class="finance-label">&#8987; Restant</span><span class="finance-val" id="frc-restant" style="color:#b45309;">0 &euro;</span></div>
+        <div class="finance-row"><span class="finance-label">&#128203; Factur&eacute;</span><span class="finance-val" id="frc-collecte" style="color:#1a237e;">0 &euro;</span></div>
+        <div class="finance-row" style="margin-bottom:8px;"><span class="finance-label">&#8987; Restant &agrave; ramasser</span><span class="finance-val" id="frc-restant" style="color:#b45309;">0 &euro;</span></div>
         <div class="finance-bar-bg"><div id="frc-fin-bar" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#009A44,#00c853);transition:width .4s;"></div></div>
-        <div class="finance-pct" id="frc-fin-pct">0% collect&eacute;</div>
+        <div class="finance-pct" id="frc-fin-pct">0% factur&eacute;</div>
       </div>
     </div>
     <div class="slabel">Ordre de passage</div>
@@ -1024,10 +1024,10 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <div style="background:#F9F9F7;border-radius:10px;padding:11px;border:1.5px solid var(--border);">
         <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:9px;">💰 Suivi financier</div>
         <div class="finance-row"><span class="finance-label">Total prévu</span><span class="finance-val" id="c-prevu">0 €</span></div>
-        <div class="finance-row"><span class="finance-label">✅ Collecté</span><span class="finance-val" id="c-collected" style="color:#006b2d;">0 €</span></div>
-        <div class="finance-row" style="margin-bottom:8px;"><span class="finance-label">⏳ Restant</span><span class="finance-val" id="c-remaining" style="color:#b45309;">0 €</span></div>
+        <div class="finance-row"><span class="finance-label">📋 Facturé</span><span class="finance-val" id="c-collected" style="color:#1a237e;">0 €</span></div>
+        <div class="finance-row" style="margin-bottom:8px;"><span class="finance-label">⏳ Restant à ramasser</span><span class="finance-val" id="c-remaining" style="color:#b45309;">0 €</span></div>
         <div class="finance-bar-bg"><div id="c-fin-bar" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#009A44,#00c853);transition:width 0.4s;"></div></div>
-        <div class="finance-pct" id="c-fin-pct">0% collecté</div>
+        <div class="finance-pct" id="c-fin-pct">0% facturé</div>
       </div>
     </div>
     <div class="slabel">Ordre de passage — tap sur le nom pour modifier</div>
@@ -1677,7 +1677,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.93.4';
+var APP_VERSION = 'v3.94.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5229,10 +5229,10 @@ function _frDispatchDetail(r){
     var pctG=totalG>0?Math.round(collG/totalG*100):0;
     h+='<div class="finance-global"><div class="finance-title">💰 Suivi financier global</div>'
       +'<div class="finance-row"><span class="finance-label">Total prévu</span><span class="finance-val">'+totalG+' €</span></div>'
-      +'<div class="finance-row"><span class="finance-label">✅ Collecté</span><span class="finance-val" style="color:#006b2d;">'+collG+' €</span></div>'
-      +'<div class="finance-row"><span class="finance-label">⏳ Restant</span><span class="finance-val" style="color:#b45309;">'+(totalG-collG)+' €</span></div>'
+      +'<div class="finance-row"><span class="finance-label">📋 Facturé</span><span class="finance-val" style="color:#1a237e;">'+collG+' €</span></div>'
+      +'<div class="finance-row"><span class="finance-label">⏳ Restant à ramasser</span><span class="finance-val" style="color:#b45309;">'+(totalG-collG)+' €</span></div>'
       +'<div class="finance-bar-bg"><div class="finance-bar" style="width:'+pctG+'%;"></div></div>'
-      +'<div class="finance-pct">'+pctG+'% collecté</div></div>';
+      +'<div class="finance-pct">'+pctG+'% facturé</div></div>';
 
     // 2. Les trois compteurs
     var aff=ids.filter(function(id){ return !!asgn[id]; }).length;
@@ -5301,7 +5301,7 @@ function _frDispatchDetail(r){
       +'<div class="truck-finance" onclick="event.stopPropagation()">'
       +'<div class="truck-fin-row"><span class="truck-fin-label">💰 Prévu</span><span class="truck-fin-val" style="color:'+tc.color+';">'+total+' €</span></div>'
       +'<div class="progress-bg"><div class="progress-bar" style="width:'+pctF+'%;background:'+tc.bar+';"></div></div>'
-      +'<div class="truck-fin-detail"><span style="color:'+tc.color+';">'+collected+' € collecté</span><span style="color:#666;">'+pctF+'%</span></div>'
+      +'<div class="truck-fin-detail"><span style="color:'+tc.color+';">'+collected+' € facturé</span><span style="color:#666;">'+pctF+'%</span></div>'
       +'</div>'
       +'<div class="truck-ramasse" onclick="event.stopPropagation()">'
       +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
@@ -5620,7 +5620,7 @@ function renderCamionFrance(){
   e=document.getElementById('frc-collecte');if(e) e.textContent=collected+' €';
   e=document.getElementById('frc-restant'); if(e) e.textContent=(total-collected)+' €';
   e=document.getElementById('frc-fin-bar'); if(e) e.style.width=pctF+'%';
-  e=document.getElementById('frc-fin-pct'); if(e) e.textContent=pctF+'% collecté';
+  e=document.getElementById('frc-fin-pct'); if(e) e.textContent=pctF+'% facturé';
 
   var route=document.getElementById('frc-route'); if(!route) return;
   if(!nCl){
@@ -7510,10 +7510,10 @@ function renderDispatchTab(){
   var fg=document.createElement('div');fg.className='finance-global';
   fg.innerHTML='<div class="finance-title">💰 Suivi financier global</div>'
     +'<div class="finance-row"><span class="finance-label">Total prévu</span><span class="finance-val">'+totalG+' €</span></div>'
-    +'<div class="finance-row"><span class="finance-label">✅ Collecté</span><span class="finance-val" style="color:#006b2d;">'+collG+' €</span></div>'
-    +'<div class="finance-row"><span class="finance-label">⏳ Restant</span><span class="finance-val" style="color:#b45309;">'+(totalG-collG)+' €</span></div>'
+    +'<div class="finance-row"><span class="finance-label">📋 Facturé</span><span class="finance-val" style="color:#1a237e;">'+collG+' €</span></div>'
+    +'<div class="finance-row"><span class="finance-label">⏳ Restant à ramasser</span><span class="finance-val" style="color:#b45309;">'+(totalG-collG)+' €</span></div>'
     +'<div class="finance-bar-bg"><div class="finance-bar" style="width:'+pctG+'%;"></div></div>'
-    +'<div class="finance-pct">'+pctG+'% collecté</div>';
+    +'<div class="finance-pct">'+pctG+'% facturé</div>';
   container.appendChild(fg);
   var stats=document.createElement('div');stats.style.cssText='display:flex;gap:8px;margin-bottom:14px;';
   stats.innerHTML='<div style="flex:1;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:10px;text-align:center;"><div style="font-size:11px;color:#888;font-weight:600;">Total</div><div style="font-size:20px;font-weight:800;">'+nb+'</div></div>'
@@ -7550,7 +7550,7 @@ function renderDispatchTab(){
       +'<div class="truck-finance" onclick="event.stopPropagation()">'
       +'<div class="truck-fin-row"><span class="truck-fin-label">💰 Prévu</span><span class="truck-fin-val" style="color:'+tc.color+';">'+total+' €</span></div>'
       +'<div class="progress-bg"><div class="progress-bar" style="width:'+pctF+'%;background:'+tc.bar+';"></div></div>'
-      +'<div class="truck-fin-detail"><span style="color:'+tc.color+';">'+collected+' € collecté</span><span style="color:#666;">'+pctF+'%</span></div>'
+      +'<div class="truck-fin-detail"><span style="color:'+tc.color+';">'+collected+' € facturé</span><span style="color:#666;">'+pctF+'%</span></div>'
       +'</div>'
       +'<div class="truck-ramasse" onclick="event.stopPropagation()">'
       +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
@@ -9683,7 +9683,7 @@ function renderCamion(k){
   var col=document.getElementById('c-collected');if(col)col.textContent=collected+' €';
   var crem=document.getElementById('c-remaining');if(crem)crem.textContent=(total-collected)+' €';
   var cfb=document.getElementById('c-fin-bar');if(cfb)cfb.style.width=pctF+'%';
-  var cfp=document.getElementById('c-fin-pct');if(cfp)cfp.textContent=pctF+'% collecté';
+  var cfp=document.getElementById('c-fin-pct');if(cfp)cfp.textContent=pctF+'% facturé';
   var locked=isLocked();
   var hours=tk.hours||{};
   // Trier par heure si fixée, sinon garder l'ordre de la carte (tk.clients)
@@ -9767,7 +9767,7 @@ function renderCamion(k){
     if(locked){
       act.innerHTML='<div class="route-action-btn" style="background:#f5f5f5;color:#999;border:2px solid #ddd;cursor:not-allowed;flex:1;">🔒 Collecte terminée</div>';
     } else if(isVal){
-      var bDone=document.createElement('div');bDone.className='route-action-btn route-action-done-g';bDone.style.flex='1';bDone.textContent='✅ Collecté — '+c.prix+' €';
+      var bDone=document.createElement('div');bDone.className='route-action-btn route-action-done-g';bDone.style.flex='1';bDone.textContent='✅ Ramassé — '+c.prix+' €';
       var bUndo=document.createElement('button');bUndo.className='route-action-btn';
       bUndo.style.cssText='background:#fff3cd;color:#856404;border:2px solid #856404;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);flex-shrink:0;';
       bUndo.textContent='↩️';
@@ -9812,7 +9812,7 @@ function renderCamion(k){
   });
   if(pct===100&&tk.clients.length>0){
     var b=document.createElement('div');b.className='complete-banner';
-    b.innerHTML='<div style="font-size:32px;margin-bottom:6px;">🎉</div><div style="font-size:16px;font-weight:800;color:#006b2d;">Tournée 100% complète !</div><div style="font-size:13px;color:#006b2d;margin-top:4px;">'+collected+' € collectés sur '+total+' € prévus</div>';
+    b.innerHTML='<div style="font-size:32px;margin-bottom:6px;">🎉</div><div style="font-size:16px;font-weight:800;color:#006b2d;">Tournée 100% complète !</div><div style="font-size:13px;color:#006b2d;margin-top:4px;">'+collected+' € facturés sur '+total+' € prévus</div>';
     route.appendChild(b);
   }
 }
@@ -10744,7 +10744,7 @@ function _genererPDFContent(){
   html+='<div class="stat-box s-green"><div class="stat-label">✅ Livrés</div><div class="stat-val">'+totalLivres+'</div></div>';
   html+='<div class="stat-box s-red"><div class="stat-label">❌ Refusés</div><div class="stat-val">'+totalRefus+'</div></div>';
   html+='<div class="stat-box s-purple"><div class="stat-label">🚫 Annulés</div><div class="stat-val">'+totalAnnules+'</div></div>';
-  html+='<div class="stat-box s-orange"><div class="stat-label">💰 Total collecté</div><div class="stat-val">'+totalCollecte+' €</div></div>';
+  html+='<div class="stat-box s-orange"><div class="stat-label">📋 Total facturé</div><div class="stat-val">'+totalCollecte+' €</div></div>';
   html+='</div>';
 
   // Section par camion

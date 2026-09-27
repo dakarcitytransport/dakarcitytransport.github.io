@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.9.3';
+var DEP_VERSION = 'v2.9.4';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16112,6 +16112,10 @@ function _depMajBlocDepensesCamion(k){
 
   // v1.62.0 : l'encaissé réel, toujours affiché — c'est une information
   // qui manquait, indépendamment des dépenses.
+  // v2.9.4 : rebaptisé « Collecté » (Cobey : « collecter, c'est le vrai
+  // argent qu'ils ont encaissé ») — le seul « Collecté » du bloc
+  // financier maintenant, le reste (Facturé/Restant, ex-« Collecté »)
+  // parle de la valeur des clients ramassés, pas de l'argent reçu.
   var rowE = $('dep-finance-encaisse');
   if(!rowE){
     rowE = document.createElement('div');
@@ -16121,7 +16125,7 @@ function _depMajBlocDepensesCamion(k){
   }
   var enc = _depEncaisseDuCamion(tk);
   var ramasse = _depCollecteDuCamion(tk);
-  rowE.innerHTML = '<span class="finance-label">&#128181; Encaiss&eacute; aupr&egrave;s des clients</span>'
+  rowE.innerHTML = '<span class="finance-label">&#9989; Collect&eacute;</span>'
     + '<span class="finance-val" style="color:#006b2d;">' + _depEuros(enc) + ' &euro;</span>';
   box.appendChild(rowE);
   if(ramasse > enc){

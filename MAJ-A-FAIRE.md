@@ -395,6 +395,31 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### ~~« Collecté » et « ramassé » — deux mots pour deux choses différentes~~
+**Fait le 27/09 (v3.94.0 / v2.9.4).** Cobey, capture d'écran de l'écran
+Camion à l'appui : « c'est pas trop compréhensible, au niveau des
+chiffres. Il y a marqué collecté, mais ramassé, je sais pas, c'est un
+peu bizarre » puis « il faudrait un total facturé et un total qu'ils
+ont collecté, quoi. Parce que collecter, c'est le vrai argent qu'ils
+ont encaissé. Il y a un prix qui sert à rien, j'ai l'impression ».
+
+Le mot « Collecté » servait à deux choses très différentes sur le même
+écran : la valeur des colis déjà ramassés (qu'ils soient payés ou non)
+d'un côté, l'argent réellement encaissé de l'autre — d'où la confusion.
+Corrigé partout (écran Camion, Suivi financier global, listes de
+camions, PDF, bouton sur la carte client) :
+- **📋 Facturé** = valeur des clients déjà ramassés (ex-« Collecté »,
+  ex-« X € collecté » dans les listes) ;
+- **⏳ Restant à ramasser** = ce qu'il reste à ramasser, en valeur
+  (ex-« Restant ») ;
+- **✅ Collecté** = l'argent réellement reçu — c'est maintenant le
+  *seul* endroit où ce mot apparaît (ex-« Encaissé auprès des
+  clients ») ;
+- **✅ Ramassé — X €** sur la carte d'un client déjà passé (ex-« Collecté
+  — X € »).
+
+« Encore dû par les clients ramassés » ne change pas, déjà clair.
+
 ### ~~Le nom du collaborateur sur chaque photo~~
 **Fait le 27/09 (v2.9.3).** Cobey : « à côté de la photo que les
 collaborateurs prennent pour chaque client, c'est possible de mettre le
