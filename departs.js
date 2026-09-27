@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.9.2';
+var DEP_VERSION = 'v2.9.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10900,7 +10900,11 @@ function _depRenderPhotosLecture(box, photos){
     h += '<div onclick="_depAgrandirPhoto(' + idx + ')" style="border-radius:10px;overflow:hidden;'
       +   'border:1.5px solid var(--border);background:#fff;cursor:pointer;">'
       +   '<img src="' + p.d + '" style="width:100%;height:80px;object-fit:cover;display:block;">'
-      +   '<div style="font-size:9.5px;color:var(--text3);text-align:center;padding:3px 2px;line-height:1.3;">' + esc(dateHeureFr(p.ts||0)) + '</div>'
+      // v2.9.3 : nom du collaborateur qui a pris la photo (p.q, déjà
+      // enregistré à la prise) — Cobey : « c'est possible de mettre le nom
+      // de la personne qui a pris la photo ? ».
+      +   (p.q ? '<div style="font-size:9.5px;color:var(--text2);text-align:center;padding:3px 2px 0;line-height:1.3;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(p.q) + '</div>' : '')
+      +   '<div style="font-size:9.5px;color:var(--text3);text-align:center;padding:1px 2px 3px;line-height:1.3;">' + esc(dateHeureFr(p.ts||0)) + '</div>'
       + '</div>';
   });
   h += '</div>';
@@ -10917,7 +10921,8 @@ window._depAgrandirPhoto = function(idx){
     + 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
   m.onclick = function(){ document.body.removeChild(m); };
   m.innerHTML = '<img src="' + p.d + '" style="max-width:100%;max-height:85%;border-radius:8px;object-fit:contain;">'
-    + '<div style="color:#fff;font-size:13px;font-weight:700;margin-top:12px;">&#128337; ' + esc(dateHeureFr(p.ts||0)) + '</div>';
+    + (p.q ? '<div style="color:#fff;font-size:13px;font-weight:700;margin-top:12px;">&#128247; ' + esc(p.q) + '</div>' : '')
+    + '<div style="color:#fff;font-size:13px;font-weight:700;margin-top:' + (p.q ? '4' : '12') + 'px;">&#128337; ' + esc(dateHeureFr(p.ts||0)) + '</div>';
   document.body.appendChild(m);
 };
 

@@ -395,6 +395,15 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### ~~Le nom du collaborateur sur chaque photo~~
+**Fait le 27/09 (v2.9.3).** Cobey : « à côté de la photo que les
+collaborateurs prennent pour chaque client, c'est possible de mettre le
+nom de la personne qui a pris la photo ? ». Le nom était déjà enregistré
+à la prise, jamais affiché : il apparaît maintenant sous chaque
+vignette (fiche client et accès rapide depuis un container), et dans la
+photo agrandie en plein écran. Une photo prise avant cet ajout, sans
+nom enregistré, n'affiche que la date, comme avant.
+
 ### ~~Le bouton carte, aussi dans Suivi~~
 **Fait le 27/09 (v3.93.4 / v2.9.2).** Cobey : « dans le suivi des
 collectes par camion, ce serait bien de mettre le même bouton de trajet
