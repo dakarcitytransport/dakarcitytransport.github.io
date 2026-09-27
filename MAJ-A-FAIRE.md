@@ -395,6 +395,17 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### ~~Dépenses des tournées : le détail par poste~~
+**Fait le 27/09 (v3.94.7 / v2.10.6).** Sur « Dépenses du container »,
+capture d'écran du report des tournées à l'appui (« Camion DCT · 70 € »),
+Cobey : « il faudrait mettre le détail de la dépense carburant,
+déjeuner ou autre, parce que là on a le prix total, mais on ne sait pas
+à quoi ça correspond ». Chaque dépense de camion portait déjà son type
+(carburant/déjeuner/autre, choisi à la saisie) — jamais additionné par
+poste ni montré ensuite. Chaque ligne du report affiche maintenant ce
+détail juste en dessous, par exemple « ⛽ Carburant 50 € · 🍴 Déjeuner
+20 € », pour un total de 70 €.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va

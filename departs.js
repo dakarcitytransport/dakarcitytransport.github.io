@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.5';
+var DEP_VERSION = 'v2.10.6';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16350,6 +16350,23 @@ function _depTotalDepenses(colId, camion){
   }, 0));
 }
 
+// v1.94.7 : le détail par poste (carburant/déjeuner/autre) d'une
+// tournée — Cobey, sur le report des tournées d'un container : « il
+// faudrait mettre le détail de la dépense carburant, déjeuner ou
+// autre, parce que là on a le prix total, mais on ne sait pas à quoi
+// ça correspond ». Chaque ligne de dépense porte déjà son type (voir
+// depAjouterDepense) — juste jamais additionné par poste ni montré.
+function _depRepartitionDepenses(colId, camion){
+  var parType = {};
+  _depDepensesDe(colId, camion).forEach(function(o){
+    var cle = o.type || 'autre';
+    parType[cle] = (parType[cle] || 0) + (parseFloat(o.montant) || 0);
+  });
+  return DEP_TYPES_DEPENSE
+    .map(function(t){ return { icone: t.icone, label: t.label, montant: depArrondi2(parType[t.cle] || 0) }; })
+    .filter(function(x){ return x.montant > 0; });
+}
+
 // Ce que le camion a ramassé — même calcul que la ligne "✅ Collecté" du
 // natif (getTruckCollected), relu ici pour pouvoir en retrancher les
 // frais. Attention au mot : c'est le montant FACTURÉ des clients
@@ -18744,6 +18761,10 @@ window.depRenderDepensesFixes = function(){
   }
   if(!estMali && camions.length){
     h += camions.map(function(o){
+      // v1.94.7 : détail par poste — le montant total du camion (pas
+      // reproraté par container : c'est bien "à quoi correspondent CES
+      // X €" pour toute la tournée, part comprise) juste en dessous.
+      var repartition = _depRepartitionDepenses(o.colId, o.camion);
       return '<div class="dep-cli">'
         + '<div class="dep-cli-n" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
         +   '<span>&#128666; ' + esc(o.nom) + '</span>'
@@ -18764,6 +18785,13 @@ window.depRenderDepensesFixes = function(){
                 + 'port&eacute;e ici &mdash; le container malien est chez le prestataire</span>'
               : ''))
         + '</div>'
+        +   (repartition.length
+            ? '<div class="dep-cli-s" style="margin-top:5px;display:flex;gap:10px;flex-wrap:wrap;">'
+              + repartition.map(function(r){
+                  return '<span>' + r.icone + ' ' + r.label + ' <b style="color:var(--text);">' + _depEuros(r.montant) + ' &euro;</b></span>';
+                }).join('')
+              + '</div>'
+            : '')
         + '</div>';
     }).join('');
   }
