@@ -430,6 +430,17 @@ mémoire en passant de l'un à l'autre.
   les étiquettes) : un vrai fichier .pdf se télécharge directement, sans
   étape intermédiaire.
 
+  **v1.94.2 :** Cobey : « il faut revoir le système de classement des
+  statistiques [...] c'est le client apporté. Le client encaissé, un
+  collaborateur peut avoir un gros chiffre, mais en fait c'est juste de
+  la ramasse — il va ramasser l'argent. Le plus important, c'est le
+  client qui sont ainsi apportés ». Le classement était trié par argent
+  encaissé — ça récompensait celui qui fait la tournée de collecte sur
+  le terrain, pas forcément celui qui a démarché le client (le vrai
+  travail commercial). Trié désormais par nombre de clients apportés
+  d'abord ; à égalité, la valeur de ces clients départage, puis
+  l'encaissé en tout dernier recours.
+
 ### ~~« Collecté » et « ramassé » — deux mots pour deux choses différentes~~
 **Fait le 27/09 (v3.94.0 / v2.9.4).** Cobey, capture d'écran de l'écran
 Camion à l'appui : « c'est pas trop compréhensible, au niveau des

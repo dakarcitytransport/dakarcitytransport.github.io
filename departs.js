@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.1';
+var DEP_VERSION = 'v2.10.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5635,7 +5635,20 @@ function _depStatsCalculer(periode){
   liste = liste.filter(function(s){
     return s.nbClients > 0 || s.montantEncaisse > 0 || s.nbValidations > 0;
   });
-  liste.sort(function(a,b){ return b.montantEncaisse - a.montantEncaisse; });
+  // v1.94.2 : classé par clients apportés, plus par argent encaissé —
+  // Cobey : « c'est le client apporté. Le client encaissé, un
+  // collaborateur peut avoir un gros chiffre, mais en fait c'est juste
+  // de la ramasse — il va ramasser l'argent. Le plus important, c'est
+  // le client qui sont ainsi apportés ». L'encaissé récompensait celui
+  // qui fait la tournée de collecte, pas forcément celui qui a démarché
+  // le client — le vrai travail commercial. À nombre de clients égal,
+  // la valeur de ces clients (montantApporte) départage, puis l'encaissé
+  // en tout dernier recours.
+  liste.sort(function(a,b){
+    return (b.nbClients - a.nbClients)
+      || (b.montantApporte - a.montantApporte)
+      || (b.montantEncaisse - a.montantEncaisse);
+  });
   return liste;
 }
 
