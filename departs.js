@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.2';
+var DEP_VERSION = 'v2.10.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5581,6 +5581,11 @@ function _depStatsCalculer(periode){
         var lh = ligne(h.q);
         if(lh){
           lh.nbValidations++;
+          // v1.94.3 : tentative revenue en arrière — Cobey : « c'est pas
+          // considéré comme une collecte [...] c'est l'enregistrement
+          // d'un client. Là on parle vraiment de tournée de collecte ».
+          // Un client dépôt direct (collecteId null) ne doit PAS compter
+          // comme un jour de tournée : seule une vraie collecte compte.
           if(collecteId){
             lh.collectesSet[collecteId] = true;
             if(!lh.tourneesTs[collecteId]) lh.tourneesTs[collecteId] = [];
