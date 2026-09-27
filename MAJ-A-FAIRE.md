@@ -239,6 +239,22 @@ un prestataire.
   d'organisateurs, sans bouton ni statut — la place pour suivre les
   réponses reste « L'équipe », déjà correcte de son côté.
 
+  **v1.4.0 (Cloudflare) :** Eric : « Rajoute moi, j'ai besoin de savoir
+  quand sa sera envoyer, pour vérifier si c fonctionnel ». Il n'est
+  toujours pas participant (il n'organise, ne roule pas le dimanche),
+  mais reçoit désormais, en plus, une notification à chaque étape du
+  minuteur — les trois rappels et le résultat final — même les semaines
+  où personne n'a besoin d'être relancé (« Personne à relancer, tout le
+  monde avait déjà répondu »), pour vérifier que le Worker tourne
+  réellement.
+
+  **v1.4.1 (Cloudflare) :** Cobey : « Pour le résultat final on vas
+  plutôt le décaler à vendredi matin 10h ! Jeudi 22h sa peut être tard ».
+  Seul l'*envoi* de la notification de statut final (disponible/absent,
+  à chacun des cinq, et le résumé chiffré à Eric) est décalé au
+  lendemain matin 10h — le délai lui-même, et l'absence d'office pour
+  qui n'a rien répondu, restent inchangés à jeudi 22h.
+
 - ~~**La notification de relance amène directement sur Planning.**~~
   *Fait le 26/09 (v3.89.3 / v2.5.3).* Cobey : « comment ça sera quand
   l'équipe recevra les notifications de rappel ? ». En touchant la

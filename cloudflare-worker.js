@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.3.0 · 26/09/2026
+   v1.4.1 · 27/09/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -262,10 +262,12 @@ function plProchainsDimanches(n){
   return out;
 }
 
-// Les trois échéances d'un dimanche donné, à partir de minuit UTC ce
-// jour-là — exactement le calcul que fait _depPlEcheance côté
-// application pour le couperet, complété ici des deux rappels
-// antérieurs.
+// Les échéances d'un dimanche donné, à partir de minuit UTC ce jour-là —
+// jeudi22h reste exactement le calcul que fait _depPlEcheance côté
+// application pour le couperet (délai de réponse, absence d'office) ;
+// vendredi10h ne concerne QUE l'envoi de la notification de résultat —
+// Cobey, le 27/09/2026 : « pour le résultat final on va plutôt le
+// décaler à vendredi matin 10h, jeudi 22h ça peut être tard ».
 function plDatesCles(iso){
   const dimanche = new Date(iso + 'T00:00:00Z');
   const j = 86400000, h = 3600000;
@@ -273,12 +275,33 @@ function plDatesCles(iso){
     lundi9h    : new Date(dimanche.getTime() - 6 * j + 9  * h),
     mercredi20h: new Date(dimanche.getTime() - 4 * j + 20 * h),
     jeudi18h   : new Date(dimanche.getTime() - 3 * j + 18 * h),
-    jeudi22h   : new Date(dimanche.getTime() - 3 * j + 22 * h)
+    jeudi22h   : new Date(dimanche.getTime() - 3 * j + 22 * h),
+    vendredi10h: new Date(dimanche.getTime() - 2 * j + 10 * h)
   };
 }
 
 function plCleUnique(){
   return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+/* v1.4.0 : Cobey, le 27/09/2026 : « rajoute-moi, j'ai besoin de savoir
+   quand ça sera envoyé, pour vérifier si c'est fonctionnel ». Pas un
+   participant (il ne roule pas le dimanche) — juste prévenu à chaque
+   étape, pour contrôler que le minuteur tourne bien, même les semaines
+   où il n'y a personne à relancer. */
+const ID_OBSERVATEUR = 'AD';
+
+async function plObserver(sujet, corps, env){
+  await ecrire('dct_file_push/' + plCleUnique(), {
+    titre  : 'Planning',
+    corps  : corps,
+    sujet  : sujet,
+    url    : './dct-app.html?ouvrir=planning',
+    cibles : [ID_OBSERVATEUR],
+    par    : 'systeme',
+    creeLe : Date.now(),
+    envoye : false
+  }, env);
 }
 
 async function plRelancer(iso, libelle, ids, env){
@@ -328,22 +351,38 @@ async function traitePlanning(env){
       if(maintenant >= quand.getTime() && !etat[cle]){
         const m = muets();
         if(m.length){ await plRelancer(dim.iso, dim.libelle, m, env); bilan.rappels++; }
+        await plObserver(
+          'planning-observateur-' + dim.iso + '-' + cle,
+          (m.length
+            ? ('Rappel envoyé à ' + m.length + ' personne' + (m.length > 1 ? 's' : ''))
+            : 'Personne à relancer, tout le monde avait déjà répondu')
+          + ' pour dimanche ' + dim.libelle + '.',
+          env
+        );
         await ecrire('dct_planning_etat/' + dim.iso, { [cle]: true }, env);
       }
     }
 
-    if(maintenant >= dates.jeudi22h.getTime() && !etat.clos){
+    if(maintenant >= dates.jeudi22h.getTime() && !etat.verrouille){
       // Absent d'office pour qui n'a rien mis — Cobey : « il ne pourra
-      // plus répondre et sera considéré comme absent ».
+      // plus répondre et sera considéré comme absent ». Le délai lui-même
+      // reste jeudi 22h, inchangé — seule la notification qui l'annonce
+      // est décalée plus bas (vendredi10h).
       for(const id of muets()){
         const fiche = { dispo:false, mot:'', nom:(participants[id] || {}).nom || '',
                          le: maintenant, auto:true };
         await ecrire('dct_planning/' + dim.iso + '/' + id, fiche, env);
         jour[id] = fiche;
       }
-      // Le statut final, à tout le monde — pour que même ceux qui
-      // avaient répondu à temps aient la confirmation, pas seulement les
-      // absents d'office.
+      await ecrire('dct_planning_etat/' + dim.iso, { verrouille: true }, env);
+    }
+
+    if(maintenant >= dates.vendredi10h.getTime() && !etat.clos){
+      // v1.4.0 : Cobey, le 27/09/2026 : « pour le résultat final on va
+      // plutôt le décaler à vendredi matin 10h, jeudi 22h ça peut être
+      // tard ». Le statut, lui, est déjà figé depuis jeudi 22h
+      // ci-dessus — seul l'ENVOI de la confirmation attend le
+      // lendemain matin, pour ne pas déranger l'équipe tard le soir.
       for(const id of ids){
         const r = jour[id] || { dispo:false };
         await ecrire('dct_file_push/' + plCleUnique(), {
@@ -359,6 +398,15 @@ async function traitePlanning(env){
           envoye : false
         }, env);
       }
+      const nbDispo = ids.filter(id => (jour[id] || {}).dispo).length;
+      const nbAbsent = ids.length - nbDispo;
+      await plObserver(
+        'planning-observateur-resultat-' + dim.iso,
+        'Planning clôturé pour dimanche ' + dim.libelle + ' : ' + nbDispo
+          + ' disponible' + (nbDispo > 1 ? 's' : '') + ', ' + nbAbsent
+          + ' absent' + (nbAbsent > 1 ? 's' : '') + '.',
+        env
+      );
       await ecrire('dct_planning_etat/' + dim.iso, { clos: true }, env);
       bilan.clotures++;
     }
