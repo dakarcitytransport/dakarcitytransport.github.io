@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.6';
+var DEP_VERSION = 'v2.10.7';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16367,6 +16367,29 @@ function _depRepartitionDepenses(colId, camion){
     .filter(function(x){ return x.montant > 0; });
 }
 
+// v1.94.8 : le même détail, mais additionné sur TOUT le container —
+// Cobey : « faire à cet endroit-là un total des mêmes items [...] pour
+// le container, combien on a dépensé en déjeuner, combien en carburant
+// [...] que ce soit bien lisible, propre ». Chaque tournée de
+// _depCamionsParContainer ne porte au container qu'une part de sa
+// dépense (o.montant / o.montantCamion — un camion peut avoir rempli
+// plusieurs containers le même jour) ; on applique la même proportion à
+// chaque poste, pour que la somme des postes retombe exactement sur
+// "Tournées des camions" déjà affiché juste au-dessus.
+function _depRepartitionDepensesContainer(departId){
+  var parType = {};
+  _depCamionsParContainer(departId).forEach(function(o){
+    var ratio = o.montantCamion > 0 ? (o.montant / o.montantCamion) : 0;
+    _depDepensesDe(o.colId, o.camion).forEach(function(d){
+      var cle = d.type || 'autre';
+      parType[cle] = (parType[cle] || 0) + (parseFloat(d.montant) || 0) * ratio;
+    });
+  });
+  return DEP_TYPES_DEPENSE
+    .map(function(t){ return { icone: t.icone, label: t.label, montant: depArrondi2(parType[t.cle] || 0) }; })
+    .filter(function(x){ return x.montant > 0; });
+}
+
 // Ce que le camion a ramassé — même calcul que la ligne "✅ Collecté" du
 // natif (getTruckCollected), relu ici pour pouvoir en retrancher les
 // frais. Attention au mot : c'est le montant FACTURÉ des clients
@@ -18729,6 +18752,10 @@ window.depRenderDepensesFixes = function(){
   var totCam = _depTotalCamionsDe(id);
   var liste = _depFixesDe(id);
   var totFix = _depTotalFixesDe(id);
+  // v1.94.8 : Cobey : « faire à cet endroit-là un total des mêmes items
+  // [...] pour le container, combien on a dépensé en déjeuner, combien
+  // en carburant [...] que ce soit bien lisible, propre ».
+  var repCont = _depRepartitionDepensesContainer(id);
 
   var h = '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
     +   'padding:14px;margin-bottom:14px;">'
@@ -18736,7 +18763,14 @@ window.depRenderDepensesFixes = function(){
     +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#128666; Tourn&eacute;es des camions</span>'
     +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totCam) + ' &euro;</b>'
     + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
+    +   repCont.map(function(r){
+          return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 0 2px 22px;">'
+            +   '<span style="font-size:11.5px;color:var(--text3);">' + r.icone + ' ' + r.label + '</span>'
+            +   '<span style="font-size:12px;color:var(--text3);font-weight:700;">' + _depEuros(r.montant) + ' &euro;</span>'
+            + '</div>';
+        }).join('')
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;'
+    +   (repCont.length ? 'margin-top:3px;' : '') + '">'
     +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses propres</span>'
     +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
     + '</div>'

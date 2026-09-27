@@ -406,6 +406,17 @@ poste ni montré ensuite. Chaque ligne du report affiche maintenant ce
 détail juste en dessous, par exemple « ⛽ Carburant 50 € · 🍴 Déjeuner
 20 € », pour un total de 70 €.
 
+**v1.94.8 :** Cobey, sur ce même écran : « faire à cet endroit-là un
+total des mêmes items [...] on pourrait savoir pour le conteneur
+combien on a dépensé en déjeuner, combien en carburant [...] que ce
+soit bien lisible, propre ». Le même détail, mais additionné sur
+l'ensemble du container cette fois, juste sous « 🚚 Tournées des
+camions » dans l'encart du haut — une ligne par poste, alignée comme
+les autres montants. Quand un camion a rempli plusieurs containers le
+même jour, chaque poste est réparti dans la même proportion que le
+montant déjà affiché, pour que la somme des postes retombe pile sur ce
+total.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
