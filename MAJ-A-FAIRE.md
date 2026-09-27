@@ -395,6 +395,34 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### ~~Statistiques : par conteneur, en plus de par année~~
+**Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
+l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
+plutôt faire des stats par rapport à des conteneurs, c'est-à-dire des
+statistiques par conteneur et par rapport à chaque collaborateur. On
+pourra aussi faire des statistiques à l'année ». Proposition validée
+(« Ok ») après description du plan : bandeau **Par année / Par
+conteneur** en haut de l'écran, chaque axe garde sa propre place en
+mémoire en passant de l'un à l'autre.
+
+- **Par conteneur** (nouveau) : liste des conteneurs (Chargement DKR,
+  Chargement BMK…) avec leur nombre de clients ; on en choisit un et le
+  classement des collaborateurs ne compte que SES clients — quelle que
+  soit la date de leur inscription, de leur versement ou de leur
+  validation. Contrairement au filtre par année (qui regarde la date de
+  chaque évènement), un conteneur regroupe des clients : tout ce qui les
+  concerne compte, un point c'est tout.
+- **Par année** (inchangé dans le fond) : mêmes chiffres qu'avant.
+- **Les cartes**, dans les deux modes, sont désormais regroupées en 3
+  blocs au lieu d'une seule ligne en vrac : 👤 Clients (inscrits, dont
+  Mali) · 💰 Argent (apporté vs encaissé) · 🚛 Terrain (colis validés,
+  jours de collecte, tournée moyenne).
+- **Export PDF** : « faudrait un bouton pour exporter en pdf » — bouton
+  📄 PDF dans l'en-tête, exporte exactement le classement affiché à
+  l'écran (même mode, même année/mois ou conteneur), même méthode que
+  partout ailleurs dans l'appli (page imprimable, « Enregistrer en PDF »
+  depuis le partage sur iPhone).
+
 ### ~~« Collecté » et « ramassé » — deux mots pour deux choses différentes~~
 **Fait le 27/09 (v3.94.0 / v2.9.4).** Cobey, capture d'écran de l'écran
 Camion à l'appui : « c'est pas trop compréhensible, au niveau des

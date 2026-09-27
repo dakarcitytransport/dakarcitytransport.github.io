@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.9.4';
+var DEP_VERSION = 'v2.10.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2673,6 +2673,13 @@ function injecterStyles(){
     + '.dep-badge{font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;}'
     + '.dep-meta{font-size:12px;color:var(--text2);display:flex;flex-wrap:wrap;gap:10px;}'
     + '.dep-meta b{color:var(--text);}'
+    // v1.94.0 : les cartes du classement Statistiques regroupent leurs
+    // chiffres par thème (Clients / Argent / Terrain) plutôt qu'une seule
+    // ligne en vrac — Cobey : « c'est pas trop compréhensible, au niveau
+    // des chiffres [...] pas trop parlant ».
+    + '.dep-stat-groupe{margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}'
+    + '.dep-stat-titre{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;'
+    +   'letter-spacing:0.05em;margin-bottom:4px;}'
     + '.dep-vide{text-align:center;color:#aaa;padding:44px 20px;font-size:14px;}'
     + '.dep-switch{display:flex;align-items:center;justify-content:space-between;gap:10px;'
     +   'background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;}'
@@ -3070,7 +3077,10 @@ function injecterEcrans(){
   +   '<div class="header">'
   +     '<button class="btn-back" onclick="goTo(\'s-espaces\');depRenderEspaces();">&larr; Espaces</button>'
   +     '<div class="h-title" id="dep-stats-titre">Statistiques</div>'
-  +     '<div style="width:60px;"></div>'
+  // v1.94.0 : « faudrait un bouton pour exporter en pdf » (Cobey,
+  // 27/09/2026) — exporte exactement ce qui est affiché à l'écran
+  // (même mode, même année/conteneur), pour l'imprimer ou l'envoyer.
+  +     '<button class="btn-pdf" onclick="depExporterStatsPDF()">&#128196; PDF</button>'
   +   '</div>'
   +   '<div class="content">'
   +     '<div id="dep-stats-content"></div>'
@@ -5501,6 +5511,13 @@ var DEP_STATS_EXCLUS = ['Eric'];
 //   - null/undefined : tout l'historique (comportement précédent)
 //   - { annee: 2026 } : uniquement cette année-là
 //   - { annee: 2026, mois: 7 } : uniquement ce mois-là (0 = janvier)
+// v1.94.0 : filtrable aussi par conteneur — { conteneurId: 'xyz' }. Cobey :
+// « on va faire des statistiques par conteneur et par rapport à chaque
+// collaborateur ». Un conteneur regroupe des CLIENTS (c.departId), pas des
+// dates : dès qu'un client appartient au conteneur choisi, tout ce qui le
+// concerne compte (inscription, versements, validations), quelle que soit
+// la date de chaque évènement — contrairement au filtre par période, qui
+// ne garde que les évènements tombés dans la fenêtre de dates.
 function _depStatsCalculer(periode){
   var stats = {};
 
@@ -5513,8 +5530,9 @@ function _depStatsCalculer(periode){
     if(c && c.name && DEP_STATS_EXCLUS.indexOf(c.name) === -1) nomsValides[c.name] = true;
   });
 
-  function dansPeriode(date){
+  function dansPeriode(c, date){
     if(!periode) return true;
+    if(periode.conteneurId) return !!(c && c.departId === periode.conteneurId);
     if(!date || isNaN(date.getTime())) return false;
     if(date.getFullYear() !== periode.annee) return false;
     if(periode.mois !== undefined && periode.mois !== null && date.getMonth() !== periode.mois) return false;
@@ -5537,7 +5555,7 @@ function _depStatsCalculer(periode){
   function traiterFiche(c, collecteId, dateInscription){
     if(!c) return;
     var l = ligne(c.by);
-    if(l && dansPeriode(dateInscription)){
+    if(l && dansPeriode(c, dateInscription)){
       l.nbClients++;
       // v1.19.17 : Cobey n'a pas besoin de tout le classement séparé par
       // pays — juste, en plus des stats existantes, combien de clients
@@ -5546,7 +5564,7 @@ function _depStatsCalculer(periode){
       l.montantApporte += (parseFloat(c.prix) || 0);
     }
     (Array.isArray(c.versements) ? c.versements : []).forEach(function(v){
-      if(!dansPeriode(v && v.le ? new Date(v.le) : null)) return;
+      if(!dansPeriode(c, v && v.le ? new Date(v.le) : null)) return;
       var lv = ligne(v && v.par);
       if(lv) lv.montantEncaisse += (parseFloat(v && v.montant) || 0);
     });
@@ -5559,7 +5577,7 @@ function _depStatsCalculer(periode){
     // et la dernière validation de ce collaborateur sur cette collecte).
     (Array.isArray(c.hist) ? c.hist : []).forEach(function(h){
       if(h && h.type === 'validation'){
-        if(!dansPeriode(h.ts ? new Date(h.ts) : null)) return;
+        if(!dansPeriode(c, h.ts ? new Date(h.ts) : null)) return;
         var lh = ligne(h.q);
         if(lh){
           lh.nbValidations++;
@@ -5625,7 +5643,13 @@ function _depStatsCalculer(periode){
 // même logique que l'Archivage. Le classement (le "détail") s'affiche à
 // chaque niveau pour la période choisie ; les dossiers pour affiner
 // restent visibles juste en dessous, pas besoin d'un écran à part.
-var _depStatsNav = { annee: null, mois: null };
+// v1.94.0 : deux axes désormais — mode 'annee' (ci-dessus) ou 'conteneur'
+// (Cobey, 27/09/2026 : « on va faire des statistiques par conteneur et
+// par rapport à chaque collaborateur »). Un bandeau de bascule reste
+// affiché à tout niveau ; changer de mode repart de zéro sur cet axe-là,
+// sans jamais toucher à l'autre (basculer sur Conteneur puis revenir sur
+// Année retrouve l'année qu'on avait quittée).
+var _depStatsNav = { mode: 'annee', annee: null, mois: null, conteneur: null };
 
 function _depStatsAnneesDisponibles(){
   var annees = {};
@@ -5659,15 +5683,33 @@ function _depStatsMoisDisponibles(annee){
   return Object.keys(mois).map(Number).sort(function(a,b){ return a-b; });
 }
 
+// v1.94.0 : la liste des conteneurs à choisir — les mêmes départs que
+// partout ailleurs (tousLesDeparts), en ne gardant que ceux qui ont
+// déjà au moins un client dedans (un conteneur tout juste créé, encore
+// vide, n'a rien à montrer dans un classement).
+function _depStatsConteneursDisponibles(){
+  return tousLesDeparts().filter(function(d){ return compteursDepart(d._id).clients > 0; });
+}
+
 function _depStatsMajBoutonRetour(){
   var btn = document.querySelector('#s-stats .btn-back');
   if(!btn) return;
+  if(_depStatsNav.mode === 'conteneur'){
+    if(_depStatsNav.conteneur !== null){
+      btn.textContent = '← Tout';
+      btn.onclick = function(){ _depStatsNav.conteneur = null; depRenderStats(); };
+    } else {
+      btn.textContent = '← Espaces';
+      btn.onclick = function(){ goTo('s-espaces'); depRenderEspaces(); };
+    }
+    return;
+  }
   if(_depStatsNav.mois !== null){
     btn.textContent = '← ' + _depStatsNav.annee;
     btn.onclick = function(){ _depStatsNav.mois = null; depRenderStats(); };
   } else if(_depStatsNav.annee !== null){
     btn.textContent = '← Tout';
-    btn.onclick = function(){ _depStatsNav = { annee: null, mois: null }; depRenderStats(); };
+    btn.onclick = function(){ _depStatsNav.annee = null; _depStatsNav.mois = null; depRenderStats(); };
   } else {
     btn.textContent = '← Espaces';
     btn.onclick = function(){ goTo('s-espaces'); depRenderEspaces(); };
@@ -5675,13 +5717,28 @@ function _depStatsMajBoutonRetour(){
 }
 
 window.depOuvrirEspaceStats = function(){
-  _depStatsNav = { annee: null, mois: null };
+  _depStatsNav = { mode: 'annee', annee: null, mois: null, conteneur: null };
   goTo('s-stats');
   depRenderStats();
 };
 
+// v1.94.0 : bascule Par année / Par conteneur — chaque axe garde son
+// propre endroit en mémoire, pour ne pas perdre sa place en allant
+// juste regarder l'autre vue un instant.
+window.depStatsMode = function(mode){
+  if(_depStatsNav.mode === mode) return;
+  _depStatsNav.mode = mode;
+  depRenderStats();
+};
+
+window.depStatsOuvrirConteneur = function(id){
+  _depStatsNav.conteneur = id;
+  depRenderStats();
+};
+
 window.depStatsOuvrirAnnee = function(annee){
-  _depStatsNav = { annee: annee, mois: null };
+  _depStatsNav.annee = annee;
+  _depStatsNav.mois = null;
   depRenderStats();
 };
 window.depStatsOuvrirMois = function(mois){
@@ -5689,10 +5746,103 @@ window.depStatsOuvrirMois = function(mois){
   depRenderStats();
 };
 
+// v1.94.0 : bandeau de bascule, affiché à tout niveau des deux modes.
+function _depStatsBandeauMode(){
+  var m = _depStatsNav.mode;
+  var actifA = (m === 'annee'), actifC = (m === 'conteneur');
+  return '<div style="display:flex;gap:8px;margin-bottom:14px;">'
+    +   '<button type="button" onclick="depStatsMode(\'annee\')" style="flex:1;padding:9px 6px;border-radius:10px;'
+    +     'border:2px solid '+(actifA?'#B8860B':'var(--border)')+';background:'+(actifA?'#F5EFDF':'#fff')+';'
+    +     'color:'+(actifA?'#B8860B':'var(--text3)')+';font-weight:800;font-size:12.5px;cursor:pointer;font-family:var(--font);">'
+    +     '&#128197; Par ann&eacute;e</button>'
+    +   '<button type="button" onclick="depStatsMode(\'conteneur\')" style="flex:1;padding:9px 6px;border-radius:10px;'
+    +     'border:2px solid '+(actifC?'#1565C0':'var(--border)')+';background:'+(actifC?'#E0EAF6':'#fff')+';'
+    +     'color:'+(actifC?'#1565C0':'var(--text3)')+';font-weight:800;font-size:12.5px;cursor:pointer;font-family:var(--font);">'
+    +     '&#128230; Par conteneur</button>'
+    + '</div>';
+}
+
+// v1.94.0 : une carte de classement, les chiffres regroupés par thème
+// (Clients / Argent / Terrain) — remplace l'unique ligne en vrac d'avant,
+// pas assez lisible (Cobey, capture d'écran à l'appui : « c'est pas trop
+// compréhensible, au niveau des chiffres [...] pas trop parlant »).
+function _depStatsCarteCollab(s, i, medailles, couleur){
+  var medaille = medailles[i] || ('#'+(i+1));
+  return '<div class="dep-card" style="border-left-color:'+couleur+';cursor:default;">'
+    +   '<div class="dep-card-top"><div class="dep-nom">'+medaille+' '+esc(s.nom)+'</div></div>'
+    +   '<div class="dep-stat-groupe" style="margin-top:0;padding-top:0;border-top:none;">'
+    +     '<div class="dep-stat-titre">&#128100; Clients</div>'
+    +     '<div class="dep-meta">'
+    +       '<span><b>'+s.nbClients+'</b> inscrit'+(s.nbClients>1?'s':'')+'</span>'
+    // v1.19.17 : dont combien pour le Mali — pas de classement séparé par
+    // pays (pas utile selon Cobey), juste ce chiffre en plus.
+    +       '<span>&#127474;&#127473; <b>'+s.nbClientsMali+'</b> Mali</span>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="dep-stat-groupe">'
+    +     '<div class="dep-stat-titre">&#128176; Argent</div>'
+    +     '<div class="dep-meta">'
+    +       '<span><b>'+s.montantApporte+'</b> &euro; apport&eacute;s</span>'
+    +       '<span><b>'+s.montantEncaisse+'</b> &euro; encaiss&eacute;s</span>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="dep-stat-groupe">'
+    +     '<div class="dep-stat-titre">&#128666; Terrain</div>'
+    +     '<div class="dep-meta">'
+    +       '<span>&#128230; <b>'+s.nbValidations+'</b> colis valid&eacute;'+(s.nbValidations>1?'s':'')+'</span>'
+    +       '<span>&#128197; <b>'+s.nbCollectes+'</b> jour'+(s.nbCollectes>1?'s':'')+' de collecte</span>'
+    +       '<span>&#9203; <b>'+_depFormatDuree(s.dureeTourneeMoyenneMs)+'</b> tourn&eacute;e moyenne</span>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>';
+}
+
 window.depRenderStats = function(){
   var box = $('dep-stats-content');
   if(!box) return;
 
+  var bandeau = _depStatsBandeauMode();
+  var medailles = ['&#129351;','&#129352;','&#129353;'];
+
+  // ───────── MODE « PAR CONTENEUR » ─────────
+  if(_depStatsNav.mode === 'conteneur'){
+    if(_depStatsNav.conteneur === null){
+      var hc = bandeau + '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">Choisir un conteneur</div>';
+      var conteneurs = _depStatsConteneursDisponibles();
+      if(!conteneurs.length){
+        hc += '<div class="dep-vide" style="padding:16px;">Aucun conteneur avec des clients pour l\'instant.</div>';
+      } else {
+        conteneurs.forEach(function(d){
+          var cp = compteursDepart(d._id);
+          hc += '<div class="dep-card" style="border-left-color:#1565C0;cursor:pointer;" onclick="depStatsOuvrirConteneur(\''+d._id+'\')">'
+            +   '<div class="dep-card-top"><div class="dep-nom">'+(depPaysDepart(d)==='ML'?'&#127474;&#127473;':'&#127480;&#127475;')+' '+esc(d.nom||'Conteneur')+'</div></div>'
+            +   '<div class="dep-meta"><span>&#128197; Part le <b>'+dateFr(d.dateDepart)+'</b></span>'
+            +     '<span><b>'+cp.clients+'</b> client'+(cp.clients>1?'s':'')+'</span></div>'
+            + '</div>';
+        });
+      }
+      box.innerHTML = hc;
+      _depStatsMajBoutonRetour();
+      return;
+    }
+
+    var dC = (window.departsData || {})[_depStatsNav.conteneur];
+    var listeC = _depStatsCalculer({ conteneurId: _depStatsNav.conteneur });
+    var titreC = dC
+      ? ((depPaysDepart(dC)==='ML' ? '🇲🇱 ' : '🇸🇳 ') + (dC.nom || 'Conteneur') + (dC.dateDepart ? ' · ' + dateFr(dC.dateDepart) : ''))
+      : 'Conteneur';
+    var h2 = bandeau + '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">'+esc(titreC)+'</div>';
+    if(!listeC.length){
+      h2 += '<div class="dep-vide" style="padding:16px;">Aucune donn&eacute;e pour ce conteneur.</div>';
+    } else {
+      listeC.forEach(function(s, i){ h2 += _depStatsCarteCollab(s, i, medailles, '#1565C0'); });
+    }
+    box.innerHTML = h2;
+    _depStatsMajBoutonRetour();
+    return;
+  }
+
+  // ───────── MODE « PAR ANNÉE » (comportement d'origine) ─────────
   // v1.19.14 : le "Tout l'historique" est retiré — pas assez pertinent
   // (mélange des années entières de données). Le niveau racine ne montre
   // plus que les dossiers Année ; le classement lui-même n'apparaît qu'à
@@ -5701,7 +5851,7 @@ window.depRenderStats = function(){
     // v1.87.0 : « Comparer » a déménagé dans le Rapport financier — ici
     // on classe les collaborateurs, là-bas on compare des containers et
     // de l'argent. Deux sujets différents (Cobey, 25/09/2026).
-    var h0 = '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">Choisir une ann&eacute;e</div>';
+    var h0 = bandeau + '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">Choisir une ann&eacute;e</div>';
     var annees = _depStatsAnneesDisponibles();
     if(!annees.length){
       h0 += '<div class="dep-vide" style="padding:16px;">Aucune donn&eacute;e pour l\'instant.</div>';
@@ -5723,31 +5873,12 @@ window.depRenderStats = function(){
   var titrePeriode = (_depStatsNav.mois !== null)
     ? (DEP_MOIS_NOMS[_depStatsNav.mois] + ' ' + _depStatsNav.annee)
     : ('Ann&eacute;e ' + _depStatsNav.annee);
-  var h = '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">'+titrePeriode+'</div>';
+  var h = bandeau + '<div style="font-size:12.5px;color:var(--text3);font-weight:700;margin-bottom:12px;">'+titrePeriode+'</div>';
 
   if(!liste.length){
     h += '<div class="dep-vide" style="padding:16px;margin-bottom:14px;">Aucune donn&eacute;e pour cette p&eacute;riode.</div>';
   } else {
-    var medailles = ['&#129351;','&#129352;','&#129353;'];
-    liste.forEach(function(s, i){
-      var medaille = medailles[i] || ('#'+(i+1));
-      h += '<div class="dep-card" style="border-left-color:#B8860B;">'
-        +   '<div class="dep-card-top">'
-        +     '<div class="dep-nom">'+medaille+' '+esc(s.nom)+'</div>'
-        +   '</div>'
-        +   '<div class="dep-meta">'
-        +     '<span>&#128100; <b>'+s.nbClients+'</b> client'+(s.nbClients>1?'s':'')+' inscrit'+(s.nbClients>1?'s':'')+'</span>'
-        // v1.19.17 : dont combien pour le Mali — pas de classement séparé
-        // par pays (pas utile selon Cobey), juste ce chiffre en plus.
-        +     '<span>&#127474;&#127473; <b>'+s.nbClientsMali+'</b> client'+(s.nbClientsMali>1?'s':'')+' Mali</span>'
-        +     '<span>&#128176; <b>'+s.montantApporte+'</b> &euro; apport&eacute;s</span>'
-        +     '<span>&#128179; <b>'+s.montantEncaisse+'</b> &euro; encaiss&eacute;s</span>'
-        +     '<span>&#128230; <b>'+s.nbValidations+'</b> colis valid&eacute;'+(s.nbValidations>1?'s':'')+'</span>'
-        +     '<span>&#128197; <b>'+s.nbCollectes+'</b> jour'+(s.nbCollectes>1?'s':'')+' de collecte</span>'
-        +     '<span>&#9203; <b>'+_depFormatDuree(s.dureeTourneeMoyenneMs)+'</b> tourn&eacute;e moyenne</span>'
-        +   '</div>'
-        + '</div>';
-    });
+    liste.forEach(function(s, i){ h += _depStatsCarteCollab(s, i, medailles, '#B8860B'); });
   }
 
   // Dossiers pour affiner la période, juste sous le classement.
@@ -5765,6 +5896,87 @@ window.depRenderStats = function(){
 
   box.innerHTML = h;
   _depStatsMajBoutonRetour();
+};
+
+// v1.94.0 : « faudrait un bouton pour exporter en pdf » (Cobey,
+// 27/09/2026) — exporte exactement le classement affiché à l'écran (même
+// mode, même année/mois ou conteneur choisi). Même technique que partout
+// ailleurs dans l'appli (exportCamionPDF, le récapitulatif de collecte) :
+// une page HTML autonome avec son propre bouton Imprimer, ouverte
+// directement sur iPhone (Partager → Imprimer → Enregistrer en PDF),
+// téléchargée ailleurs — pas de vraie génération de PDF côté téléphone.
+window.depExporterStatsPDF = function(){
+  var medailles = ['🥇','🥈','🥉'];
+  var titre, sousTitre = '', liste;
+
+  if(_depStatsNav.mode === 'conteneur'){
+    if(_depStatsNav.conteneur === null){ toast('⚠️ Choisissez d\'abord un conteneur.'); return; }
+    var d = (window.departsData || {})[_depStatsNav.conteneur];
+    liste = _depStatsCalculer({ conteneurId: _depStatsNav.conteneur });
+    titre = d ? (d.nom || 'Conteneur') : 'Conteneur';
+    sousTitre = d ? ((depPaysDepart(d) === 'ML' ? 'Mali' : 'Sénégal') + (d.dateDepart ? ' · Part le ' + dateFr(d.dateDepart) : '')) : '';
+  } else {
+    if(_depStatsNav.annee === null){ toast('⚠️ Choisissez d\'abord une année.'); return; }
+    var periode = { annee: _depStatsNav.annee, mois: (_depStatsNav.mois === null ? undefined : _depStatsNav.mois) };
+    liste = _depStatsCalculer(periode);
+    titre = (_depStatsNav.mois !== null) ? (DEP_MOIS_NOMS[_depStatsNav.mois] + ' ' + _depStatsNav.annee) : ('Année ' + _depStatsNav.annee);
+  }
+  if(!liste.length){ toast('⚠️ Rien à exporter pour l\'instant.'); return; }
+
+  var dateGen = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+  var css = '*{box-sizing:border-box;margin:0;padding:0;}'
+    + 'body{font-family:Arial,sans-serif;color:#1a1a2e;font-size:13px;padding:20px;}'
+    + '.header{margin-bottom:18px;border-bottom:2px solid #B8860B;padding-bottom:12px;}'
+    + '.title{font-size:20px;font-weight:700;color:#B8860B;}'
+    + '.subtitle{font-size:13px;color:#555;margin-top:4px;}'
+    + '.collab{border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:12px;page-break-inside:avoid;}'
+    + '.collab-nom{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:8px;}'
+    + '.grp{margin-top:8px;padding-top:8px;border-top:1px solid #eee;}'
+    + '.grp:first-of-type{margin-top:0;padding-top:0;border-top:none;}'
+    + '.grp-tit{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}'
+    + '.grp-lignes{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:#333;}'
+    + '.grp-lignes b{color:#1a1a2e;}'
+    + '.footer{text-align:center;font-size:11px;color:#aaa;margin-top:20px;border-top:1px solid #eee;padding-top:10px;}'
+    + '@media print{.no-print{display:none;}}';
+
+  var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Statistiques — ' + titre + '</title><style>' + css + '</style></head><body>';
+  html += '<div class="header"><div class="title">📊 ' + esc(titre) + '</div>';
+  html += '<div class="subtitle">' + (sousTitre ? esc(sousTitre) + ' · ' : '') + 'Généré le ' + dateGen + '</div></div>';
+
+  liste.forEach(function(s, i){
+    var medaille = medailles[i] || ('#' + (i + 1));
+    html += '<div class="collab">';
+    html += '<div class="collab-nom">' + medaille + ' ' + esc(s.nom) + '</div>';
+    html += '<div class="grp"><div class="grp-tit">👤 Clients</div><div class="grp-lignes">'
+      + '<span><b>' + s.nbClients + '</b> inscrit' + (s.nbClients > 1 ? 's' : '') + '</span>'
+      + '<span>🇲🇱 <b>' + s.nbClientsMali + '</b> Mali</span></div></div>';
+    html += '<div class="grp"><div class="grp-tit">💰 Argent</div><div class="grp-lignes">'
+      + '<span><b>' + s.montantApporte + '</b> € apportés</span>'
+      + '<span><b>' + s.montantEncaisse + '</b> € encaissés</span></div></div>';
+    html += '<div class="grp"><div class="grp-tit">🚛 Terrain</div><div class="grp-lignes">'
+      + '<span>📦 <b>' + s.nbValidations + '</b> colis validé' + (s.nbValidations > 1 ? 's' : '') + '</span>'
+      + '<span>📅 <b>' + s.nbCollectes + '</b> jour' + (s.nbCollectes > 1 ? 's' : '') + ' de collecte</span>'
+      + '<span>⏳ <b>' + _depFormatDuree(s.dureeTourneeMoyenneMs) + '</b> tournée moyenne</span></div></div>';
+    html += '</div>';
+  });
+
+  html += '<div class="footer">Dakar City Transport · Statistiques · ' + dateGen + '</div>';
+  html += '<div class="no-print" style="margin-top:24px;padding:16px;background:#f0f0f0;border-radius:10px;text-align:center;">';
+  html += '<p style="font-size:13px;color:#555;margin-bottom:12px;">Sur iPhone : Partager → Imprimer → Pincer → Partager → Enregistrer en PDF</p>';
+  html += '<button onclick="window.print()" style="background:#B8860B;color:white;border:none;padding:14px 24px;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;width:100%;">🖨️ Imprimer</button>';
+  html += '</div></body></html>';
+
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if(isIOS){ window.open(url, '_blank'); }
+  else {
+    var a = document.createElement('a');
+    a.href = url; a.download = 'Statistiques_' + titre.replace(/ /g, '_') + '.html';
+    a.style.display = 'none'; document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  }
 };
 
 /* ═════════════════════════════════════════════
