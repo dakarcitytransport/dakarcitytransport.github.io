@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.16';
+var DEP_VERSION = 'v2.10.17';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18039,18 +18039,12 @@ function _depRapfinTotaux(){
 // Sénégal [...] comme on ne gère pas du tout le conteneur Mali, ça va
 // faire des lignes pour rien [...] autant tout centraliser dans une
 // case pour le Mali et bien laisser une bonne visibilité pour le
-// conteneur de Sénégal ». Un pays optionnel pré-filtre la liste dès
-// l'ouverture — l'onglet Tous/Dakar/Mali de l'écran reste là pour
-// changer d'avis une fois dedans.
+// conteneur de Sénégal ». Le pays pré-filtre la liste dès l'ouverture
+// — 'tous' depuis le Bilan (v1.94.18), qui n'a pas de case par pays.
 window.depOuvrirRapfinContainers = function(pays){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   if(pays) _depRapfinPays = pays;
   goTo('s-rapfin-containers');
-  depRenderRapfinContainers();
-};
-
-window.depRapfinFiltrerPays = function(p){
-  _depRapfinPays = p;
   depRenderRapfinContainers();
 };
 
@@ -18067,23 +18061,10 @@ window.depRenderRapfinContainers = function(){
     return;
   }
 
-  // Les onglets de pays. On ne compte que les containers qui portent des
-  // clients — les autres n'apparaissent pas dans la liste non plus.
-  var avecClients = _depRapfinTousLesContainers().filter(function(d){
-    return compteursDepart(d._id).clients > 0;
-  });
-  var nSN = avecClients.filter(function(d){ return depPaysDepart(d) === 'SN'; }).length;
-  var nML = avecClients.filter(function(d){ return depPaysDepart(d) === 'ML'; }).length;
-  var onglet = function(cle, libelle, nb){
-    return '<div class="dep-chip' + (_depRapfinPays === cle ? ' on' : '') + '"'
-      + ' onclick="depRapfinFiltrerPays(\'' + cle + '\')">' + libelle
-      + ' <span style="opacity:.65;">' + nb + '</span></div>';
-  };
-  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">'
-    + onglet('tous', 'Tous', avecClients.length)
-    + onglet('SN', '&#127480;&#127475; Dakar', nSN)
-    + onglet('ML', '&#127474;&#127473; Mali', nML)
-    + '</div>';
+  // v1.94.18 : Cobey, une fois la case CONTAINERS scindée en deux
+  // (Sénégal / Mali, v1.94.17) : « tu peux enlever le filtre » — la
+  // liste arrive déjà filtrée par la case sur laquelle on a tapé,
+  // l'onglet Tous/Dakar/Mali n'avait plus de raison d'être.
 
   // v1.69.0 : le cumul de tous les containers a été retiré d'ici — le
   // Bilan le donne déjà, et le répéter n'apprenait rien (retour de Cobey
@@ -18670,7 +18651,9 @@ window.depRenderRapfinBilan = function(){
   h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;'
     +   'margin-bottom:12px;">Les recettes et les d&eacute;penses ne comptent que ce qui passe par '
     +   'cette application, depuis septembre 2026, et seulement le transport des colis.</div>'
-    + '<button class="btn btn-gray" onclick="depOuvrirRapfinContainers()">'
+    // v1.94.18 : depuis le Bilan, sans case Sénégal/Mali pour se
+    // souvenir d'un pays — 'tous', explicitement.
+    + '<button class="btn btn-gray" onclick="depOuvrirRapfinContainers(\'tous\')">'
     + '&#128230; Voir les containers</button>';
 
   box.innerHTML = h;

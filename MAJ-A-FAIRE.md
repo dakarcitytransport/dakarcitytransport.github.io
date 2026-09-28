@@ -520,6 +520,12 @@ CONTAINERS SÉNÉGAL" et "🇲🇱 CONTAINERS MALI", chacune ouvrant la liste
 déjà filtrée sur son pays (l'onglet Tous/Dakar/Mali de l'écran reste
 disponible pour changer d'avis une fois dedans).
 
+**v1.94.18 :** Cobey : « tu peux enlever le filtre. » Une fois la case
+scindée en Sénégal/Mali, l'onglet Tous/Dakar/Mali de l'écran Containers
+n'avait plus de raison d'être — retiré. La liste montre toujours ce
+que la case cliquée promettait ; le bouton "Voir les containers" du
+Bilan (qui n'a pas de case par pays) montre toujours tout.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
