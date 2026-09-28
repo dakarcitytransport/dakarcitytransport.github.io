@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.9';
+var DEP_VERSION = 'v2.10.10';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16308,9 +16308,17 @@ function _depInjecterBoutonEtiquettesCamion(k){
    Rangées dans dct_depenses/<collecte>/<camion>/<clé>, à côté des autres
    réserves de l'appli et jamais mêlées aux factures clients. */
 var DEP_TYPES_DEPENSE = [
-  { cle:'carburant', icone:'&#9981;',            label:'Carburant' },
-  { cle:'dejeuner',  icone:'&#127860;',          label:'D&eacute;jeuner' },
-  { cle:'autre',     icone:'&#128176;',          label:'Autre' }
+  { cle:'carburant',       icone:'&#9981;',   label:'Carburant' },
+  { cle:'dejeuner',        icone:'&#127860;', label:'D&eacute;jeuner' },
+  // v1.94.11 : Cobey, sur le report des tournées : « il se peut qu'on
+  // loue des camions et qu'on paye les chauffeurs » — deux postes
+  // fréquents mais jusqu'ici noyés dans "Autre". Rattachés au camion
+  // (comme carburant/déjeuner), pas à la collecte, pour profiter du
+  // même prorata quand un camion sert plusieurs containers le même
+  // jour, et apparaître dans le même détail par tournée.
+  { cle:'location_camion', icone:'&#128667;', label:'Location camion' },
+  { cle:'chauffeur',       icone:'&#129489;', label:'Chauffeur externe' },
+  { cle:'autre',           icone:'&#128176;', label:'Autre' }
 ];
 // Le carburant se paie avec des centimes : « 45,50 € », pas « 45.5 € ».
 // (Ailleurs dans l'appli les prix sont des euros entiers, d'où l'absence
@@ -18151,12 +18159,12 @@ window.depRapfinContainer = function(id){
     + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">'
     +   '&#127991;&#65039; D&eacute;penses de ce container</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
-    +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#128666; Tourn&eacute;es des camions</span>'
-    +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totCam) + ' &euro;</b>'
+    +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses fixes</span>'
+    +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
     + '</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
-    +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses propres</span>'
-    +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
+    +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#128666; Tourn&eacute;es des camions</span>'
+    +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totCam) + ' &euro;</b>'
     + '</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
     +   'margin-top:5px;border-top:2px solid var(--border);">'
@@ -18766,9 +18774,20 @@ window.depRenderDepensesFixes = function(){
   // en carburant [...] que ce soit bien lisible, propre ».
   var repCont = _depRepartitionDepensesContainer(id);
 
+  // v1.94.11 : Cobey : « on va mettre en avant dépenses propres, on va
+  // le remonter au-dessus de tournées des camions [...] c'est vraiment
+  // ce qu'un conteneur va payer tout le temps. Et on va changer son
+  // nom, on va l'appeler dépenses fixes. » Loyer, dédouanement,
+  // container, salaires : les postes qui tombent quoi qu'il arrive,
+  // avant même les frais de tournée qui dépendent du camion.
   var h = '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
     +   'padding:14px;margin-bottom:14px;">'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
+    +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses fixes</span>'
+    +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;'
+    +   'margin-top:3px;">'
     +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#128666; Tourn&eacute;es des camions</span>'
     +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totCam) + ' &euro;</b>'
     + '</div>'
@@ -18778,11 +18797,6 @@ window.depRenderDepensesFixes = function(){
             +   '<span style="font-size:12px;color:var(--text3);font-weight:700;">' + _depEuros(r.montant) + ' &euro;</span>'
             + '</div>';
         }).join('')
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;'
-    +   (repCont.length ? 'margin-top:3px;' : '') + '">'
-    +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses propres</span>'
-    +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
-    + '</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
     +   'margin-top:5px;border-top:2px solid var(--border);">'
     +   '<span style="font-size:13px;font-weight:800;color:var(--text);">Total du container</span>'
@@ -18871,8 +18885,8 @@ window.depRenderDepensesFixes = function(){
     }).join('');
   }
 
-  // ── Les dépenses propres du container ──
-  h += '<div class="dep-sec">D&eacute;penses propres</div>';
+  // ── Les dépenses fixes du container ──
+  h += '<div class="dep-sec">D&eacute;penses fixes</div>';
   if(!liste.length){
     h += '<div class="dep-vide" style="padding:22px 16px;">Aucune d&eacute;pense saisie pour ce container.</div>';
   } else {

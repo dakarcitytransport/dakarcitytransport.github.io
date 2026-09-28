@@ -441,6 +441,26 @@ un camion qui en a aussi ramassé pour un autre dit « X sur Y ramassés ce
 jour-là appartiennent à ce container », avec la part d'argent
 correspondante juste à côté.
 
+**v1.94.11 :** Cobey, sur l'encart du haut de « Dépenses du
+container » : « on va mettre en avant dépenses propres, on va le
+remonter au-dessus de tournées des camions [...] c'est vraiment ce
+qu'un conteneur va payer tout le temps. Et on va changer son nom, on va
+l'appeler dépenses fixes. » Fait : « Dépenses fixes » (loyer,
+dédouanement, container, salaires…) passe en premier, avant « Tournées
+des camions », dans l'encart du haut et sur l'écran du container.
+
+Deuxième demande, sur le même message : catégoriser la location de
+camion et le paiement de chauffeurs externes pendant une tournée, avec
+la question « on entre cette donnée pour la collecte ou sur le camion
+concerné ? ». Réponse retenue : **sur le camion**, comme carburant et
+déjeuner déjà — deux nouvelles catégories dans le même menu, « 🚛
+Location camion » et « 🧑 Chauffeur externe ». Ça profite gratuitement de
+tout ce qui existe déjà pour carburant/déjeuner : réparti au prorata
+quand un camion sert plusieurs containers le même jour, compté dans le
+détail par tournée et dans le total du container par poste. Saisir ça
+« pour la collecte » (sans camion précis) aurait cassé ce prorata et
+n'aurait pas pu s'afficher dans le détail par camion.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
