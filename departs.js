@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.22';
+var DEP_VERSION = 'v2.10.23';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20832,6 +20832,19 @@ window.depPlanningRelancer = function(iso){
         + aRelancer.length + ' personne' + (aRelancer.length > 1 ? 's' : '')
         + ' pour le dimanche <strong>' + quand + '</strong>', "À l'instant");
     }catch(e){}
+    // v1.94.24 : Cobey : « il faudrait inscrire aussi les rappels [...]
+    // et à qui ils ont été envoyés » — même trace que les rappels
+    // automatiques (voir plJournaliser, cloudflare-worker.js), pour
+    // cette relance manuelle aussi.
+    try{
+      db.ref('dct_annonces').push({
+        texte  : 'Rappel Planning envoyé pour dimanche ' + quand + '.',
+        par    : u.id || '',
+        parNom : u.name || '',
+        destinataires: aRelancer.map(function(x){ return x.name; }),
+        creeLe : Date.now()
+      });
+    }catch(e){}
   }).catch(function(e){
     console.error('departs: relance planning', e);
     toast('❌ Échec de la relance.');
@@ -21264,15 +21277,29 @@ window.depAnnonceEnvoyer = function(){
   });
 };
 
+// v1.94.24 : Cobey, sur cette liste : « il faudrait inscrire aussi les
+// rappels automatiques envoyés, et à qui ils ont été envoyés ». Le
+// Cloudflare Worker écrit maintenant les rappels automatiques de
+// Planning ici aussi (voir plJournaliser, cloudflare-worker.js), avec
+// leurs destinataires — reste juste à les afficher. Un système auquel
+// personne n'a de dépenses/etc. n'apporte le champ `destinataires`
+// qu'à ces entrées-là ; une annonce manuelle n'en a pas, et l'ancien
+// affichage reste identique pour elles.
 function _depAnnonceCarte(a){
-  return '<div class="dep-card" style="border-left-color:#C0392B;">'
+  var estSysteme = (a.par === 'systeme');
+  return '<div class="dep-card" style="border-left-color:' + (estSysteme ? '#8A5200' : '#C0392B') + ';">'
     +   '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">'
-    +     '<b style="color:var(--text);font-size:13px;">' + esc(a.parNom || a.par || '?') + '</b>'
+    +     '<b style="color:var(--text);font-size:13px;">'
+    +       (estSysteme ? '&#129302; ' : '') + esc(a.parNom || a.par || '?') + '</b>'
     +     '<span style="color:var(--text3);font-weight:600;font-size:11.5px;">'
     +       _depPlDateHeure(a.creeLe) + '</span>'
     +   '</div>'
     +   '<div style="margin-top:5px;font-size:13.5px;color:var(--text);line-height:1.4;'
     +     'white-space:pre-wrap;">' + esc(a.texte) + '</div>'
+    +   ((a.destinataires && a.destinataires.length)
+        ? ('<div style="margin-top:6px;font-size:11.5px;color:var(--text3);">'
+          + '&#128100; ' + a.destinataires.map(esc).join(', ') + '</div>')
+        : '')
     + '</div>';
 }
 

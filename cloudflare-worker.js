@@ -1,13 +1,15 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.4.1 · 27/09/2026
+   v1.5.0 · 28/09/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
    réellement les notifications sur les téléphones.
 
    Ce qu'il fait, à chaque réveil :
-     1. il gère le planning du dimanche (voir plus bas) ;
+     1. il gère le planning du dimanche (voir plus bas) — et note dans
+        dct_annonces (visible dans l'appli, case Notification) chaque
+        rappel automatique envoyé et à qui (v1.5.0) ;
      2. il lit la file d'attente dans Firebase (dct_file_push) ;
      3. pour chaque message pas encore envoyé, il retrouve les téléphones
         des personnes visées (dct_push) ;
@@ -304,6 +306,30 @@ async function plObserver(sujet, corps, env){
   }, env);
 }
 
+/* v1.5.0 : Cobey, sur l'écran Notification (la liste "Déjà envoyé") :
+   « il faudrait inscrire aussi les rappels automatiques envoyés, et à
+   qui ils ont été envoyés ». Jusqu'ici un rappel automatique ne
+   laissait aucune trace consultable dans l'application — seulement une
+   notification à l'observateur (ID_OBSERVATEUR), facile à manquer et
+   jamais relisible après coup. Écrit maintenant dans dct_annonces, la
+   même liste que les messages manuels de Cobey — avec les noms des
+   destinataires, que l'app n'a qu'à afficher. */
+async function plJournaliser(texte, noms, env){
+  await ecrire('dct_annonces/' + plCleUnique(), {
+    texte  : texte,
+    par    : 'systeme',
+    parNom : 'Planning automatique',
+    destinataires: noms,
+    creeLe : Date.now()
+  }, env);
+}
+
+const PL_LIBELLE_ETAPE = {
+  rappelLundi:    'lundi 9h',
+  rappelMercredi: 'mercredi 20h',
+  rappelJeudi:    'jeudi 18h'
+};
+
 async function plRelancer(iso, libelle, ids, env){
   if(!ids.length) return;
   await ecrire('dct_file_push/' + plCleUnique(), {
@@ -350,6 +376,7 @@ async function traitePlanning(env){
     for(const [cle, quand] of etapes){
       if(maintenant >= quand.getTime() && !etat[cle]){
         const m = muets();
+        const noms = m.map(id => (participants[id] || {}).nom || id);
         if(m.length){ await plRelancer(dim.iso, dim.libelle, m, env); bilan.rappels++; }
         await plObserver(
           'planning-observateur-' + dim.iso + '-' + cle,
@@ -357,6 +384,12 @@ async function traitePlanning(env){
             ? ('Rappel envoyé à ' + m.length + ' personne' + (m.length > 1 ? 's' : ''))
             : 'Personne à relancer, tout le monde avait déjà répondu')
           + ' pour dimanche ' + dim.libelle + '.',
+          env
+        );
+        await plJournaliser(
+          'Rappel automatique (' + (PL_LIBELLE_ETAPE[cle] || cle) + ') pour dimanche ' + dim.libelle
+            + (m.length ? '' : ' — personne à relancer, tout le monde avait déjà répondu.'),
+          noms,
           env
         );
         await ecrire('dct_planning_etat/' + dim.iso, { [cle]: true }, env);
@@ -405,6 +438,13 @@ async function traitePlanning(env){
         'Planning clôturé pour dimanche ' + dim.libelle + ' : ' + nbDispo
           + ' disponible' + (nbDispo > 1 ? 's' : '') + ', ' + nbAbsent
           + ' absent' + (nbAbsent > 1 ? 's' : '') + '.',
+        env
+      );
+      await plJournaliser(
+        'Résultat final envoyé pour dimanche ' + dim.libelle + ' : ' + nbDispo
+          + ' disponible' + (nbDispo > 1 ? 's' : '') + ', ' + nbAbsent
+          + ' absent' + (nbAbsent > 1 ? 's' : '') + '.',
+        ids.map(id => (participants[id] || {}).nom || id),
         env
       );
       await ecrire('dct_planning_etat/' + dim.iso, { clos: true }, env);

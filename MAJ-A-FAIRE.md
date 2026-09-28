@@ -622,6 +622,34 @@ page restait ouverte, même une fois la vraie cause corrigée. Elle ne se
 marque plus "envoyée" qu'une fois l'écriture confirmée par Firebase ;
 un échec redevient visible par un toast au lieu de disparaître.
 
+Diagnostic mené avec Cobey en direct, étape par étape : un test manuel
+via "🔔 Relancer" a montré `traites:1` mais `envois/echecs/oublies`
+tous à 0 — personne à qui envoyer (Ibrahima et Boubacar n'avaient pas
+activé les notifications sur leur propre téléphone). Un test via la
+case "Annonce" (qui inclut toujours l'auteur) a confirmé que la
+chaîne complète fonctionne bien pour Cobey lui-même. Conclusion :
+le système marche, chaque collaborateur doit encore faire l'étape
+"Activer" sur son propre téléphone.
+
+**v1.94.24 :** en creusant, Cobey, sur la case Notification (l'écran
+qui liste ses messages manuels à toute l'équipe) : « il faudrait
+inscrire aussi les rappels automatique[s] envoyés, et à qui ils ont
+été envoyés ». Jusqu'ici un rappel automatique de Planning ne laissait
+aucune trace consultable dans l'application — seulement une
+notification éphémère à Cobey (l'observateur), facile à manquer et
+jamais relisible après coup. Le Worker Cloudflare écrit maintenant
+chaque rappel automatique (et le résultat final du vendredi) dans la
+même liste que les messages manuels, avec les noms des destinataires
+en dessous — visuellement distingué par « 🤖 Planning automatique ».
+La relance manuelle depuis Planning (le bouton "🔔 Relancer") y est
+journalisée elle aussi, pour la même raison.
+
+**Ce fichier fait partie de `cloudflare-worker.js`, pas de
+`departs.js` : le correctif ne prend effet qu'après avoir recollé son
+contenu dans Cloudflare et cliqué Deploy** (étape 2 de
+`CLOUDFLARE-A-FAIRE.md`) — un git push seul ne suffit pas pour ce
+fichier-là.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
