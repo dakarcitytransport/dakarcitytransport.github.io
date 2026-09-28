@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.13';
+var DEP_VERSION = 'v2.10.14';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3951,10 +3951,15 @@ function injecterEcrans(){
   +   '<div class="content">'
   +     '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
   +       '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:10px;">'
-  +         '<select class="fi" id="dep-fx-poste" style="flex:1.35;min-width:0;"></select>'
+  +         '<select class="fi" id="dep-fx-poste" style="flex:1.35;min-width:0;" '
+  +           'onchange="_depFxToggleNbPersonnes()"></select>'
   +         '<input class="fi" id="dep-fx-montant" type="number" inputmode="decimal" min="0" step="0.01" '
   +           'placeholder="Montant &euro;" style="flex:1;min-width:0;">'
   +       '</div>'
+  // v1.94.15 : « des fois il y en a un, des fois deux, des fois trois » —
+  // n'apparaît que pour le poste "Chargeur" (voir _depFxToggleNbPersonnes).
+  +       '<input class="fi" id="dep-fx-nb" type="number" inputmode="numeric" min="1" step="1" '
+  +         'placeholder="Nombre de personnes" style="margin-bottom:10px;display:none;">'
   +       '<input class="fi" id="dep-fx-note" maxlength="80" '
   +         'placeholder="Pr&eacute;cision (facultatif)" style="margin-bottom:14px;">'
   +       '<button class="btn btn-green" onclick="depAjouterDepenseFixe()">&#10133; Enregistrer</button>'
@@ -18322,6 +18327,13 @@ var DEP_POSTES_FIXES = [
   { cle:'location',     icone:'&#128666;', label:'Location' },
   // v1.98.0 : demandé par Cobey le 25/09/2026.
   { cle:'telephonie',   icone:'&#128242;', label:'T&eacute;l&eacute;phonie' },
+  // v1.94.15 : Cobey : « pour les conteneurs, on engage des chargeurs
+  // [...] des fois il y en a un, des fois deux, des fois trois, et on
+  // les paye à la journée ou à l'heure » — jusqu'ici noyé dans "Autre",
+  // avec le nombre de personnes écrit à la main dans la précision.
+  // Poste dédié, avec son propre nombre de personnes (voir dep-fx-nb) ;
+  // le tarif jour/heure reste dans la précision, en texte libre.
+  { cle:'chargeur',     icone:'&#128119;', label:'Chargeur' },
   { cle:'autre',        icone:'&#128176;', label:'Autre' }
 ];
 var _depPosteFixe = 'loyer';
@@ -18769,8 +18781,17 @@ window.depOuvrirRapfinFixes = function(departId){
   _depPosteFixe = 'loyer';
   var m = $('dep-fx-montant'); if(m) m.value = '';
   var n = $('dep-fx-note');    if(n) n.value = '';
+  var nb = $('dep-fx-nb');     if(nb) nb.value = '';
   goTo('s-rapfin-fixes');
   depRenderDepensesFixes();
+};
+
+// v1.94.15 : le champ "Nombre de personnes" ne concerne que le poste
+// "Chargeur" (loyer, dédouanement... n'ont pas de nombre de personnes).
+window._depFxToggleNbPersonnes = function(){
+  var sel = $('dep-fx-poste'), nb = $('dep-fx-nb');
+  if(!sel || !nb) return;
+  nb.style.display = (sel.value === 'chargeur') ? '' : 'none';
 };
 
 window.depRetourContainerDepuisFixes = function(){
@@ -18814,6 +18835,7 @@ window.depRenderDepensesFixes = function(){
     }).join('');
   }
   if(sel) sel.value = _depPosteFixe;
+  _depFxToggleNbPersonnes();
 
   var box = $('dep-fx-liste');
   if(!box) return;
@@ -18869,7 +18891,10 @@ window.depRenderDepensesFixes = function(){
     h += liste.map(function(o){
       return '<div class="dep-cli">'
         + '<div class="dep-cli-n" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-        +   '<span>' + _depLibellePosteFixe(o.poste) + '</span>'
+        +   '<span>' + _depLibellePosteFixe(o.poste)
+        // v1.94.15 : « des fois il y en a un, des fois deux, des fois
+        // trois » — le nombre de personnes juste à côté du poste.
+        +     (o.nbPersonnes ? ' &middot; ' + o.nbPersonnes + ' personne' + (o.nbPersonnes>1?'s':'') : '') + '</span>'
         +   '<span style="font-weight:800;color:#B3261E;">' + _depEuros(o.montant) + ' &euro;</span>'
         + '</div>'
         + (o.note ? '<div class="dep-cli-s" style="margin-top:2px;">' + esc(o.note) + '</div>' : '')
@@ -18982,6 +19007,11 @@ window.depAjouterDepenseFixe = function(){
   var montant = parseFloat(($('dep-fx-montant')||{}).value);
   if(!montant || montant <= 0){ toast('⚠️ Indiquez un montant.'); return; }
   if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  // v1.94.15 : Cobey, sur le poste "Chargeur" : « des fois il y en a un,
+  // des fois deux, des fois trois » — le nombre de personnes n'a de sens
+  // que pour ce poste-là.
+  var nbPersonnes = (_depPosteFixe === 'chargeur')
+    ? (parseInt(($('dep-fx-nb')||{}).value, 10) || 0) : 0;
   var u = window.currentUser || {};
   var obj = {
     poste   : _depPosteFixe,
@@ -18991,10 +19021,12 @@ window.depAjouterDepenseFixe = function(){
     par     : u.name || u.id || '',
     parId   : u.id || ''
   };
+  if(nbPersonnes > 0) obj.nbPersonnes = nbPersonnes;
   db.ref('dct_finance/fixes/' + id).push(obj).then(function(){
     toast('✅ Dépense enregistrée — ' + _depEuros(obj.montant) + ' €');
     var m = $('dep-fx-montant'); if(m) m.value = '';
     var n = $('dep-fx-note');    if(n) n.value = '';
+    var nb = $('dep-fx-nb');     if(nb) nb.value = '';
   }).catch(function(e){
     toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé'));
   });

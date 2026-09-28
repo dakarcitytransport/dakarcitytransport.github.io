@@ -494,6 +494,17 @@ ramène pile sur "Dépenses du container", pas sur l'écran Collecte par
 défaut ni sur l'Archivage. Même mécanique que le retour à l'Archivage
 (v1.92.0), réutilisée pour ce nouveau chemin.
 
+**v1.94.15 :** Cobey : « il faut ajouter pour les dépenses fixes
+"chargeur" et le nombre de personnes, car pour les conteneurs on engage
+des chargeurs qui viennent travailler [...] des fois il y en a un, des
+fois deux, des fois trois. Et on les paye à la journée [...] ou à
+l'heure. » Jusque-là saisi en "Autre" avec le nombre écrit à la main
+dans la précision (capture d'écran de Cobey à l'appui : « Chargeurs
+conteneur 2 personnes »). Nouveau poste dédié « 👷 Chargeur », avec un
+champ « Nombre de personnes » qui n'apparaît que pour ce poste-là et
+s'affiche juste à côté sur chaque ligne (« 👷 Chargeur · 2 personnes »).
+Le tarif jour/heure reste à écrire dans la précision, en texte libre.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
