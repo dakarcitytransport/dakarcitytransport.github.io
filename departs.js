@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.12';
+var DEP_VERSION = 'v2.10.13';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18778,6 +18778,24 @@ window.depRetourContainerDepuisFixes = function(){
   else depRapfinContainersRetour();
 };
 
+// v1.94.14 : Cobey, sur le report des tournées : « pour chaque journée
+// [...] un bouton [...] quand on clique on retombe sur la collecte en
+// question, comme ça on peut modifier s'il y a besoin, au lieu de
+// retourner dans la case des archivages, c'est trop long ». Même
+// mécanique que depArchiveOuvrirCollecte (v1.92.0, plus haut) : on
+// ouvre la collecte normalement, puis on réécrit son bouton Retour pour
+// revenir ici plutôt qu'à l'écran Collecte par défaut.
+window.depFixesOuvrirCollecte = function(colId){
+  var retour = _depRapfinId;
+  try{ ouvrirCollecte(colId); }catch(e){ console.error('departs: collecte du report des tournées', e); }
+  setTimeout(function(){
+    var btn = document.querySelector('#s-collecte .btn-back');
+    if(!btn) return;
+    btn.innerHTML = '&larr; Container';
+    btn.onclick = function(){ depOuvrirRapfinFixes(retour); };
+  }, 0);
+};
+
 window.depRenderDepensesFixes = function(){
   var id = _depRapfinId;
   if(!id) return;
@@ -18894,11 +18912,18 @@ window.depRenderDepensesFixes = function(){
     });
     h += groupes.map(function(g){
       var sousTotal = depArrondi2(g.camions.reduce(function(s,o){ return s + o.montant; }, 0));
-      var gh = '<div style="display:flex;justify-content:space-between;align-items:baseline;'
+      var gh = '<div style="display:flex;justify-content:space-between;align-items:center;'
         +   'margin:16px 0 7px;padding-top:12px;border-top:1px solid var(--border);">'
         +   '<span style="font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;">'
         +     '&#128197; ' + esc(g.colDate || '—') + '</span>'
-        +   '<span style="font-size:12px;font-weight:700;color:var(--text3);">' + _depEuros(sousTotal) + ' &euro;</span>'
+        +   '<span style="display:flex;align-items:center;gap:8px;">'
+        +     '<span style="font-size:12px;font-weight:700;color:var(--text3);">' + _depEuros(sousTotal) + ' &euro;</span>'
+        // v1.94.14 : ouvre directement la collecte de ce jour-là — voir
+        // depFixesOuvrirCollecte, juste au-dessus.
+        +     '<span onclick="depFixesOuvrirCollecte(\'' + g.colId + '\')" style="cursor:pointer;background:#EAF7EE;'
+        +       'border:1.5px solid #C8E6D0;color:#006b2d;border-radius:20px;padding:3px 9px;'
+        +       'font-size:10.5px;font-weight:800;white-space:nowrap;">&#9999;&#65039; Modifier</span>'
+        +   '</span>'
         + '</div>';
       gh += g.camions.map(function(o){
         // v1.94.7 : détail par poste — le montant total du camion (pas

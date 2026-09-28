@@ -483,6 +483,17 @@ le report des tournées : « c tjr en bas ». Toute la section « Dépenses
 fixes » — pas seulement son total — est maintenant remontée juste sous
 l'encart résumé, avant le report des tournées.
 
+**v1.94.14 :** Cobey, sur le report des tournées : « pour chaque
+journée où on voit les dépenses, un bouton [...] quand on clique on
+retombe sur la collecte en question, comme ça on peut modifier s'il y a
+besoin, au lieu de retourner dans la case des archivages, c'est trop
+long ». Chaque en-tête de date porte maintenant un bouton « ✏️
+Modifier » qui ouvre directement la collecte de ce jour-là (mêmes
+écrans que Dispatch/Clients, pour tout corriger) — et son bouton Retour
+ramène pile sur "Dépenses du container", pas sur l'écran Collecte par
+défaut ni sur l'Archivage. Même mécanique que le retour à l'Archivage
+(v1.92.0), réutilisée pour ce nouveau chemin.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
