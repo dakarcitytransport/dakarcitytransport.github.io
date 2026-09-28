@@ -308,6 +308,153 @@ function depRenderSuiviTransportPublic(c){
   h += '</div>'; // .fac-suivi
   return h;
 }
+// ═══════════ LIGNES DE COLIS — v2.10.25 ═══════════
+// Cette page ignorait entièrement le détail ligne par ligne (colisDetail)
+// et affichait tout `c.colis` sur UNE seule ligne de facture, prix total
+// compris — d'où la fusion visible côté client (lien WhatsApp) alors que
+// la facture interne (PDF, via departs.js) affichait chaque article
+// séparément (retour de Cobey du 28/09/2026 : deux articles IKEA à 220 €
+// et 404 € fusionnés en une ligne à 624 € sur le lien public). Portage
+// à l'identique de departs.js (voir _depLignesColis et son entourage,
+// section "LIGNES DE COLIS") — tout changement là-bas doit être répercuté
+// ici aussi.
+function _depNbPhysique(lignes){
+  return (lignes || []).reduce(function(s, l){
+    var q = parseFloat(l.qte) || 0;
+    return s + (l.lot ? 1 : q);
+  }, 0);
+}
+
+function _depCleNom(x){
+  var s = String(x || '').trim().toLowerCase();
+  try{ s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }catch(e){}
+  return s;
+}
+function _depNomEgal(a, b){ return _depCleNom(a) === _depCleNom(b); }
+
+function _depItemsDescription(texte, nbColis){
+  var brut = String(texte || '').split(/\s*(?:,|;|\+|\bet\b)\s*/);
+  var items = [];
+  brut.forEach(function(m){
+    m = m.trim();
+    if(!m) return;
+    var q = 1, nom = m, estLot = false;
+    var ml = m.match(/^lots?\s+de\s+(\d+)\s+(.+)$/i);
+    if(ml && ml[2].trim()){
+      q = parseInt(ml[1], 10) || 1; nom = ml[2].trim(); estLot = true;
+    } else {
+      var mm = m.match(/^(\d+)\s*(?:x|×)?\s+(.+)$/);
+      if(mm && mm[2].trim()){ q = parseInt(mm[1], 10) || 1; nom = mm[2].trim(); }
+    }
+    items.push({ nom:nom, qte:q, brut:m, lot:estLot });
+  });
+  var nbFiche = parseInt(nbColis, 10) || 0;
+  var sommeLue = _depNbPhysique(items);
+  if(nbFiche > 0 && sommeLue > nbFiche){
+    items.forEach(function(i){ i.qte = 1; i.lot = false; if(i.brut) i.nom = i.brut; });
+  }
+  return items;
+}
+
+function _depLignesDepuisTexte(texte, nbColis, total){
+  var items = _depItemsDescription(texte, nbColis);
+  if(!items.length) items = [{ nom:'Colis', qte:(parseInt(nbColis,10) || 1) }];
+  var sommeQte = items.reduce(function(s, i){ return s + i.qte; }, 0) || 1;
+  var parColis = total / sommeQte;
+  var cumul = 0;
+  return items.map(function(it, i){
+    var mtt = (i === items.length - 1)
+      ? Math.round((total - cumul) * 100) / 100
+      : Math.round(parColis * it.qte * 100) / 100;
+    cumul += mtt;
+    var o = { nom:it.nom, qte:it.qte,
+              pu:Math.round(mtt / it.qte * 100) / 100, total:mtt };
+    if(it.lot) o.lot = true;
+    return o;
+  });
+}
+
+function _depDetailConcorde(lignes, c){
+  var attendus = _depItemsDescription(c.colis);
+  if(!attendus.length) return true;
+  if(attendus.length !== lignes.length) return false;
+  var nbFiche = parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 0;
+  if(nbFiche){
+    if(_depNbPhysique(lignes) !== nbFiche) return false;
+  }
+  return attendus.every(function(it, i){
+    return _depNomEgal(it.nom, lignes[i].nom);
+  });
+}
+
+function _depLignesRecollees(lignes, c){
+  var connus = {};
+  lignes.forEach(function(l){ connus[_depCleNom(l.nom)] = l; });
+  var items = _depItemsDescription(c.colis);
+  var restants = [];
+  var lignesFinales = items.map(function(it){
+    var ref = connus[_depCleNom(it.nom)];
+    if(ref){
+      var t = Math.round(ref.pu * it.qte * 100) / 100;
+      var o = { nom:it.nom, qte:it.qte, pu:ref.pu, total:t };
+      if(it.lot || ref.lot) o.lot = true;
+      return o;
+    }
+    var neuf = { nom:it.nom, qte:it.qte, pu:0, total:0 };
+    if(it.lot) neuf.lot = true;
+    restants.push(neuf);
+    return neuf;
+  });
+  if(restants.length){
+    var deja = lignesFinales.reduce(function(s, l){ return s + l.total; }, 0);
+    var reste = (parseFloat(c.prix) || 0) - deja;
+    if(reste > 0){
+      var qteRestante = restants.reduce(function(s, l){ return s + l.qte; }, 0) || 1;
+      var cumul = 0;
+      restants.forEach(function(l, i){
+        l.total = (i === restants.length - 1)
+          ? Math.round((reste - cumul) * 100) / 100
+          : Math.round(reste / qteRestante * l.qte * 100) / 100;
+        cumul += l.total;
+        l.pu = Math.round(l.total / l.qte * 100) / 100;
+      });
+    }
+  }
+  return lignesFinales;
+}
+
+function _depLignesColis(c){
+  if(!c) return [];
+  var d = c.colisDetail;
+  if(Array.isArray(d) && d.length){
+    var lignes = d.map(function(l){
+      var qte = parseFloat(l.qte) || 1;
+      var pu  = parseFloat(l.pu)  || 0;
+      var o = { nom:(l.nom||'Colis'), qte:qte, pu:pu,
+                total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
+      if(l.lot){ o.lot = true; o.nbLot = parseInt(l.nbLot,10) || 1; }
+      return o;
+    });
+    if(_depDetailConcorde(lignes, c)) return lignes;
+    return _depLignesRecollees(lignes, c);
+  }
+  var nb    = parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 1;
+  var total = parseFloat(c.prix) || 0;
+  if(!c.colis && !total) return [];
+  return _depLignesDepuisTexte(c.colis, nb, total);
+}
+
+function _depTotalColis(c){
+  if(!c) return 0;
+  var d = c.colisDetail;
+  if(Array.isArray(d) && d.length){
+    return Math.round(_depLignesColis(c).reduce(function(s, l){
+      return s + (l.total || 0);
+    }, 0) * 100) / 100;
+  }
+  return parseFloat(c.prix) || 0;
+}
+
 function depRenderFacturePublique(c, ctx, cbApresQR){
   var pay = depCalculerPaiement(c);
   var payLivPub = depCalculerPaiementLivraison(c);
@@ -319,8 +466,20 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
   var prixIndefiniPub = !!c.prixADefinir;
   var st = prixIndefiniPub ? { bg:'#FFF3CD', color:'#856404', label:'Prix à définir sur place' } : (STATUTS_PAIEMENT[payCombinePub.statut] || {});
   var nom = c.name || ((c.prenom||'') + ' ' + (c.nom||'')).trim() || 'Client';
-  var totalColis = parseFloat(c.prix) || 0;
+  var totalColis = _depTotalColis(c);
   var totalColisTxt = prixIndefiniPub ? 'à définir' : (totalColis + ' €');
+  // Une ligne de tableau par article, numérotées à la suite.
+  function _depLignesFacture(cl, indefini){
+    var lg = _depLignesColis(cl);
+    if(!lg.length) lg = [{ nom:(cl.colis || 'Colis'), qte:(parseInt(cl.nbColis,10)||1), pu:0, total:0 }];
+    return lg.map(function(l, i){
+      var pu  = indefini ? 'à définir' : (l.pu + ' €');
+      var mtt = indefini ? 'à définir' : (l.total + ' €');
+      var lnom = esc(l.nom) + (l.lot ? ' <span style="font-size:9.5px;">(lot de ' + l.qte + ')</span>' : '');
+      return '<tr><td>'+(i+1)+'</td><td>'+lnom+'</td><td>'+l.qte+'</td>'
+           + '<td>'+(l.lot ? 'lot' : 'colis')+'</td><td>'+esc(pu)+'</td><td>'+esc(mtt)+'</td></tr>';
+    }).join('');
+  }
   var totalLivraison = c.livraisonDakar ? (parseFloat(c.prixLivraison) || 0) : 0;
   var totalGeneral = totalColis + totalLivraison;
   var totalGeneralTxt = prixIndefiniPub ? 'à définir' : (totalGeneral + ' €');
@@ -390,8 +549,8 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     +     '<div class="fac-tbl-wrap"><table class="fac-table">'
     +       '<thead><tr><th>N&deg;</th><th>Description</th><th>Qt&eacute;</th><th>Unit&eacute;</th><th>Prix unitaire</th><th>Montant</th></tr></thead>'
     +       '<tbody>'
-    +         '<tr><td>1</td><td>'+esc(c.colis||'Colis')+'</td><td>1</td><td>colis</td><td>'+esc(totalColisTxt)+'</td><td>'+esc(totalColisTxt)+'</td></tr>'
-    +         (c.livraisonDakar ? ('<tr><td>2</td><td>Livraison &agrave; Dakar'+(c.livraisonAdresse ? (' &mdash; '+esc(c.livraisonAdresse)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
+    +         _depLignesFacture(c, prixIndefiniPub)
+    +         (c.livraisonDakar ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Livraison &agrave; Dakar'+(c.livraisonAdresse ? (' &mdash; '+esc(c.livraisonAdresse)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
     +       '</tbody>'
     +     '</table></div>'
 

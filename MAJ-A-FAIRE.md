@@ -908,6 +908,24 @@ ouvre la fiche, comme avant.
   à apparaître sur la fiche client.~~ **Réglé le 24/09** — voir « Lenteur,
   et les boutons qui ne répondent pas » plus haut.
 
+- ~~Sur la **facture envoyée par WhatsApp**, deux articles achetés
+  séparément se retrouvaient **fusionnés en une seule ligne** — alors
+  que le PDF interne les affichait bien chacun sur sa ligne.~~
+  **Réglé le 28/09 (v2.10.25 / v3.94.26).** Signalé par Cobey avec deux
+  photos de la même facture (client Uny, C-SN-130926-82) prises à trois
+  minutes d'intervalle : « Carton IKEA » (220 €) et « Achat lit IKEA »
+  (404 €) devenaient « Carton IKEA, Achat lit IKEA » à 624 € sur le lien
+  envoyé au client.
+
+  Le lien WhatsApp ne pointe pas vers l'application mais vers une page à
+  part, `facture.html`, qui reconstruit tout l'affichage de la facture
+  de son côté (pour rester consultable sans connexion, sans charger toute
+  l'appli). Cette page n'avait jamais été mise à jour pour le détail
+  ligne par ligne des colis (ajouté depuis) : elle affichait toujours
+  tout le texte résumé sur une seule ligne, avec le prix total dessus.
+  Elle reprend désormais le même détail article par article que la
+  facture interne.
+
 ---
 
 ## 4 · Factures et étiquettes
