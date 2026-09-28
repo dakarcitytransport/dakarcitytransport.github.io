@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.19';
+var DEP_VERSION = 'v2.10.20';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8311,6 +8311,75 @@ function _depChargerHtml2canvasEtJsPDF(cb){
 // fois par html2canvas (option `scale`) et pour convertir la taille du
 // canvas obtenu (en px "physiques") vers des mm (96px CSS = 25.4mm).
 var DEP_PDF_SCALE_CAPTURE = 2;
+
+/* v1.94.21 — Export PDF générique, PAR BLOCS EMPILÉS : la feuille de
+   route d'un camion et le récapitulatif de collecte (dct-app.html,
+   exportCamionPDF / exportPDF) passaient encore par l'ancien
+   window.print() ("Sur iPhone : Partager → Imprimer → Pincer →
+   Partager → Enregistrer en PDF" — exactement ce que Cobey demande de
+   ne plus jamais imposer, audit du 28/09/2026 : "qui veut me vérifier
+   [...] où est-ce qu'il y a des exports PDF [...] si c'est le cas, de
+   me faire un vrai export PDF").
+
+   Contrairement à la facture ou l'étiquette (un document toujours
+   court, mis à l'échelle pour tenir sur UNE page), ces deux documents
+   sont de longueur variable — parfois une tournée de 3 clients, parfois
+   de 40. Une facture/étiquette du même moule (tout rétréci sur une
+   page) rendrait le texte illisible dès qu'il y a du monde. On capture
+   donc CHAQUE bloc séparément (l'appelant les découpe déjà en morceaux
+   qui tiennent toujours sur une page — un groupe de quelques clients,
+   jamais un camion entier d'un coup) et on les empile sur autant de
+   pages A4 que nécessaire, sans jamais couper un bloc en deux : s'il ne
+   reste pas la place sur la page en cours, le bloc suivant démarre une
+   nouvelle page. dct-app.html ne peut pas voir les fonctions internes
+   de departs.js (deux <script> séparés) — exposée sur window pour ça. */
+window.depGenererPDFParBlocs = function(entete, blocs, nomFichier){
+  toast('⏳ Génération du PDF…');
+  _depChargerHtml2canvasEtJsPDF(function(){
+    if(!window.html2canvas || !window.jspdf || !window.jspdf.jsPDF){
+      toast('⚠️ Impossible de générer le PDF (connexion internet ?).');
+      return;
+    }
+    var pageW = 210, pageH = 297, marge = 8;
+    var largeurUtile = pageW - marge * 2, hauteurUtile = pageH - marge * 2;
+    var pdf = null, yMm = marge;
+
+    var placer = function(canvas){
+      var imgWmm = (canvas.width / DEP_PDF_SCALE_CAPTURE) * 25.4 / 96;
+      var imgHmm = (canvas.height / DEP_PDF_SCALE_CAPTURE) * 25.4 / 96;
+      var wMm = largeurUtile;                    // toujours pleine largeur
+      var hMm = imgHmm * (largeurUtile / imgWmm);
+      if(!pdf){
+        pdf = new window.jspdf.jsPDF({ unit:'mm', format:[pageW, pageH], orientation:'portrait' });
+      } else if(yMm + hMm > pageH - marge){
+        pdf.addPage([pageW, pageH], 'portrait');
+        yMm = marge;
+      }
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', marge, yMm, wMm, hMm);
+      yMm += hMm + 4;                             // petit espace avant le suivant
+    };
+
+    var capturer = function(el, cbApres){
+      window.html2canvas(el, { scale: DEP_PDF_SCALE_CAPTURE, useCORS:true, backgroundColor:'#ffffff' })
+        .then(function(canvas){ placer(canvas); cbApres(); })
+        .catch(function(e){
+          console.error('departs: échec capture PDF', e);
+          toast('❌ Échec de la génération du PDF, réessayez.');
+        });
+    };
+
+    var suite = function(i){
+      if(i >= blocs.length){
+        try{ pdf.save(nomFichier); }
+        catch(e){ console.error('departs: échec génération PDF', e); toast('❌ Échec de la génération du PDF, réessayez.'); }
+        return;
+      }
+      capturer(blocs[i], function(){ suite(i + 1); });
+    };
+
+    capturer(entete, function(){ suite(0); });
+  });
+};
 
 // Génère le PDF de la facture (A4, une page — deux si le suivi transport
 // est présent, voir elPage2) — remplace l'ancien _depExporterPDFDepuisElement

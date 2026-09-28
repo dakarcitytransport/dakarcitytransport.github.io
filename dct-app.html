@@ -873,7 +873,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <div class="header">
     <button class="btn-back" onclick="goTo('s-home')">← Retour</button>
     <div class="h-title">Nouvelle collecte</div>
-    <button class="btn-pdf" onclick="exportCamionPDF()" style="background:#009A44;color:white;border:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📄 PDF</button>
+    <div style="width:60px;"></div>
   </div>
   <div class="content">
     <div class="slabel">Choisir le dimanche</div>
@@ -923,7 +923,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <div class="header">
     <button class="btn-back" onclick="goTo('s-collecte')">← Retour</button>
     <div class="h-title">Nouveau client</div>
-    <button class="btn-pdf" onclick="exportCamionPDF()" style="background:#009A44;color:white;border:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📄 PDF</button>
+    <div style="width:60px;"></div>
   </div>
   <div class="content">
     <div id="toast-add" class="toast toast-success"></div>
@@ -959,7 +959,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <div class="header">
     <button class="btn-back" id="client-back" onclick="goTo('s-collecte')">← Retour</button>
     <div class="h-title">Fiche client</div>
-    <button class="btn-pdf" onclick="exportCamionPDF()" style="background:#009A44;color:white;border:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📄 PDF</button>
+    <div style="width:60px;"></div>
   </div>
   <div class="content">
     <div id="toast-client" class="toast toast-success"></div>
@@ -1043,7 +1043,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <div class="header" style="background:#1a1a2e;color:#fff;flex-shrink:0;">
     <button class="btn-back" onclick="quitterAdmin()" style="color:#fff;background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.3);">← Quitter</button>
     <div class="h-title" style="color:#fff;">⚙️ Administration</div>
-    <button class="btn-pdf" onclick="exportCamionPDF()" style="background:#009A44;color:white;border:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📄 PDF</button>
+    <div style="width:60px;"></div>
   </div>
   <div style="display:flex;border-bottom:2px solid #e0e0e0;background:#fff;flex-shrink:0;">
     <button id="admin-tab-equipe" onclick="showAdminTab('equipe')" style="flex:1;padding:10px 3px;border:none;border-bottom:3px solid #009A44;background:none;font-size:10.5px;font-weight:700;cursor:pointer;color:#009A44;font-family:var(--font);">👥 Équipe</button>
@@ -1677,7 +1677,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.94.20';
+var APP_VERSION = 'v3.94.21';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -9509,106 +9509,105 @@ function confirmerAnnulation(){
 }
 
 
+// v1.94.21 : « qui veut me vérifier dans toute l'application où est-ce
+// qu'il y a des exports PDF [...] si c'est le cas, de me faire un vrai
+// export PDF et ne plus passer par les exports où il faut passer par
+// imprimer » (Cobey, 28/09/2026). Ancienne version : un fichier .html
+// (pas même un PDF sur PC !) avec un bouton "Imprimer" et l'instruction
+// "Sur iPhone : Partager → Imprimer → Pincer → Partager → Enregistrer
+// en PDF". Remplacé par un vrai .pdf, généré directement — même
+// principe que les factures/étiquettes/statistiques de departs.js
+// (window.depGenererPDFParBlocs, exposée sur window puisque departs.js
+// tourne dans un <script> séparé de celui-ci). Les clients sont
+// regroupés par paquets de 4 cartes : jamais de bloc plus haut qu'une
+// page, quelle que soit la longueur de la tournée.
 function exportCamionPDF(){
   var k = currentCamion;
   var trks = getTrucks();
   var cls = getClients();
   var tk = trks[k];
   if(!tk) return;
+  if(typeof window.depGenererPDFParBlocs !== 'function'){
+    showToastNew('⚠️ Génération PDF indisponible pour l\'instant.');
+    return;
+  }
   var collecte = collectes.find(function(c){ return c.id===currentCollecteId; });
   var dateStr = collecte ? collecte.date : '';
   var dateGen = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
 
-  // Trier clients par ordre Waze
   var sorted = tk.clients.slice().sort(function(a,b){
     var tsA = (tk.wazeTs&&tk.wazeTs[a]) || 9999999999999;
     var tsB = (tk.wazeTs&&tk.wazeTs[b]) || 9999999999999;
     return tsA - tsB;
   });
 
-  var tot = getTruckTotal(k);
-  var col = getTruckCollected(k);
+  var zone = document.createElement('div');
+  zone.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px;';
 
-  var css = '*{box-sizing:border-box;margin:0;padding:0;}'
-    +'body{font-family:Arial,sans-serif;color:#1a1a2e;font-size:13px;padding:20px;}'
-    +'.header{margin-bottom:20px;border-bottom:2px solid #009A44;padding-bottom:12px;}'
-    +'.title{font-size:20px;font-weight:700;color:#009A44;}'
-    +'.subtitle{font-size:13px;color:#555;margin-top:4px;}'
-    +'.stats{display:flex;gap:12px;margin:12px 0 20px;}'
-    +'.stat{background:#f0f0f0;border-radius:8px;padding:8px 14px;text-align:center;}'
-    +'.stat-label{font-size:10px;color:#666;margin-bottom:2px;}'
-    +'.stat-val{font-size:16px;font-weight:700;color:#1a1a2e;}'
-    +'.client-card{border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:12px;page-break-inside:avoid;}'
-    +'.client-num{display:inline-block;background:#1a1a2e;color:white;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:700;margin-right:8px;}'
-    +'.client-name{font-size:16px;font-weight:700;color:#1a1a2e;}'
-    +'.client-row{display:flex;align-items:flex-start;gap:8px;margin-top:8px;font-size:13px;color:#333;}'
-    +'.client-label{color:#888;min-width:60px;font-size:11px;margin-top:2px;}'
-    +'.badge{padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;}'
-    +'.badge-ok{background:#d4f5e4;color:#0a5c30;}'
-    +'.badge-no{background:#ffd6d6;color:#8b0000;}'
-    +'.badge-ann{background:#ede0ff;color:#4a0080;}'
-    +'.badge-wait{background:#f0f0f0;color:#666;}'
-    +'.checkbox{width:20px;height:20px;border:2px solid #ddd;border-radius:4px;display:inline-block;margin-right:8px;vertical-align:middle;}'
-    +'.footer{text-align:center;font-size:11px;color:#aaa;margin-top:20px;border-top:1px solid #eee;padding-top:10px;}'
-    +'@media print{.no-print{display:none;}}';
+  var entete = document.createElement('div');
+  entete.style.cssText = 'background:#fff;padding:20px 20px 4px;font-family:Arial,sans-serif;';
+  entete.innerHTML = '<div style="border-bottom:2px solid #009A44;padding-bottom:12px;margin-bottom:12px;">'
+    + '<div style="font-size:20px;font-weight:700;color:#009A44;">🚛 ' + tk.name + ' — Feuille de route</div>'
+    + '<div style="font-size:13px;color:#555;margin-top:4px;">' + dateStr + ' · Généré le ' + dateGen + '</div>'
+    + '</div>'
+    + '<div style="display:inline-block;background:#f0f0f0;border-radius:8px;padding:8px 14px;text-align:center;">'
+    +   '<div style="font-size:10px;color:#666;margin-bottom:2px;">Clients</div>'
+    +   '<div style="font-size:16px;font-weight:700;color:#1a1a2e;">' + sorted.length + '</div>'
+    + '</div>';
+  zone.appendChild(entete);
 
-  var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Feuille de route — '+tk.name+'</title><style>'+css+'</style></head><body>';
-
-  // En-tête
-  html += '<div class="header">';
-  html += '<div class="title">🚛 '+tk.name+' — Feuille de route</div>';
-  html += '<div class="subtitle">'+dateStr+' · Généré le '+dateGen+'</div>';
-  html += '</div>';
-
-  // Stats
-  html += '<div class="stats">';
-  html += '<div class="stat"><div class="stat-label">Clients</div><div class="stat-val">'+sorted.length+'</div></div>';
-  html += '</div>';
-
-  // Liste clients
-  sorted.forEach(function(id, i){
+  var carte = function(id, i){
     var c = cls[id];
-    if(!c) return;
+    if(!c) return '';
     var val = (tk.validated||[]).includes(id);
     var ref = (tk.refused||[]).includes(id);
     var ann = (tk.cancelled||[]).includes(id);
-    var badge = val ? '<span class="badge badge-ok">✅ Livré</span>'
-      : ref ? '<span class="badge badge-no">❌ Refusé</span>'
-      : ann ? '<span class="badge badge-ann">🚫 Annulé</span>'
-      : '<span class="badge badge-wait">⬜ En attente</span>';
+    var badge = val ? '<span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;background:#d4f5e4;color:#0a5c30;">✅ Livré</span>'
+      : ref ? '<span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;background:#ffd6d6;color:#8b0000;">❌ Refusé</span>'
+      : ann ? '<span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;background:#ede0ff;color:#4a0080;">🚫 Annulé</span>'
+      : '<span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;background:#f0f0f0;color:#666;">⬜ En attente</span>';
     var adresse = (c.adresse||'') + ', ' + (c.cp||'') + ' ' + (c.ville||'');
-    var infos = c.infos ? '<div class="client-row"><span class="client-label">Infos</span><span>'+c.infos+'</span></div>' : '';
-    var tel = c.tel ? '<div class="client-row"><span class="client-label">Tél.</span><span>'+c.tel+'</span></div>' : '';
+    var ligne = function(label, val2){
+      return '<div style="display:flex;align-items:flex-start;gap:8px;margin-top:8px;font-size:13px;color:#333;">'
+        + '<span style="color:#888;min-width:60px;font-size:11px;margin-top:2px;">' + label + '</span><span'
+        + (label==='Adresse' ? ' style="font-weight:600;"' : '') + '>' + val2 + '</span></div>';
+    };
+    return '<div style="border:1px solid #ddd;border-radius:8px;padding:14px;font-family:Arial,sans-serif;">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;">'
+      +   '<div><span style="display:inline-block;background:#1a1a2e;color:#fff;width:24px;height:24px;border-radius:50%;'
+      +     'text-align:center;line-height:24px;font-size:12px;font-weight:700;margin-right:8px;">' + (i+1) + '</span>'
+      +     '<span style="font-size:16px;font-weight:700;color:#1a1a2e;">' + c.name + '</span></div>'
+      +   badge
+      + '</div>'
+      + ligne('Adresse', adresse)
+      + (c.infos ? ligne('Infos', c.infos) : '')
+      + (c.tel ? ligne('Tél.', c.tel) : '')
+      + ligne('Colis', c.colis || '—')
+      // Prix non affiché sur la feuille de route chauffeur
+      + '</div>';
+  };
 
-    html += '<div class="client-card">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
-    html += '<div><span class="client-num">'+(i+1)+'</span><span class="client-name">'+c.name+'</span></div>';
-    html += badge;
-    html += '</div>';
-    html += '<div class="client-row"><span class="client-label">Adresse</span><span style="font-weight:600;">'+adresse+'</span></div>';
-    if(infos) html += infos;
-    if(tel) html += tel;
-    html += '<div class="client-row"><span class="client-label">Colis</span><span>'+(c.colis||'—')+'</span></div>';
-    // Prix non affiché sur la feuille de route chauffeur
-    html += '</div>';
-  });
-
-  html += '<div class="footer">Dakar City Transport · '+tk.name+' · '+dateStr+'</div>';
-  html += '<div class="no-print" style="margin-top:24px;padding:16px;background:#f0f0f0;border-radius:10px;text-align:center;">';
-  html += '<p style="font-size:13px;color:#555;margin-bottom:12px;">Sur iPhone : Partager → Imprimer → Pincer → Partager → Enregistrer en PDF</p>';
-  html += '<button onclick="window.print()" style="background:#009A44;color:white;border:none;padding:14px 24px;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;width:100%;">🖨️ Imprimer</button>';
-  html += '</div></body></html>';
-
-  var blob = new Blob([html],{type:'text/html;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
-  if(isIOS){ window.open(url,'_blank'); }
-  else {
-    var a = document.createElement('a');
-    a.href=url; a.download='Feuille_Route_'+tk.name.replace(/ /g,'_')+'_'+dateStr.replace(/\s/g,'_')+'.html';
-    a.style.display='none'; document.body.appendChild(a); a.click();
-    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },1000);
+  var GROUPE = 4, blocs = [];
+  for(var i = 0; i < sorted.length; i += GROUPE){
+    var grp = sorted.slice(i, i + GROUPE);
+    var div = document.createElement('div');
+    div.style.cssText = 'background:#fff;padding:0 20px;display:grid;gap:12px;';
+    div.innerHTML = grp.map(function(id, j){ return carte(id, i + j); }).join('');
+    zone.appendChild(div);
+    blocs.push(div);
   }
+  if(!blocs.length){
+    var vide = document.createElement('div');
+    vide.style.cssText = 'background:#fff;padding:0 20px 20px;font-family:Arial,sans-serif;color:#888;font-size:13px;';
+    vide.textContent = 'Aucun client sur cette tournée.';
+    zone.appendChild(vide);
+    blocs.push(vide);
+  }
+
+  document.body.appendChild(zone);
+  window.depGenererPDFParBlocs(entete, blocs,
+    'Feuille_Route_' + tk.name.replace(/ /g,'_') + '_' + dateStr.replace(/\s/g,'_') + '.pdf');
+  setTimeout(function(){ if(zone.parentNode) document.body.removeChild(zone); }, 8000);
 }
 
 // AFFECTER
@@ -10634,42 +10633,6 @@ function isDispatchValide(){
   return c&&c.dispatchValide===true;
 }
 
-// PDF
-function genererPDF(titre,contenu){
-  var collecte=collectes.find(function(c){return c.id===currentCollecteId;});
-  var dateStr=collecte?collecte.date:'';
-  var dateGen=new Date().toLocaleDateString('fr-FR');
-  var css='body{font-family:Arial,sans-serif;margin:20px;color:#111;font-size:13px;}'
-    +'h1{color:#009A44;font-size:20px;margin-bottom:4px;}'
-    +'h2{color:#333;font-size:15px;margin:18px 0 8px;border-bottom:2px solid #009A44;padding-bottom:4px;}'
-    +'h3{color:#555;font-size:13px;margin:12px 0 6px;}'
-    +'table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px;}'
-    +'th{background:#009A44;color:white;padding:7px 8px;text-align:left;}'
-    +'td{padding:6px 8px;border-bottom:1px solid #eee;}'
-    +'tr:nth-child(even) td{background:#f9f9f9;}'
-    +'.ok{background:#d4f0e0;color:#006b2d;padding:2px 8px;border-radius:10px;font-weight:bold;}'
-    +'.no{background:#fde0e0;color:#992020;padding:2px 8px;border-radius:10px;font-weight:bold;}'
-    +'.wait{background:#fff3cd;color:#856404;padding:2px 8px;border-radius:10px;}'
-    +'@media print{.no-print{display:none;}}';
-  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><title>'+titre+'</title><style>'+css+'</style></head><body>'
-    +'<h1>Dakar City Transport</h1><p style="color:#555;margin-bottom:16px;">'+dateStr+' · '+dateGen+'</p>'
-    +contenu
-    +'<div class="no-print" style="margin-top:24px;padding:16px;background:#f0f0f0;border-radius:10px;text-align:center;">'
-    +'<p style="font-size:13px;color:#555;margin-bottom:12px;">Sur iPhone : Partager → Imprimer → Pincer → Partager → Enregistrer en PDF</p>'
-    +'<button onclick="window.print()" style="background:#009A44;color:white;border:none;padding:14px 24px;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;width:100%;">🖨️ Imprimer</button>'
-
-    +'</div></div>'
-  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
-  if(isIOS){window.open(url,'_blank');}
-  else{
-    var a=document.createElement('a');
-    a.href=url;a.download='DCT_'+dateStr.replace(/\s/g,'_')+'.html';a.style.display='none';
-    document.body.appendChild(a);a.click();
-    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-  }
-}
 function _formatHeure(ts){
   if(!ts) return '—';
   var d=new Date(ts);
@@ -10713,8 +10676,17 @@ function exportPDF(){
   }
 }
 
+// v1.94.21 : même audit que exportCamionPDF ci-dessus — remplace
+// l'ancien window.print() par un vrai .pdf direct. Chaque camion :
+// une petite carte d'en-tête (toujours courte) puis son tableau de
+// clients découpé en paquets de 12 lignes, pour ne jamais dépendre de
+// la longueur de la tournée pour tenir sur une page.
 function _genererPDFContent(){
   var trks=getTrucks(),cls=getClients();
+  if(typeof window.depGenererPDFParBlocs !== 'function'){
+    showToastNew('⚠️ Génération PDF indisponible pour l\'instant.');
+    return;
+  }
   var collecte=collectes.find(function(c){return c.id===currentCollecteId;});
   var dateStr=collecte?collecte.date:'';
   var dateGen=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
@@ -10731,23 +10703,50 @@ function _genererPDFContent(){
     (tk.validated||[]).forEach(function(id){ totalCollecte+=(cls[id]&&cls[id].prix)||0; });
   });
 
-  var css='*{box-sizing:border-box;margin:0;padding:0;}'    +'body{font-family:Arial,sans-serif;color:#1a1a2e;font-size:12px;padding:20px;}'    +'.header{margin-bottom:16px;}'    +'.title{font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:4px;}'    +'.subtitle{font-size:12px;color:#666;}'    +'.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0 20px;}'    +'.stat-box{border-radius:6px;padding:8px;text-align:center;}'    +'.stat-label{font-size:10px;color:#444;margin-bottom:4px;}'    +'.stat-val{font-size:18px;font-weight:700;}'    +'.s-blue{background:#e8eeff;} .s-blue .stat-val{color:#1a1a2e;}'    +'.s-green{background:#d4f5e4;} .s-green .stat-val{color:#0a5c30;}'    +'.s-red{background:#ffd6d6;} .s-red .stat-val{color:#8b0000;}'    +'.s-purple{background:#ede0ff;} .s-purple .stat-val{color:#4a0080;}'    +'.s-orange{background:#fff0cc;} .s-orange .stat-val{color:#7a4800;}'    +'.camion-block{background:white;border:1px solid #ddd;border-radius:8px;padding:16px;margin-bottom:16px;page-break-inside:avoid;}'    +'.camion-title{font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:4px;}'    +'.camion-sub{font-size:11px;color:#555;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;}'    +'.mini-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px;}'    +'.mini-stat{border-radius:5px;padding:6px;text-align:center;}'    +'.mini-label{font-size:9px;color:#444;margin-bottom:2px;}'    +'.mini-val{font-size:14px;font-weight:700;}'    +'table{width:100%;border-collapse:collapse;font-size:11px;}'    +'thead tr{background:#f0f0f0;}'    +'th{padding:7px 6px;text-align:left;font-weight:700;color:#333;border-bottom:1px solid #ddd;}'    +'td{padding:8px 6px;border-bottom:0.5px solid #eee;vertical-align:top;color:#333;}'    +'tr:nth-child(even) td{background:#f9f9f9;}'    +'.badge{padding:2px 7px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap;}'    +'.badge-ok{background:#d4f5e4;color:#0a5c30;}'    +'.badge-no{background:#ffd6d6;color:#8b0000;}'    +'.badge-ann{background:#ede0ff;color:#4a0080;}'    +'.badge-wait{background:#f0f0f0;color:#666;}'    +'.footer{text-align:center;font-size:10px;color:#888;margin-top:16px;}'    +'@media print{.no-print{display:none;}}';
+  var statBox=function(coul, fond, label, val){
+    return '<div style="background:'+fond+';border-radius:6px;padding:8px;text-align:center;">'
+      + '<div style="font-size:10px;color:#444;margin-bottom:4px;">'+label+'</div>'
+      + '<div style="font-size:18px;font-weight:700;color:'+coul+';">'+val+'</div></div>';
+  };
+  var badgeDe=function(val,ref,ann){
+    return val ? '<span style="padding:2px 7px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap;background:#d4f5e4;color:#0a5c30;">✅ Livré</span>'
+      : ref ? '<span style="padding:2px 7px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap;background:#ffd6d6;color:#8b0000;">❌ Refusé</span>'
+      : ann ? '<span style="padding:2px 7px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap;background:#ede0ff;color:#4a0080;">🚫 Annulé</span>'
+      : '<span style="padding:2px 7px;border-radius:4px;font-weight:700;font-size:10px;white-space:nowrap;background:#f0f0f0;color:#666;">En attente</span>';
+  };
+  var theadHtml='<thead><tr style="background:#f0f0f0;">'
+    +'<th style="padding:7px 6px;text-align:left;font-weight:700;color:#333;border-bottom:1px solid #ddd;width:24px;">#</th>'
+    +'<th style="padding:7px 6px;text-align:left;font-weight:700;color:#333;border-bottom:1px solid #ddd;">Client</th>'
+    +'<th style="padding:7px 6px;text-align:left;font-weight:700;color:#333;border-bottom:1px solid #ddd;">Adresse</th>'
+    +'<th style="padding:7px 6px;text-align:left;font-weight:700;color:#333;border-bottom:1px solid #ddd;white-space:nowrap;">Départ</th>'
+    +'<th style="padding:7px 6px;text-align:left;font-weight:700;color:#333;border-bottom:1px solid #ddd;white-space:nowrap;">Fin</th>'
+    +'<th style="padding:7px 6px;text-align:left;font-weight:700;color:#333;border-bottom:1px solid #ddd;white-space:nowrap;">Durée</th>'
+    +'<th style="padding:7px 6px;text-align:left;font-weight:700;color:#333;border-bottom:1px solid #ddd;white-space:nowrap;">Statut</th>'
+    +'<th style="padding:7px 6px;text-align:left;font-weight:700;color:#333;border-bottom:1px solid #ddd;white-space:nowrap;">Colis</th>'
+    +'<th style="padding:7px 6px;text-align:right;font-weight:700;color:#333;border-bottom:1px solid #ddd;white-space:nowrap;">Prix</th>'
+    +'</tr></thead>';
 
-  // En-tête général
-  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>DCT '+dateStr+'</title><style>'+css+'</style></head><body>';
-  html+='<div class="header"><div class="title">🚛 DAKAR CITY TRANSPORT</div>';
-  html+='<div class="subtitle">Récapitulatif de collecte — '+dateStr+' · Généré le '+dateGen+' à '+heureGen+'</div></div>';
+  var zone=document.createElement('div');
+  zone.style.cssText='position:fixed;left:-9999px;top:0;width:760px;';
 
-  // Stats globales
-  html+='<div class="stats-grid">';
-  html+='<div class="stat-box s-blue"><div class="stat-label">Total clients</div><div class="stat-val">'+totalClients+'</div></div>';
-  html+='<div class="stat-box s-green"><div class="stat-label">✅ Livrés</div><div class="stat-val">'+totalLivres+'</div></div>';
-  html+='<div class="stat-box s-red"><div class="stat-label">❌ Refusés</div><div class="stat-val">'+totalRefus+'</div></div>';
-  html+='<div class="stat-box s-purple"><div class="stat-label">🚫 Annulés</div><div class="stat-val">'+totalAnnules+'</div></div>';
-  html+='<div class="stat-box s-orange"><div class="stat-label">📋 Total facturé</div><div class="stat-val">'+totalCollecte+' €</div></div>';
-  html+='</div>';
+  var entete=document.createElement('div');
+  entete.style.cssText='background:#fff;padding:20px 20px 4px;font-family:Arial,sans-serif;font-size:12px;color:#1a1a2e;';
+  entete.innerHTML='<div style="margin-bottom:16px;">'
+    +'<div style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">🚛 DAKAR CITY TRANSPORT</div>'
+    +'<div style="font-size:12px;color:#666;">Récapitulatif de collecte — '+dateStr+' · Généré le '+dateGen+' à '+heureGen+'</div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">'
+    +   statBox('#1a1a2e','#e8eeff','Total clients',totalClients)
+    +   statBox('#0a5c30','#d4f5e4','✅ Livrés',totalLivres)
+    +   statBox('#8b0000','#ffd6d6','❌ Refusés',totalRefus)
+    +   statBox('#4a0080','#ede0ff','🚫 Annulés',totalAnnules)
+    +   statBox('#7a4800','#fff0cc','📋 Total facturé',totalCollecte+' €')
+    + '</div>';
+  zone.appendChild(entete);
 
-  // Section par camion
+  var blocs=[entete];
+  var LIGNES_PAR_PAGE=12;
+
   Object.keys(trks).forEach(function(k){
     var tk=trks[k];
     var sorted=tk.clients.slice().sort(function(a,b){
@@ -10764,8 +10763,6 @@ function _genererPDFContent(){
     var collecte=0;
     (tk.validated||[]).forEach(function(id){ collecte+=(cls[id]&&cls[id].prix)||0; });
 
-    // Heure début = premier wazeTs, fin = dernier finTs
-    // Lire timestamps depuis dispatchParCollecte (synchronisé avec Firebase)
     var allWaze=[]; var allFin=[];
     sorted.forEach(function(cid){
       var wts = tk.wazeTs && tk.wazeTs[cid];
@@ -10777,74 +10774,76 @@ function _genererPDFContent(){
     var fin=allFin.length?Math.max.apply(null,allFin):null;
     var dureeTotal=(debut&&fin)?(fin-debut):null;
 
-    html+='<div class="camion-block">';
-    html+='<div class="camion-title">🚛 '+tk.name+'</div>';
-    html+='<div class="camion-sub">';
-    if(debut||fin) html+=_formatHeure(debut)+' → '+_formatHeure(fin)+(dureeTotal?' · '+_formatDuree(dureeTotal)+' de tournée':'');
-    html+='</div>';
-
-    // Mini stats camion
-    html+='<div class="mini-stats">';
-    html+='<div class="mini-stat s-blue"><div class="mini-label">Clients</div><div class="mini-val">'+sorted.length+'</div></div>';
-    html+='<div class="mini-stat s-green"><div class="mini-label">✅ Livrés</div><div class="mini-val">'+livres+'</div></div>';
-    html+='<div class="mini-stat s-red"><div class="mini-label">❌ Refusés</div><div class="mini-val">'+refus+'</div></div>';
-    html+='<div class="mini-stat s-purple"><div class="mini-label">🚫 Annulés</div><div class="mini-val">'+annules+'</div></div>';
-    html+='<div class="mini-stat s-orange"><div class="mini-label">💰 Collecté</div><div class="mini-val">'+collecte+' €</div></div>';
-    html+='</div>';
-
-    // Tableau clients
-    html+='<table><thead><tr><th style="width:24px">#</th><th>Client</th><th>Adresse</th><th style="white-space:nowrap">Départ</th><th style="white-space:nowrap">Fin</th><th style="white-space:nowrap">Durée</th><th style="white-space:nowrap">Statut</th><th style="white-space:nowrap">Colis</th><th style="text-align:right;white-space:nowrap">Prix</th></tr></thead><tbody>';
-
-    sorted.forEach(function(id,i){
-      var c=cls[id];if(!c)return;
-      var val=(tk.validated||[]).includes(id);
-      var ref=(tk.refused||[]).includes(id);
-      var ann=(tk.cancelled||[]).includes(id);
-      var wazeTs = (tk.wazeTs&&tk.wazeTs[id])||null;
-      var finTs = (tk.finTs&&tk.finTs[id])||null;
-      var duree=(wazeTs&&finTs)?(finTs-wazeTs):null;
-      var adresseFull=(c.adresse||'')+', '+(c.cp||'')+' '+(c.ville||'');
-      var badge=val?'<span class="badge badge-ok">✅ Livré</span>':ref?'<span class="badge badge-no">❌ Refusé</span>':ann?'<span class="badge badge-ann">🚫 Annulé</span>':'<span class="badge badge-wait">En attente</span>';
-      var prix=val?(c.prix||0)+' €':'—';
-      var bg=i%2===1?' style="background:#f9f9f9;"':'';
-      html+='<tr'+bg+'>';
-      html+='<td style="color:#aaa;">'+(i+1)+'</td>';
-      html+='<td style="font-weight:700;">'+c.name+'</td>';
-      html+='<td style="color:#333;">'+adresseFull+'</td>';
-      html+='<td style="text-align:center;color:#333;">'+_formatHeure(wazeTs)+'</td>';
-      html+='<td style="text-align:center;color:#333;">'+_formatHeure(finTs)+'</td>';
-      html+='<td style="text-align:center;color:#333;">'+_formatDuree(duree)+'</td>';
-      html+='<td style="text-align:center;">'+badge+'</td>';
-      html+='<td style="vertical-align:top;">'+(c.colis||'—')+'</td>';
-      html+='<td style="text-align:right;font-weight:700;color:#1a1a2e;white-space:nowrap;">'+prix+'</td>';
-      html+='</tr>';
+    var entTk=document.createElement('div');
+    entTk.style.cssText='background:#fff;padding:0 20px;font-family:Arial,sans-serif;font-size:12px;color:#1a1a2e;';
+    // v1.94.21 : les 5 mini-stats du camion, même contenu que la grille
+    // globale d'origine, juste plus petit.
+    var miniStats='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:0 16px 12px;'
+      +'background:#fff;border:1px solid #ddd;border-top:none;">';
+    [['#1a1a2e','#e8eeff','Clients',sorted.length],
+     ['#0a5c30','#d4f5e4','✅ Livrés',livres],
+     ['#8b0000','#ffd6d6','❌ Refusés',refus],
+     ['#4a0080','#ede0ff','🚫 Annulés',annules],
+     ['#7a4800','#fff0cc','💰 Collecté',collecte+' €']
+    ].forEach(function(s){
+      miniStats+='<div style="background:'+s[1]+';border-radius:5px;padding:6px;text-align:center;">'
+        +'<div style="font-size:9px;color:#444;margin-bottom:2px;">'+s[2]+'</div>'
+        +'<div style="font-size:14px;font-weight:700;color:'+s[0]+';">'+s[3]+'</div></div>';
     });
+    miniStats+='</div>';
+    entTk.innerHTML='<div style="background:#fff;border:1px solid #ddd;border-radius:8px 8px 0 0;padding:16px 16px 0;">'
+      +'<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">🚛 '+tk.name+'</div>'
+      +'<div style="font-size:11px;color:#555;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;">'
+      +   ((debut||fin) ? _formatHeure(debut)+' → '+_formatHeure(fin)+(dureeTotal?' · '+_formatDuree(dureeTotal)+' de tournée':'') : '')
+      +'</div></div>' + miniStats;
+    zone.appendChild(entTk);
+    blocs.push(entTk);
 
-    html+='</tbody></table>';
-    if(Object.values(tk.wazeTs||{}).length<sorted.length){
-      html+='<p style="font-size:10px;color:#888;margin-top:6px;">— : donnée non disponible (Waze ouvert manuellement)</p>';
+    for(var i=0;i<sorted.length;i+=LIGNES_PAR_PAGE){
+      var page=sorted.slice(i,i+LIGNES_PAR_PAGE);
+      var lignesHtml='';
+      page.forEach(function(id,j){
+        var c=cls[id];if(!c)return;
+        var idx=i+j;
+        var val=(tk.validated||[]).includes(id);
+        var ref=(tk.refused||[]).includes(id);
+        var ann=(tk.cancelled||[]).includes(id);
+        var wazeTs=(tk.wazeTs&&tk.wazeTs[id])||null;
+        var finTs=(tk.finTs&&tk.finTs[id])||null;
+        var duree=(wazeTs&&finTs)?(finTs-wazeTs):null;
+        var adresseFull=(c.adresse||'')+', '+(c.cp||'')+' '+(c.ville||'');
+        var prix=val?(c.prix||0)+' €':'—';
+        var bg=idx%2===1?'background:#f9f9f9;':'';
+        lignesHtml+='<tr>'
+          +'<td style="padding:8px 6px;border-bottom:0.5px solid #eee;'+bg+'color:#aaa;">'+(idx+1)+'</td>'
+          +'<td style="padding:8px 6px;border-bottom:0.5px solid #eee;'+bg+'font-weight:700;color:#333;">'+c.name+'</td>'
+          +'<td style="padding:8px 6px;border-bottom:0.5px solid #eee;'+bg+'color:#333;">'+adresseFull+'</td>'
+          +'<td style="padding:8px 6px;border-bottom:0.5px solid #eee;'+bg+'text-align:center;color:#333;">'+_formatHeure(wazeTs)+'</td>'
+          +'<td style="padding:8px 6px;border-bottom:0.5px solid #eee;'+bg+'text-align:center;color:#333;">'+_formatHeure(finTs)+'</td>'
+          +'<td style="padding:8px 6px;border-bottom:0.5px solid #eee;'+bg+'text-align:center;color:#333;">'+_formatDuree(duree)+'</td>'
+          +'<td style="padding:8px 6px;border-bottom:0.5px solid #eee;'+bg+'text-align:center;">'+badgeDe(val,ref,ann)+'</td>'
+          +'<td style="padding:8px 6px;border-bottom:0.5px solid #eee;'+bg+'vertical-align:top;color:#333;">'+(c.colis||'—')+'</td>'
+          +'<td style="padding:8px 6px;border-bottom:0.5px solid #eee;'+bg+'text-align:right;font-weight:700;color:#1a1a2e;white-space:nowrap;">'+prix+'</td>'
+          +'</tr>';
+      });
+      var dernierPaquet=(i+LIGNES_PAR_PAGE)>=sorted.length;
+      var divTable=document.createElement('div');
+      divTable.style.cssText='background:#fff;padding:0 16px;font-family:Arial,sans-serif;font-size:11px;'
+        +'border:1px solid #ddd;border-top:none;'+(dernierPaquet?'border-radius:0 0 8px 8px;padding-bottom:10px;':'');
+      divTable.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:11px;">'+theadHtml+'<tbody>'+lignesHtml+'</tbody></table>'
+        + ((dernierPaquet && Object.values(tk.wazeTs||{}).length<sorted.length)
+          ? '<p style="font-size:10px;color:#888;margin-top:6px;">— : donnée non disponible (Waze ouvert manuellement)</p>'
+          : '');
+      zone.appendChild(divTable);
+      blocs.push(divTable);
     }
-    html+='</div>';
   });
 
-  html+='<div class="footer">Les durées incluent le trajet + le temps chez le client · Généré automatiquement par DCT</div>';
-  html+='<div class="no-print" style="margin-top:24px;padding:16px;background:#f0f0f0;border-radius:10px;text-align:center;">';
-  html+='<p style="font-size:13px;color:#555;margin-bottom:12px;">Sur iPhone : Partager → Imprimer → Pincer → Partager → Enregistrer en PDF</p>';
-  html+='<button onclick="window.print()" style="background:#009A44;color:white;border:none;padding:14px 24px;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;width:100%;">🖨️ Imprimer</button>';
-  html+='</div></body></html>';
-
-  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
+  document.body.appendChild(zone);
   var collecte2=collectes.find(function(c){return c.id===currentCollecteId;});
   var dateStr2=collecte2?collecte2.date.replace(/\s/g,'_'):'export';
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
-  if(isIOS){window.open(url,'_blank');}
-  else{
-    var a=document.createElement('a');
-    a.href=url;a.download='DCT_'+dateStr2+'.html';a.style.display='none';
-    document.body.appendChild(a);a.click();
-    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-  }
+  window.depGenererPDFParBlocs(blocs[0], blocs.slice(1), 'DCT_'+dateStr2+'.pdf');
+  setTimeout(function(){ if(zone.parentNode) document.body.removeChild(zone); }, 8000);
 }
 
 function afficherConnexionsAdmin(){

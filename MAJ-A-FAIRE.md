@@ -556,6 +556,43 @@ dédouanement…) n'appartiennent à aucune collecte précise : elles ne
 comptent que dans le total du container, pas ici. Rien d'autre pour
 l'instant (Cobey : « et après, pas pour l'instant ça »).
 
+### ~~Audit des exports PDF de toute l'application~~
+**Fait le 28/09 (v3.94.21 / v2.10.20).** Cobey : « qui veut me
+vérifier dans toute l'application où est-ce qu'il y a des exports PDF.
+Voir s'ils sont utiles, s'ils fonctionnent. Et [...] de me faire un
+vrai export PDF et ne plus passer par les exports où il faut passer
+par imprimer. »
+
+Ce que l'audit a trouvé : Facture, Étiquettes, Devis et Statistiques
+étaient déjà de vrais exports directs (html2canvas + jsPDF, faits plus
+tôt). Restaient deux exports oubliés dans dct-app.html (un fichier à
+part de departs.js, plus ancien) — toujours sur l'ancien
+`window.print()` : « Sur iPhone : Partager → Imprimer → Pincer →
+Partager → Enregistrer en PDF », et sur PC un simple fichier **.html**
+téléchargé, pas même un PDF.
+- La **feuille de route** d'un camion (`exportCamionPDF`, écran Vue
+  Camion).
+- Le **récapitulatif de collecte** complet, tous camions (`exportPDF`,
+  bouton "Exporter PDF complet" du sous-onglet Dispatch).
+
+Les deux génèrent maintenant un vrai `.pdf`, via une nouvelle fonction
+partagée (`depGenererPDFParBlocs`, dans departs.js, exposée sur
+`window` puisque dct-app.html tourne dans un `<script>` séparé). À la
+différence d'une facture (toujours courte, réduite pour tenir sur une
+page), ces deux documents sont de longueur variable — une tournée de 3
+clients ou de 40. Chaque partie (un paquet de quelques clients, un
+paquet de lignes de tableau) est donc capturée séparément et empilée
+sur autant de pages A4 que nécessaire, sans jamais couper un bloc en
+deux.
+
+Trouvé aussi en creusant : le bouton PDF de la feuille de route était
+dupliqué sur quatre écrans sans rapport (Nouvelle collecte, Ajouter
+client, Fiche client, Administration) — sans effet utile puisqu'il n'a
+de sens que sur l'écran d'un camion précis. Retiré de ces quatre
+écrans, gardé seulement là où il sert. Et une fonction `genererPDF()`
+plus vieille encore, elle aussi sur `window.print()`, n'était appelée
+nulle part dans toute l'application — supprimée.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
