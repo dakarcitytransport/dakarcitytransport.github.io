@@ -650,6 +650,19 @@ contenu dans Cloudflare et cliqué Deploy** (étape 2 de
 `CLOUDFLARE-A-FAIRE.md`) — un git push seul ne suffit pas pour ce
 fichier-là.
 
+**v1.94.25 :** une fois le rappel automatique visible dans Notification
+vérifié, Cobey : « je voulais m'inclure dans les personnes qui
+reçoivent, pour vérifier ». Jusqu'ici il n'était jamais destinataire
+du VRAI rappel Planning ("Êtes-vous disponible dimanche...") — retiré
+des participants dès le début (il n'a pas de disponibilité à donner),
+il ne recevait que le résumé texte de l'observateur. Le rappel
+automatique (Worker) et la relance manuelle (bouton "🔔 Relancer")
+l'ajoutent maintenant toujours en plus des personnes réellement
+concernées, pour qu'il constate lui-même l'arrivée de la notification
+sur son téléphone — sans jamais déclencher d'envoi quand il n'y a
+personne à relancer (pas de fausse alerte "à vérifier" quand tout le
+monde a déjà répondu).
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va

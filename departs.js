@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.23';
+var DEP_VERSION = 'v2.10.24';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20811,6 +20811,12 @@ window.depPlanningRelancer = function(iso){
   var dim = _depProchainsDimanches(8).filter(function(d){ return d.iso === iso; })[0];
   var quand = dim ? dim.libelle : iso;
   var u = window.currentUser || {};
+  // v1.94.25 : Cobey : « je voulais m'inclure dans les personnes qui
+  // reçoivent, pour vérifier » — il n'est jamais parmi les muets (voir
+  // plus haut), donc jamais destinataire du vrai rappel ; ajouté à part
+  // pour qu'il constate lui-même l'arrivée de la notification.
+  var cibles = aRelancer.map(function(x){ return x.id; });
+  if(moi && cibles.indexOf(moi) < 0) cibles.push(moi);
   db.ref('dct_file_push').push({
     titre  : 'Planning',
     corps  : 'Êtes-vous disponible dimanche ' + quand + ' ? Merci de répondre dans Planning.',
@@ -20819,7 +20825,7 @@ window.depPlanningRelancer = function(iso){
     // juste rouvrir l'application — sinon la personne doit encore
     // chercher la case elle-même (Cobey, le 26/09/2026).
     url    : './dct-app.html?ouvrir=planning',
-    cibles : aRelancer.map(function(x){ return x.id; }),
+    cibles : cibles,
     par    : u.id || '',
     creeLe : Date.now(),
     envoye : false

@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.5.0 · 28/09/2026
+   v1.5.1 · 28/09/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -332,6 +332,14 @@ const PL_LIBELLE_ETAPE = {
 
 async function plRelancer(iso, libelle, ids, env){
   if(!ids.length) return;
+  // v1.5.1 : Cobey : « je voulais m'inclure dans les personnes qui
+  // reçoivent, pour vérifier » — le message-observateur (plObserver)
+  // n'est qu'un résumé texte ; il veut aussi recevoir le VRAI rappel,
+  // sur son téléphone, pour constater lui-même que la notification
+  // arrive. Toujours ajouté, jamais en double (ID_OBSERVATEUR n'est de
+  // toute façon jamais dans `ids`, qui vient des participants — Cobey
+  // en est exclu, voir _depGensPlanning côté application).
+  const cibles = ids.indexOf(ID_OBSERVATEUR) >= 0 ? ids : ids.concat([ID_OBSERVATEUR]);
   await ecrire('dct_file_push/' + plCleUnique(), {
     // v1.2.0 : « Planning », pas « Dakar City Transport » — déjà affiché
     // tout seul par l'iPhone comme nom de l'application ; le répéter
@@ -342,7 +350,7 @@ async function plRelancer(iso, libelle, ids, env){
            + 'Planning avant jeudi 22h — passé ce délai, vous serez noté absent.',
     sujet  : 'planning-' + iso,
     url    : './dct-app.html?ouvrir=planning',
-    cibles : ids,
+    cibles : cibles,
     par    : 'systeme',
     creeLe : Date.now(),
     envoye : false
