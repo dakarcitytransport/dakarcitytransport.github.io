@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.26';
+var DEP_VERSION = 'v2.10.27';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4013,6 +4013,11 @@ function injecterEcrans(){
   // n'apparaît que pour le poste "Chargeur" (voir _depFxToggleNbPersonnes).
   +       '<input class="fi" id="dep-fx-nb" type="number" inputmode="numeric" min="1" step="1" '
   +         'placeholder="Nombre de personnes" style="margin-bottom:10px;display:none;">'
+  // v1.94.28 : Cobey, sur le poste "Salaires" : « on devrait avoir une
+  // case avec tous les noms, où on peut choisir le nom de chaque
+  // collaborateur [...] pour savoir le montant versé » — n'apparaît que
+  // pour ce poste-là, même principe que dep-fx-nb pour "Chargeur".
+  +       '<select class="fi" id="dep-fx-collab" style="margin-bottom:10px;display:none;"></select>'
   +       '<input class="fi" id="dep-fx-note" maxlength="80" '
   +         'placeholder="Pr&eacute;cision (facultatif)" style="margin-bottom:14px;">'
   +       '<button class="btn btn-green" onclick="depAjouterDepenseFixe()">&#10133; Enregistrer</button>'
@@ -18354,6 +18359,7 @@ window.depRenderRapfinContainers = function(){
       +     '<span>&#128100; <b>'+cp.clients+'</b> client'+(cp.clients>1?'s':'')+'</span>'
       +   '</div>'
       +   '<div style="margin-top:10px;">' + _depRapfinDeuxCaisses(cp) + '</div>'
+      +   _depRapfinLigneResultat(d._id, cp)
       + '</div>';
   });
 
@@ -18382,6 +18388,23 @@ function _depRapfinDeuxCaisses(cp){
   }
   return ligne('&#128230;', 'Colis',     cp.colisTotal, cp.colisPaye, cp.colisDu)
        + ligne('&#128666;', 'Livraison', cp.livTotal,   cp.livPaye,   cp.livDu);
+}
+
+// v1.94.27 : Cobey, sur la liste des containers : « on devrait voir pour
+// chaque conteneur les bénéfices réels obtenus, c'est-à-dire les
+// bénéfices payés, pas facturés. Comme ça on sait directement combien
+// on a touché par conteneur. » Même chiffre que le « Résultat colis »
+// du détail (voir _depResultatColis), affiché en plus sous chaque carte
+// — sans avoir à l'ouvrir pour le voir.
+function _depRapfinLigneResultat(departId, cp){
+  var resultat = _depResultatColis(departId, cp);
+  return '<div style="display:flex;justify-content:space-between;align-items:baseline;'
+    + 'margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
+    + '<span style="font-size:11.5px;color:var(--text3);font-weight:700;">&#128176; B&eacute;n&eacute;fice r&eacute;el'
+    +   '<span style="font-weight:500;color:#999;"> (encaiss&eacute; &minus; d&eacute;penses)</span></span>'
+    + '<b style="font-size:14px;color:' + (resultat < 0 ? '#B3261E' : '#006b2d') + ';">'
+    +   _depEuros(resultat) + ' &euro;</b>'
+    + '</div>';
 }
 
 var _depRapfinId = null;    // le container ouvert dans le détail financier
@@ -18416,11 +18439,10 @@ window.depRapfinContainer = function(id){
   // La livraison est une caisse à part, encaissée à Dakar, et elle ne
   // doit pas venir gonfler ce chiffre (retour de Cobey du 24/09/2026).
   // Elle reste lisible juste au-dessus, dans l'encart Caisse.
-  var encContainer = cp.colisPaye;
   var totCam = _depTotalCamionsDe(id);
   var totFix = _depTotalFixesDe(id);
   var totDep = depArrondi2(totCam + totFix);
-  var resultat = depArrondi2(encContainer - totDep);
+  var resultat = _depResultatColis(id, cp);
   // v1.94.12 : Cobey : « dans la case dépense de ce container, on doit
   // aussi voir le détail global » — même détail par poste que sur
   // l'écran "Dépenses du container", ici aussi.
@@ -19038,6 +19060,16 @@ function _depTotalDepensesContainer(departId){
   return depArrondi2(_depTotalFixesDe(departId) + _depTotalCamionsDe(departId));
 }
 
+// v1.94.27 : bénéfice RÉEL d'un container — l'encaissé, pas le facturé
+// (« les bénéfices payés, pas facturés [...] comme ça on sait
+// directement combien on a touché par conteneur », retour de Cobey du
+// 28/09/2026). Même calcul que le « Résultat colis » du détail d'un
+// container (voir depRapfinContainer, v1.66.0/v1.70.0) : colis
+// encaissés moins dépenses ; la livraison, caisse à part, n'y entre pas.
+function _depResultatColis(departId, cp){
+  return depArrondi2((cp && cp.colisPaye || 0) - _depTotalDepensesContainer(departId));
+}
+
 window.depOuvrirRapfinFixes = function(departId){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   var id = departId || _depRapfinId;
@@ -19051,12 +19083,37 @@ window.depOuvrirRapfinFixes = function(departId){
   depRenderDepensesFixes();
 };
 
+// v1.94.28 : tous les collaborateurs sauf Aminata (qui est au Bureau,
+// pas sur le terrain — retour de Cobey du 28/09/2026 : « tous les
+// collaborateurs à part Aminata »), Eric compris (« moi y compris »).
+// appliquerProfils() a déjà retiré le second profil admin d'Issyaka
+// (id 'AI') de COLLABS au démarrage — pas de doublon de nom à filtrer.
+function _depCollabsPourSalaire(){
+  return (window.COLLABS || []).filter(function(c){ return c && c.id !== 'AM'; });
+}
+
 // v1.94.15 : le champ "Nombre de personnes" ne concerne que le poste
 // "Chargeur" (loyer, dédouanement... n'ont pas de nombre de personnes).
+// v1.94.28 : même principe pour "Salaires" — le nom du collaborateur
+// payé, dans une case dédiée (voir _depCollabsPourSalaire).
 window._depFxToggleNbPersonnes = function(){
-  var sel = $('dep-fx-poste'), nb = $('dep-fx-nb');
-  if(!sel || !nb) return;
-  nb.style.display = (sel.value === 'chargeur') ? '' : 'none';
+  var sel = $('dep-fx-poste'), nb = $('dep-fx-nb'), col = $('dep-fx-collab');
+  if(!sel) return;
+  if(nb) nb.style.display = (sel.value === 'chargeur') ? '' : 'none';
+  if(col){
+    if(!col.options.length){
+      col.innerHTML = '<option value="" disabled selected>Choisir…</option>'
+        + _depCollabsPourSalaire().map(function(c){
+            return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>';
+          }).join('');
+    }
+    var versSalaires = (sel.value === 'salaires');
+    // Repart d'un choix vide à chaque bascule vers "Salaires" — sinon un
+    // nom resterait sélectionné d'un passage à l'autre sans qu'on l'ait
+    // choisi pour cette dépense-ci.
+    if(versSalaires) col.value = '';
+    col.style.display = versSalaires ? '' : 'none';
+  }
 };
 
 window.depRetourContainerDepuisFixes = function(){
@@ -19159,7 +19216,10 @@ window.depRenderDepensesFixes = function(){
         +   '<span>' + _depLibellePosteFixe(o.poste)
         // v1.94.15 : « des fois il y en a un, des fois deux, des fois
         // trois » — le nombre de personnes juste à côté du poste.
-        +     (o.nbPersonnes ? ' &middot; ' + o.nbPersonnes + ' personne' + (o.nbPersonnes>1?'s':'') : '') + '</span>'
+        +     (o.nbPersonnes ? ' &middot; ' + o.nbPersonnes + ' personne' + (o.nbPersonnes>1?'s':'') : '')
+        // v1.94.28 : « pour savoir le montant versé » — le nom du
+        // collaborateur payé, juste à côté du poste "Salaires".
+        +     (o.collabNom ? ' &middot; ' + esc(o.collabNom) : '') + '</span>'
         +   '<span style="font-weight:800;color:#B3261E;">' + _depEuros(o.montant) + ' &euro;</span>'
         + '</div>'
         + (o.note ? '<div class="dep-cli-s" style="margin-top:2px;">' + esc(o.note) + '</div>' : '')
@@ -19277,6 +19337,16 @@ window.depAjouterDepenseFixe = function(){
   // que pour ce poste-là.
   var nbPersonnes = (_depPosteFixe === 'chargeur')
     ? (parseInt(($('dep-fx-nb')||{}).value, 10) || 0) : 0;
+  // v1.94.28 : « on devrait avoir une case avec tous les noms [...] pour
+  // savoir le montant versé » — le poste "Salaires" exige de choisir à
+  // qui, sinon la question de Cobey resterait sans réponse.
+  var collabId = '', collabNom = '';
+  if(_depPosteFixe === 'salaires'){
+    collabId = (($('dep-fx-collab')||{}).value || '');
+    if(!collabId){ toast('⚠️ Choisissez le collaborateur.'); return; }
+    var cSal = _depCollabsPourSalaire().find(function(c){ return c.id === collabId; });
+    collabNom = cSal ? cSal.name : '';
+  }
   var u = window.currentUser || {};
   var obj = {
     poste   : _depPosteFixe,
@@ -19287,6 +19357,7 @@ window.depAjouterDepenseFixe = function(){
     parId   : u.id || ''
   };
   if(nbPersonnes > 0) obj.nbPersonnes = nbPersonnes;
+  if(collabId){ obj.collabId = collabId; obj.collabNom = collabNom; }
   db.ref('dct_finance/fixes/' + id).push(obj).then(function(){
     toast('✅ Dépense enregistrée — ' + _depEuros(obj.montant) + ' €');
     var m = $('dep-fx-montant'); if(m) m.value = '';

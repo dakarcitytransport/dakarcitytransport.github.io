@@ -993,6 +993,35 @@ payé / non payé · avec / sans livraison · par région
 
 ## 6 · Rapport financier
 
+### ~~Le bénéfice réel, container par container~~
+**Fait le 28/09 (v2.10.27 / v3.94.28).** Cobey, capture d'écran de la
+liste « Containers » à l'appui : « on devrait voir pour chaque
+conteneur les bénéfices réels obtenus, c'est-à-dire les bénéfices
+payés, pas facturés. Comme ça on sait directement combien on a touché
+par conteneur. »
+
+Chaque carte de la liste affiche désormais une ligne « 💰 Bénéfice réel
+(encaissé − dépenses) », en vert ou en rouge selon le signe — le même
+chiffre que le « Résultat colis » déjà calculé dans le détail d'un
+container (colis réellement encaissés, moins dépenses fixes et
+tournées ; la livraison, caisse à part, n'y entre pas), mais visible
+sans avoir à ouvrir la carte.
+
+### ~~Salaires : savoir à qui, et combien~~
+**Fait le 28/09 (v2.10.27 / v3.94.28).** Cobey, sur l'écran « Dépenses
+du container », poste « Salaires » : « on devrait avoir une autre case
+avec tous les noms, où on peut choisir les noms de chaque
+collaborateur, moi y compris. Et pour savoir le montant versé. C'est-
+à-dire tous les collaborateurs à part Aminata. »
+
+Une case « Choisir… » apparaît maintenant sous le poste et le montant,
+uniquement pour « Salaires » — tous les collaborateurs sauf Aminata
+(Eric compris), reconstruite à chaque bascule vers ce poste pour ne
+jamais garder un nom choisi pour une autre dépense. Le choix est
+obligatoire pour enregistrer une dépense « Salaires », et le nom
+retenu s'affiche ensuite sur sa ligne dans la liste des dépenses du
+container.
+
 ### ~~Dépenses par camion~~
 **Fait le 24/09 (v1.61.0).** Case « 💰 Dépenses du camion » juste sous
 l'impression des étiquettes, avec le total sur le bouton. Trois natures :
