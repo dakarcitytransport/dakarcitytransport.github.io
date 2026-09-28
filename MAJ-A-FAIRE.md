@@ -505,6 +505,10 @@ champ « Nombre de personnes » qui n'apparaît que pour ce poste-là et
 s'affiche juste à côté sur chaque ligne (« 👷 Chargeur · 2 personnes »).
 Le tarif jour/heure reste à écrire dans la précision, en texte libre.
 
+**v1.94.16 :** Cobey : « on va rajouter une catégorie course pour tout
+ce qui est dépenses de eau, boisson, café, des trucs comme ça. »
+Nouveau poste « 🛒 Course » dans le même menu, juste avant « Autre ».
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va

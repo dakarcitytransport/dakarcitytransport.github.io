@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.14';
+var DEP_VERSION = 'v2.10.15';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18334,6 +18334,9 @@ var DEP_POSTES_FIXES = [
   // Poste dédié, avec son propre nombre de personnes (voir dep-fx-nb) ;
   // le tarif jour/heure reste dans la précision, en texte libre.
   { cle:'chargeur',     icone:'&#128119;', label:'Chargeur' },
+  // v1.94.16 : Cobey : « on va rajouter une catégorie course pour tout
+  // ce qui est dépenses de eau, boisson, café, des trucs comme ça ».
+  { cle:'course',       icone:'&#128722;', label:'Course' },
   { cle:'autre',        icone:'&#128176;', label:'Autre' }
 ];
 var _depPosteFixe = 'loyer';
