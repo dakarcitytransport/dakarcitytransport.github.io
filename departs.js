@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.10';
+var DEP_VERSION = 'v2.10.11';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18153,6 +18153,11 @@ window.depRapfinContainer = function(id){
   var totFix = _depTotalFixesDe(id);
   var totDep = depArrondi2(totCam + totFix);
   var resultat = depArrondi2(encContainer - totDep);
+  // v1.94.12 : Cobey : « dans la case dépense de ce container, on doit
+  // aussi voir le détail global » — même détail par poste que sur
+  // l'écran "Dépenses du container", ici aussi.
+  var repFixes = _depRepartitionFixes(id);
+  var repCont  = _depRepartitionDepensesContainer(id);
 
   h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
     +   'padding:14px;margin-bottom:14px;">'
@@ -18162,10 +18167,13 @@ window.depRapfinContainer = function(id){
     +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses fixes</span>'
     +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
     + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
+    +   _depLignesRepartition(repFixes)
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;'
+    +   'margin-top:3px;">'
     +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#128666; Tourn&eacute;es des camions</span>'
     +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totCam) + ' &euro;</b>'
     + '</div>'
+    +   _depLignesRepartition(repCont)
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
     +   'margin-top:5px;border-top:2px solid var(--border);">'
     +   '<span style="font-size:13px;font-weight:800;color:var(--text);">R&eacute;sultat colis'
@@ -18354,6 +18362,33 @@ function _depTotalFixesDe(departId){
   return depArrondi2(_depFixesDe(departId).reduce(function(s,o){
     return s + (parseFloat(o.montant) || 0);
   }, 0));
+}
+
+// v1.94.12 : le même détail par poste que "Tournées des camions"
+// (_depRepartitionDepensesContainer), mais pour les dépenses fixes —
+// Cobey : « le détail des dépenses fixes doit également être au-dessus
+// du report des tournées ». Loyer, dédouanement, container, salaires…
+// v1.94.12 : les lignes de détail indentées (poste/type + montant),
+// factorisé — servait déjà pour "Tournées des camions" (repCont), sert
+// maintenant aussi pour "Dépenses fixes" et sur l'écran du container.
+function _depLignesRepartition(rows){
+  return rows.map(function(r){
+    return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 0 2px 22px;">'
+      +   '<span style="font-size:11.5px;color:var(--text3);">' + r.icone + ' ' + r.label + '</span>'
+      +   '<span style="font-size:12px;color:var(--text3);font-weight:700;">' + _depEuros(r.montant) + ' &euro;</span>'
+      + '</div>';
+  }).join('');
+}
+
+function _depRepartitionFixes(departId){
+  var parPoste = {};
+  _depFixesDe(departId).forEach(function(o){
+    var cle = o.poste || 'autre';
+    parPoste[cle] = (parPoste[cle] || 0) + (parseFloat(o.montant) || 0);
+  });
+  return DEP_POSTES_FIXES
+    .map(function(t){ return { icone: t.icone, label: t.label, montant: depArrondi2(parPoste[t.cle] || 0) }; })
+    .filter(function(x){ return x.montant > 0; });
 }
 
 /* v1.76.0 — Une dépense orpheline ne compte plus.
@@ -18773,6 +18808,10 @@ window.depRenderDepensesFixes = function(){
   // [...] pour le container, combien on a dépensé en déjeuner, combien
   // en carburant [...] que ce soit bien lisible, propre ».
   var repCont = _depRepartitionDepensesContainer(id);
+  // v1.94.12 : Cobey : « le détail des dépenses fixes doit également
+  // être au-dessus du report des tournées ». Même principe que
+  // repCont, mais par poste (loyer/dédouanement/container/salaires…).
+  var repFixes = _depRepartitionFixes(id);
 
   // v1.94.11 : Cobey : « on va mettre en avant dépenses propres, on va
   // le remonter au-dessus de tournées des camions [...] c'est vraiment
@@ -18786,17 +18825,13 @@ window.depRenderDepensesFixes = function(){
     +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses fixes</span>'
     +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
     + '</div>'
+    +   _depLignesRepartition(repFixes)
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;'
     +   'margin-top:3px;">'
     +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#128666; Tourn&eacute;es des camions</span>'
     +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totCam) + ' &euro;</b>'
     + '</div>'
-    +   repCont.map(function(r){
-          return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 0 2px 22px;">'
-            +   '<span style="font-size:11.5px;color:var(--text3);">' + r.icone + ' ' + r.label + '</span>'
-            +   '<span style="font-size:12px;color:var(--text3);font-weight:700;">' + _depEuros(r.montant) + ' &euro;</span>'
-            + '</div>';
-        }).join('')
+    +   _depLignesRepartition(repCont)
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
     +   'margin-top:5px;border-top:2px solid var(--border);">'
     +   '<span style="font-size:13px;font-weight:800;color:var(--text);">Total du container</span>'

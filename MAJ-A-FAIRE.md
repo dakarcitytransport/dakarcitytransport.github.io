@@ -461,6 +461,22 @@ détail par tournée et dans le total du container par poste. Saisir ça
 « pour la collecte » (sans camion précis) aurait cassé ce prorata et
 n'aurait pas pu s'afficher dans le détail par camion.
 
+**v1.94.12 :** Cobey, sur le nom de la catégorie « Chauffeur externe » :
+« il faut préciser que c'est leur paye du jour [...] on paye ces
+chauffeurs, ils viennent travailler vos jours et on les paye ». En
+attente de son choix parmi les propositions faites (Journée chauffeur /
+Paye chauffeur / Chauffeur — vacation / Main-d'œuvre chauffeur).
+
+Dans la foulée, deux demandes sur l'affichage : « le détail des
+dépenses fixes doit également être au-dessus du report des tournées »,
+et « dans la case dépense de ce container, on doit aussi voir le détail
+global ». Le détail par poste (🏠 Loyer, 📋 Dédouanement, 📦 Container,
+👤 Salaires…) — déjà calculé pour "Tournées des camions" — existe
+maintenant aussi pour "Dépenses fixes", et s'affiche sous chacun des
+deux totaux : sur l'écran dédié "Dépenses du container" (donc bien
+au-dessus de "Report des tournées"), et sur la case résumé "Dépenses de
+ce container" de l'écran du container lui-même.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
