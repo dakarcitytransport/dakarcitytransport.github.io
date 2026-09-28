@@ -509,6 +509,17 @@ Le tarif jour/heure reste à écrire dans la précision, en texte libre.
 ce qui est dépenses de eau, boisson, café, des trucs comme ça. »
 Nouveau poste « 🛒 Course » dans le même menu, juste avant « Autre ».
 
+**v1.94.17 :** Cobey, sur la case CONTAINERS du Rapport Financier :
+« on va mettre une autre case conteneur Mali et une case conteneur
+Sénégal [...] actuellement dans conteneur il y a les deux mélangés
+[...] comme on ne gère pas du tout le conteneur Mali, ça va faire des
+lignes pour rien. Donc autant tout centraliser dans une case pour le
+Mali et bien laisser une bonne visibilité pour le conteneur de
+Sénégal. » La case unique "CONTAINERS" devient deux cases, "🇸🇳
+CONTAINERS SÉNÉGAL" et "🇲🇱 CONTAINERS MALI", chacune ouvrant la liste
+déjà filtrée sur son pays (l'onglet Tous/Dakar/Mali de l'écran reste
+disponible pour changer d'avis une fois dedans).
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va

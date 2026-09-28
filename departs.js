@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.15';
+var DEP_VERSION = 'v2.10.16';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3881,10 +3881,17 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#006b2d;">BILAN</div>'
   +         '<div class="dep-case-sub" id="dep-rf-sub-bilan">&mdash;</div>'
   +       '</div>'
-  +       '<div class="dep-case" style="background:#E2E2F1;" onclick="depOuvrirRapfinContainers()">'
-  +         '<div class="dep-case-ico">&#128230;</div>'
-  +         '<div class="dep-case-tit" style="color:#252599;">CONTAINERS</div>'
-  +         '<div class="dep-case-sub" id="dep-rf-sub-cont">&mdash;</div>'
+  // v1.94.17 : deux cases plutôt qu'une, Sénégal et Mali — voir
+  // depOuvrirRapfinContainers, juste au-dessus.
+  +       '<div class="dep-case" style="background:#E2E2F1;" onclick="depOuvrirRapfinContainers(\'SN\')">'
+  +         '<div class="dep-case-ico">&#127480;&#127475;</div>'
+  +         '<div class="dep-case-tit" style="color:#252599;">CONTAINERS S&Eacute;N&Eacute;GAL</div>'
+  +         '<div class="dep-case-sub" id="dep-rf-sub-cont-sn">&mdash;</div>'
+  +       '</div>'
+  +       '<div class="dep-case" style="background:#E2E2F1;" onclick="depOuvrirRapfinContainers(\'ML\')">'
+  +         '<div class="dep-case-ico">&#127474;&#127473;</div>'
+  +         '<div class="dep-case-tit" style="color:#252599;">CONTAINERS MALI</div>'
+  +         '<div class="dep-case-sub" id="dep-rf-sub-cont-ml">&mdash;</div>'
   +       '</div>'
   +       '<div class="dep-case" style="background:#EDE7F6;" onclick="depOuvrirComparer()">'
   +         '<div class="dep-case-ico">&#128200;</div>'
@@ -17950,17 +17957,24 @@ window.depDevisConfirmerRefuser = function(){
    ───────────────────────────────────────────── */
 window.depOuvrirEspaceRapportFinancier = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
-  // Aperçu sur la case : le restant dû, toutes caisses et tous
-  // containers confondus — c'est le chiffre qui décide s'il faut ouvrir.
-  var sub = $('dep-rf-sub-cont');
-  if(sub){
+  // Aperçu sur les cases : le nombre de containers et de clients, par
+  // pays maintenant que Sénégal et Mali ont chacun leur case (v1.94.17).
+  ['SN','ML'].forEach(function(pays){
+    var sub = $('dep-rf-sub-cont-' + pays.toLowerCase());
+    if(!sub) return;
+    var conts = _depRapfinTousLesContainers().filter(function(d){ return depPaysDepart(d) === pays; });
+    var nb = 0, clients = 0;
+    conts.forEach(function(d){
+      var cp = compteursDepart(d._id);
+      if(!cp.clients) return;
+      nb++; clients += cp.clients;
+    });
     // v1.69.0 : pas de montant ici — les totaux sont l'affaire du Bilan.
-    var g = _depRapfinTotaux();
-    sub.innerHTML = g.nb === 0
+    sub.innerHTML = nb === 0
       ? 'Aucun container'
-      : '<b style="color:#252599;">' + g.nb + '</b> container' + (g.nb>1?'s':'')
-        + '<br>' + g.clients + ' client' + (g.clients>1?'s':'');
-  }
+      : '<b style="color:#252599;">' + nb + '</b> container' + (nb>1?'s':'')
+        + '<br>' + clients + ' client' + (clients>1?'s':'');
+  });
   // Aperçu de la case BILAN : le bénéfice, reprise comprise.
   var sb = $('dep-rf-sub-bilan');
   if(sb){
@@ -18020,8 +18034,17 @@ function _depRapfinTotaux(){
   return g;
 }
 
-window.depOuvrirRapfinContainers = function(){
+// v1.94.17 : Cobey, sur la case CONTAINERS du Rapport Financier : « on
+// va mettre une autre case conteneur Mali et une case conteneur
+// Sénégal [...] comme on ne gère pas du tout le conteneur Mali, ça va
+// faire des lignes pour rien [...] autant tout centraliser dans une
+// case pour le Mali et bien laisser une bonne visibilité pour le
+// conteneur de Sénégal ». Un pays optionnel pré-filtre la liste dès
+// l'ouverture — l'onglet Tous/Dakar/Mali de l'écran reste là pour
+// changer d'avis une fois dedans.
+window.depOuvrirRapfinContainers = function(pays){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  if(pays) _depRapfinPays = pays;
   goTo('s-rapfin-containers');
   depRenderRapfinContainers();
 };
