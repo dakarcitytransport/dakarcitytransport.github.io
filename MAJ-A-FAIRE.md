@@ -932,6 +932,13 @@ ouvre la fiche, comme avant.
 
 - Pouvoir créer des **factures manuelles** rattachées à un container,
   pour le suivi.
+- ~~Sur la facture, le **payé / reste à payer** ne se voit pas assez
+  d'un coup d'œil.~~ **Fait le 28/09 (v2.10.26 / v3.94.27).** « Il
+  faudrait des codes couleurs. Pareil pour la livraison. » Montant payé
+  et reste à payer, pour le colis comme pour la livraison, prennent
+  désormais les mêmes couleurs que le badge de statut en haut de la
+  facture : vert quand c'est réglé, rouge quand il reste quelque chose
+  à payer.
 - ~~**Agrandir le QR code** de l'étiquette.~~ **Fait le 24/09 (v1.82.0).**
   De 100 à 168 px à l'écran, et le dessin passe de 180 à 300 px pour
   rester net à l'impression. Une étiquette se scanne sur un colis posé au

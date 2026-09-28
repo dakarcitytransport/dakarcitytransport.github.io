@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.24';
+var DEP_VERSION = 'v2.10.26';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8961,8 +8961,8 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     +         '<div class="fac-totaux-ligne"><span>Sous-total colis</span><span>'+esc(totalColisTxt)+'</span></div>'
     +         '<div class="fac-totaux-ligne"><span>TVA</span><span>0 &euro;</span></div>'
     +         '<div class="fac-totaux-ligne fac-totaux-total"><span>TOTAL</span><span>'+esc(totalColisTxt)+'</span></div>'
-    +         '<div class="fac-totaux-ligne"><span>Montant pay&eacute;</span><span>'+pay.paye+' &euro;</span></div>'
-    +         '<div class="fac-totaux-ligne"><span>Reste &agrave; payer</span><span>'+pay.reste+' &euro;</span></div>'
+    +         '<div class="fac-totaux-ligne"><span>Montant pay&eacute;</span><span style="'+(pay.paye > 0 ? 'color:#006b2d;font-weight:700;' : '')+'">'+pay.paye+' &euro;</span></div>'
+    +         '<div class="fac-totaux-ligne"><span>Reste &agrave; payer</span><span style="'+(pay.reste > 0 ? 'color:#992020;font-weight:700;' : 'color:#006b2d;font-weight:700;')+'">'+pay.reste+' &euro;</span></div>'
     +         (totalLivraison
                 ? ('<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">'
                    + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison &agrave; Dakar</span><span>'+totalLivraison+' &euro;</span></div>'
@@ -8970,8 +8970,13 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
                    // explicitement — avant, rien ne l'indiquait ici, ce qui
                    // laissait croire (avec le badge du haut) qu'elle était
                    // déjà réglée (retour de Cobey du 22/08/2026).
-                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Pay&eacute; (livraison)</span><span>'+payLivPub.paye+' &euro;</span></div>'
-                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;'+(payLivPub.reste > 0 ? 'color:#992020;font-weight:700;' : 'color:#888;')+'"><span>Reste &agrave; payer (livraison)</span><span>'+payLivPub.reste+' &euro;</span></div>'
+                   //
+                   // v1.94.26 : mêmes couleurs que le statut en haut de
+                   // facture (rouge = reste dû, vert = réglé) — sans ça, le
+                   // payé/reste dû se noyait dans le gris et ne se voyait
+                   // pas d'un coup d'œil (retour de Cobey du 28/09/2026).
+                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;'+(payLivPub.paye > 0 ? 'color:#006b2d;font-weight:700;' : 'color:#888;')+'"><span>Pay&eacute; (livraison)</span><span>'+payLivPub.paye+' &euro;</span></div>'
+                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;'+(payLivPub.reste > 0 ? 'color:#992020;font-weight:700;' : 'color:#006b2d;font-weight:700;')+'"><span>Reste &agrave; payer (livraison)</span><span>'+payLivPub.reste+' &euro;</span></div>'
                    + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Total avec livraison</span><span>'+esc(totalGeneralTxt)+'</span></div>'
                    + '</div>')
                 : '')
