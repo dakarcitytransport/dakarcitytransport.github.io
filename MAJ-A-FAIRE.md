@@ -611,6 +611,17 @@ Planning ne se réaffichait pas. Corrigé : elle n'écrit plus jamais un
 mémo vide, et les échecs d'écriture (permissions Firebase) sont
 maintenant journalisés au lieu de disparaître en silence.
 
+**v1.94.23 :** malgré ce premier correctif, et après avoir vérifié que
+"L'équipe" affichait bien tout le monde (Issyaka, Abdoulaye, Samba,
+Ibrahima, Boubacar), le Worker répondait toujours `rappels: 0`. Un
+deuxième bug, empilé sur le premier : la fonction marquait "déjà
+envoyé" **avant** même de savoir si Firebase avait accepté l'écriture
+(`set()` est asynchrone) — un échec silencieux (permissions, réseau)
+laissait quand même cette marque, et plus rien ne retentait tant que la
+page restait ouverte, même une fois la vraie cause corrigée. Elle ne se
+marque plus "envoyée" qu'une fois l'écriture confirmée par Firebase ;
+un échec redevient visible par un toast au lieu de disparaître.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
