@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.20';
+var DEP_VERSION = 'v2.10.21';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -21144,12 +21144,26 @@ window.depRenderPlanning = function(){
 var _depPlanningMemoEnvoye = '';
 function _depMajParticipantsPourCloudflare(){
   if(!window.db) return;
+  var gens = _depGensPlanning();
+  // v1.94.22 : Cobey, notification jamais reçue lundi 9h — le Worker
+  // répondait "rappels:0" en boucle, même après avoir rouvert Planning.
+  // Cause : si COLLABS n'était pas encore chargé au moment exact de ce
+  // rendu (course avec le chargement Firebase), la liste était vide, et
+  // ce mémo VIDE partait quand même vers Firebase — figeant
+  // dct_planning_participants à {} pour de bon, puisque cette fonction
+  // n'écrit que si la liste a CHANGÉ depuis la dernière fois. Tant que
+  // personne ne rouvrait Planning une fois COLLABS enfin chargé (ce qui
+  // n'arrive jamais si on referme l'écran avant), plus rien ne relançait
+  // l'écriture. On ne risque plus d'écraser le mémo avec une liste vide.
+  if(!gens.length) return;
   var memo = {};
-  _depGensPlanning().forEach(function(c){ memo[c.id] = { nom: c.name || '' }; });
+  gens.forEach(function(c){ memo[c.id] = { nom: c.name || '' }; });
   var json = JSON.stringify(memo);
   if(json === _depPlanningMemoEnvoye) return;
   _depPlanningMemoEnvoye = json;
-  db.ref('dct_planning_participants').set(memo);
+  db.ref('dct_planning_participants').set(memo).catch(function(e){
+    console.error('departs: écriture participants Planning (Cloudflare)', e);
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════

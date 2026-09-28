@@ -593,6 +593,24 @@ de sens que sur l'écran d'un camion précis. Retiré de ces quatre
 plus vieille encore, elle aussi sur `window.print()`, n'était appelée
 nulle part dans toute l'application — supprimée.
 
+### ~~Planning : la relance ne partait jamais~~
+**Fait le 28/09 (v3.94.22 / v2.10.21).** Cobey : « je devais recevoir
+une notification push pour les disponibilités du planning [...]
+normalement je devais recevoir lundi à 9h, mais j'ai rien reçu ». Le
+Worker Cloudflare répondait `rappels: 0` en boucle, même après avoir
+rouvert Planning ("c pareil").
+
+Cause : `dct_planning_participants` (le mémo que l'application laisse
+à Cloudflare — qui, lui, n'a pas accès à COLLABS) avait été écrit VIDE
+une fois, et rien ne le corrigeait plus jamais après. Ça arrivait si
+Planning s'affichait avant que COLLABS ait fini de charger depuis
+Firebase (course entre les deux) — cette fonction n'écrivant que
+lorsque la liste change depuis la dernière fois, un mémo vide écrit une
+fois restait vide pour de bon, même une fois COLLABS chargé, tant que
+Planning ne se réaffichait pas. Corrigé : elle n'écrit plus jamais un
+mémo vide, et les échecs d'écriture (permissions Firebase) sont
+maintenant journalisés au lieu de disparaître en silence.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
