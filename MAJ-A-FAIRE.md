@@ -537,6 +537,25 @@ quand un camion sert plusieurs containers le même jour ("un camion et
 demi" — 1 container entier + une part d'un second), au lieu d'être
 comptée en entier sur un seul container.
 
+**v1.94.20 :** Cobey, sur l'écran "Comparer" : « je pouvais pas voir
+juste un conteneur seul » — il avait comparé un container avec
+lui-même pour contourner ça. Il a demandé un sous-menu dans la case
+STATISTIQUES du Rapport Financier : « on va faire deux sous-menus, le
+[Comparer] et [...] une autre case qui permette de voir les stats d'un
+conteneur [...] les dépenses au fur et à mesure des collectes avec un
+graphisme, les dépenses, les gains [...] plusieurs pylônes ».
+
+La case STATISTIQUES ouvre maintenant un sous-menu à deux entrées :
+« Comparer » (l'écran existant, inchangé) et « Un container » (nouveau).
+Ce dernier propose la liste des containers ; en choisir un affiche un
+pylône par collecte qui l'a alimenté, chronologique de gauche à droite,
+avec pour chacune deux barres — dépenses de tournée de ce jour-là (même
+calcul, même prorata que le report des tournées) et encaissé de ce
+jour-là pour les clients de ce container. Les dépenses fixes (loyer,
+dédouanement…) n'appartiennent à aucune collecte précise : elles ne
+comptent que dans le total du container, pas ici. Rien d'autre pour
+l'instant (Cobey : « et après, pas pour l'instant ça »).
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va

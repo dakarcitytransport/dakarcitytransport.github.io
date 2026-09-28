@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.18';
+var DEP_VERSION = 'v2.10.19';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3091,7 +3091,9 @@ function injecterEcrans(){
      côte à côte, avec le graphique en colonnes. ---- */
   + '<div class="screen" id="s-stats-cmp">'
   +   '<div class="header">'
-  +     '<button class="btn-back" onclick="depOuvrirEspaceRapportFinancier()">&larr; Rapport</button>'
+  // v1.94.20 : retour au sous-menu Statistiques, pas droit au Rapport —
+  // Comparer s'ouvre maintenant depuis ce sous-menu (voir s-stats-menu).
+  +     '<button class="btn-back" onclick="goTo(\'s-stats-menu\')">&larr; Statistiques</button>'
   +     '<div class="h-title">Statistiques<div class="h-sub">Comparer deux p&eacute;riodes, ou deux containers</div></div>'
   +     '<div style="width:60px;"></div>'
   +   '</div>'
@@ -3893,13 +3895,57 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#252599;">CONTAINERS MALI</div>'
   +         '<div class="dep-case-sub" id="dep-rf-sub-cont-ml">&mdash;</div>'
   +       '</div>'
-  +       '<div class="dep-case" style="background:#EDE7F6;" onclick="depOuvrirComparer()">'
+  // v1.94.20 : Cobey : « dans le menu statistique, on va faire deux
+  // sous-menus [...] où on peut voir les stats d'un conteneur [...]
+  // les dépenses au fur et à mesure des collectes » — la case ouvre
+  // maintenant un sous-menu (Comparer / Un container) au lieu d'aller
+  // droit sur Comparer.
+  +       '<div class="dep-case" style="background:#EDE7F6;" onclick="depOuvrirStatsMenu()">'
   +         '<div class="dep-case-ico">&#128200;</div>'
   +         '<div class="dep-case-tit" style="color:#4527A0;">STATISTIQUES</div>'
   +         '<div class="dep-case-sub" id="dep-rf-sub-cmp">&mdash;</div>'
   +       '</div>'
   +     '</div>'
   +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v1.94.20) : STATISTIQUES — sous-menu. Comparer (déjà
+     là) ou regarder un seul container dans le temps (nouveau) — Cobey :
+     « on va faire deux sous-menus [...] où on peut voir les stats d'un
+     conteneur ». ---- */
+  + '<div class="screen" id="s-stats-menu">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="depOuvrirEspaceRapportFinancier()">&larr; Rapport</button>'
+  +     '<div class="h-title">Statistiques</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div class="dep-cases" style="grid-template-columns:1fr;">'
+  +       '<div class="dep-case" style="background:#EDE7F6;text-align:left;" onclick="depOuvrirComparer()">'
+  +         '<div class="dep-case-ico">&#128200;</div>'
+  +         '<div class="dep-case-tit" style="color:#4527A0;">COMPARER</div>'
+  +         '<div class="dep-case-sub">Deux p&eacute;riodes, ou deux containers, c&ocirc;te &agrave; c&ocirc;te</div>'
+  +       '</div>'
+  +       '<div class="dep-case" style="background:#DCEEF7;text-align:left;" onclick="depOuvrirStatsEvol()">'
+  +         '<div class="dep-case-ico">&#128201;</div>'
+  +         '<div class="dep-case-tit" style="color:#01579B;">UN CONTAINER</div>'
+  +         '<div class="dep-case-sub">D&eacute;penses et encaiss&eacute;, collecte par collecte</div>'
+  +       '</div>'
+  +     '</div>'
+  +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v1.94.20) : STATISTIQUES > UN CONTAINER — l'évolution
+     collecte par collecte, en graphique. Cobey : « on peut voir les
+     dépenses au fur et à mesure des collectes avec un graphisme, les
+     dépenses, les gains [...] plusieurs pylônes ». ---- */
+  + '<div class="screen" id="s-stats-evol">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-stats-menu\')">&larr; Statistiques</button>'
+  +     '<div class="h-title">Un container<div class="h-sub">D&eacute;penses et encaiss&eacute;, collecte par collecte</div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="dep-evol-content"></div></div>'
   + '</div>'
 
   /* ---- ÉCRAN (v1.59.0) : Rapport financier > Containers — la liste de
@@ -6212,6 +6258,138 @@ function _depCmpAgreger(cle){
   r.benefice = depArrondi2(r.encaisse - r.depenses);
   return r;
 }
+
+// v1.94.20 : Cobey : « dans le menu statistique, on va faire deux
+// sous-menus [...] où on peut voir les stats d'un conteneur ». La case
+// STATISTIQUES ouvre ce sous-menu, qui mène à Comparer (déjà là) ou à
+// Un container (nouveau, juste en dessous).
+window.depOuvrirStatsMenu = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  goTo('s-stats-menu');
+};
+
+var _depStatsEvolId = '';
+
+window.depOuvrirStatsEvol = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  goTo('s-stats-evol');
+  depRenderStatsEvol();
+};
+
+window.depStatsEvolChoisir = function(id){
+  _depStatsEvolId = id;
+  depRenderStatsEvol();
+};
+
+/* Cobey : « on peut voir les dépenses au fur et à mesure des collectes
+   avec un graphisme, les dépenses, les gains [...] plusieurs pylônes ».
+   Un point par collecte ayant nourri ce container — dépenses de
+   tournée de ce jour-là (mêmes camions que "Report des tournées",
+   déjà au prorata quand un camion sert plusieurs containers) et
+   encaissé de ce jour-là (les clients de CE container inscrits à
+   cette collecte). Les dépenses fixes (loyer, dédouanement...)
+   n'appartiennent à aucune collecte précise : elles ne figurent pas
+   ici, seulement dans le total du container. Tri chronologique du plus
+   ancien au plus récent, pour lire l'évolution de gauche à droite. */
+function _depEvolutionContainer(departId){
+  var parCol = {};
+  _depCamionsParContainer(departId).forEach(function(o){
+    var g = parCol[o.colId] || (parCol[o.colId] = { colDate:o.colDate, colTs:o.colTs, depenses:0, encaisse:0 });
+    g.depenses += o.montant;
+  });
+  (window.collectes || []).forEach(function(col){
+    var cls = (window.clientsParCollecte || {})[col.id] || {};
+    var enc = 0, present = false;
+    Object.keys(cls).forEach(function(k){
+      var c = cls[k];
+      if(!c || c.departId !== departId || _depEstFusionnee(c)) return;
+      present = true;
+      enc += depCalculerPaiement(c).paye;
+    });
+    if(!present) return;
+    var g = parCol[col.id];
+    if(!g){
+      var dt = _depParseDateSure(col.date);
+      g = parCol[col.id] = { colDate: col.date,
+        colTs: (dt && !isNaN(dt.getTime())) ? dt.getTime() : 0, depenses:0, encaisse:0 };
+    }
+    g.encaisse = enc;
+  });
+  return Object.keys(parCol).map(function(k){
+    var g = parCol[k];
+    g.depenses = depArrondi2(g.depenses);
+    g.encaisse = depArrondi2(g.encaisse);
+    return g;
+  }).sort(function(a,b){ return a.colTs - b.colTs; });
+}
+
+// Un pylône par collecte : deux barres (dépenses/encaissé), leur valeur
+// juste au-dessus, la date en dessous — se lit en faisant défiler.
+function _depEvolGraphique(rows){
+  var H = 110;
+  var max = 1;
+  rows.forEach(function(r){ max = Math.max(max, r.depenses, r.encaisse); });
+  var barre = function(v, coul){
+    var haut = Math.round((v / max) * H);
+    if(v > 0 && haut < 3) haut = 3;
+    return '<div style="display:flex;flex-direction:column;align-items:center;width:28px;">'
+      +   '<div style="font-size:9px;font-weight:800;color:'+coul+';margin-bottom:3px;'
+      +     'white-space:nowrap;">' + _depEuros(v) + '</div>'
+      +   '<div style="height:'+H+'px;display:flex;align-items:flex-end;width:100%;">'
+      +     '<div style="width:100%;height:'+haut+'px;border-radius:4px 4px 0 0;background:'+coul+';"></div>'
+      +   '</div>'
+      + '</div>';
+  };
+  var colonnes = rows.map(function(r){
+    var d = _depParseDateSure(r.colDate);
+    var lib = (d && !isNaN(d.getTime()))
+      ? (String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'))
+      : '&mdash;';
+    return '<div style="flex:none;display:flex;flex-direction:column;align-items:center;">'
+      +   '<div style="display:flex;gap:4px;align-items:flex-end;">'
+      +     barre(r.depenses, '#B3261E') + barre(r.encaisse, '#009A44')
+      +   '</div>'
+      +   '<div style="height:2px;width:100%;background:var(--border);margin-top:2px;"></div>'
+      +   '<div style="font-size:10.5px;font-weight:700;color:var(--text3);margin-top:5px;">' + lib + '</div>'
+      + '</div>';
+  }).join('');
+  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:14px;margin-top:12px;">'
+    + '<div style="display:flex;gap:14px;font-size:11px;font-weight:800;margin-bottom:12px;">'
+    +   '<span style="color:#B3261E;">&#9632; D&eacute;penses</span>'
+    +   '<span style="color:#009A44;">&#9632; Encaiss&eacute;</span>'
+    + '</div>'
+    + '<div style="display:flex;gap:16px;overflow-x:auto;padding-bottom:4px;">' + colonnes + '</div>'
+    + '</div>';
+}
+
+window.depRenderStatsEvol = function(){
+  var box = $('dep-evol-content');
+  if(!box) return;
+
+  var h = '<div style="display:grid;gap:6px;">';
+  tousLesDeparts().forEach(function(d){
+    var actif = (_depStatsEvolId === d._id);
+    h += '<div onclick="depStatsEvolChoisir(\''+d._id+'\')" style="cursor:pointer;'
+      +   'display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;'
+      +   'border:1.5px solid ' + (actif ? '#111' : 'var(--border)') + ';'
+      +   'background:' + (actif ? '#111' : '#fff') + ';">'
+      +   '<span style="font-weight:800;font-size:12.5px;color:' + (actif?'#fff':'var(--text)') + ';">'
+      +     (depPaysDepart(d)==='ML'?'🇲🇱':'🇸🇳') + ' ' + esc(d.nom||'Container')
+      +     (d.dateDepart ? ' &middot; ' + esc(dateFr(d.dateDepart)) : '') + '</span>'
+      + '</div>';
+  });
+  h += '</div>';
+
+  if(_depStatsEvolId){
+    var rows = _depEvolutionContainer(_depStatsEvolId);
+    h += rows.length ? _depEvolGraphique(rows)
+      : '<div class="dep-vide" style="padding:28px 16px;margin-top:12px;">Aucune collecte n\'a '
+        + 'encore aliment&eacute; ce container.</div>';
+  }
+
+  box.innerHTML = h;
+};
 
 window.depOuvrirComparer = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
