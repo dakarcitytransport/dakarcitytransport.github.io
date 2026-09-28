@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.17';
+var DEP_VERSION = 'v2.10.18';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16330,6 +16330,13 @@ var DEP_TYPES_DEPENSE = [
   // jour, et apparaître dans le même détail par tournée.
   { cle:'location_camion', icone:'&#128667;', label:'Location camion' },
   { cle:'chauffeur',       icone:'&#129489;', label:'Paye chauffeur externe' },
+  // v1.94.19 : Cobey, sur "Course" (eau, boisson, café) : « il faut la
+  // mettre dans la tournée des camions et pas dans les dépenses fixes,
+  // parce que [...] il y en a un camion et demi via un camion » —
+  // c'est une dépense DU camion ce jour-là, pas du container : elle
+  // doit se prorater comme carburant/déjeuner quand ce camion sert
+  // plusieurs containers, pas être fixée sur un seul.
+  { cle:'course',          icone:'&#128722;', label:'Course' },
   { cle:'autre',           icone:'&#128176;', label:'Autre' }
 ];
 // Le carburant se paie avec des centimes : « 45,50 € », pas « 45.5 € ».
@@ -18338,9 +18345,6 @@ var DEP_POSTES_FIXES = [
   // Poste dédié, avec son propre nombre de personnes (voir dep-fx-nb) ;
   // le tarif jour/heure reste dans la précision, en texte libre.
   { cle:'chargeur',     icone:'&#128119;', label:'Chargeur' },
-  // v1.94.16 : Cobey : « on va rajouter une catégorie course pour tout
-  // ce qui est dépenses de eau, boisson, café, des trucs comme ça ».
-  { cle:'course',       icone:'&#128722;', label:'Course' },
   { cle:'autre',        icone:'&#128176;', label:'Autre' }
 ];
 var _depPosteFixe = 'loyer';

@@ -526,6 +526,17 @@ n'avait plus de raison d'être — retiré. La liste montre toujours ce
 que la case cliquée promettait ; le bouton "Voir les containers" du
 Bilan (qui n'a pas de case par pays) montre toujours tout.
 
+**v1.94.19 :** Cobey, sur "Course" (v1.94.16, ajoutée aux dépenses
+fixes du container) : « il faut la mettre dans la tournée des camions
+et pas dans les dépenses fixes, parce que [...] il y en a un camion et
+demi via un camion. » Corrigé — Course a été mise au mauvais endroit :
+c'est une dépense DU CAMION ce jour-là (comme carburant, déjeuner), pas
+une dépense fixe du container. Déplacée dans le menu des dépenses de
+camion : elle profite maintenant du même prorata que carburant/déjeuner
+quand un camion sert plusieurs containers le même jour ("un camion et
+demi" — 1 container entier + une part d'un second), au lieu d'être
+comptée en entier sur un seul container.
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
