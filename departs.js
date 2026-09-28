@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.11';
+var DEP_VERSION = 'v2.10.12';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16317,7 +16317,7 @@ var DEP_TYPES_DEPENSE = [
   // même prorata quand un camion sert plusieurs containers le même
   // jour, et apparaître dans le même détail par tournée.
   { cle:'location_camion', icone:'&#128667;', label:'Location camion' },
-  { cle:'chauffeur',       icone:'&#129489;', label:'Chauffeur externe' },
+  { cle:'chauffeur',       icone:'&#129489;', label:'Paye chauffeur externe' },
   { cle:'autre',           icone:'&#128176;', label:'Autre' }
 ];
 // Le carburant se paie avec des centimes : « 45,50 € », pas « 45.5 € ».
@@ -18839,9 +18839,35 @@ window.depRenderDepensesFixes = function(){
     + '</div>'
     + '</div>';
 
+  // v1.94.13 : Cobey, capture d'écran à l'appui — la liste "Dépenses
+  // fixes" (loyer, dédouanement...) restait tout en bas de l'écran,
+  // après le report des tournées : « c tjr en bas ». Remontée juste
+  // sous l'encart résumé, avant le report des tournées — comme son
+  // total et son détail par poste le sont déjà depuis la v1.94.11/12.
+  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">D&eacute;penses fixes</div>';
+  if(!liste.length){
+    h += '<div class="dep-vide" style="padding:22px 16px;">Aucune d&eacute;pense saisie pour ce container.</div>';
+  } else {
+    h += liste.map(function(o){
+      return '<div class="dep-cli">'
+        + '<div class="dep-cli-n" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+        +   '<span>' + _depLibellePosteFixe(o.poste) + '</span>'
+        +   '<span style="font-weight:800;color:#B3261E;">' + _depEuros(o.montant) + ' &euro;</span>'
+        + '</div>'
+        + (o.note ? '<div class="dep-cli-s" style="margin-top:2px;">' + esc(o.note) + '</div>' : '')
+        + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;">'
+        +   '<span style="color:var(--text3);">' + esc(dateHeureFr(o.ts||0))
+        +     (o.par ? ' &middot; ' + esc(o.par) : '') + '</span>'
+        +   '<span onclick="depSupprimerDepenseFixe(\'' + o._id + '\')" style="cursor:pointer;color:#992020;'
+        +     'font-weight:800;font-size:11.5px;white-space:nowrap;">&#128465; Retirer</span>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
   // ── Le report des tournées, en lecture seule ──
   var estMali = (depPaysDepart(d) === 'ML');
-  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Report des tourn&eacute;es</div>';
+  h += '<div class="dep-sec">Report des tourn&eacute;es</div>';
   if(estMali){
     h += '<div class="dep-alert" style="margin-bottom:12px;">&#127474;&#127473; Ce container est affr&eacute;t&eacute; '
       + 'par un prestataire, pas par Dakar City. Les frais de tourn&eacute;e des colis maliens sont '
@@ -18917,28 +18943,6 @@ window.depRenderDepensesFixes = function(){
           + '</div>';
       }).join('');
       return gh;
-    }).join('');
-  }
-
-  // ── Les dépenses fixes du container ──
-  h += '<div class="dep-sec">D&eacute;penses fixes</div>';
-  if(!liste.length){
-    h += '<div class="dep-vide" style="padding:22px 16px;">Aucune d&eacute;pense saisie pour ce container.</div>';
-  } else {
-    h += liste.map(function(o){
-      return '<div class="dep-cli">'
-        + '<div class="dep-cli-n" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-        +   '<span>' + _depLibellePosteFixe(o.poste) + '</span>'
-        +   '<span style="font-weight:800;color:#B3261E;">' + _depEuros(o.montant) + ' &euro;</span>'
-        + '</div>'
-        + (o.note ? '<div class="dep-cli-s" style="margin-top:2px;">' + esc(o.note) + '</div>' : '')
-        + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;">'
-        +   '<span style="color:var(--text3);">' + esc(dateHeureFr(o.ts||0))
-        +     (o.par ? ' &middot; ' + esc(o.par) : '') + '</span>'
-        +   '<span onclick="depSupprimerDepenseFixe(\'' + o._id + '\')" style="cursor:pointer;color:#992020;'
-        +     'font-weight:800;font-size:11.5px;white-space:nowrap;">&#128465; Retirer</span>'
-        + '</div>'
-        + '</div>';
     }).join('');
   }
   box.innerHTML = h;

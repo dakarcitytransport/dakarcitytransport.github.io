@@ -463,9 +463,8 @@ n'aurait pas pu s'afficher dans le détail par camion.
 
 **v1.94.12 :** Cobey, sur le nom de la catégorie « Chauffeur externe » :
 « il faut préciser que c'est leur paye du jour [...] on paye ces
-chauffeurs, ils viennent travailler vos jours et on les paye ». En
-attente de son choix parmi les propositions faites (Journée chauffeur /
-Paye chauffeur / Chauffeur — vacation / Main-d'œuvre chauffeur).
+chauffeurs, ils viennent travailler vos jours et on les paye ». Choix
+retenu : **« Paye chauffeur externe »**.
 
 Dans la foulée, deux demandes sur l'affichage : « le détail des
 dépenses fixes doit également être au-dessus du report des tournées »,
@@ -476,6 +475,13 @@ maintenant aussi pour "Dépenses fixes", et s'affiche sous chacun des
 deux totaux : sur l'écran dédié "Dépenses du container" (donc bien
 au-dessus de "Report des tournées"), et sur la case résumé "Dépenses de
 ce container" de l'écran du container lui-même.
+
+**v1.94.13 :** Cobey, nouvelle capture d'écran — malgré le détail
+ajouté en v1.94.12, la LISTE des dépenses fixes (chaque ligne saisie,
+avec son bouton Retirer) restait, elle, tout en bas de l'écran, après
+le report des tournées : « c tjr en bas ». Toute la section « Dépenses
+fixes » — pas seulement son total — est maintenant remontée juste sous
+l'encart résumé, avant le report des tournées.
 
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
