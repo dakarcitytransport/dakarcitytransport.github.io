@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.29';
+var DEP_VERSION = 'v2.10.30';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -6368,6 +6368,65 @@ function _depEvolGraphique(rows){
     + '</div>';
 }
 
+// v1.94.31 : Cobey, sur cet écran (capture à l'appui) : « je voudrais
+// vraiment avoir toutes les dépenses de chaque catégorie [...] un
+// détail de ce qu'on dépense par rapport aux gains, les courses, les
+// loyers, etc. [...] un vrai graphique avec tout ça pour bien
+// comparer [...] pour faire un vrai bilan. » Un graphique en barres
+// horizontales, une par poste, triées de la plus grosse dépense à la
+// plus petite — même détail que "Dépenses de ce container"
+// (_depRepartitionFixes/_depRepartitionDepensesContainer), mais en
+// graphique plutôt qu'en simple liste, et avec l'encaissé juste
+// au-dessus pour le lire "par rapport aux gains".
+function _depGraphiqueCategories(titre, rows, coul){
+  if(!rows.length) return '';
+  var tries = rows.slice().sort(function(a,b){ return b.montant - a.montant; });
+  var max = tries.reduce(function(m,r){ return Math.max(m, r.montant); }, 1);
+  var barres = tries.map(function(r){
+    var pct = Math.max(2, Math.round(r.montant / max * 100));
+    return '<div style="margin-bottom:9px;">'
+      +   '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11.5px;'
+      +     'font-weight:700;color:var(--text);margin-bottom:3px;">'
+      +     '<span>' + r.icone + ' ' + r.label + '</span>'
+      +     '<span style="color:'+coul+';white-space:nowrap;">' + _depEuros(r.montant) + ' &euro;</span>'
+      +   '</div>'
+      +   '<div style="height:9px;background:var(--border);border-radius:5px;overflow:hidden;">'
+      +     '<div style="height:100%;width:'+pct+'%;background:'+coul+';border-radius:5px;"></div>'
+      +   '</div>'
+      + '</div>';
+  }).join('');
+  return '<div style="margin-top:10px;">'
+    +   '<div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;'
+    +     'letter-spacing:.03em;margin-bottom:8px;">' + titre + '</div>'
+    +   barres
+    + '</div>';
+}
+
+function _depSectionCategories(departId){
+  var cp = compteursDepart(departId);
+  var repFixes = _depRepartitionFixes(departId);
+  var repCont  = _depRepartitionDepensesContainer(departId);
+  if(!repFixes.length && !repCont.length) return '';
+  var totFixes = _depTotalFixesDe(departId);
+  var totCam   = _depTotalCamionsDe(departId);
+  var resultat = _depResultatColis(departId, cp);
+  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:14px;margin-top:12px;">'
+    + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px;">'
+    +   '&#128184; D&eacute;penses par cat&eacute;gorie</div>'
+    + '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;'
+    +   'font-size:11.5px;font-weight:700;padding:9px 11px;background:#F7F7F7;border-radius:8px;'
+    +   'margin-bottom:6px;">'
+    +   '<span style="color:#009A44;">Encaiss&eacute; ' + _depEuros(cp.colisPaye) + ' &euro;</span>'
+    +   '<span style="color:#B3261E;">D&eacute;penses ' + _depEuros(depArrondi2(totFixes+totCam)) + ' &euro;</span>'
+    +   '<span style="color:' + (resultat<0?'#B3261E':'#006b2d') + ';">B&eacute;n&eacute;fice r&eacute;el '
+    +     _depEuros(resultat) + ' &euro;</span>'
+    + '</div>'
+    + _depGraphiqueCategories('D&eacute;penses fixes', repFixes, '#B3261E')
+    + _depGraphiqueCategories('Tourn&eacute;es des camions', repCont, '#B3261E')
+    + '</div>';
+}
+
 window.depRenderStatsEvol = function(){
   var box = $('dep-evol-content');
   if(!box) return;
@@ -6391,6 +6450,7 @@ window.depRenderStatsEvol = function(){
     h += rows.length ? _depEvolGraphique(rows)
       : '<div class="dep-vide" style="padding:28px 16px;margin-top:12px;">Aucune collecte n\'a '
         + 'encore aliment&eacute; ce container.</div>';
+    h += _depSectionCategories(_depStatsEvolId);
   }
 
   box.innerHTML = h;

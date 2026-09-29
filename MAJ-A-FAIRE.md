@@ -556,6 +556,27 @@ dédouanement…) n'appartiennent à aucune collecte précise : elles ne
 comptent que dans le total du container, pas ici. Rien d'autre pour
 l'instant (Cobey : « et après, pas pour l'instant ça »).
 
+**v1.94.31 :** Cobey, même écran, capture à l'appui : « je voudrais
+vraiment avoir toutes les dépenses de chaque catégorie [...] les
+courses, les loyers, etc. [...] un vrai graphique avec tout ça pour
+bien comparer [...] pour faire un vrai bilan. » Finalement, si — une
+suite à « et après, pas pour l'instant ça ».
+
+Une nouvelle section « 💸 Dépenses par catégorie » apparaît sous le
+graphique par collecte, quand un container est choisi : l'encaissé, les
+dépenses totales et le bénéfice réel en résumé, puis deux graphiques en
+barres horizontales — un pour les dépenses fixes (loyer, dédouanement,
+container, salaires…), un pour les tournées des camions (carburant,
+déjeuner, course…) — chacun trié de la plus grosse dépense à la plus
+petite, pour repérer le poste qui pèse le plus d'un coup d'œil. Même
+détail que "Dépenses de ce container" (Rapport financier), mais en
+graphique plutôt qu'en liste, et rapproché de l'encaissé.
+
+**?** Comparer catégorie par catégorie ENTRE deux containers ou deux
+années (pas seulement les regarder un par un) demanderait d'étendre
+l'écran "Comparer" existant — pas fait ici, à confirmer avec Cobey si
+le besoin se précise à l'usage.
+
 ### ~~Audit des exports PDF de toute l'application~~
 **Fait le 28/09 (v3.94.21 / v2.10.20).** Cobey : « qui veut me
 vérifier dans toute l'application où est-ce qu'il y a des exports PDF.
