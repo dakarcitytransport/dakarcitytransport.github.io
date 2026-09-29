@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.30';
+var DEP_VERSION = 'v2.10.31';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -6372,33 +6372,34 @@ function _depEvolGraphique(rows){
 // vraiment avoir toutes les dépenses de chaque catégorie [...] un
 // détail de ce qu'on dépense par rapport aux gains, les courses, les
 // loyers, etc. [...] un vrai graphique avec tout ça pour bien
-// comparer [...] pour faire un vrai bilan. » Un graphique en barres
-// horizontales, une par poste, triées de la plus grosse dépense à la
-// plus petite — même détail que "Dépenses de ce container"
-// (_depRepartitionFixes/_depRepartitionDepensesContainer), mais en
-// graphique plutôt qu'en simple liste, et avec l'encaissé juste
-// au-dessus pour le lire "par rapport aux gains".
+// comparer [...] pour faire un vrai bilan. » Puis, la version en barres
+// horizontales une fois vue : « Je voulais un graphique avec des
+// pilonne » — les mêmes pylônes que le graphique par collecte juste
+// au-dessus (_depEvolGraphique), un poste par pylône, triés de la plus
+// grosse dépense à la plus petite.
 function _depGraphiqueCategories(titre, rows, coul){
   if(!rows.length) return '';
   var tries = rows.slice().sort(function(a,b){ return b.montant - a.montant; });
+  var H = 110;
   var max = tries.reduce(function(m,r){ return Math.max(m, r.montant); }, 1);
-  var barres = tries.map(function(r){
-    var pct = Math.max(2, Math.round(r.montant / max * 100));
-    return '<div style="margin-bottom:9px;">'
-      +   '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11.5px;'
-      +     'font-weight:700;color:var(--text);margin-bottom:3px;">'
-      +     '<span>' + r.icone + ' ' + r.label + '</span>'
-      +     '<span style="color:'+coul+';white-space:nowrap;">' + _depEuros(r.montant) + ' &euro;</span>'
+  var colonnes = tries.map(function(r){
+    var haut = Math.round((r.montant / max) * H);
+    if(r.montant > 0 && haut < 3) haut = 3;
+    return '<div style="flex:none;display:flex;flex-direction:column;align-items:center;width:64px;">'
+      +   '<div style="font-size:9px;font-weight:800;color:'+coul+';margin-bottom:3px;white-space:nowrap;">'
+      +     _depEuros(r.montant) + ' &euro;</div>'
+      +   '<div style="height:'+H+'px;display:flex;align-items:flex-end;width:28px;">'
+      +     '<div style="width:100%;height:'+haut+'px;border-radius:4px 4px 0 0;background:'+coul+';"></div>'
       +   '</div>'
-      +   '<div style="height:9px;background:var(--border);border-radius:5px;overflow:hidden;">'
-      +     '<div style="height:100%;width:'+pct+'%;background:'+coul+';border-radius:5px;"></div>'
-      +   '</div>'
+      +   '<div style="height:2px;width:36px;background:var(--border);margin-top:2px;"></div>'
+      +   '<div style="font-size:9.5px;font-weight:700;color:var(--text3);margin-top:5px;'
+      +     'text-align:center;line-height:1.3;">' + r.icone + '<br>' + r.label + '</div>'
       + '</div>';
   }).join('');
-  return '<div style="margin-top:10px;">'
+  return '<div style="margin-top:14px;">'
     +   '<div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;'
-    +     'letter-spacing:.03em;margin-bottom:8px;">' + titre + '</div>'
-    +   barres
+    +     'letter-spacing:.03em;margin-bottom:10px;">' + titre + '</div>'
+    +   '<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;">' + colonnes + '</div>'
     + '</div>';
 }
 

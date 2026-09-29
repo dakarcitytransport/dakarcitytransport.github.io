@@ -572,6 +572,12 @@ petite, pour repérer le poste qui pèse le plus d'un coup d'œil. Même
 détail que "Dépenses de ce container" (Rapport financier), mais en
 graphique plutôt qu'en liste, et rapproché de l'encaissé.
 
+**v1.94.32 :** vu telle quelle, Cobey : « je voulais un graphique avec
+des pilonne » — les deux graphiques en barres horizontales, refaits en
+pylônes verticaux (mêmes valeur au-dessus / barre / icône+libellé en
+dessous que le graphique par collecte juste au-dessus), toujours triés
+de la plus grosse dépense à la plus petite.
+
 **?** Comparer catégorie par catégorie ENTRE deux containers ou deux
 années (pas seulement les regarder un par un) demanderait d'étendre
 l'écran "Comparer" existant — pas fait ici, à confirmer avec Cobey si
