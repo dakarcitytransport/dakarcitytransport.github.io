@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.27';
+var DEP_VERSION = 'v2.10.28';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19262,18 +19262,24 @@ window.depRenderDepensesFixes = function(){
     });
     h += groupes.map(function(g){
       var sousTotal = depArrondi2(g.camions.reduce(function(s,o){ return s + o.montant; }, 0));
-      var gh = '<div style="display:flex;justify-content:space-between;align-items:center;'
-        +   'margin:16px 0 7px;padding-top:12px;border-top:1px solid var(--border);">'
-        +   '<span style="font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;">'
-        +     '&#128197; ' + esc(g.colDate || '—') + '</span>'
-        +   '<span style="display:flex;align-items:center;gap:8px;">'
+      // v1.94.29 : la date (« DIMANCHE 13 SEPTEMBRE 2026 ») et le total
+      // partageaient une seule ligne en flex space-between — trop long
+      // pour tenir à côté du total et du bouton, les deux se chevauchaient
+      // (retour de Cobey du 29/09/2026, capture à l'appui). La date passe
+      // sur sa propre ligne ; total et bouton suivent en dessous, alignés
+      // à droite — plus de calcul de place à faire tenir sur une largeur
+      // qui varie avec le jour de la semaine.
+      var gh = '<div style="margin:16px 0 7px;padding-top:12px;border-top:1px solid var(--border);">'
+        +   '<div style="font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;">'
+        +     '&#128197; ' + esc(g.colDate || '—') + '</div>'
+        +   '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:5px;">'
         +     '<span style="font-size:12px;font-weight:700;color:var(--text3);">' + _depEuros(sousTotal) + ' &euro;</span>'
         // v1.94.14 : ouvre directement la collecte de ce jour-là — voir
         // depFixesOuvrirCollecte, juste au-dessus.
         +     '<span onclick="depFixesOuvrirCollecte(\'' + g.colId + '\')" style="cursor:pointer;background:#EAF7EE;'
         +       'border:1.5px solid #C8E6D0;color:#006b2d;border-radius:20px;padding:3px 9px;'
         +       'font-size:10.5px;font-weight:800;white-space:nowrap;">&#9999;&#65039; Modifier</span>'
-        +   '</span>'
+        +   '</div>'
         + '</div>';
       gh += g.camions.map(function(o){
         // v1.94.7 : détail par poste — le montant total du camion (pas

@@ -993,6 +993,16 @@ payé / non payé · avec / sans livraison · par région
 
 ## 6 · Rapport financier
 
+### ~~L'en-tête de jour du "Report des tournées", qui se chevauchait~~
+**Fait le 29/09 (v2.10.28 / v3.94.29).** Cobey, capture d'écran à
+l'appui : « l'affichage des prix total par jour n'est pas optimal.
+Elle se chevauche sur d'autres écritures. » La date du jour (« DIMANCHE
+13 SEPTEMBRE 2026 ») et le total + bouton Modifier partageaient une
+seule ligne, et une date longue poussait le total par-dessus. La date
+est maintenant sur sa propre ligne, le total et le bouton juste en
+dessous, alignés à droite — plus aucun chevauchement possible, quelle
+que soit la longueur de la date.
+
 ### ~~Le bénéfice réel, container par container~~
 **Fait le 28/09 (v2.10.27 / v3.94.28).** Cobey, capture d'écran de la
 liste « Containers » à l'appui : « on devrait voir pour chaque
