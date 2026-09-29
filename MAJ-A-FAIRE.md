@@ -774,6 +774,20 @@ camions, PDF, bouton sur la carte client) :
 
 « Encore dû par les clients ramassés » ne change pas, déjà clair.
 
+### ~~« Livraison à Dakar » — trop précis pour rester clair~~
+**Fait le 29/09 (v2.10.29 / v3.94.30).** Cobey, capture d'écran de la
+fiche client à l'appui : « au niveau de la mention livraison à Dakar,
+il faudrait la modifier parce que ça peut paraître flou. Parce que
+comme il y a des livraisons un peu partout, ça peut être confondu.
+Donc on va juste mettre livraison. »
+
+« Livraison à Dakar » devient « Livraison » partout où la mention
+apparaissait : fiche client (section et question), fiche de dépôt et de
+France & Europe, caisse du container, facture (interne et lien public
+WhatsApp), devis, historique de fiche (« a activé/désactivé la
+livraison »). `livraisonDakar` reste le nom du champ en base — seul le
+texte affiché change.
+
 ### ~~Le nom du collaborateur sur chaque photo~~
 **Fait le 27/09 (v2.9.3).** Cobey : « à côté de la photo que les
 collaborateurs prennent pour chaque client, c'est possible de mettre le

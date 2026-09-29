@@ -550,7 +550,7 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     +       '<thead><tr><th>N&deg;</th><th>Description</th><th>Qt&eacute;</th><th>Unit&eacute;</th><th>Prix unitaire</th><th>Montant</th></tr></thead>'
     +       '<tbody>'
     +         _depLignesFacture(c, prixIndefiniPub)
-    +         (c.livraisonDakar ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Livraison &agrave; Dakar'+(c.livraisonAdresse ? (' &mdash; '+esc(c.livraisonAdresse)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
+    +         (c.livraisonDakar ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Livraison'+(c.livraisonAdresse ? (' &mdash; '+esc(c.livraisonAdresse)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
     +       '</tbody>'
     +     '</table></div>'
 
@@ -569,7 +569,7 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     +         '<div class="fac-totaux-ligne"><span>Reste &agrave; payer</span><span style="'+(pay.reste > 0 ? 'color:#992020;font-weight:700;' : 'color:#006b2d;font-weight:700;')+'">'+pay.reste+' &euro;</span></div>'
     +         (totalLivraison
                 ? ('<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">'
-                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison &agrave; Dakar</span><span>'+totalLivraison+' &euro;</span></div>'
+                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison</span><span>'+totalLivraison+' &euro;</span></div>'
                    // v1.19.27 : payé/reste PROPRES à la livraison, affichés
                    // explicitement — avant, rien ne l'indiquait ici, ce qui
                    // laissait croire (avec le badge du haut) qu'elle était

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.28';
+var DEP_VERSION = 'v2.10.29';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2486,7 +2486,7 @@ function _depBlocCaisse(cp){
     +   'Les colis et les livraisons sont deux caisses s&eacute;par&eacute;es.</div>'
     + ligne('COLIS', '&#128230;', cp.colisTotal, cp.colisPaye, cp.colisDu,
             { okBg:'#D4F0E0', okFg:'#006b2d' }, 'colis')
-    + ligne('LIVRAISON &agrave; Dakar', '&#128666;', cp.livTotal, cp.livPaye, cp.livDu,
+    + ligne('LIVRAISON', '&#128666;', cp.livTotal, cp.livPaye, cp.livDu,
             { okBg:'#D9EEF7', okFg:'#0b5d78' }, 'livraison')
     + (cp.livClients
         ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;">'
@@ -3242,7 +3242,7 @@ function injecterEcrans(){
   +     '<div class="fg"><label class="fl">Num&eacute;ro du destinataire</label><input class="fi" id="dp-dest-tel" type="tel" placeholder="77 000 00 00"></div>'
   +     '<div class="fg"><label class="fl">Deuxi&egrave;me num&eacute;ro du destinataire <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label><input class="fi" id="dp-dest-tel2" type="tel" placeholder="77 000 00 00"></div>'
 
-  +     '<div class="dep-sec">Livraison &agrave; Dakar</div>'
+  +     '<div class="dep-sec">Livraison</div>'
   +     '<div class="fg"><label class="fl">Le colis doit-il &ecirc;tre livr&eacute; ?</label>'
   +       '<div style="display:flex;gap:8px;">'
   +         '<button type="button" class="dep-st" id="dp-liv-non" onclick="depSetLivraisonDepot(false)">Non &middot; retrait sur place</button>'
@@ -3776,7 +3776,7 @@ function injecterEcrans(){
   +       '<span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
   +       '<textarea class="fi" id="devis-f-colis" rows="2" placeholder="ex: 2 valises + 1 carton..." style="resize:none;"></textarea></div>'
 
-  +     '<div class="dep-sec">Livraison &agrave; Dakar</div>'
+  +     '<div class="dep-sec">Livraison</div>'
   +     '<div class="fg"><label class="fl">Le colis doit-il &ecirc;tre livr&eacute; ?</label>'
   +       '<div style="display:flex;gap:8px;">'
   +         '<button type="button" class="dep-st" id="devis-f-liv-non" onclick="depDevisSetLivraison(false)">Non &middot; retrait sur place</button>'
@@ -4899,7 +4899,7 @@ function injecterChampsClient(){
     + '<div class="fg"><label class="fl">Deuxi&egrave;me num&eacute;ro du destinataire <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
     +   '<input class="fi" id="f-dest-tel2" type="tel" placeholder="77 000 00 00"></div>'
 
-    + '<div class="dep-sec">Livraison &agrave; Dakar</div>'
+    + '<div class="dep-sec">Livraison</div>'
     + '<div class="fg"><label class="fl">Le colis doit-il &ecirc;tre livr&eacute; ?</label>'
     +   '<div style="display:flex;gap:8px;">'
     +     '<button type="button" class="dep-st" id="f-liv-non" onclick="depSetLivraison(false)">Non &middot; retrait sur place</button>'
@@ -4983,7 +4983,7 @@ function injecterChampsClientFrance(){
     + '<div class="fg"><label class="fl">Deuxi&egrave;me num&eacute;ro du destinataire <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
     +   '<input class="fi" id="fa-dest-tel2" type="tel" placeholder="77 000 00 00"></div>'
 
-    + '<div class="dep-sec">Livraison &agrave; Dakar</div>'
+    + '<div class="dep-sec">Livraison</div>'
     + '<div class="fg"><label class="fl">Le colis doit-il &ecirc;tre livr&eacute; ?</label>'
     +   '<div style="display:flex;gap:8px;">'
     +     '<button type="button" class="dep-st" id="fa-liv-non" onclick="depSetLivraisonFrance(false)">Non &middot; retrait sur place</button>'
@@ -6733,7 +6733,7 @@ window.depRenderComparer = function(){
   h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
     +   'padding:12px 14px;margin-bottom:12px;">'
     + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
-    +   'margin-bottom:6px;">&#128666; LIVRAISON &Agrave; DAKAR &mdash; CAISSE S&Eacute;PAR&Eacute;E</div>'
+    +   'margin-bottom:6px;">&#128666; LIVRAISON &mdash; CAISSE S&Eacute;PAR&Eacute;E</div>'
     + '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">'
     +   '<b style="font-size:13.5px;color:#1a237e;">' + _depEuros(ga.livPaye) + ' &euro;</b>'
     +   '<span style="color:var(--text3);">&rarr;</span>'
@@ -8951,7 +8951,7 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     +       '<thead><tr><th>N&deg;</th><th>Description</th><th>Qt&eacute;</th><th>Unit&eacute;</th><th>Prix unitaire</th><th>Montant</th></tr></thead>'
     +       '<tbody>'
     +         _depLignesFacture(c, prixIndefiniPub)
-    +         (c.livraisonDakar ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Livraison &agrave; Dakar'+((c.livraisonVille||c.livraisonVilleAutre||c.livraisonAdresse) ? (' &mdash; '+_depLivraisonLibelle(c)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
+    +         (c.livraisonDakar ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Livraison'+((c.livraisonVille||c.livraisonVilleAutre||c.livraisonAdresse) ? (' &mdash; '+_depLivraisonLibelle(c)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
     +       '</tbody>'
     +     '</table></div>'
 
@@ -8970,7 +8970,7 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     +         '<div class="fac-totaux-ligne"><span>Reste &agrave; payer</span><span style="'+(pay.reste > 0 ? 'color:#992020;font-weight:700;' : 'color:#006b2d;font-weight:700;')+'">'+pay.reste+' &euro;</span></div>'
     +         (totalLivraison
                 ? ('<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">'
-                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison &agrave; Dakar</span><span>'+totalLivraison+' &euro;</span></div>'
+                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison</span><span>'+totalLivraison+' &euro;</span></div>'
                    // v1.19.27 : payé/reste PROPRES à la livraison, affichés
                    // explicitement — avant, rien ne l'indiquait ici, ce qui
                    // laissait croire (avec le badge du haut) qu'elle était
@@ -10671,8 +10671,8 @@ function depRenderFicheLecture(colId, clientId, depot){
           ? (kv('Destinataire', esc(c.destinataireNom||'—')
                 + (c.destinataireTel ? ('<br>'+_depLienTel(c.destinataireTel, c.destinataireTel)) : '')
                 + (c.destinataireTel2 ? ('<br>'+_depLienTel(c.destinataireTel2, c.destinataireTel2)) : ''))
-            + kv('Livraison &agrave; Dakar', _depLivraisonLibelle(c) + '<br>' + ((c.prixLivraison||0)+'&nbsp;&euro;')))
-          : kv('Livraison &agrave; Dakar', 'Retrait sur place'))
+            + kv('Livraison', _depLivraisonLibelle(c) + '<br>' + ((c.prixLivraison||0)+'&nbsp;&euro;')))
+          : kv('Livraison', 'Retrait sur place'))
     + '</div>'
     // v1.19.57 : photos du colis + possibilité d'en reprendre une (retour
     // de Cobey du 28/08/2026 : un colis peut être remballé/protégé à
@@ -12437,7 +12437,7 @@ function injecterChampsFiche(){
     + '<div class="fg"><label class="fl">Deuxi&egrave;me num&eacute;ro du destinataire <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
     +   '<input class="fi" id="e-dest-tel2" type="tel" placeholder="77 000 00 00"></div>'
 
-    + '<div class="dep-sec">Livraison &agrave; Dakar</div>'
+    + '<div class="dep-sec">Livraison</div>'
     + '<div class="fg"><label class="fl">Le colis doit-il &ecirc;tre livr&eacute; ?</label>'
     +   '<div style="display:flex;gap:8px;">'
     +     '<button type="button" class="dep-st" id="e-liv-non" onclick="depSetLivraisonFiche(false)">Non &middot; retrait sur place</button>'
@@ -12823,11 +12823,11 @@ function _depDiffFacturePourHist(fiche, avant){
   var avantLiv = !!avant.livraisonDakar, apresLiv = !!fiche.livraisonDakar;
   if(avantLiv !== apresLiv){
     if(apresLiv){
-      out.push({ type:'livraison', label:'livraison activ&eacute;e', texte:'a activ&eacute; la livraison &agrave; Dakar'
+      out.push({ type:'livraison', label:'livraison activ&eacute;e', texte:'a activ&eacute; la livraison'
         + (fiche.livraisonAdresse ? ' &mdash; adresse&nbsp;: ' + esc(fiche.livraisonAdresse) : '')
         + ' &mdash; ' + depArrondi2(parseFloat(fiche.prixLivraison)||0) + '&nbsp;&euro;' });
     } else {
-      out.push({ type:'livraison', label:'livraison d&eacute;sactiv&eacute;e', texte:'a d&eacute;sactiv&eacute; la livraison &agrave; Dakar'
+      out.push({ type:'livraison', label:'livraison d&eacute;sactiv&eacute;e', texte:'a d&eacute;sactiv&eacute; la livraison'
         + (avant.livraisonAdresse ? ' (adresse&nbsp;: ' + esc(avant.livraisonAdresse) + ')' : '') });
     }
   } else if(apresLiv){
@@ -18001,7 +18001,7 @@ function depRenderDevisDoc(d){
                 ? (  '<div class="fac-totaux-ligne fac-totaux-total"><span>TOTAL &Agrave; PAYER</span><span>'+(montantTransport+totalLivraison)+' &euro;</span></div>'
                    + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">'
                    + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Montant colis / transport</span><span>'+montantTransport+' &euro;</span></div>'
-                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison &agrave; Dakar'+((d.livraisonVille||d.livraisonVilleAutre||d.livraisonAdresse) ? (' — '+_depLivraisonLibelle(d)) : '')+'</span><span>'+totalLivraison+' &euro;</span></div>'
+                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison'+((d.livraisonVille||d.livraisonVilleAutre||d.livraisonAdresse) ? (' — '+_depLivraisonLibelle(d)) : '')+'</span><span>'+totalLivraison+' &euro;</span></div>'
                    + '</div>')
                 : ('<div class="fac-totaux-ligne fac-totaux-total"><span>MONTANT</span><span>'+montantTransport+' &euro;</span></div>')
               )
@@ -18881,7 +18881,7 @@ window.depRenderRapfinBilan = function(){
   h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
     +   'padding:16px;margin-bottom:14px;">'
     + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
-    +   'margin-bottom:6px;">&#128666; LIVRAISON &Agrave; DAKAR &mdash; CAISSE S&Eacute;PAR&Eacute;E</div>'
+    +   'margin-bottom:6px;">&#128666; LIVRAISON &mdash; CAISSE S&Eacute;PAR&Eacute;E</div>'
     /* v1.80.0 : le total facturé manquait de ce côté-ci — la livraison
        a droit à la même lecture que les colis (retour de Cobey du
        24/09/2026). */
