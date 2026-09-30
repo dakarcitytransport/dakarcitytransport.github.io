@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.31';
+var DEP_VERSION = 'v2.10.32';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3772,9 +3772,18 @@ function injecterEcrans(){
   +     '<div class="fg"><label class="fl">Adresse '
   +       '<span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
   +       '<input class="fi" id="devis-f-adresse" placeholder="12 rue Pasteur"></div>'
-  +     '<div class="fg"><label class="fl">Type de colis '
-  +       '<span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
-  +       '<textarea class="fi" id="devis-f-colis" rows="2" placeholder="ex: 2 valises + 1 carton..." style="resize:none;"></textarea></div>'
+  // v1.94.34 : le détail ligne par ligne, identique à celui de la fiche
+  // client en Collecte (voir e-lignes/f-lignes) — remplace l'ancien champ
+  // "Type de colis" en texte libre + un montant global unique. Cobey :
+  // « l'édition de facture est sur l'ancienne version, il faut la mettre
+  // comme l'édition de facture des clients dans les collectes, identique ».
+  +     '<div class="dep-sec">D&eacute;tail des colis</div>'
+  +     '<div id="devis-lignes" style="margin-bottom:14px;"></div>'
+  +     '<div class="dep-sec">R&eacute;capitulatif</div>'
+  +     '<div class="fg"><label class="fl">Montant (&euro;)</label>'
+  +       '<input class="fi" id="devis-f-montant" type="number" min="0" placeholder="0"></div>'
+  +     '<div id="devis-montant-note" style="display:none;font-size:11.5px;color:var(--text3);margin:-10px 0 14px;line-height:1.5;">'
+  +       '&#8505;&#65039; Montant calcul&eacute; sur le d&eacute;tail des colis. Pour le changer, modifiez le prix de l\'article concern&eacute; ci-dessus.</div>'
 
   +     '<div class="dep-sec">Livraison</div>'
   +     '<div class="fg"><label class="fl">Le colis doit-il &ecirc;tre livr&eacute; ?</label>'
@@ -3790,10 +3799,6 @@ function injecterEcrans(){
   +         '<span style="color:#aaa;font-weight:500;">&middot; peut &ecirc;tre ajout&eacute; plus tard</span></label>'
   +         '<input class="fi" id="devis-f-liv-prix" type="number" min="0" placeholder="0"></div>'
   +     '</div>'
-
-  +     '<div class="dep-sec">Montant du devis</div>'
-  +     '<div class="fg"><label class="fl">Montant (&euro;)</label>'
-  +       '<input class="fi" id="devis-f-montant" type="number" min="0" placeholder="0"></div>'
 
   +     '<button class="btn btn-green" style="margin-top:14px;" onclick="depDevisEnregistrer()">Enregistrer le devis</button>'
   +   '</div>'
@@ -17840,6 +17845,21 @@ window.depDevisSetCivilite = function(v){
   _depDevisRenderCiv();
 };
 
+// v1.94.34 : le montant du devis suit le détail des lignes, comme
+// _depDepotLignesMaj pour la fiche de dépôt — tant qu'il n'y a aucune
+// ligne, le montant reste saisissable à la main (devis très sommaire).
+function _depDevisLignesMaj(total, nbColis, lignes){
+  if(!lignes || !lignes.length){
+    var note0 = $('devis-montant-note'); if(note0) note0.style.display = 'none';
+    var mE0 = $('devis-f-montant');
+    if(mE0){ mE0.readOnly = false; mE0.style.background = ''; }
+    return;
+  }
+  var mEl = $('devis-f-montant');
+  if(mEl){ mEl.value = total; mEl.readOnly = true; mEl.style.background = '#f5f5f5'; }
+  var note = $('devis-montant-note'); if(note) note.style.display = 'block';
+}
+
 // v1.19.88 : réinitialisation complète, UNIQUEMENT pour un devis tout
 // neuf — "changer" le pays en cours de saisie (depDevisChoisirPays) ne
 // doit plus effacer ce qui est déjà rempli, et depDevisModifier() a besoin
@@ -17848,9 +17868,10 @@ window.depDevisNouveau = function(){
   window._depDevisEditId = null;
   window._depDevisPaysChoisi = null;
   window._depDevisCivilite = '';
-  ['devis-f-prenom','devis-f-nom','devis-f-tel','devis-f-adresse','devis-f-colis','devis-f-liv-adresse','devis-f-liv-prix','devis-f-montant'].forEach(function(id){
+  ['devis-f-prenom','devis-f-nom','devis-f-tel','devis-f-adresse','devis-f-liv-adresse','devis-f-liv-prix','devis-f-montant'].forEach(function(id){
     var e = $(id); if(e) e.value = '';
   });
+  try{ window.depEditerLignes('devis-lignes', [], _depDevisLignesMaj); }catch(eLg){}
   depDevisSetLivraison(false);
   _depDevisRenderCiv();
   var titre = $('devis-form-titre'); if(titre) titre.textContent = 'Nouveau devis';
@@ -17871,8 +17892,16 @@ window.depDevisModifier = function(id){
   var fn = $('devis-f-nom'); if(fn) fn.value = d.nom || '';
   var ft = $('devis-f-tel'); if(ft) ft.value = d.tel || '';
   var fad = $('devis-f-adresse'); if(fad) fad.value = d.adresse || '';
-  var fc = $('devis-f-colis'); if(fc) fc.value = d.colis || '';
   var fm = $('devis-f-montant'); if(fm) fm.value = (d.montant != null ? d.montant : '');
+  // v1.94.34 : _depLignesColis lit `c.prix` — le devis, lui, porte son
+  // montant dans `montant` (pas de livraison mélangée dedans, comme
+  // partout ailleurs). Sans ce pont, un devis ancien (texte libre sans
+  // colisDetail) reconstruirait ses lignes à partir d'un total à 0.
+  try{
+    window.depEditerLignes('devis-lignes',
+      window._depLignesColis(Object.assign({}, d, { prix: d.montant })),
+      _depDevisLignesMaj);
+  }catch(eLg){}
   depDevisSetLivraison(!!d.livraison);
   var fla = $('devis-f-liv-adresse'); if(fla) fla.value = d.livraisonAdresse || '';
   var flp = $('devis-f-liv-prix'); if(flp) flp.value = (d.livraisonPrix ? d.livraisonPrix : '');
@@ -17918,13 +17947,24 @@ window.depDevisEnregistrer = function(){
   var nom = (($('devis-f-nom')||{}).value || '').trim();
   var tel = (($('devis-f-tel')||{}).value || '').trim();
   var adresse = (($('devis-f-adresse')||{}).value || '').trim();
-  var colis = (($('devis-f-colis')||{}).value || '').trim();
-  var montant = parseFloat(($('devis-f-montant')||{}).value) || 0;
+  // v1.94.34 : le détail ligne par ligne fait foi dès qu'il y en a — même
+  // principe que la fiche client (voir depAjouterDepotClient) : le
+  // montant et la description se déduisent des lignes, plutôt que d'être
+  // retapés à la main.
+  var lignesDevis = (typeof window.depLignesValeur === 'function') ? window.depLignesValeur() : [];
+  var colis = lignesDevis.length
+    ? lignesDevis.map(function(l){ return (l.qte > 1 ? (l.qte + ' ') : '') + l.nom; }).join(', ')
+    : '';
+  var montant = lignesDevis.length
+    ? depArrondi2(lignesDevis.reduce(function(s,l){ return s + (l.total||0); }, 0))
+    : (parseFloat(($('devis-f-montant')||{}).value) || 0);
   if(!prenom && !nom){ toast('⚠️ Indiquez le nom ou le prénom du client.'); return; }
   if(!tel){ toast('⚠️ Le téléphone est obligatoire.'); return; }
   if(!montant){ toast('⚠️ Indiquez le montant du devis.'); return; }
   if(!window.db || !window.firebaseReady){ toast('❌ Connexion Firebase indisponible.'); return; }
   var liv = !!window._depDevisLivraison;
+  var editIdPourExistant = window._depDevisEditId;
+  var existantAvant = editIdPourExistant ? ((window.devisData||{})[editIdPourExistant] || {}) : {};
   var obj = {
     civilite: civilite,
     prenom: civilite === 'Societe' ? '' : prenom,
@@ -17938,6 +17978,8 @@ window.depDevisEnregistrer = function(){
     livraisonPrix: liv ? (parseFloat(($('devis-f-liv-prix')||{}).value) || 0) : 0,
     montant: montant
   };
+  if(lignesDevis.length) obj.colisDetail = lignesDevis;
+  else if(existantAvant.colisDetail) obj.colisDetail = null;
   if(liv){
     var lvDevis = _depVilleLire('devis-f');
     obj.livraisonVille = lvDevis.livraisonVille;
@@ -17948,7 +17990,7 @@ window.depDevisEnregistrer = function(){
 
   var editId = window._depDevisEditId;
   if(editId){
-    var existant = (window.devisData||{})[editId] || {};
+    var existant = existantAvant;
     obj.creeLe = existant.creeLe || Date.now();
     obj.creePar = existant.creePar || ((window.currentUser||{}).id || '');
     obj.creeParNom = existant.creeParNom || ((window.currentUser||{}).name || '');
@@ -17991,6 +18033,21 @@ function depRenderDevisDoc(d){
   var totalLivraison = d.livraison ? (parseFloat(d.livraisonPrix) || 0) : 0;
   var montantTransport = parseFloat(d.montant) || 0;
   var nomAffiche = _composeNom(d.civilite, d.prenom, d.nom) || '—';
+
+  // v1.94.34 : détail ligne par ligne, même tableau que la facture (voir
+  // _depLignesFacture dans depRenderFacturePublique) — Cobey : « la
+  // présentation du devis doit être similaire à celle des factures ».
+  // _depLignesColis lit `c.prix` ; le devis porte son montant dans
+  // `montant` (pas de livraison mélangée dedans, comme partout ailleurs).
+  var lignesDoc = window._depLignesColis(Object.assign({}, d, { prix: d.montant }));
+  if(!lignesDoc.length){
+    lignesDoc = [{ nom:'Transport ' + pays.drapeau + ' ' + pays.nom, qte:1, pu:montantTransport, total:montantTransport }];
+  }
+  var lignesDocHtml = lignesDoc.map(function(l, i){
+    var nomL = esc(l.nom) + (l.lot ? ' <span style="font-size:9.5px;">(lot de ' + l.qte + ')</span>' : '');
+    return '<tr><td>'+(i+1)+'</td><td>'+nomL+'</td><td>'+l.qte+'</td>'
+         + '<td>'+(l.lot ? 'lot' : 'colis')+'</td><td>'+l.pu+' &euro;</td><td>'+l.total+' &euro;</td></tr>';
+  }).join('');
   var h = '<div class="fac-doc">'
     +   '<div class="fac-topbar"></div>'
     +   '<div class="fac-body">'
@@ -18030,10 +18087,8 @@ function depRenderDevisDoc(d){
     +     '</div>'
 
     +     '<div class="fac-tbl-wrap"><table class="fac-table">'
-    +       '<thead><tr><th>N&deg;</th><th>Description</th><th>Montant</th></tr></thead>'
-    +       '<tbody>'
-    +         '<tr><td>1</td><td>Transport '+pays.drapeau+' '+pays.nom+(d.colis ? (' &mdash; '+esc(d.colis)) : '')+'</td><td>'+montantTransport+' &euro;</td></tr>'
-    +       '</tbody>'
+    +       '<thead><tr><th>N&deg;</th><th>Description</th><th>Qt&eacute;</th><th>Unit&eacute;</th><th>Prix unitaire</th><th>Montant</th></tr></thead>'
+    +       '<tbody>' + lignesDocHtml + '</tbody>'
     +     '</table></div>'
 
     // v1.19.88 : la livraison ne s'additionne plus au montant du devis dans
@@ -18207,6 +18262,14 @@ window.depDevisValiderVers = function(parcours, collecteId){
     var fadr = $('fa-adresse'); if(fadr) fadr.value = snap.adresse || '';
     var fcolis = $('fa-colis'); if(fcolis) fcolis.value = snap.colis || '';
     var fprix = $('fa-prix'); if(fprix) fprix.value = snap.montant || '';
+    // v1.94.34 : le détail ligne par ligne du devis suit vers France &
+    // Europe — sinon il se perdrait à la transformation (ouvrirAjoutFrance
+    // vient de remettre l'éditeur à vide, on le recharge par-dessus).
+    try{
+      window.depEditerLignes('fa-lignes',
+        window._depLignesColis(Object.assign({}, snap, { prix: snap.montant })),
+        _depFranceLignesMaj);
+    }catch(eLgFa){}
     if(snap.livraison){
       depSetLivraisonFrance(true);
       var fla = $('fa-liv-adresse'); if(fla) fla.value = snap.livraisonAdresse || '';
@@ -18227,6 +18290,14 @@ window.depDevisValiderVers = function(parcours, collecteId){
     var dadr = $('dp-adresse'); if(dadr) dadr.value = snap.adresse || '';
     var dcolis = $('dp-colis'); if(dcolis) dcolis.value = snap.colis || '';
     var dprix = $('dp-prix'); if(dprix) dprix.value = snap.montant || '';
+    // v1.94.34 : le détail ligne par ligne du devis suit vers le dépôt —
+    // sinon il se perdrait à la transformation (depOuvrirDepotForm vient
+    // de remettre l'éditeur à vide, on le recharge par-dessus).
+    try{
+      window.depEditerLignes('dp-lignes',
+        window._depLignesColis(Object.assign({}, snap, { prix: snap.montant })),
+        _depDepotLignesMaj);
+    }catch(eLgDp2){}
     try{ _civDct.dp = snap.civilite || ''; _renderCivDct('dp'); }catch(eCiv3){}
     if(snap.livraison){
       depSetLivraisonDepot(true);
@@ -18252,6 +18323,14 @@ window.depDevisValiderVers = function(parcours, collecteId){
     var adr = $('f-adresse'); if(adr) adr.value = snap.adresse || '';
     var colis = $('f-colis'); if(colis) colis.value = snap.colis || '';
     var prix = $('f-prix'); if(prix) prix.value = snap.montant || '';
+    // v1.94.34 : le détail ligne par ligne du devis suit vers la collecte —
+    // sinon il se perdrait à la transformation (ouvrirAjoutClient vient de
+    // remettre l'éditeur à vide, on le recharge par-dessus).
+    try{
+      window.depEditerLignes('f-lignes',
+        window._depLignesColis(Object.assign({}, snap, { prix: snap.montant })),
+        _depInscriptionLignesMaj);
+    }catch(eLgF){}
     if(snap.livraison){
       depSetLivraison(true);
       var la = $('f-liv-adresse'); if(la) la.value = snap.livraisonAdresse || '';
@@ -18680,6 +18759,13 @@ var DEP_POSTES_FIXES = [
   // Poste dédié, avec son propre nombre de personnes (voir dep-fx-nb) ;
   // le tarif jour/heure reste dans la précision, en texte libre.
   { cle:'chargeur',     icone:'&#128119;', label:'Chargeur' },
+  // v1.94.33 : Cobey : « rajoute le carburant dans les dépenses fixes,
+  // dans le bilan financier » — jusqu'ici le carburant n'existait que
+  // côté tournée des camions (par jour de collecte, voir
+  // DEP_TYPES_DEPENSE) ; un achat de carburant qui ne se rattache à
+  // aucune collecte précise (une réserve, un plein pour le générateur…)
+  // a maintenant sa place ici aussi.
+  { cle:'carburant',    icone:'&#9981;',   label:'Carburant' },
   { cle:'autre',        icone:'&#128176;', label:'Autre' }
 ];
 var _depPosteFixe = 'loyer';

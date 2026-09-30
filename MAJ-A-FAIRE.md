@@ -973,6 +973,24 @@ ouvre la fiche, comme avant.
 
 - Pouvoir créer des **factures manuelles** rattachées à un container,
   pour le suivi.
+- ~~Les **devis** utilisaient encore l'ancienne saisie (texte libre +
+  un seul montant), et leur présentation différait de la facture.~~
+  **Fait le 30/09 (v2.10.32 / v3.94.33).** Cobey : « pour les devis,
+  l'édition de facture est sur l'ancienne version, il faut la mettre
+  comme l'édition de facture des clients dans les collectes,
+  identique. Ainsi que la présentation du devis doit être similaire à
+  celle des factures. »
+
+  Le formulaire Devis a maintenant le même éditeur de lignes que la
+  fiche client en Collecte, Dépôt ou France & Europe (catalogue Prix
+  articles, quantité/prix par article, lots) — le montant se calcule
+  tout seul dès qu'une ligne existe, comme partout ailleurs. Le
+  document du devis affiche désormais un vrai tableau ligne par ligne
+  (N°/Description/Qté/Unité/Prix unitaire/Montant), identique à celui
+  de la facture, au lieu d'une seule ligne "Transport ... — texte
+  libre". Le détail suit aussi quand un devis est transformé en client
+  réel (Collecte, Dépôt, France & Europe) : il ne se perd plus au
+  passage.
 - ~~Sur la facture, le **payé / reste à payer** ne se voit pas assez
   d'un coup d'œil.~~ **Fait le 28/09 (v2.10.26 / v3.94.27).** « Il
   faudrait des codes couleurs. Pareil pour la livraison. » Montant payé
@@ -1033,6 +1051,18 @@ payé / non payé · avec / sans livraison · par région
 ---
 
 ## 6 · Rapport financier
+
+### ~~Le carburant, absent des dépenses fixes~~
+**Fait le 30/09 (v2.10.32 / v3.94.33).** Cobey : « rajoute le carburant
+dans les dépenses fixes, dans le bilan financier. »
+
+Le carburant n'existait jusqu'ici que côté tournée des camions (par
+jour de collecte). Un achat de carburant qui ne se rattache à aucune
+collecte précise (une réserve, un plein pour le générateur…) a
+maintenant sa place aussi dans les dépenses fixes d'un container — le
+poste « ⛽ Carburant » apparaît dans le menu de "Dépenses du
+container", et remonte comme les autres dans le total du Bilan
+financier.
 
 ### ~~L'en-tête de jour du "Report des tournées", qui se chevauchait~~
 **Fait le 29/09 (v2.10.28 / v3.94.29).** Cobey, capture d'écran à
