@@ -910,6 +910,21 @@ facture envoyée au client, ne porte plus une date à chaque étape.
 Répercuté dans `facture.html`, la page publique autonome, qui reprend la
 même mise en page.
 
+**v1.94.36 (01/10) :** Cobey, capture d'écran à l'appui : « le statut
+de ce conteneur, il est en train de naviguer, il n'est pas encore
+arrivé à Dakar. Mais là, étape en cours, il est sur arrivée à Dakar. Il
+n'y a pas un souci ? » — oui : « En cours de navigation » est une
+phase qui dure, pas un événement ponctuel comme les autres. La cocher
+voulait dire « terminée, passons à la suite » : l'étape SUIVANTE
+(Arrivée au port) s'affichait alors « Étape en cours » alors que le
+bateau est encore en mer.
+
+Corrigé : tant que « En cours de navigation » est la dernière étape
+cochée, c'est elle qui porte « Étape en cours » (avec son icône bateau,
+pas une coche verte) — « Arrivée au port » ne passe « en cours » que le
+jour où Issyaka la coche à son tour. Corrigé aux deux endroits
+(departs.js et facture.html).
+
 ---
 
 ## 2 bis · France & Europe

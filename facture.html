@@ -249,6 +249,12 @@ function depRenderSuiviTransportPublic(c){
   var fait = d.etapesTransport || {};
   var dernierIdx = -1;
   etapes.forEach(function(e, i){ if(fait[e.key] && fait[e.key].fait) dernierIdx = i; });
+  // v1.94.36 — « En cours de navigation » dure, ce n'est pas un
+  // événement ponctuel : voir le commentaire jumeau dans departs.js
+  // (depRenderSuiviTransportPublic). Sans cette exception, l'étape
+  // suivante (Arrivée au port) s'affichait "Étape en cours" alors que
+  // le bateau est encore en mer (retour de Cobey du 01/10/2026).
+  var naviguEnCours = (dernierIdx >= 0 && etapes[dernierIdx].key === 'navigation');
 
   /* v1.82.0 — Deux dates seulement, et pliées. Voir le commentaire
      jumeau dans departs.js : cette page reprend la même mise en page,
@@ -270,7 +276,8 @@ function depRenderSuiviTransportPublic(c){
     + '<div class="fac-suivi-titre">&#128205; Suivi de votre colis</div>'
     + estimee;
   etapes.forEach(function(e, i){
-    var cls = i <= dernierIdx ? 'done' : (i === dernierIdx + 1 ? 'now' : 'futur');
+    var cls = (naviguEnCours && i === dernierIdx) ? 'now'
+      : (i <= dernierIdx ? 'done' : ((i === dernierIdx + 1 && !naviguEnCours) ? 'now' : 'futur'));
     var sousLigne = '';
     if(cls === 'now') sousLigne = '<span class="fac-suivi-now-tag">&Eacute;tape en cours</span>';
     if(DATES_VISIBLES[e.key] && cls === 'done' && fait[e.key] && fait[e.key].ts){

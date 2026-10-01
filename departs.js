@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.33';
+var DEP_VERSION = 'v2.10.34';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8859,6 +8859,13 @@ function depRenderSuiviTransportPublic(c){
   var fait = d.etapesTransport || {};
   var dernierIdx = -1;
   etapes.forEach(function(e, i){ if(fait[e.key] && fait[e.key].fait) dernierIdx = i; });
+  // v1.94.36 — « En cours de navigation » est une phase qui dure, pas un
+  // événement ponctuel comme les autres. La cocher ne veut pas dire
+  // « terminée, passons à la suite » mais « on y est, là, maintenant » :
+  // sans cette exception, l'étape SUIVANTE (Arrivée au port) s'affichait
+  // "Étape en cours" alors que le bateau est encore en mer (retour de
+  // Cobey du 01/10/2026, capture à l'appui).
+  var naviguEnCours = (dernierIdx >= 0 && etapes[dernierIdx].key === 'navigation');
 
   /* v1.82.0 — La frise ne porte plus une date à chaque étape.
 
@@ -8882,7 +8889,8 @@ function depRenderSuiviTransportPublic(c){
     + '<div class="fac-suivi-titre">&#128205; Suivi de votre colis</div>'
     + estimee;
   etapes.forEach(function(e, i){
-    var cls = i <= dernierIdx ? 'done' : (i === dernierIdx + 1 ? 'now' : 'futur');
+    var cls = (naviguEnCours && i === dernierIdx) ? 'now'
+      : (i <= dernierIdx ? 'done' : ((i === dernierIdx + 1 && !naviguEnCours) ? 'now' : 'futur'));
     var sousLigne = '';
     if(cls === 'now') sousLigne = '<span class="fac-suivi-now-tag">&Eacute;tape en cours</span>';
     // La date, pliée, et seulement sur les deux étapes qui comptent.
