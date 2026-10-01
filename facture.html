@@ -334,11 +334,18 @@ function depTexteCGVPublic(){
     ['Donn&eacute;es personnelles', 'Les informations collect&eacute;es (nom, t&eacute;l&eacute;phone, adresse) sont utilis&eacute;es exclusivement pour l\'organisation du transport et ne sont communiqu&eacute;es &agrave; aucun tiers, sauf obligation l&eacute;gale ou douani&egrave;re. Conform&eacute;ment au RGPD, le client dispose d\'un droit d\'acc&egrave;s, de rectification et de suppression de ses donn&eacute;es.'],
     ['Litiges', 'En cas de litige, les parties s\'efforceront de trouver une solution amiable. &Agrave; d&eacute;faut, le litige rel&egrave;ve de la comp&eacute;tence des tribunaux de Paris.']
   ];
-  var h = '<div class="fac-suivi-titre">Conditions g&eacute;n&eacute;rales de transport</div>';
+  // v2.12.2 — Cobey, capture du PDF généré à l'appui : « adapte bien le
+  // texte à la page. » Cette page n'a que du texte (pas de tableau ni
+  // de frise comme les pages 1 et 2) : à la même largeur de capture,
+  // elle ressortait bien plus courte que la page A4, laissant un grand
+  // vide sous le texte une fois mise à l'échelle. Texte agrandi et plus
+  // espacé pour occuper la page correctement — et plus lisible, un vrai
+  // texte de conditions générales imprimé n'est jamais en tout petit.
+  var h = '<div style="font-size:15px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#006b2d;margin-bottom:22px;">Conditions g&eacute;n&eacute;rales de transport</div>';
   arts.forEach(function(a, i){
-    h += '<div style="margin-bottom:13px;">'
-      +   '<div style="font-size:12.5px;font-weight:800;color:#111;margin-bottom:3px;">Article ' + (i + 1) + ' &mdash; ' + a[0] + '</div>'
-      +   '<div style="font-size:11.5px;color:#444;line-height:1.65;">' + a[1] + '</div>'
+    h += '<div style="margin-bottom:22px;">'
+      +   '<div style="font-size:14.5px;font-weight:800;color:#111;margin-bottom:5px;">Article ' + (i + 1) + ' &mdash; ' + a[0] + '</div>'
+      +   '<div style="font-size:13.5px;color:#444;line-height:1.8;">' + a[1] + '</div>'
       + '</div>';
   });
   return h;

@@ -1128,6 +1128,15 @@ ouvre la fiche, comme avant.
   3 pages — prix, suivi s'il y en a, conditions générales), sans passer
   par la boîte d'impression du navigateur.
 
+  **Complété le 01/10 (v2.12.2), Cobey**, capture du PDF généré à
+  l'appui : « adapte bien le texte à la page. » La page 3 n'a que du
+  texte (pas de tableau ni de frise comme les pages 1 et 2) : elle
+  ressortait bien plus courte que la page A4 une fois mise à l'échelle,
+  laissant un grand vide sous le texte. Texte agrandi et plus espacé
+  (titre, articles) pour occuper correctement la page — plus lisible
+  aussi, un vrai texte de conditions générales imprimé n'est jamais en
+  tout petit.
+
 - Pouvoir créer des **factures manuelles** rattachées à un container,
   pour le suivi.
 - ~~Les **devis** utilisaient encore l'ancienne saisie (texte libre +
