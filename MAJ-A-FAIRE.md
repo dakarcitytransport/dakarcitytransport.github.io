@@ -1361,6 +1361,14 @@ depuis le 01/10 (voir plus haut, "Réglages > Livreur" : bouton
 **🔄 Réinitialiser son mot de passe**), Mamadou doit alors en choisir un
 nouveau à sa prochaine connexion.
 
+**Complété le 01/10 (v1.5.1), Cobey**, capture d'écran à l'appui :
+la légende n'était sous la vignette que dans la petite liste de
+photos — pas dans la vue **zoomée en plein écran** (en appuyant sur la
+photo), là où Cobey regarde vraiment. L'heure et l'auteur apparaissent
+maintenant aussi dans cette vue agrandie, pour une photo de remise
+(absents pour une photo de colis, prise à la collecte — donnée non
+disponible ici).
+
 ---
 
 ## 6 · Rapport financier

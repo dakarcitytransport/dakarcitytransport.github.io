@@ -106,7 +106,14 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 /* Zoom d'une photo (colis) au clic — pour bien identifier le bon colis. */
 .modal-zoom{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;align-items:center;justify-content:center;padding:18px;}
 .modal-zoom.open{display:flex;}
-.modal-zoom img{max-width:100%;max-height:100%;border-radius:10px;}
+.modal-zoom-contenu{display:flex;flex-direction:column;align-items:center;max-width:100%;max-height:100%;}
+.modal-zoom-contenu img{max-width:100%;max-height:80vh;border-radius:10px;display:block;}
+/* v1.5.1 — Cobey : « sur les photos, il ne voit pas l'heure et qui a
+   pris la photo » — vrai aussi (et surtout) sur cette vue zoomée en
+   plein écran, où il regarde vraiment la photo, pas sur la petite
+   vignette (voir .liv-photo-info). Vide/masquée pour une photo de
+   colis (prise à la collecte, pas par Mamadou — rien à afficher). */
+.modal-zoom-info{color:#fff;font-size:13px;font-weight:600;margin-top:10px;text-align:center;}
 .modal-zoom-fermer{position:absolute;top:18px;right:18px;color:#fff;font-size:28px;cursor:pointer;line-height:1;}
 .photo-vignette{cursor:pointer;}
 
@@ -307,7 +314,10 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 
   <div id="modal-zoom" class="modal-zoom" onclick="mnFermerZoom()">
     <div class="modal-zoom-fermer">&times;</div>
-    <img id="modal-zoom-img" src="">
+    <div class="modal-zoom-contenu">
+      <img id="modal-zoom-img" src="">
+      <div id="modal-zoom-info" class="modal-zoom-info" hidden></div>
+    </div>
   </div>
 
 </div>
@@ -330,7 +340,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.5.0';
+var MAMADOU_VERSION = 'v1.5.1';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1053,8 +1063,9 @@ function _mnRenderPhotosLivraison(){
     // Les deux étaient déjà enregistrés à la prise (p.ts/p.par, voir
     // mnPhotoLivraisonChoisie) — juste jamais montrés jusqu'ici.
     var heureStr = p.ts ? new Date(p.ts).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '—';
+    var legende = heureStr + ' · ' + (p.par || '—');
     h += '<div class="liv-photo-item">'
-      +   '<div class="liv-photo-img"><img src="'+p.d+'" onclick="mnOuvrirZoom(\''+esc(p.d)+'\')">'
+      +   '<div class="liv-photo-img"><img src="'+p.d+'" onclick="mnOuvrirZoom(\''+esc(p.d)+'\',\''+esc(legende)+'\')">'
       +     '<button type="button" class="liv-photo-suppr" onclick="event.stopPropagation();mnSupprimerPhotoLivraison(\''+esc(k)+'\')">&times;</button></div>'
       +   '<div class="liv-photo-info">'+esc(heureStr)+'<br>'+esc(p.par || '—')+'</div>'
       + '</div>';
@@ -1107,13 +1118,20 @@ function mnSupprimerPhotoLivraison(cle){
 }
 
 /* ─────────── Zoom d'une photo ─────────── */
-function mnOuvrirZoom(src){
+// v1.5.1 — `info`, optionnel : l'heure et l'auteur d'une photo de
+// remise (voir _mnRenderPhotosLivraison), absent pour une photo de
+// colis (zoomée aussi, mais sans cette donnée disponible ici).
+function mnOuvrirZoom(src, info){
   $('modal-zoom-img').src = src;
+  var infoEl = $('modal-zoom-info');
+  if(infoEl){ infoEl.textContent = info || ''; infoEl.hidden = !info; }
   $('modal-zoom').classList.add('open');
 }
 function mnFermerZoom(){
   $('modal-zoom').classList.remove('open');
   $('modal-zoom-img').src = '';
+  var infoEl = $('modal-zoom-info');
+  if(infoEl){ infoEl.textContent = ''; infoEl.hidden = true; }
 }
 
 // v1.3.0 — Cobey : « il doit pouvoir entrer les prix soit en euros soit
