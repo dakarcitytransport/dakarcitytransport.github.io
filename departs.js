@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.11.6';
+var DEP_VERSION = 'v2.11.7';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13869,6 +13869,34 @@ function _frMajOngletSuivi(t){
   }
 }
 
+/* v2.11.7 — Cobey, après coup : « il y a trop d'onglets, [l'affichage]
+   chevauche, c'est mal proportionné [...] quand je rentre dans la
+   collecte, je vois la dispatch, [ça ne devrait pas être] optionnel.
+   Alors que dans le parcours client, on a vraiment d'abord l'accueil
+   et le suivi, et quand on rentre dans une collecte, on a la dispatch.
+   Il faudrait quelque chose d'assez similaire. »
+   Dans le parcours Sénégal, "Dispatch" n'est JAMAIS un onglet du bas à
+   côté des autres : c'est l'écran natif (Accueil → une collecte) qui
+   s'ouvre une fois qu'on est entré dedans. Ici, "Collectes" et
+   "Dispatch" sont deux états du MÊME emplacement, jamais deux onglets
+   en même temps : tant qu'aucune collecte n'est ouverte, on voit
+   "📅 Collectes" (la liste) ; dès qu'on en ouvre une (ouvrirCollecteFrance,
+   natif), ce même onglet devient "🚛 Dispatch" (sa feuille de route) —
+   "← Toutes les collectes" (natif, fermerCollecteFrance) referme et
+   rend "📅 Collectes". Ramène la barre à 3 onglets (au lieu de 4),
+   ce qui réglait aussi le libellé "Collectes" qui retombait à la
+   ligne et chevauchait le trait actif. */
+function _frFusionnerOngletCollectesDispatch(t){
+  var ongletDispatch = document.getElementById('ftab-dispatch');
+  if(ongletDispatch) ongletDispatch.style.display = 'none';
+  var onglet = document.getElementById('ftab-collectes');
+  if(!onglet) return;
+  var ouverte = !!(window.currentCollecteFrId && typeof window._frCollectes === 'function' && window._frCollectes()[window.currentCollecteFrId]);
+  onglet.innerHTML = ouverte ? '&#128666; Dispatch' : '&#128197; Collectes';
+  onglet.onclick = function(){ window.switchFranceTab(ouverte ? 'dispatch' : 'collectes'); };
+  onglet.className = 'subtab' + ((t === 'collectes' || t === 'dispatch') ? ' active' : '');
+}
+
 /* v2.11.6 — Cobey : « le bouton inscrire client ne doit être que sur
    la partie où on voit tous les clients [...] et les onglets, il faut
    les descendre en bas, comme dans le parcours client. » Deux
@@ -16132,6 +16160,11 @@ function greffer(){
   try{ _frDeplacerOngletsEnBas(); }catch(e){ console.error('departs: onglets France en bas', e); }
   try{ _frMajBarreInscrire(window.franceTab || 'clients'); }catch(e){}
 
+  // v2.11.7 — "Collectes" et "Dispatch" fusionnés en un seul onglet
+  // (voir _frFusionnerOngletCollectesDispatch) : jamais 4 onglets à la
+  // fois, 3 au plus.
+  try{ _frFusionnerOngletCollectesDispatch(window.franceTab || 'clients'); }catch(e){}
+
   if(typeof window.switchFranceTab === 'function' && !window.switchFranceTab._depPatch){
     var origSwitchFranceTab = window.switchFranceTab;
     window.switchFranceTab = function(t){
@@ -16140,6 +16173,7 @@ function greffer(){
       origSwitchFranceTab(t);
       try{ _frMajOngletSuivi(t); }catch(e){}
       try{ _frMajBarreInscrire(t); }catch(e){}
+      try{ _frFusionnerOngletCollectesDispatch(t); }catch(e){}
     };
     window.switchFranceTab._depPatch = true;
   }

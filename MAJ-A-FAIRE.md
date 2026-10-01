@@ -995,6 +995,22 @@ parcours client. » Deux retouches à l'écran France & Europe :
   endroit que la barre de navigation (Accueil/Clients/Suivi/Activité)
   utilisée partout ailleurs dans l'appli.
 
+**Complété le 01/10 (v2.11.7), Cobey :** « il y a trop d'onglets,
+[l'affichage] chevauche, c'est mal proportionné [...] quand je rentre
+dans la collecte, je vois la dispatch [...] alors que dans le parcours
+client, on a vraiment d'abord l'accueil et le suivi, et quand on rentre
+dans une collecte, on a la dispatch. Il faudrait quelque chose d'assez
+similaire. » Avec 4 onglets dans une barre du bas, le mot « Collectes »
+retombait à la ligne et chevauchait le trait de l'onglet actif.
+
+Comme dans la collecte Sénégal, « Dispatch » n'est jamais un onglet à
+part : **Collectes** et **Dispatch** partagent maintenant le même
+emplacement — « 📅 Collectes » tant qu'aucune collecte n'est ouverte,
+et ce même emplacement devient « 🚛 Dispatch » dès qu'on en ouvre une
+(et revient à « 📅 Collectes » en refermant avec « ← Toutes les
+collectes »). La barre repasse ainsi à 3 onglets (Clients / Collectes
+ou Dispatch / Suivi), plus lisible et sans chevauchement.
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage
