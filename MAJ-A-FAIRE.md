@@ -1137,6 +1137,14 @@ ouvre la fiche, comme avant.
   aussi, un vrai texte de conditions générales imprimé n'est jamais en
   tout petit.
 
+  **Complété le 01/10 (v2.12.3), Cobey :** « supprime l'article 5 et
+  pour l'article 6, passe le délai à 24 heures au lieu de 7 jours et
+  supprime l'article 9. » L'article « Responsabilité et valeur
+  déclarée » et l'article « Litiges » ont été retirés ; l'article
+  « Réclamations » passe de 7 jours à 24 heures pour signaler un colis
+  endommagé, manquant ou mal livré. 7 articles au lieu de 9,
+  renumérotés automatiquement.
+
 - Pouvoir créer des **factures manuelles** rattachées à un container,
   pour le suivi.
 - ~~Les **devis** utilisaient encore l'ancienne saisie (texte libre +
