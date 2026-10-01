@@ -1044,7 +1044,10 @@ ouvre la fiche, comme avant.
 
 Un accès séparé, sur le modèle du lien des chauffeurs externes.
 
-**?** Confirmer : c'est bien le livreur à Dakar, avec son propre lien ?
+**Confirmé le 01/10 :** c'est bien le livreur à Dakar, avec son **propre
+lien permanent** (contrairement au code des chauffeurs externes, qui est
+à usage unique par collecte — il faut un nouveau système de code/lien
+durable, pas `dct_codes_externe`).
 
 ### Ses écrans
 - une **case QR code**, pour scanner une étiquette ;
@@ -1055,10 +1058,9 @@ Un accès séparé, sur le modèle du lien des chauffeurs externes.
 - une **case container**, pour accéder aux clients comme le carré Départ,
   mais **sans aucun total d'argent du container**.
 
-**?** Quel numéro tape-t-il : le numéro de client (`CL-0001`), ou la
-grande ligne de l'étiquette en entier (`CL-0001-051026-7`) ? À trancher
-au moment de construire l'écran — le second est unique par colis, le
-premier retombe sur le client quel que soit l'envoi.
+**Confirmé le 01/10 :** il tape le **numéro de client** (`CL-0001`),
+selon le container déjà sélectionné à l'écran précédent — pas la grande
+ligne complète de l'étiquette.
 
 ### Au scan d'une étiquette
 - si le client a payé → l'information **en vert** ;
@@ -1077,6 +1079,22 @@ payé / non payé · avec / sans livraison · par région
 - ce qui a été encaissé par DCT
 - ce qu'il encaisse sur place
 - le total des deux, et le total global des livraisons
+
+**Précision du 01/10, Cobey :** « sa case container, lui ne doit voir
+uniquement que ce qu'il reste à payer pour les clients, il ne doit voir
+aucun prix encaissé ! » — dans la liste des clients d'un container (pas
+les totaux de livraison ci-dessus, qui restent), chaque client **n'affiche
+que le reste à payer** s'il y en a un ; jamais un montant déjà encaissé.
+Un client soldé n'affiche aucun chiffre (juste le vert déjà prévu
+ci-dessus).
+
+### Case miroir pour la Direction
+**Demandé le 01/10, Cobey :** « il faudra aussi mettre une case miroire
+pour la direction et moi, pour qu'on puisse voir son interface, faire des
+tests éventuellement aussi. » Un accès (depuis l'espace Direction, pas le
+lien externe) qui affiche exactement l'interface de Mamadou — mêmes
+écrans, mêmes règles d'affichage — pour qu'Eric et la direction puissent
+voir ce qu'il voit et tester sans passer par le lien externe.
 
 ---
 
