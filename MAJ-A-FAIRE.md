@@ -952,6 +952,18 @@ d'après le code reçu, et va chercher la tournée et les clients au bon
 endroit (`france/clients`, pas `dct/clients/{collecteId}`). L'arrêt de
 Chartres, propre au Sénégal, ne s'affiche pas sur une tournée France.
 
+**Complété le 01/10 (v2.11.4), Cobey :** « y'a pas l'outil suivi en
+direct non plus. » Comme la collecte Sénégal (Suivi live), ce que le
+chauffeur signale depuis chauffeur.html doit se voir côté DCT avant
+même que la facture soit faite :
+- le bandeau du Dispatch distingue maintenant **« X/Y signalés en
+  direct »** (ce que le chauffeur a rapporté, `chauffeurStatuts`) de
+  **« X/Y facturés »** (le travail de DCT, `validated`/`refused`) ;
+- sur l'écran du camion, chaque client que le chauffeur a déjà traité
+  mais que DCT n'a pas encore facturé affiche une ligne **📡 Signalé
+  récupéré par le chauffeur — à facturer** (ou non récupéré, avec le
+  motif) — elle disparaît dès que DCT facture ou refuse le client.
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage

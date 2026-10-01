@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.11.3';
+var DEP_VERSION = 'v2.11.4';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13625,13 +13625,22 @@ function _frInjecterChauffeurExterne(h, r){
     var marqueurCarte = '<div class="truck-card" onclick="ouvrirCamionFrance(\'' + k + '\')">';
     if(h.indexOf(marqueurCarte) < 0) return;
     var nb = (tk.clients || []).length;
-    var nbFait = (tk.clients || []).filter(function(id){
+    var nbFacture = (tk.clients || []).filter(function(id){
       return (tk.validated || []).indexOf(id) !== -1 || (tk.refused || []).indexOf(id) !== -1;
     }).length;
+    // v2.11.4 — Cobey : « y'a pas l'outil suivi en direct non plus » —
+    // le bandeau n'affichait que le facturé (le travail de DCT), jamais
+    // ce que le chauffeur a SIGNALÉ en direct depuis chauffeur.html
+    // (chauffeurStatuts), avant même que DCT ait traité la facture.
+    // Même principe que le Suivi live de la collecte Sénégal (voir
+    // window._suiviStatut plus haut), ramené à ce seul bandeau puisque
+    // France & Europe n'a pas d'onglet Suivi séparé.
+    var statuts = tk.chauffeurStatuts || {};
+    var nbSignale = (tk.clients || []).filter(function(id){ return !!statuts[id]; }).length;
     var bandeau = '<div style="border:2px solid #1a237e;background:#F5F6FC;border-radius:12px 12px 0 0;border-bottom:none;padding:10px 14px;">'
       +   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
       +     '<span style="font-size:9px;font-weight:800;background:#1a237e;color:#fff;padding:3px 7px;border-radius:20px;">CHAUFFEUR EXTERNE</span>'
-      +     '<span style="font-size:12px;color:#444;font-weight:700;">' + nbFait + '/' + nb + ' ramass&eacute;' + (nbFait > 1 ? 's' : '') + '</span>'
+      +     '<span style="font-size:11px;color:#444;font-weight:700;text-align:right;">&#128225; ' + nbSignale + '/' + nb + ' signal&eacute;' + (nbSignale > 1 ? 's' : '') + ' en direct<br>' + nbFacture + '/' + nb + ' factur&eacute;' + (nbFacture > 1 ? 's' : '') + '</span>'
       +   '</div>'
       +   '<button type="button" onclick="event.stopPropagation();_depCopierLienExterne(\'' + esc(tk.name).replace(/'/g, '&#39;') + '\',\'' + esc(tk.codeExterne || '') + '\')" style="width:100%;padding:8px;background:#fff;border:1.5px solid #1a237e;color:#1a237e;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--font);">📋 Copier le lien + code (' + esc(tk.codeExterne || '—') + ')</button>'
       + '</div>'
@@ -13639,6 +13648,52 @@ function _frInjecterChauffeurExterne(h, r){
     h = h.replace(marqueurCarte, bandeau);
   });
   return h;
+}
+
+// v2.11.4 — « l'outil suivi en direct » côté écran d'un camion externe
+// France (renderCamionFrance) : affiche ce que le chauffeur a SIGNALÉ
+// depuis chauffeur.html (chauffeurStatuts), pour chaque client pas
+// encore facturé — sans ça, un client resté "en attente" à l'écran
+// alors qu'il est déjà récupéré depuis une heure, aucun moyen de le
+// savoir sans appeler le chauffeur.
+function _frInjecterStatutsChauffeurCamion(){
+  if(typeof window._frCollecteActive !== 'function') return;
+  var r = window._frCollecteActive();
+  if(!r) return;
+  var tk = (r.trucks || {})[window._frCamion];
+  if(!tk || !tk.externe) return;
+  var statuts = tk.chauffeurStatuts || {};
+  var validated = tk.validated || [], refused = tk.refused || [];
+  var hours = tk.hours || {};
+  var route = document.getElementById('frc-route');
+  if(!route) return;
+  var sorted = (tk.clients || []).slice().sort(function(a, b){
+    var ha = hours[a], hb = hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return tk.clients.indexOf(a) - tk.clients.indexOf(b);
+  });
+  var cartes = route.querySelectorAll('.route-card');
+  sorted.forEach(function(id, i){
+    if(validated.indexOf(id) !== -1 || refused.indexOf(id) !== -1) return; // déjà traité par DCT, rien à signaler
+    var cs = statuts[id];
+    if(!cs) return;
+    var carte = cartes[i];
+    if(!carte) return;
+    var zone = carte.querySelector('.route-details');
+    if(!zone || zone.querySelector('.fr-statut-chauffeur')) return;
+    var ligne = document.createElement('div');
+    ligne.className = 'route-detail-row fr-statut-chauffeur';
+    if(cs.etat === 'recupere'){
+      ligne.style.cssText = 'color:#006b2d;font-weight:800;';
+      ligne.textContent = '📡 Signalé récupéré par le chauffeur — à facturer';
+    } else {
+      ligne.style.cssText = 'color:#992020;font-weight:800;';
+      ligne.textContent = '📡 Signalé non récupéré par le chauffeur' + (cs.motifLib ? (' : ' + cs.motifLib) : '');
+    }
+    zone.appendChild(ligne);
+  });
 }
 
 /* ─────────────────────────────────────────────
@@ -15847,6 +15902,19 @@ function greffer(){
       return h;
     };
     window._frDispatchDetail._depPatch = true;
+  }
+
+  // v2.11.4 — Cobey : « y'a pas l'outil suivi en direct non plus » —
+  // l'écran du camion (renderCamionFrance, lui, manipule le DOM
+  // directement : on laisse l'original s'exécuter, puis on complète le
+  // DOM qu'il vient de produire).
+  if(typeof window.renderCamionFrance === 'function' && !window.renderCamionFrance._depPatch){
+    var origRenderCamionFrance = window.renderCamionFrance;
+    window.renderCamionFrance = function(){
+      origRenderCamionFrance.apply(this, arguments);
+      try{ _frInjecterStatutsChauffeurCamion(); }catch(e){ console.error('departs: statuts chauffeur externe (camion France)', e); }
+    };
+    window.renderCamionFrance._depPatch = true;
   }
 }
 
