@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.34';
+var DEP_VERSION = 'v2.11.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5159,6 +5159,15 @@ function ecouterDeparts(){
   db.ref('dct_refs_clients').on('value', function(snap){
     window.dctRefsClients = snap.val() || {};
   });
+
+  // v1.94.37 : le jeton d'accès permanent de l'espace Mamadou (livreur) —
+  // voir window.renderAdminMamadou, Réglages > Livreur.
+  db.ref('dct_acces_mamadou').on('value', function(snap){
+    window.mamadouAcces = snap.val() || {};
+    try{
+      if($('admin-section-mamadou') && $('admin-section-mamadou').style.display !== 'none') window.renderAdminMamadou();
+    }catch(e){}
+  });
   db.ref('dct/contacts').on('value', function(snap){
     setTimeout(function(){
       try{ _depSyncRefsClients(snap.val()); }catch(e){ console.error('departs: sync réfs client', e); }
@@ -5469,6 +5478,13 @@ var DEP_REGLAGES_ITEMS = [
   // filtré à la construction de la grille (voir _depReglagesPreparerEcran).
   { tab:'maintenance',  icone:'&#128477;&#65039;',   titre:'MAINTENANCE',          couleur:'#5d4037', fond:'#EFE6DF', adminOnly:true },
   { tab:'alertes',      icone:'&#128276;',           titre:'ALERTES',              couleur:'#c0392b', fond:'#F6E5E3' },
+  // v1.94.37 : Cobey, sur l'espace Mamadou (livreur) : « il faudra aussi
+  // mettre une case miroire pour la direction et moi, pour qu'on puisse
+  // voir son interface, faire des tests éventuellement aussi. » — pas une
+  // réimplémentation de son écran (ça aurait recréé le même genre de
+  // double maintenance que facture.html/departs.js), mais le lien réel
+  // vers mamadou.html : la Direction voit très exactement ce qu'il voit.
+  { tab:'mamadou',      icone:'&#128666;',           titre:'LIVREUR',              couleur:'#B8720C', fond:'#FBE9D0' },
   { tab:'donnees',      icone:'&#128190;',           titre:'DONN&Eacute;ES',       couleur:'#455A64', fond:'#E6E9EA' },
   // v1.21.8 : sous-carré séparé, retour de Cobey du 07/09/2026 — Civilités
   // et Diagnostic n'ont rien à voir avec le stockage (Données), chaque
@@ -5512,7 +5528,7 @@ function _depReglagesPreparerEcran(){
   // fois, ici même où vit déjà la création de la grille.
   // v1.21.9 : même chose pour les 4 cases qui remplacent l'ancien carré
   // unique "Accès" (codesadmin/codesespaces/maintenance/alertes).
-  ['outils','codesadmin','codesespaces','maintenance','alertes'].forEach(function(id){
+  ['outils','codesadmin','codesespaces','maintenance','alertes','mamadou'].forEach(function(id){
     if(contenu && !$('admin-section-'+id)){
       var sec = document.createElement('div');
       sec.id = 'admin-section-'+id;
@@ -5561,7 +5577,7 @@ window._depReglagesOuvrirItem = function(tab){
 
 function _depReglagesAfficherGrille(){
   _depReglagesTab = null;
-  ['equipe','partenaires','codesadmin','codesespaces','maintenance','alertes','donnees','outils','message'].forEach(function(t){
+  ['equipe','partenaires','codesadmin','codesespaces','maintenance','alertes','donnees','outils','message','mamadou'].forEach(function(t){
     var sec = $('admin-section-'+t);
     if(sec) sec.style.display = 'none';
   });
@@ -15656,7 +15672,7 @@ function greffer(){
      plus, aucune case n'y mène. --- */
   if(typeof window.showAdminTab === 'function' && !window.showAdminTab._depPatch){
     window.showAdminTab = function(tab){
-      ['equipe','partenaires','codesadmin','codesespaces','maintenance','alertes','donnees','outils','message'].forEach(function(t){
+      ['equipe','partenaires','codesadmin','codesespaces','maintenance','alertes','donnees','outils','message','mamadou'].forEach(function(t){
         var sec = document.getElementById('admin-section-'+t);
         var btn = document.getElementById('admin-tab-'+t);
         if(sec) sec.style.display = t === tab ? 'block' : 'none';
@@ -15674,6 +15690,7 @@ function greffer(){
       else if(tab === 'donnees') renderAdminDonnees();
       else if(tab === 'outils') window.renderAdminOutils();
       else if(tab === 'message') renderAdminMessage();
+      else if(tab === 'mamadou') window.renderAdminMamadou();
     };
     window.showAdminTab._depPatch = true;
   }
@@ -15700,6 +15717,8 @@ function greffer(){
         if(mt && mt.style.display !== 'none' && typeof window.renderAdminMaintenance === 'function') window.renderAdminMaintenance();
         var al = document.getElementById('admin-section-alertes');
         if(al && al.style.display !== 'none' && typeof window.renderAdminAlertes === 'function') window.renderAdminAlertes();
+        var mn = document.getElementById('admin-section-mamadou');
+        if(mn && mn.style.display !== 'none' && typeof window.renderAdminMamadou === 'function') window.renderAdminMamadou();
       }catch(e){ console.error('departs: rafraîchissement sous-carrés Accès', e); }
     };
     window._rafraichirAdmin._depPatch = true;
@@ -20297,6 +20316,80 @@ window.renderAdminAlertes = function(){
   var sec = document.getElementById('admin-section-alertes');
   if(!sec) return;
   sec.innerHTML = _htmlAlertes();
+};
+
+/* ─────────────────────────────────────────────
+   v1.94.37 — RÉGLAGES > LIVREUR (espace Mamadou)
+
+   Pas un écran réimplémenté : littéralement SON lien, celui ouvert sur
+   son téléphone (mamadou.html?acces=...), généré et régénérable ici.
+   Cobey : « il faudra aussi mettre une case miroire pour la direction et
+   moi, pour qu'on puisse voir son interface, faire des tests
+   éventuellement aussi. » — en l'ouvrant depuis ce bouton, la Direction
+   voit très exactement son interface, sans aucune duplication de code à
+   maintenir à deux endroits (leçon du drift répété entre departs.js et
+   facture.html cette même session).
+   ───────────────────────────────────────────── */
+function _depLienMamadou(token){
+  return location.origin + '/mamadou.html?acces=' + encodeURIComponent(token);
+}
+
+window.renderAdminMamadou = function(){
+  var sec = document.getElementById('admin-section-mamadou');
+  if(!sec) return;
+  var acces = window.mamadouAcces || {};
+  var h = '<div style="padding:4px 2px 18px;">'
+    + '<div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:16px;">'
+    +   'Lien permanent de Mamadou Niass (livreur à Dakar) : scan QR, saisie de secours, '
+    +   'liste des clients par container (reste à payer uniquement, jamais un montant encaissé), '
+    +   'encaissement et validation de la livraison.</div>';
+
+  if(!acces.token){
+    h += '<div style="font-size:12.5px;color:#999;margin-bottom:12px;">Aucun lien généré pour le moment.</div>'
+      + '<button type="button" class="btn" style="background:#006b2d;color:#fff;" onclick="depGenererLienMamadou()">🔗 Générer le lien</button>';
+  } else {
+    var lien = _depLienMamadou(acces.token);
+    h += '<div style="background:#F7F8FA;border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:12.5px;word-break:break-all;margin-bottom:12px;">'
+      +   esc(lien) + '</div>'
+      + (acces.creeLe ? ('<div style="font-size:11px;color:#999;margin-bottom:14px;">Généré le '+esc(dateHeureFr(acces.creeLe))+(acces.par?(' par '+esc(acces.par)):'')+'</div>') : '')
+      + '<button type="button" class="btn" style="background:#006b2d;color:#fff;" onclick="depOuvrirInterfaceMamadou()">👁️ Voir son interface</button>'
+      + '<button type="button" class="btn" style="background:#111;color:#fff;" onclick="depCopierLienMamadou()">📋 Copier le lien (WhatsApp)</button>'
+      + '<button type="button" class="btn" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;" onclick="depRegenererLienMamadou()">🔄 Régénérer le lien</button>'
+      + '<div style="font-size:11px;color:#999;margin-top:8px;line-height:1.5;">Régénérer invalide immédiatement l’ancien lien — à envoyer de nouveau à Mamadou après.</div>';
+  }
+  h += '</div>';
+  sec.innerHTML = h;
+};
+
+window.depGenererLienMamadou = function(){
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  var u = window.currentUser || {};
+  var token = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+  db.ref('dct_acces_mamadou').set({ token: token, creeLe: Date.now(), par: u.name || u.id || '' })
+    .then(function(){ toast('✅ Lien généré'); })
+    .catch(function(e){ console.error('departs: génération lien Mamadou', e); toast('❌ Échec, réessayez.'); });
+};
+
+window.depRegenererLienMamadou = function(){
+  if(!confirm('Régénérer invalide immédiatement l’ancien lien. Continuer ?')) return;
+  window.depGenererLienMamadou();
+};
+
+window.depCopierLienMamadou = function(){
+  var acces = window.mamadouAcces || {};
+  if(!acces.token){ toast('⚠️ Aucun lien généré.'); return; }
+  var texte = 'Bonjour Mamadou, voici ton lien Dakar City Transport pour les livraisons :\n' + _depLienMamadou(acces.token);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texte).then(function(){ toast('📋 Lien copié'); }).catch(function(){ toast('⚠️ Copie impossible sur ce navigateur.'); });
+  } else {
+    toast('⚠️ Copie impossible sur ce navigateur.');
+  }
+};
+
+window.depOuvrirInterfaceMamadou = function(){
+  var acces = window.mamadouAcces || {};
+  if(!acces.token){ toast('⚠️ Aucun lien généré.'); return; }
+  window.open(_depLienMamadou(acces.token), '_blank');
 };
 
 

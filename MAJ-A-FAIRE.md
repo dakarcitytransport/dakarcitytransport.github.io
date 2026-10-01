@@ -1042,6 +1042,38 @@ ouvre la fiche, comme avant.
 
 ## 5 · Espace Mamadou — livreur à Dakar (lien externe)
 
+**Fait le 01/10 (v2.11.0 / v3.95.0)**, sauf les totaux de livraison
+chiffrés (voir plus bas — une question reste en suspens). Nouvelle page
+`mamadou.html`, à part comme `chauffeur.html`/`facture.html` (ne charge
+pas departs.js, relit ses propres données en direct). Lien permanent
+généré et régénérable depuis **Réglages > Livreur** (Direction) :
+affiche le lien, permet de le copier (message WhatsApp prêt), de le
+régénérer (invalide l'ancien), et de **« Voir son interface »** — ouvre
+littéralement le lien de Mamadou dans un nouvel onglet, pas une
+réimplémentation séparée à maintenir en double (leçon tirée du
+chantier facture.html/departs.js, qui a déjà demandé plusieurs
+rattrapages cette session pour rester synchronisé).
+
+Construit : les 3 cases d'accueil (scanner, saisie de secours,
+containers), le scan QR (même jeton `DCTQR1:` que l'appli interne — les
+étiquettes déjà imprimées fonctionnent telles quelles), la saisie de
+secours par numéro de client dans le container choisi, la liste des
+clients d'un container avec filtres (payé/reste à payer, avec
+livraison, par région de livraison) et tri par numéro de place comme
+Départ, la fiche client (photos, description, nombre de colis,
+statut payé/reste visible immédiatement), l'encaissement du colis et
+de la livraison (deux caisses séparées, comme partout ailleurs dans
+l'appli), et la validation de la livraison — verrouillée tant qu'il
+reste un montant à encaisser, sur le colis comme sur la livraison.
+
+**Non construit : les totaux de livraison chiffrés dans sa case
+container** (ce qu'il va toucher, ce qui a été encaissé par DCT, ce
+qu'il encaisse sur place, le total). **Question pour Cobey :** sur
+quelle base Mamadou est-il rémunéré par livraison (un forfait fixe ? un
+pourcentage du prix de la livraison ?) — rien dans l'appli ne définit
+encore cette règle, impossible de calculer « ce qu'il va toucher » sans
+elle.
+
 Un accès séparé, sur le modèle du lien des chauffeurs externes.
 
 **Confirmé le 01/10 :** c'est bien le livreur à Dakar, avec son **propre

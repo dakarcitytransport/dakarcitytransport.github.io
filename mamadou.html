@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Livraisons — Dakar City Transport</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+:root{--border:#E0E0E0;--font:'DM Sans',sans-serif;--vert:#006b2d;}
+*{box-sizing:border-box;}
+body{margin:0;padding:0;font-family:var(--font);background:#e8e8e8;min-height:100vh;}
+.wrap{max-width:480px;margin:0 auto;padding:18px 14px 40px;}
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 14px rgba(0,0,0,.1);overflow:hidden;margin-bottom:16px;}
+.pad{padding:20px 18px;}
+.topbar{height:8px;background:var(--vert);}
+.logo{width:44px;height:44px;border-radius:50%;background:var(--vert);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;margin:0 auto 14px;}
+h1{font-size:17px;text-align:center;color:#111;margin:0 0 4px;}
+.sub{font-size:12.5px;text-align:center;color:#777;margin:0 0 20px;line-height:1.5;}
+label{font-size:11.5px;font-weight:700;color:#444;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.02em;}
+input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:var(--font);margin-bottom:14px;background:#fff;}
+.btn{width:100%;padding:15px;border:none;border-radius:10px;font-size:14.5px;font-weight:800;font-family:var(--font);cursor:pointer;}
+.btn-green{background:var(--vert);color:#fff;}
+.btn-light{background:#e8f7ee;color:#00b34e;border:1.5px solid #B7E4C7;}
+.btn-gray{background:#f0f0f0;color:#444;}
+.err{background:#FDEDED;border:1.5px solid #F5C6C6;color:#992020;font-size:12.5px;font-weight:600;border-radius:9px;padding:10px 12px;margin-bottom:14px;text-align:center;}
+[hidden]{display:none!important;}
+.retour{font-size:12.5px;color:#888;text-align:center;margin-top:10px;cursor:pointer;text-decoration:underline;}
+.hdr2{background:var(--vert);color:#fff;padding:16px 18px;}
+.hdr2 .nom{font-size:15px;font-weight:800;}
+.hdr2 .sub2{font-size:12px;opacity:.9;margin-top:2px;}
+
+/* Accueil — 3 grandes cases */
+.cases{display:flex;flex-direction:column;gap:12px;padding:4px 0 0;}
+.case{display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:18px;cursor:pointer;}
+.case-ico{font-size:30px;width:46px;text-align:center;flex-shrink:0;}
+.case-tit{font-size:15px;font-weight:800;color:#111;}
+.case-sub{font-size:12px;color:#888;margin-top:2px;}
+
+/* Scanner */
+.scan-video-wrap{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:1/1;margin-bottom:14px;}
+.scan-video-wrap video{width:100%;height:100%;object-fit:cover;display:block;}
+.scan-cadre{position:absolute;inset:14%;border:3px solid #fff;border-radius:16px;box-shadow:0 0 0 2000px rgba(0,0,0,.35);}
+.scan-msg{text-align:center;font-size:13px;color:#555;margin-bottom:14px;}
+
+/* Liste containers / clients */
+.cont-item{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:9px;cursor:pointer;}
+.cont-nom{font-size:14px;font-weight:800;color:#111;}
+.cont-sub{font-size:11.5px;color:#888;margin-top:2px;}
+.cont-fleche{color:#bbb;font-size:18px;}
+.filtres{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+.filtre{font-size:11.5px;font-weight:700;padding:7px 11px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:#555;cursor:pointer;}
+.filtre.on{background:var(--vert);border-color:var(--vert);color:#fff;}
+.recherche{margin-bottom:12px;}
+.cli-item{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
+.cli-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.cli-nom{font-size:14px;font-weight:800;color:#111;}
+.cli-rang{display:inline-block;background:#eef2ff;color:#3949ab;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-right:6px;}
+.cli-sub{font-size:12px;color:#777;margin-top:3px;}
+.cli-reste{font-size:12px;font-weight:800;color:#992020;margin-top:5px;}
+.cli-paye{font-size:11.5px;font-weight:700;color:#006b2d;margin-top:5px;}
+.cli-liv{display:inline-block;background:#FFF4E0;color:#a04800;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-top:5px;}
+.vide{text-align:center;color:#aaa;padding:30px 10px;font-size:13px;}
+
+/* Fiche */
+.fiche-av{width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;margin:0 auto 10px;}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}
+.kv .k{color:#888;flex-shrink:0;}
+.kv .v{color:#111;font-weight:700;text-align:right;}
+.statut-badge{display:block;text-align:center;font-size:12.5px;font-weight:800;border-radius:10px;padding:10px;margin:14px 0;}
+.statut-vert{background:#D4F0E0;color:#006b2d;}
+.statut-rouge{background:#FDEDED;color:#992020;}
+.statut-orange{background:#FFF4E0;color:#A04800;}
+.bloc-liv{background:#FFF8EC;border:1.5px solid #F5DCA8;border-radius:12px;padding:14px;margin:14px 0;}
+.bloc-liv-titre{font-size:12px;font-weight:800;color:#a04800;letter-spacing:.03em;margin-bottom:8px;text-transform:uppercase;}
+.vignettes{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;}
+.photo-vignette{width:64px;height:64px;border-radius:8px;background:#ddd;overflow:hidden;}
+.photo-vignette img{width:100%;height:100%;object-fit:cover;}
+.encaisser-bloc{border:1.5px dashed var(--border);border-radius:10px;padding:12px;margin-top:10px;}
+.encaisser-bloc label{margin-bottom:6px;}
+.meth-row{display:flex;gap:8px;margin-bottom:12px;}
+.meth-btn{flex:1;padding:10px;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:#555;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.meth-btn.on{background:var(--vert);border-color:var(--vert);color:#fff;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="ecran-chargement" class="card"><div class="pad" style="text-align:center;color:#999;padding:60px 18px;">Chargement&hellip;</div></div>
+
+  <div id="ecran-erreur" class="card" hidden>
+    <div class="pad" style="text-align:center;padding:50px 18px;">
+      <div style="font-size:38px;margin-bottom:10px;">&#128683;</div>
+      <div style="font-weight:800;color:#555;font-size:15px;">Lien invalide</div>
+      <div style="font-size:12.5px;color:#999;margin-top:6px;">Ce lien n&rsquo;est plus valide. Demandez un nouveau lien &agrave; Dakar City Transport.</div>
+    </div>
+  </div>
+
+  <div id="ecran-accueil" hidden class="card">
+    <div class="topbar"></div>
+    <div class="pad">
+      <div class="logo">DCT</div>
+      <h1>Mes livraisons</h1>
+      <div class="sub">Dakar City Transport &mdash; espace livreur</div>
+      <div class="cases">
+        <div class="case" onclick="ouvrirScan()">
+          <div class="case-ico">&#128247;</div>
+          <div><div class="case-tit">Scanner une &eacute;tiquette</div><div class="case-sub">Appareil photo</div></div>
+        </div>
+        <div class="case" onclick="ouvrirSecours()">
+          <div class="case-ico">&#8995;</div>
+          <div><div class="case-tit">Saisie de secours</div><div class="case-sub">Si le QR ne scanne pas</div></div>
+        </div>
+        <div class="case" onclick="ouvrirContainers()">
+          <div class="case-ico">&#128230;</div>
+          <div><div class="case-tit">Containers</div><div class="case-sub">Voir tous les clients</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ecran-scan" hidden class="card">
+    <div class="pad">
+      <h1 style="text-align:left;">&#128247; Scanner l&rsquo;&eacute;tiquette</h1>
+      <div class="scan-msg" id="scan-msg">Chargement&hellip;</div>
+      <div class="scan-video-wrap"><video id="scan-video" playsinline muted></video><div class="scan-cadre"></div></div>
+      <div class="retour" onclick="fermerScan()">&larr; Retour</div>
+    </div>
+  </div>
+
+  <div id="ecran-secours" hidden class="card">
+    <div class="pad">
+      <h1 style="text-align:left;">&#8995; Saisie de secours</h1>
+      <div class="sub" style="text-align:left;">Choisissez le container, puis tapez le num&eacute;ro du client (ex. CL-0001).</div>
+      <div id="secours-err" class="err" hidden></div>
+      <label>Container</label>
+      <select id="secours-container"></select>
+      <label>Num&eacute;ro du client</label>
+      <input id="secours-numero" placeholder="CL-0001" autocapitalize="characters">
+      <button class="btn btn-green" onclick="rechercherSecours()">Rechercher</button>
+      <div class="retour" onclick="fermerSecours()">&larr; Retour</div>
+    </div>
+  </div>
+
+  <div id="ecran-containers" hidden class="card">
+    <div class="pad">
+      <h1 style="text-align:left;">&#128230; Containers</h1>
+      <div id="cont-liste"></div>
+      <div class="retour" onclick="fermerContainers()">&larr; Retour</div>
+    </div>
+  </div>
+
+  <div id="ecran-container-detail" hidden class="card">
+    <div class="hdr2">
+      <div class="nom" id="cd-nom">&mdash;</div>
+      <div class="sub2" id="cd-compteur"></div>
+    </div>
+    <div class="pad">
+      <input class="recherche" id="cd-recherche" placeholder="Rechercher un client&hellip;" oninput="cdAppliquerFiltres()">
+      <div class="filtres" id="cd-filtres"></div>
+      <div id="cd-liste"></div>
+      <div class="retour" onclick="fermerContainerDetail()">&larr; Retour aux containers</div>
+    </div>
+  </div>
+
+  <div id="ecran-fiche" hidden class="card">
+    <div class="pad">
+      <div class="fiche-av" id="f-av">?</div>
+      <h1 id="f-nom">Client</h1>
+      <div id="f-statut"></div>
+
+      <div class="kv"><span class="k">T&eacute;l&eacute;phone</span><span class="v" id="f-tel">&mdash;</span></div>
+      <div class="kv" id="f-tel2-row" hidden><span class="k">2e num&eacute;ro</span><span class="v" id="f-tel2">&mdash;</span></div>
+      <div class="kv"><span class="k">Adresse</span><span class="v" id="f-adresse">&mdash;</span></div>
+      <div class="kv"><span class="k">Colis</span><span class="v" id="f-colis">&mdash;</span></div>
+      <div class="kv"><span class="k">Nombre de colis</span><span class="v" id="f-nbcolis">&mdash;</span></div>
+      <div class="kv" id="f-reste-row" hidden><span class="k">Reste &agrave; payer (colis)</span><span class="v" id="f-reste" style="color:#992020;">&mdash;</span></div>
+
+      <div id="f-encaisser-colis"></div>
+
+      <div id="f-vignettes" class="vignettes"></div>
+
+      <div id="f-bloc-liv" hidden class="bloc-liv">
+        <div class="bloc-liv-titre">&#128666; Livraison</div>
+        <div class="kv"><span class="k">Adresse de livraison</span><span class="v" id="f-liv-adresse">&mdash;</span></div>
+        <div id="f-liv-statut"></div>
+        <div id="f-encaisser-liv"></div>
+      </div>
+
+      <button class="btn btn-green" id="f-btn-valider" style="margin-top:16px;" onclick="validerLivraison()">&#9989; Valider la livraison</button>
+      <div id="f-valide-note" hidden style="text-align:center;font-size:12.5px;font-weight:700;color:#006b2d;margin-top:10px;">&#9989; Livraison valid&eacute;e</div>
+
+      <div class="retour" onclick="fermerFiche()">&larr; Retour</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* Espace livreur (Mamadou Niass), lien permanent — v1 (01/10/2026).
+   Cahier des charges complet : MAJ-A-FAIRE.md, section "Espace Mamadou".
+
+   Page à part, comme chauffeur.html et facture.html : ne charge pas
+   departs.js, recharge ses propres utilitaires (STATUTS_PAIEMENT,
+   depCalculerPaiement*, _depCleContact, _depDecoderTokenQR...) en les
+   gardant identiques à l'original (departs.js) — toute évolution de ces
+   fonctions là-bas doit être répercutée ici si le comportement doit
+   rester identique.
+
+   Accès : un jeton permanent (?acces=XXXX), généré et régénérable depuis
+   Réglages > Livreur (Direction uniquement), stocké en clair dans
+   dct_acces_mamadou/token — pas un vrai secret cryptographique, du même
+   niveau de protection que le reste de l'appli (obfuscation d'accès, pas
+   chiffrement). Lecture seule de toute la base utile aux livraisons,
+   écriture limitée aux versements et à la validation d'une livraison.
+*/
+var MAMADOU_VERSION = 'v1.0.0';
+function $(id){ return document.getElementById(id); }
+function esc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function initiales(prenom, nom){
+  var a = (prenom||'').trim().charAt(0), b = (nom||'').trim().charAt(0);
+  return (a+b).toUpperCase() || '?';
+}
+
+var STATUTS_PAIEMENT = {
+  non_paye : {label:'Non pay&eacute;',            bg:'#FDEDED', color:'#992020'},
+  partiel  : {label:'Partiellement pay&eacute;',  bg:'#FFF4E0', color:'#A04800'},
+  paye     : {label:'Pay&eacute;',                bg:'#D4F0E0', color:'#006b2d'}
+};
+
+var DEP_ID_DEPOT = 'DEPOT';
+
+function depArrondi2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
+function depCalculerPaiementGenerique(total, versementsArr){
+  var versements = Array.isArray(versementsArr) ? versementsArr : [];
+  var paye = depArrondi2(versements.reduce(function(s, v){ return s + (parseFloat(v && v.montant) || 0); }, 0));
+  var reste = depArrondi2(Math.max(0, total - paye));
+  var statut = paye <= 0 ? 'non_paye' : (reste > 0 ? 'partiel' : 'paye');
+  return { total: total, paye: paye, reste: reste, statut: statut };
+}
+function depCalculerPaiement(c){
+  if(c && c.prixADefinir) return { total:0, paye:0, reste:0, statut:'non_paye' };
+  return depCalculerPaiementGenerique(parseFloat(c.prix) || 0, c.versements);
+}
+function depCalculerPaiementLivraison(c){
+  return depCalculerPaiementGenerique(c && c.livraisonDakar ? (parseFloat(c.prixLivraison) || 0) : 0, c && c.versementsLivraison);
+}
+
+// Même formule de clé que departs.js — doit rester identique pour
+// retrouver la même référence client (CL-0001...) dans dct_refs_clients.
+function _depCleContact(c){
+  var tel = (c && c.tel) ? String(c.tel).replace(/\s/g,'') : '';
+  if(tel) return tel;
+  var prenom = (c && c.prenom) || '';
+  var nom = (c && c.nom) || (c && c.name) || '';
+  return (prenom+'_'+nom).toLowerCase();
+}
+
+// Jeton QR opaque — même format que _depTokenQR/_depDecoderTokenQR dans
+// departs.js (voir ce fichier pour le détail). Doit rester identique pour
+// pouvoir décoder les étiquettes déjà imprimées par l'appli.
+function _depDecoderTokenQR(txt){
+  try{
+    if(typeof txt !== 'string' || txt.indexOf('DCTQR1:') !== 0) return null;
+    var payload = JSON.parse(decodeURIComponent(escape(atob(txt.slice(7)))));
+    if(!payload || !payload.i) return null;
+    return { depot: !!payload.d, france: !!payload.f, collecteId: payload.c || '', clientId: payload.i };
+  }catch(e){ return null; }
+}
+
+function _depLienTel(tel){
+  var brut = String(tel || '').trim();
+  if(!brut) return '&mdash;';
+  var numero = brut.replace(/[^\d+]/g, '');
+  if(!numero) return esc(brut);
+  return '<a href="tel:'+numero+'" style="color:inherit;text-decoration:underline;">'+esc(brut)+'</a>';
+}
+
+/* ─────────── Firebase ─────────── */
+var firebaseConfig = {
+  apiKey: "AIzaSyCs7oTZAG8vzhqY3rSEqCnwSnQY8hm_f2A",
+  authDomain: "dakar-collecte.firebaseapp.com",
+  databaseURL: "https://dakar-collecte-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "dakar-collecte",
+  storageBucket: "dakar-collecte.firebasestorage.app",
+  messagingSenderId: "910296510414",
+  appId: "1:910296510414:web:de6b814b3420adcd68859f"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
+var _connexionAnonyme = firebase.auth
+  ? firebase.auth().signInAnonymously().catch(function(e){ console.error('mamadou: connexion anonyme', e); })
+  : Promise.resolve();
+
+/* ─────────── État local (alimenté par les écoutes temps réel) ─────────── */
+var departsData = {};
+var clientsParCollecte = {};
+var depotClients = {};
+var franceClients = {};
+var refsClients = {};
+var _pret = { departs:false, collecte:false, depot:false, france:false, refs:false };
+
+function toutPret(){ return _pret.departs && _pret.collecte && _pret.depot && _pret.france && _pret.refs; }
+
+function demarrerEcoutes(){
+  db.ref('departs').on('value', function(snap){
+    departsData = snap.val() || {};
+    departsData[DEP_ID_DEPOT] = { nom: 'D&eacute;p&ocirc;t (en attente)', statut: 'preparation', special: 'depot' };
+    _pret.departs = true;
+    apresChargement();
+    rafraichirEcranActif();
+  });
+  db.ref('dct/clients').on('value', function(snap){
+    clientsParCollecte = snap.val() || {};
+    _pret.collecte = true;
+    apresChargement();
+    rafraichirEcranActif();
+  });
+  db.ref('dct_depot').on('value', function(snap){
+    depotClients = snap.val() || {};
+    _pret.depot = true;
+    apresChargement();
+    rafraichirEcranActif();
+  });
+  db.ref('france/clients').on('value', function(snap){
+    franceClients = snap.val() || {};
+    _pret.france = true;
+    apresChargement();
+    rafraichirEcranActif();
+  });
+  db.ref('dct_refs_clients').on('value', function(snap){
+    refsClients = snap.val() || {};
+    _pret.refs = true;
+    apresChargement();
+    rafraichirEcranActif();
+  });
+}
+
+var _accueilAffiche = false;
+function apresChargement(){
+  if(_accueilAffiche || !toutPret()) return;
+  _accueilAffiche = true;
+  $('ecran-chargement').hidden = true;
+  goTo('ecran-accueil');
+}
+
+function rafraichirEcranActif(){
+  if(!_accueilAffiche) return;
+  if(!$('ecran-container-detail').hidden) cdAppliquerFiltres();
+  if(!$('ecran-fiche').hidden && _ficheCtx) ouvrirFiche(_ficheCtx, true);
+}
+
+/* ─────────── Navigation ─────────── */
+function goTo(id){
+  ['ecran-chargement','ecran-erreur','ecran-accueil','ecran-scan','ecran-secours',
+   'ecran-containers','ecran-container-detail','ecran-fiche'].forEach(function(e){
+    $(e).hidden = (e !== id);
+  });
+}
+
+/* ─────────── Les 3 sources de clients, fusionnées ─────────── */
+function tousLesClients(){
+  var out = [];
+  Object.keys(clientsParCollecte).forEach(function(colId){
+    var cls = clientsParCollecte[colId] || {};
+    Object.keys(cls).forEach(function(cid){
+      if(cls[cid]) out.push({ src:'col', collecteId:colId, clientId:cid, c:cls[cid] });
+    });
+  });
+  Object.keys(depotClients).forEach(function(cid){
+    if(depotClients[cid]) out.push({ src:'depot', collecteId:'', clientId:cid, c:depotClients[cid] });
+  });
+  Object.keys(franceClients).forEach(function(cid){
+    if(franceClients[cid]) out.push({ src:'france', collecteId:'', clientId:cid, c:franceClients[cid] });
+  });
+  return out;
+}
+function clientsDuContainer(departId){
+  return tousLesClients().filter(function(x){ return x.c.departId === departId; });
+}
+function refClientDe(c){
+  return refsClients[_depCleContact(c)] || '';
+}
+function clientActuel(ref){
+  // Relit la copie "vivante" (après une écriture Firebase, les objets
+  // ci-dessus sont remplacés en bloc par l'écoute .on('value')).
+  if(ref.src === 'depot') return depotClients[ref.clientId];
+  if(ref.src === 'france') return franceClients[ref.clientId];
+  return (clientsParCollecte[ref.collecteId] || {})[ref.clientId];
+}
+function ecrireClient(ref, champs){
+  var champsSurs = {};
+  Object.keys(champs || {}).forEach(function(k){ champsSurs[k] = (champs[k] === undefined) ? null : champs[k]; });
+  if(ref.src === 'france'){
+    var majF = {};
+    Object.keys(champsSurs).forEach(function(k){ majF['clients/'+ref.clientId+'/'+k] = champsSurs[k]; });
+    return db.ref('france').update(majF);
+  }
+  if(ref.src === 'depot') return db.ref('dct_depot/'+ref.clientId).update(champsSurs);
+  return db.ref('dct/clients/'+ref.collecteId+'/'+ref.clientId).update(champsSurs);
+}
+
+/* ─────────── Accueil ─────────── */
+function ouvrirAccueil(){ goTo('ecran-accueil'); }
+
+/* ─────────── Scanner QR ─────────── */
+var _scanStream = null, _scanRAF = null, _scanEnCours = false, _jsQrEnCours = false;
+function _chargerJsQR(cb){
+  if(window.jsQR){ cb(); return; }
+  if(_jsQrEnCours){ setTimeout(function(){ _chargerJsQR(cb); }, 200); return; }
+  _jsQrEnCours = true;
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+  s.onload = function(){ _jsQrEnCours = false; cb(); };
+  s.onerror = function(){ _jsQrEnCours = false; console.error('mamadou: échec chargement jsQR'); cb(); };
+  document.head.appendChild(s);
+}
+function ouvrirScan(){
+  goTo('ecran-scan');
+  var msg = $('scan-msg');
+  msg.textContent = 'Chargement…';
+  _chargerJsQR(function(){
+    if(!window.jsQR){ msg.textContent = '⚠️ Lecteur QR indisponible (connexion internet ?)'; return; }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      msg.textContent = '⚠️ Caméra non disponible sur ce navigateur.'; return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function(stream){
+      if($('ecran-scan').hidden){ stream.getTracks().forEach(function(t){ t.stop(); }); return; }
+      _scanStream = stream;
+      var video = $('scan-video');
+      video.srcObject = stream;
+      video.play().catch(function(){});
+      msg.textContent = 'Visez le QR code de l’étiquette';
+      _scanEnCours = true;
+      _scanBoucle();
+    }).catch(function(e){
+      console.error('mamadou: caméra', e);
+      msg.textContent = "⚠️ Impossible d'accéder à la caméra.";
+    });
+  });
+}
+function _scanBoucle(){
+  if(!_scanEnCours) return;
+  var video = $('scan-video');
+  if(video && video.readyState === video.HAVE_ENOUGH_DATA && window.jsQR && video.videoWidth){
+    try{
+      var c = document.createElement('canvas');
+      c.width = video.videoWidth; c.height = video.videoHeight;
+      var ctx2d = c.getContext('2d');
+      ctx2d.drawImage(video, 0, 0, c.width, c.height);
+      var img = ctx2d.getImageData(0, 0, c.width, c.height);
+      var res = window.jsQR(img.data, c.width, c.height);
+      if(res && res.data){
+        var dl = _depDecoderTokenQR(res.data);
+        if(dl){
+          var ref = { src: dl.france ? 'france' : (dl.depot ? 'depot' : 'col'), collecteId: dl.collecteId, clientId: dl.clientId };
+          var c2 = clientActuel(ref);
+          if(!c2){ fermerScan(); alert('Client introuvable pour cette étiquette.'); return; }
+          fermerScan();
+          ouvrirFiche(ref);
+          return;
+        }
+      }
+    }catch(e){}
+  }
+  _scanRAF = requestAnimationFrame(_scanBoucle);
+}
+function _arreterCamera(){
+  if(_scanRAF){ cancelAnimationFrame(_scanRAF); _scanRAF = null; }
+  if(_scanStream){ _scanStream.getTracks().forEach(function(t){ t.stop(); }); _scanStream = null; }
+}
+function fermerScan(){ _scanEnCours = false; _arreterCamera(); goTo('ecran-accueil'); }
+
+/* ─────────── Saisie de secours ─────────── */
+function ouvrirSecours(){
+  goTo('ecran-secours');
+  $('secours-err').hidden = true;
+  $('secours-numero').value = '';
+  var sel = $('secours-container');
+  var ids = Object.keys(departsData);
+  // Les containers ouverts d'abord, triés par nom — le dépôt (en attente) en dernier.
+  ids.sort(function(a,b){
+    if(a === DEP_ID_DEPOT) return 1;
+    if(b === DEP_ID_DEPOT) return -1;
+    return String((departsData[a]||{}).nom||'').localeCompare(String((departsData[b]||{}).nom||''));
+  });
+  sel.innerHTML = ids.map(function(id){
+    return '<option value="'+esc(id)+'">'+esc((departsData[id]||{}).nom || id)+'</option>';
+  }).join('');
+}
+function fermerSecours(){ goTo('ecran-accueil'); }
+function rechercherSecours(){
+  var departId = $('secours-container').value;
+  var saisie = ($('secours-numero').value || '').trim().toUpperCase();
+  if(!saisie){ _secoursErreur('Tapez un numéro de client.'); return; }
+  if(saisie.indexOf('CL-') !== 0) saisie = 'CL-' + saisie.replace(/^CL-?/, '').padStart(4, '0');
+  var clients = clientsDuContainer(departId);
+  var trouve = clients.find(function(x){ return refClientDe(x.c) === saisie; });
+  if(!trouve){ _secoursErreur('Aucun client ' + saisie + ' dans ce container.'); return; }
+  ouvrirFiche({ src: trouve.src, collecteId: trouve.collecteId, clientId: trouve.clientId });
+}
+function _secoursErreur(msg){
+  var e = $('secours-err');
+  e.textContent = '⚠️ ' + msg;
+  e.hidden = false;
+}
+
+/* ─────────── Containers ─────────── */
+function ouvrirContainers(){
+  goTo('ecran-containers');
+  var ids = Object.keys(departsData).filter(function(id){ return clientsDuContainer(id).length > 0; });
+  ids.sort(function(a,b){
+    if(a === DEP_ID_DEPOT) return 1;
+    if(b === DEP_ID_DEPOT) return -1;
+    return String((departsData[a]||{}).nom||'').localeCompare(String((departsData[b]||{}).nom||''));
+  });
+  var h = ids.length ? '' : '<div class="vide">Aucun client pour le moment.</div>';
+  ids.forEach(function(id){
+    var d = departsData[id] || {};
+    var n = clientsDuContainer(id).length;
+    h += '<div class="cont-item" onclick="ouvrirContainerDetail(\''+esc(id)+'\')">'
+      +   '<div><div class="cont-nom">'+esc(d.nom||id)+'</div>'
+      +     '<div class="cont-sub">'+n+' client'+(n>1?'s':'')+(d.dateDepart?(' · '+esc(d.dateDepart)):'')+'</div></div>'
+      +   '<div class="cont-fleche">›</div>'
+      + '</div>';
+  });
+  $('cont-liste').innerHTML = h;
+}
+function fermerContainers(){ goTo('ecran-accueil'); }
+
+/* ─────────── Détail d'un container : liste des clients ─────────── */
+var _cdDepartId = null;
+var _cdFiltres = { paye:'tous', livraison:'tous', region:'' };
+function ouvrirContainerDetail(departId){
+  _cdDepartId = departId;
+  _cdFiltres = { paye:'tous', livraison:'tous', region:'' };
+  goTo('ecran-container-detail');
+  $('cd-nom').textContent = (departsData[departId]||{}).nom || departId;
+  $('cd-recherche').value = '';
+  _cdRenderFiltres();
+  cdAppliquerFiltres();
+}
+function fermerContainerDetail(){ goTo('ecran-containers'); }
+
+function _cdRenderFiltres(){
+  var clients = clientsDuContainer(_cdDepartId);
+  var regions = {};
+  clients.forEach(function(x){
+    var r = x.c.livraisonVille || x.c.livraisonVilleAutre || '';
+    if(r) regions[r] = true;
+  });
+  var h = '';
+  h += '<div class="filtre '+(_cdFiltres.paye==='tous'?'on':'')+'" onclick="cdFiltre(\'paye\',\'tous\')">Tous</div>';
+  h += '<div class="filtre '+(_cdFiltres.paye==='reste'?'on':'')+'" onclick="cdFiltre(\'paye\',\'reste\')">Reste à payer</div>';
+  h += '<div class="filtre '+(_cdFiltres.paye==='paye'?'on':'')+'" onclick="cdFiltre(\'paye\',\'paye\')">Soldés</div>';
+  h += '<div class="filtre '+(_cdFiltres.livraison==='avec'?'on':'')+'" onclick="cdFiltre(\'livraison\',\''+(_cdFiltres.livraison==='avec'?'tous':'avec')+'\')">🚚 Avec livraison</div>';
+  Object.keys(regions).sort().forEach(function(r){
+    h += '<div class="filtre '+(_cdFiltres.region===r?'on':'')+'" onclick="cdFiltre(\'region\',\''+(_cdFiltres.region===r?'':esc(r))+'\')">'+esc(r)+'</div>';
+  });
+  $('cd-filtres').innerHTML = h;
+}
+function cdFiltre(type, val){
+  _cdFiltres[type] = val;
+  _cdRenderFiltres();
+  cdAppliquerFiltres();
+}
+function cdAppliquerFiltres(){
+  if(!_cdDepartId) return;
+  var recherche = ($('cd-recherche').value || '').toLowerCase().trim();
+  var clients = clientsDuContainer(_cdDepartId).filter(function(x){
+    var c = x.c;
+    var pay = depCalculerPaiement(c);
+    if(_cdFiltres.paye === 'reste' && pay.reste <= 0) return false;
+    if(_cdFiltres.paye === 'paye' && pay.reste > 0) return false;
+    if(_cdFiltres.livraison === 'avec' && !c.livraisonDakar) return false;
+    if(_cdFiltres.region){
+      var r = c.livraisonVille || c.livraisonVilleAutre || '';
+      if(r !== _cdFiltres.region) return false;
+    }
+    if(recherche){
+      var hay = (String(c.name||'')+' '+String(c.destinataireNom||'')).toLowerCase();
+      if(hay.indexOf(recherche) < 0) return false;
+    }
+    return true;
+  });
+  // Tri du plus récent (plus grand numéro de place) au plus ancien, comme Départ.
+  clients.sort(function(a,b){
+    var ra = (a.c.rangDepartId === _cdDepartId) ? (parseInt(a.c.rangDepart,10) || 0) : 0;
+    var rb = (b.c.rangDepartId === _cdDepartId) ? (parseInt(b.c.rangDepart,10) || 0) : 0;
+    if(ra !== rb) return rb - ra;
+    return String(a.c.name||'').localeCompare(String(b.c.name||''));
+  });
+  $('cd-compteur').textContent = clients.length + ' client' + (clients.length > 1 ? 's' : '');
+  var h = clients.length ? '' : '<div class="vide">Aucun client ne correspond.</div>';
+  clients.forEach(function(x){
+    var c = x.c;
+    var pay = depCalculerPaiement(c);
+    var rang = (c.rangDepartId === _cdDepartId && c.rangDepart) ? ('<span class="cli-rang">N°'+c.rangDepart+'</span>') : '';
+    h += '<div class="cli-item" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'})">'
+      +   '<div class="cli-top"><div class="cli-nom">'+rang+esc(c.name||'')+'</div></div>'
+      +   '<div class="cli-sub">'+esc(c.colis || '—')+'</div>'
+      // v1.0.0 — Cobey : « sa case container, lui ne doit voir uniquement
+      // que ce qu'il reste à payer pour les clients, il ne doit voir
+      // aucun prix encaissé ! » — jamais pay.paye ici, jamais de total.
+      +   (pay.reste > 0
+            ? ('<div class="cli-reste">Reste à payer : '+pay.reste+' €</div>')
+            : '<div class="cli-paye">✅ Soldé</div>')
+      +   (c.livraisonDakar ? '<div class="cli-liv">🚚 Livraison</div>' : '')
+      + '</div>';
+  });
+  $('cd-liste').innerHTML = h;
+}
+
+/* ─────────── Fiche client ─────────── */
+var _ficheCtx = null;
+var _methColis = 'especes', _methLiv = 'especes';
+function ouvrirFiche(ref, silencieux){
+  var c = clientActuel(ref);
+  if(!c){ if(!silencieux) alert('Client introuvable.'); return; }
+  _ficheCtx = ref;
+  if(!silencieux) goTo('ecran-fiche');
+
+  $('f-av').textContent = initiales(c.prenom, c.nom) || (c.name||'?').charAt(0).toUpperCase();
+  $('f-nom').textContent = c.name || 'Client';
+  $('f-tel').innerHTML = _depLienTel(c.tel);
+  if(c.tel2){ $('f-tel2-row').hidden = false; $('f-tel2').innerHTML = _depLienTel(c.tel2); }
+  else { $('f-tel2-row').hidden = true; }
+
+  var adresse = [c.adresse, [c.cp, c.ville].filter(Boolean).join(' ')].filter(Boolean).join(' — ');
+  $('f-adresse').textContent = adresse || '—';
+  $('f-colis').textContent = c.colis || '—';
+  $('f-nbcolis').textContent = String(c.nbColis || c.nb || 1);
+
+  var pay = depCalculerPaiement(c);
+  var payL = depCalculerPaiementLivraison(c);
+
+  var statutHtml = '';
+  if(pay.statut === 'paye') statutHtml = '<div class="statut-badge statut-vert">✅ Colis payé</div>';
+  else if(pay.statut === 'partiel') statutHtml = '<div class="statut-badge statut-orange">⚠️ Paiement partiel — reste '+pay.reste+' €</div>';
+  else statutHtml = '<div class="statut-badge statut-rouge">❌ Non payé — '+pay.total+' € dus</div>';
+  $('f-statut').innerHTML = statutHtml;
+
+  if(pay.reste > 0){
+    $('f-reste-row').hidden = false;
+    $('f-reste').textContent = pay.reste + ' €';
+    $('f-encaisser-colis').innerHTML = _htmlEncaisser('colis', pay.reste);
+  } else {
+    $('f-reste-row').hidden = true;
+    $('f-encaisser-colis').innerHTML = '';
+  }
+
+  // Photos (lecture ponctuelle, pas d'écoute permanente).
+  var nodePhotos = ref.src === 'france' ? 'france_photos/' : 'dct_photos_colis/';
+  $('f-vignettes').innerHTML = '';
+  db.ref(nodePhotos + ref.clientId).once('value').then(function(snap){
+    var v = snap.val() || {};
+    var h = '';
+    Object.keys(v).forEach(function(k){
+      var p = v[k];
+      if(p && p.d) h += '<div class="photo-vignette"><img src="'+p.d+'"></div>';
+    });
+    $('f-vignettes').innerHTML = h;
+  }).catch(function(){});
+
+  if(c.livraisonDakar){
+    $('f-bloc-liv').hidden = false;
+    var adresseLiv = [c.livraisonAdresse, (c.livraisonVille || c.livraisonVilleAutre)].filter(Boolean).join(' — ');
+    $('f-liv-adresse').textContent = adresseLiv || '—';
+    var hLiv = '';
+    if(payL.statut === 'paye') hLiv = '<div class="statut-badge statut-vert">✅ Livraison payée</div>';
+    else if(payL.statut === 'partiel') hLiv = '<div class="statut-badge statut-orange">⚠️ Reste '+payL.reste+' € sur la livraison</div>';
+    else hLiv = '<div class="statut-badge statut-rouge">❌ Livraison non payée — '+payL.total+' € dus</div>';
+    $('f-liv-statut').innerHTML = hLiv;
+    $('f-encaisser-liv').innerHTML = payL.reste > 0 ? _htmlEncaisser('liv', payL.reste) : '';
+  } else {
+    $('f-bloc-liv').hidden = true;
+  }
+
+  var peutValider = pay.reste <= 0 && (!c.livraisonDakar || payL.reste <= 0);
+  var bouton = $('f-btn-valider');
+  if(c.livraisonValidee && c.livraisonValidee.fait){
+    bouton.hidden = true;
+    $('f-valide-note').hidden = false;
+  } else {
+    $('f-valide-note').hidden = true;
+    bouton.hidden = false;
+    bouton.disabled = !peutValider;
+    bouton.style.opacity = peutValider ? '1' : '.4';
+    bouton.textContent = peutValider ? '✅ Valider la livraison' : '⚠️ Encaissez le reste avant de valider';
+  }
+}
+function fermerFiche(){ _ficheCtx = null; goTo('ecran-accueil'); }
+
+function _htmlEncaisser(type, reste){
+  var pref = type === 'liv' ? 'liv' : 'col';
+  return '<div class="encaisser-bloc">'
+    + '<label>Encaisser (reste '+reste+' €)</label>'
+    + '<input id="enc-'+pref+'-montant" type="number" min="0" step="0.01" placeholder="Montant en €">'
+    + '<div class="meth-row">'
+    +   '<button type="button" class="meth-btn on" id="enc-'+pref+'-m-especes" onclick="choisirMethode(\''+type+'\',\'especes\')">Espèces</button>'
+    +   '<button type="button" class="meth-btn" id="enc-'+pref+'-m-virement" onclick="choisirMethode(\''+type+'\',\'virement\')">Virement</button>'
+    + '</div>'
+    + '<button type="button" class="btn btn-light" onclick="encaisser(\''+type+'\')">Enregistrer l’encaissement</button>'
+    + '</div>';
+}
+function choisirMethode(type, m){
+  if(type === 'liv') _methLiv = m; else _methColis = m;
+  var pref = type === 'liv' ? 'liv' : 'col';
+  $('enc-'+pref+'-m-especes').classList.toggle('on', m === 'especes');
+  $('enc-'+pref+'-m-virement').classList.toggle('on', m === 'virement');
+}
+function encaisser(type){
+  var pref = type === 'liv' ? 'liv' : 'col';
+  var montant = parseFloat(($('enc-'+pref+'-montant')||{}).value) || 0;
+  if(montant <= 0){ alert('Indiquez un montant supérieur à 0.'); return; }
+  var c = clientActuel(_ficheCtx);
+  if(!c){ alert('Client introuvable.'); return; }
+  var methode = type === 'liv' ? _methLiv : _methColis;
+  var v = { montant: montant, le: Date.now(), par: 'Mamadou Niass', methode: methode };
+  var champ = type === 'liv' ? 'versementsLivraison' : 'versements';
+  var versements = Array.isArray(c[champ]) ? c[champ].slice() : [];
+  versements.push(v);
+  var maj = {}; maj[champ] = versements;
+  ecrireClient(_ficheCtx, maj).then(function(){
+    c[champ] = versements;
+    ouvrirFiche(_ficheCtx);
+  }).catch(function(e){
+    console.error('mamadou: échec écriture versement', e);
+    alert('Échec de l’enregistrement, réessayez (vérifiez la connexion).');
+  });
+}
+function validerLivraison(){
+  var c = clientActuel(_ficheCtx);
+  if(!c){ alert('Client introuvable.'); return; }
+  var pay = depCalculerPaiement(c);
+  var payL = depCalculerPaiementLivraison(c);
+  if(pay.reste > 0 || (c.livraisonDakar && payL.reste > 0)){
+    alert('Il reste un montant à encaisser avant de pouvoir valider.');
+    return;
+  }
+  var champ = { livraisonValidee: { fait:true, ts:Date.now(), par:'Mamadou Niass' } };
+  ecrireClient(_ficheCtx, champ).then(function(){
+    c.livraisonValidee = champ.livraisonValidee;
+    ouvrirFiche(_ficheCtx);
+  }).catch(function(e){
+    console.error('mamadou: échec validation livraison', e);
+    alert('Échec de l’enregistrement, réessayez (vérifiez la connexion).');
+  });
+}
+
+/* ─────────── Démarrage : vérification du jeton d'accès ─────────── */
+(function(){
+  var m = /[?&]acces=([^&]+)/.exec(location.search);
+  if(!m){ goTo('ecran-erreur'); return; }
+  var jeton = decodeURIComponent(m[1]);
+  _connexionAnonyme.then(function(){
+    return db.ref('dct_acces_mamadou/token').once('value');
+  }).then(function(snap){
+    var token = snap.val();
+    if(!token || token !== jeton){ goTo('ecran-erreur'); return; }
+    demarrerEcoutes();
+  }).catch(function(e){
+    console.error('mamadou: vérification du lien', e);
+    goTo('ecran-erreur');
+  });
+})();
+</script>
+</body>
+</html>
