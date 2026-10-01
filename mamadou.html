@@ -83,6 +83,23 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .meth-row{display:flex;gap:8px;margin-bottom:12px;}
 .meth-btn{flex:1;padding:10px;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:#555;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font);}
 .meth-btn.on{background:var(--vert);border-color:var(--vert);color:#fff;}
+
+/* Accueil / connexion (mot de passe choisi par Mamadou) */
+.mn-logo-img{display:block;width:64px;height:64px;border-radius:50%;margin:0 auto 14px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.lien-discret{text-align:center;font-size:11.5px;color:#999;text-decoration:underline;cursor:pointer;margin-top:10px;}
+
+/* Zoom d'une photo (colis) au clic — pour bien identifier le bon colis. */
+.modal-zoom{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;align-items:center;justify-content:center;padding:18px;}
+.modal-zoom.open{display:flex;}
+.modal-zoom img{max-width:100%;max-height:100%;border-radius:10px;}
+.modal-zoom-fermer{position:absolute;top:18px;right:18px;color:#fff;font-size:28px;cursor:pointer;line-height:1;}
+.photo-vignette{cursor:pointer;}
+
+/* Photos de livraison prises par Mamadou (preuve de remise, max 5) */
+.liv-photos-bloc{background:#F7F8FA;border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-top:12px;}
+.liv-photo-item{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;background:#ddd;}
+.liv-photo-item img{width:100%;height:100%;object-fit:cover;}
+.liv-photo-suppr{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -98,12 +115,37 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
     </div>
   </div>
 
+  <div id="ecran-login" hidden class="card">
+    <div class="topbar"></div>
+    <div class="pad">
+      <img class="mn-logo-img" id="mn-logo" alt="DCT">
+      <h1>Mamadou Niass</h1>
+      <div class="sub" id="mn-login-sous">Dakar City Transport &mdash; espace livreur</div>
+      <div id="mn-login-err" class="err"></div>
+
+      <div id="mn-bloc-creer">
+        <label>Choisissez votre mot de passe</label>
+        <input id="mn-pass-nouveau" type="password" placeholder="Au moins 4 caract&egrave;res">
+        <label>Confirmez-le</label>
+        <input id="mn-pass-confirme" type="password" placeholder="Retapez-le">
+        <button class="btn btn-green" onclick="mnCreerMotDePasse()">Valider</button>
+      </div>
+
+      <div id="mn-bloc-entrer" hidden>
+        <label>Mot de passe</label>
+        <input id="mn-pass-saisie" type="password" placeholder="Votre mot de passe">
+        <button class="btn btn-green" onclick="mnEntrer()">Entrer</button>
+        <div class="lien-discret" onclick="mnDemanderReinit()">Mot de passe oubli&eacute; ?</div>
+      </div>
+    </div>
+  </div>
+
   <div id="ecran-accueil" hidden class="card">
     <div class="topbar"></div>
     <div class="pad">
-      <div class="logo">DCT</div>
+      <img class="mn-logo-img" id="mn-logo-accueil" alt="DCT">
       <h1>Mes livraisons</h1>
-      <div class="sub">Dakar City Transport &mdash; espace livreur</div>
+      <div class="sub">Mamadou Niass &mdash; Dakar City Transport</div>
       <div class="cases">
         <div class="case" onclick="ouvrirScan()">
           <div class="case-ico">&#128247;</div>
@@ -118,6 +160,22 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
           <div><div class="case-tit">Containers</div><div class="case-sub">Voir tous les clients</div></div>
         </div>
       </div>
+      <div class="lien-discret" id="mn-lien-changer-mdp" onclick="mnOuvrirChangerMotDePasse()">Changer mon mot de passe</div>
+    </div>
+  </div>
+
+  <div id="ecran-changer-mdp" hidden class="card">
+    <div class="pad">
+      <h1 style="text-align:left;">Changer mon mot de passe</h1>
+      <div id="mn-chg-err" class="err"></div>
+      <label>Mot de passe actuel</label>
+      <input id="mn-chg-actuel" type="password">
+      <label>Nouveau mot de passe</label>
+      <input id="mn-chg-nouveau" type="password">
+      <label>Confirmez-le</label>
+      <input id="mn-chg-confirme" type="password">
+      <button class="btn btn-green" onclick="mnValiderChangementMotDePasse()">Valider</button>
+      <div class="retour" onclick="goTo('ecran-accueil')">&larr; Retour</div>
     </div>
   </div>
 
@@ -158,6 +216,10 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
       <div class="sub2" id="cd-compteur"></div>
     </div>
     <div class="pad">
+      <div id="cd-arrivee-bloc" hidden style="background:#FFF8EC;border:1.5px solid #F5DCA8;border-radius:10px;padding:12px;margin-bottom:14px;">
+        <div style="font-size:12.5px;color:#a04800;font-weight:700;margin-bottom:8px;">&#128230; Ce container n&rsquo;est pas encore arriv&eacute; au d&eacute;p&ocirc;t.</div>
+        <button type="button" class="btn btn-green" style="margin-bottom:0;" onclick="validerArriveeDepot()">&#9989; Valider l&rsquo;arriv&eacute;e au d&eacute;p&ocirc;t</button>
+      </div>
       <input class="recherche" id="cd-recherche" placeholder="Rechercher un client&hellip;" oninput="cdAppliquerFiltres()">
       <div class="filtres" id="cd-filtres"></div>
       <div id="cd-liste"></div>
@@ -189,11 +251,23 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
         <div id="f-encaisser-liv"></div>
       </div>
 
+      <div class="liv-photos-bloc">
+        <label style="margin-bottom:8px;">&#128247; Vos photos de remise <span style="color:#999;font-weight:500;text-transform:none;">&middot; 1 &agrave; 5, obligatoire pour valider</span></label>
+        <div id="f-liv-photos" class="vignettes" style="margin:0 0 10px;"></div>
+        <input type="file" id="f-liv-photo-input" accept="image/*" capture="environment" hidden onchange="mnPhotoLivraisonChoisie(this)">
+        <button type="button" class="btn btn-light" id="f-liv-photo-btn" style="margin-bottom:0;" onclick="document.getElementById('f-liv-photo-input').click()">&#128247; Prendre une photo</button>
+      </div>
+
       <button class="btn btn-green" id="f-btn-valider" style="margin-top:16px;" onclick="validerLivraison()">&#9989; Valider la livraison</button>
       <div id="f-valide-note" hidden style="text-align:center;font-size:12.5px;font-weight:700;color:#006b2d;margin-top:10px;">&#9989; Livraison valid&eacute;e</div>
 
       <div class="retour" onclick="fermerFiche()">&larr; Retour</div>
     </div>
+  </div>
+
+  <div id="modal-zoom" class="modal-zoom" onclick="mnFermerZoom()">
+    <div class="modal-zoom-fermer">&times;</div>
+    <img id="modal-zoom-img" src="">
   </div>
 
 </div>
@@ -233,6 +307,56 @@ var STATUTS_PAIEMENT = {
 };
 
 var DEP_ID_DEPOT = 'DEPOT';
+var DEP_PAYS_DEFAUT = 'SN';
+
+// v1.1.0 — Cobey : « il ne doit avoir accès qu’aux containers du
+// Sénégal, pas du Mali » — il livre à Dakar, les containers Mali partent
+// vers Bamako, hors de son périmètre. Le dépôt (DEP_ID_DEPOT) n’a pas de
+// champ pays : on le traite comme Sénégal, il y est basé.
+function containerAutorise(departId, d){
+  d = d || departsData[departId] || {};
+  if(departId === DEP_ID_DEPOT) return true;
+  return (d.pays || DEP_PAYS_DEFAUT) !== 'ML';
+}
+
+var DEP_PAYS_DEST = {
+  SN: { code:'SN', nom:'Sénégal', drapeau:'🇸🇳' },
+  ML: { code:'ML', nom:'Mali',    drapeau:'🇲🇱' }
+};
+
+// v1.1.0 — Mamadou doit pouvoir valider lui-même l’« Arrivée au dépôt »
+// dans le suivi du container : « il sera là-bas en premier lieu » quand
+// le container arrive physiquement à Dakar. Même structure d’étapes que
+// departs.js/facture.html (DEP_ETAPES_TRANSPORT) — seule la dernière
+// étape (arrivee_depot) lui est ouverte, jamais les précédentes (en mer,
+// hors de son contrôle).
+var DEP_ETAPES_TRANSPORT = {
+  SN: [
+    { key:'depart_mitry',  label:'Départ de Mitry' },
+    { key:'navigation',    label:'En cours de navigation' },
+    { key:'arrivee_port',  label:'Arrivée au port de Dakar' },
+    { key:'arrivee_depot', label:'Arrivée au dépôt' }
+  ],
+  ML: [
+    { key:'depart_mitry',  label:'Départ de Mitry' },
+    { key:'navigation',    label:'En cours de navigation' },
+    { key:'arrivee_port',  label:'Arrivée au port de Dakar' },
+    { key:'route_bamako',  label:'En route vers Bamako' },
+    { key:'arrivee_depot', label:'Arrivée au dépôt' }
+  ]
+};
+function depEtapesTransportPour(pays){ return DEP_ETAPES_TRANSPORT[pays] || DEP_ETAPES_TRANSPORT[DEP_PAYS_DEFAUT]; }
+function depPaysDepart(d){ return (d && d.pays) || DEP_PAYS_DEFAUT; }
+function etapeSuivante(d){
+  var etapes = depEtapesTransportPour(depPaysDepart(d));
+  var fait = (d && d.etapesTransport) || {};
+  var dernierIdx = -1;
+  etapes.forEach(function(e, i){ if(fait[e.key] && fait[e.key].fait) dernierIdx = i; });
+  return etapes[dernierIdx + 1] || null;
+}
+
+// Logo DCT (même image que facture.html/l’appli) — accueil et connexion.
+var DEP_LOGO_B64 = 'data:image/jpeg;base64,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';
 
 function depArrondi2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
 function depCalculerPaiementGenerique(total, versementsArr){
@@ -296,6 +420,31 @@ var _connexionAnonyme = firebase.auth
   ? firebase.auth().signInAnonymously().catch(function(e){ console.error('mamadou: connexion anonyme', e); })
   : Promise.resolve();
 
+// v1.1.0 — Cobey : « nous, pour accéder à son espace, on n’aura pas
+// besoin de code » — le lien ?direction=JETON (Réglages > Livreur) saute
+// directement l’écran de mot de passe. Sert aussi à distinguer, dans les
+// notifications, une action de Mamadou d’un test fait par la Direction.
+var _modeDirection = false;
+var ACTEUR_NOM = 'Mamadou Niass';
+
+// v1.1.0 — notification dans le fil d’Activité DCT à chaque action de
+// Mamadou (encaissement, validation de livraison, arrivée au dépôt,
+// mot de passe) — même nœud Firebase qu’addActivity() côté appli
+// principale (activite_items), même forme : mamadou.html n’a pas accès
+// aux fonctions natives (page à part). Cobey : « tout ce qu’il fera
+// devra être notifié dans les notifications. »
+function activiteExterne(emoji, texte){
+  try{
+    var now = new Date();
+    var dateStr = now.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+    var heureStr = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    db.ref('activite_items').push({
+      ts: Date.now(), emoji: emoji, bg: '#FBE9D0', text: texte,
+      timeLabel: dateStr + ' à ' + heureStr
+    });
+  }catch(e){ console.error('mamadou: écriture activité', e); }
+}
+
 /* ─────────── État local (alimenté par les écoutes temps réel) ─────────── */
 var departsData = {};
 var clientsParCollecte = {};
@@ -348,16 +497,21 @@ function apresChargement(){
   goTo('ecran-accueil');
 }
 
+function mnAccueilOuvrir(){
+  goTo('ecran-chargement');
+  demarrerEcoutes();
+}
+
 function rafraichirEcranActif(){
   if(!_accueilAffiche) return;
-  if(!$('ecran-container-detail').hidden) cdAppliquerFiltres();
+  if(!$('ecran-container-detail').hidden){ _cdMajBlocArrivee(); cdAppliquerFiltres(); }
   if(!$('ecran-fiche').hidden && _ficheCtx) ouvrirFiche(_ficheCtx, true);
 }
 
 /* ─────────── Navigation ─────────── */
 function goTo(id){
-  ['ecran-chargement','ecran-erreur','ecran-accueil','ecran-scan','ecran-secours',
-   'ecran-containers','ecran-container-detail','ecran-fiche'].forEach(function(e){
+  ['ecran-chargement','ecran-erreur','ecran-login','ecran-accueil','ecran-changer-mdp',
+   'ecran-scan','ecran-secours','ecran-containers','ecran-container-detail','ecran-fiche'].forEach(function(e){
     $(e).hidden = (e !== id);
   });
 }
@@ -460,6 +614,7 @@ function _scanBoucle(){
           var ref = { src: dl.france ? 'france' : (dl.depot ? 'depot' : 'col'), collecteId: dl.collecteId, clientId: dl.clientId };
           var c2 = clientActuel(ref);
           if(!c2){ fermerScan(); alert('Client introuvable pour cette étiquette.'); return; }
+          if(!containerAutorise(c2.departId)){ fermerScan(); alert('Ce colis appartient à un container hors de votre périmètre.'); return; }
           fermerScan();
           ouvrirFiche(ref);
           return;
@@ -475,13 +630,26 @@ function _arreterCamera(){
 }
 function fermerScan(){ _scanEnCours = false; _arreterCamera(); goTo('ecran-accueil'); }
 
+// v1.1.0 — Cobey : « pour la saisie de secours, les containers ne sont
+// pas détaillés assez, difficile pour lui de se repérer » — une option
+// de <select> ne portait que le nom. On ajoute le drapeau du pays, la
+// date de départ et le nombre de clients, pour qu'il reconnaisse le bon
+// container sans ambiguïté.
+function _mnLibelleContainer(id){
+  var d = departsData[id] || {};
+  if(id === DEP_ID_DEPOT) return '📦 ' + (d.nom || 'Dépôt (en attente)');
+  var drapeau = (DEP_PAYS_DEST[depPaysDepart(d)] || {}).drapeau || '';
+  var n = clientsDuContainer(id).length;
+  return [drapeau, d.nom || id, d.dateDepart, n + ' client' + (n > 1 ? 's' : '')].filter(Boolean).join(' — ');
+}
+
 /* ─────────── Saisie de secours ─────────── */
 function ouvrirSecours(){
   goTo('ecran-secours');
   $('secours-err').hidden = true;
   $('secours-numero').value = '';
   var sel = $('secours-container');
-  var ids = Object.keys(departsData);
+  var ids = Object.keys(departsData).filter(function(id){ return containerAutorise(id); });
   // Les containers ouverts d'abord, triés par nom — le dépôt (en attente) en dernier.
   ids.sort(function(a,b){
     if(a === DEP_ID_DEPOT) return 1;
@@ -489,12 +657,13 @@ function ouvrirSecours(){
     return String((departsData[a]||{}).nom||'').localeCompare(String((departsData[b]||{}).nom||''));
   });
   sel.innerHTML = ids.map(function(id){
-    return '<option value="'+esc(id)+'">'+esc((departsData[id]||{}).nom || id)+'</option>';
+    return '<option value="'+esc(id)+'">'+esc(_mnLibelleContainer(id))+'</option>';
   }).join('');
 }
 function fermerSecours(){ goTo('ecran-accueil'); }
 function rechercherSecours(){
   var departId = $('secours-container').value;
+  if(!containerAutorise(departId)){ _secoursErreur('Container hors de votre périmètre.'); return; }
   var saisie = ($('secours-numero').value || '').trim().toUpperCase();
   if(!saisie){ _secoursErreur('Tapez un numéro de client.'); return; }
   if(saisie.indexOf('CL-') !== 0) saisie = 'CL-' + saisie.replace(/^CL-?/, '').padStart(4, '0');
@@ -512,7 +681,7 @@ function _secoursErreur(msg){
 /* ─────────── Containers ─────────── */
 function ouvrirContainers(){
   goTo('ecran-containers');
-  var ids = Object.keys(departsData).filter(function(id){ return clientsDuContainer(id).length > 0; });
+  var ids = Object.keys(departsData).filter(function(id){ return containerAutorise(id) && clientsDuContainer(id).length > 0; });
   ids.sort(function(a,b){
     if(a === DEP_ID_DEPOT) return 1;
     if(b === DEP_ID_DEPOT) return -1;
@@ -522,8 +691,9 @@ function ouvrirContainers(){
   ids.forEach(function(id){
     var d = departsData[id] || {};
     var n = clientsDuContainer(id).length;
+    var drapeau = (id !== DEP_ID_DEPOT) ? ((DEP_PAYS_DEST[depPaysDepart(d)] || {}).drapeau || '') + ' ' : '📦 ';
     h += '<div class="cont-item" onclick="ouvrirContainerDetail(\''+esc(id)+'\')">'
-      +   '<div><div class="cont-nom">'+esc(d.nom||id)+'</div>'
+      +   '<div><div class="cont-nom">'+drapeau+esc(d.nom||id)+'</div>'
       +     '<div class="cont-sub">'+n+' client'+(n>1?'s':'')+(d.dateDepart?(' · '+esc(d.dateDepart)):'')+'</div></div>'
       +   '<div class="cont-fleche">›</div>'
       + '</div>';
@@ -536,15 +706,45 @@ function fermerContainers(){ goTo('ecran-accueil'); }
 var _cdDepartId = null;
 var _cdFiltres = { paye:'tous', livraison:'tous', region:'' };
 function ouvrirContainerDetail(departId){
+  if(!containerAutorise(departId)){ alert('Container hors de votre périmètre.'); return; }
   _cdDepartId = departId;
   _cdFiltres = { paye:'tous', livraison:'tous', region:'' };
   goTo('ecran-container-detail');
   $('cd-nom').textContent = (departsData[departId]||{}).nom || departId;
   $('cd-recherche').value = '';
+  _cdMajBlocArrivee();
   _cdRenderFiltres();
   cdAppliquerFiltres();
 }
 function fermerContainerDetail(){ goTo('ecran-containers'); }
+
+// v1.1.0 — Cobey : « il doit également pouvoir valider dans le suivi des
+// containers l’arrivée au dépôt à Dakar, car il sera là-bas en premier
+// lieu. » Visible uniquement quand l’étape suivante est précisément
+// « Arrivée au dépôt » — jamais les étapes précédentes (en mer, hors de
+// son contrôle), jamais le dépôt lui-même (pas un vrai container).
+function _cdMajBlocArrivee(){
+  var bloc = $('cd-arrivee-bloc');
+  if(_cdDepartId === DEP_ID_DEPOT){ bloc.hidden = true; return; }
+  var d = departsData[_cdDepartId] || {};
+  var suivante = etapeSuivante(d);
+  bloc.hidden = !(suivante && suivante.key === 'arrivee_depot');
+}
+function validerArriveeDepot(){
+  if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT) return;
+  var d = departsData[_cdDepartId] || {};
+  var nom = d.nom || _cdDepartId;
+  db.ref('departs/' + _cdDepartId + '/etapesTransport/arrivee_depot')
+    .set({ fait:true, ts:Date.now(), par:ACTEUR_NOM })
+    .then(function(){
+      activiteExterne('📦', '<strong>' + esc(ACTEUR_NOM) + '</strong> a validé l’arrivée au dépôt du container <strong>' + esc(nom) + '</strong>');
+      _cdMajBlocArrivee();
+    })
+    .catch(function(e){
+      console.error('mamadou: échec validation arrivée dépôt', e);
+      alert('Échec de l’enregistrement, réessayez (vérifiez la connexion).');
+    });
+}
 
 function _cdRenderFiltres(){
   var clients = clientsDuContainer(_cdDepartId);
@@ -653,7 +853,9 @@ function ouvrirFiche(ref, silencieux){
     $('f-encaisser-colis').innerHTML = '';
   }
 
-  // Photos (lecture ponctuelle, pas d'écoute permanente).
+  // Photos des colis (prises à la collecte) — lecture ponctuelle, pas
+  // d'écoute permanente. Cobey : « il doit pouvoir cliquer sur les
+  // photos pour bien identifier les colis » — clic = zoom plein écran.
   var nodePhotos = ref.src === 'france' ? 'france_photos/' : 'dct_photos_colis/';
   $('f-vignettes').innerHTML = '';
   db.ref(nodePhotos + ref.clientId).once('value').then(function(snap){
@@ -661,9 +863,22 @@ function ouvrirFiche(ref, silencieux){
     var h = '';
     Object.keys(v).forEach(function(k){
       var p = v[k];
-      if(p && p.d) h += '<div class="photo-vignette"><img src="'+p.d+'"></div>';
+      if(p && p.d) h += '<div class="photo-vignette" onclick="mnOuvrirZoom(\''+esc(p.d)+'\')"><img src="'+p.d+'"></div>';
     });
     $('f-vignettes').innerHTML = h;
+  }).catch(function(){});
+
+  // Photos de remise prises par Mamadou lui-même (preuve de livraison,
+  // 1 à 5, obligatoires pour valider — voir mnPhotoLivraisonChoisie).
+  _ficheClientId = ref.clientId;
+  $('f-liv-photos').innerHTML = '';
+  _ficheNbPhotosLivraison = 0;
+  db.ref('dct_photos_livraison/' + ref.clientId).once('value').then(function(snap){
+    var v = snap.val() || {};
+    _photosLivraisonActuelles = v;
+    _ficheNbPhotosLivraison = Object.keys(v).length;
+    _mnRenderPhotosLivraison();
+    _mnMajBoutonValider();
   }).catch(function(){});
 
   if(c.livraisonDakar){
@@ -680,20 +895,108 @@ function ouvrirFiche(ref, silencieux){
     $('f-bloc-liv').hidden = true;
   }
 
-  var peutValider = pay.reste <= 0 && (!c.livraisonDakar || payL.reste <= 0);
+  _mnMajBoutonValider();
+}
+function fermerFiche(){ _ficheCtx = null; goTo('ecran-accueil'); }
+
+// v1.1.0 — Cobey : « il doit également prendre maximum 5 photos pour
+// valider le paiement [la livraison] » — en plus du reste à payer à 0,
+// valider exige au moins 1 photo de remise prise par Mamadou lui-même
+// (preuve de livraison), séparée de l'extraction du statut de paiement
+// ci-dessus pour pouvoir se rejouer seule après une prise de photo.
+function _mnMajBoutonValider(){
+  var c = clientActuel(_ficheCtx);
+  if(!c) return;
+  var pay = depCalculerPaiement(c);
+  var payL = depCalculerPaiementLivraison(c);
+  var pasAssezPaye = pay.reste > 0 || (c.livraisonDakar && payL.reste > 0);
+  var pasAssezPhotos = _ficheNbPhotosLivraison < 1;
+  var peutValider = !pasAssezPaye && !pasAssezPhotos;
   var bouton = $('f-btn-valider');
   if(c.livraisonValidee && c.livraisonValidee.fait){
     bouton.hidden = true;
     $('f-valide-note').hidden = false;
-  } else {
-    $('f-valide-note').hidden = true;
-    bouton.hidden = false;
-    bouton.disabled = !peutValider;
-    bouton.style.opacity = peutValider ? '1' : '.4';
-    bouton.textContent = peutValider ? '✅ Valider la livraison' : '⚠️ Encaissez le reste avant de valider';
+    return;
   }
+  $('f-valide-note').hidden = true;
+  bouton.hidden = false;
+  bouton.disabled = !peutValider;
+  bouton.style.opacity = peutValider ? '1' : '.4';
+  bouton.textContent = peutValider
+    ? '✅ Valider la livraison'
+    : (pasAssezPaye ? '⚠️ Encaissez le reste avant de valider' : '⚠️ Prenez au moins une photo avant de valider');
 }
-function fermerFiche(){ _ficheCtx = null; goTo('ecran-accueil'); }
+
+/* ─────────── Photos de remise (preuve de livraison, max 5) ─────────── */
+var _ficheClientId = null;
+var _ficheNbPhotosLivraison = 0;
+var _photosLivraisonActuelles = {};
+var PHOTO_LIV_MAX = 5, PHOTO_LIV_COTE = 1000, PHOTO_LIV_QUALITE = 0.55;
+
+function _mnRenderPhotosLivraison(){
+  var h = '';
+  Object.keys(_photosLivraisonActuelles).forEach(function(k){
+    var p = _photosLivraisonActuelles[k];
+    if(!p || !p.d) return;
+    h += '<div class="liv-photo-item"><img src="'+p.d+'" onclick="mnOuvrirZoom(\''+esc(p.d)+'\')">'
+      + '<button type="button" class="liv-photo-suppr" onclick="event.stopPropagation();mnSupprimerPhotoLivraison(\''+esc(k)+'\')">&times;</button></div>';
+  });
+  $('f-liv-photos').innerHTML = h;
+  var btn = $('f-liv-photo-btn');
+  btn.hidden = _ficheNbPhotosLivraison >= PHOTO_LIV_MAX;
+}
+function mnPhotoLivraisonChoisie(input){
+  var file = input.files && input.files[0];
+  input.value = '';
+  if(!file || !_ficheClientId) return;
+  if(_ficheNbPhotosLivraison >= PHOTO_LIV_MAX){ alert('Maximum ' + PHOTO_LIV_MAX + ' photos.'); return; }
+  var r = new FileReader();
+  r.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var w = img.width, h = img.height;
+      var f = Math.min(1, PHOTO_LIV_COTE / Math.max(w, h));
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(w * f); cv.height = Math.round(h * f);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      var dataUrl = cv.toDataURL('image/jpeg', PHOTO_LIV_QUALITE);
+      db.ref('dct_photos_livraison/' + _ficheClientId).push({ d: dataUrl, ts: Date.now(), par: ACTEUR_NOM })
+        .then(function(){
+          return db.ref('dct_photos_livraison/' + _ficheClientId).once('value');
+        }).then(function(snap){
+          _photosLivraisonActuelles = snap.val() || {};
+          _ficheNbPhotosLivraison = Object.keys(_photosLivraisonActuelles).length;
+          _mnRenderPhotosLivraison();
+          _mnMajBoutonValider();
+        }).catch(function(e){
+          console.error('mamadou: échec envoi photo livraison', e);
+          alert('Échec de l’envoi de la photo, réessayez.');
+        });
+    };
+    img.onerror = function(){ alert('Photo illisible, réessayez.'); };
+    img.src = ev.target.result;
+  };
+  r.readAsDataURL(file);
+}
+function mnSupprimerPhotoLivraison(cle){
+  if(!_ficheClientId) return;
+  db.ref('dct_photos_livraison/' + _ficheClientId + '/' + cle).remove().then(function(){
+    delete _photosLivraisonActuelles[cle];
+    _ficheNbPhotosLivraison = Object.keys(_photosLivraisonActuelles).length;
+    _mnRenderPhotosLivraison();
+    _mnMajBoutonValider();
+  }).catch(function(e){ console.error('mamadou: échec suppression photo', e); });
+}
+
+/* ─────────── Zoom d'une photo ─────────── */
+function mnOuvrirZoom(src){
+  $('modal-zoom-img').src = src;
+  $('modal-zoom').classList.add('open');
+}
+function mnFermerZoom(){
+  $('modal-zoom').classList.remove('open');
+  $('modal-zoom-img').src = '';
+}
 
 function _htmlEncaisser(type, reste){
   var pref = type === 'liv' ? 'liv' : 'col';
@@ -720,13 +1023,15 @@ function encaisser(type){
   var c = clientActuel(_ficheCtx);
   if(!c){ alert('Client introuvable.'); return; }
   var methode = type === 'liv' ? _methLiv : _methColis;
-  var v = { montant: montant, le: Date.now(), par: 'Mamadou Niass', methode: methode };
+  var v = { montant: montant, le: Date.now(), par: ACTEUR_NOM, methode: methode };
   var champ = type === 'liv' ? 'versementsLivraison' : 'versements';
   var versements = Array.isArray(c[champ]) ? c[champ].slice() : [];
   versements.push(v);
   var maj = {}; maj[champ] = versements;
   ecrireClient(_ficheCtx, maj).then(function(){
     c[champ] = versements;
+    activiteExterne('💰', '<strong>' + esc(ACTEUR_NOM) + '</strong> a encaissé <strong>' + montant + ' €</strong> ('
+      + (type === 'liv' ? 'livraison' : 'colis') + ') pour <strong>' + esc(c.name || '') + '</strong>');
     ouvrirFiche(_ficheCtx);
   }).catch(function(e){
     console.error('mamadou: échec écriture versement', e);
@@ -742,9 +1047,14 @@ function validerLivraison(){
     alert('Il reste un montant à encaisser avant de pouvoir valider.');
     return;
   }
-  var champ = { livraisonValidee: { fait:true, ts:Date.now(), par:'Mamadou Niass' } };
+  if(_ficheNbPhotosLivraison < 1){
+    alert('Prenez au moins une photo de remise avant de valider.');
+    return;
+  }
+  var champ = { livraisonValidee: { fait:true, ts:Date.now(), par:ACTEUR_NOM } };
   ecrireClient(_ficheCtx, champ).then(function(){
     c.livraisonValidee = champ.livraisonValidee;
+    activiteExterne('✅', '<strong>' + esc(ACTEUR_NOM) + '</strong> a validé la livraison de <strong>' + esc(c.name || '') + '</strong>');
     ouvrirFiche(_ficheCtx);
   }).catch(function(e){
     console.error('mamadou: échec validation livraison', e);
@@ -752,19 +1062,133 @@ function validerLivraison(){
   });
 }
 
-/* ─────────── Démarrage : vérification du jeton d'accès ─────────── */
-(function(){
-  var m = /[?&]acces=([^&]+)/.exec(location.search);
-  if(!m){ goTo('ecran-erreur'); return; }
-  var jeton = decodeURIComponent(m[1]);
-  _connexionAnonyme.then(function(){
-    return db.ref('dct_acces_mamadou/token').once('value');
-  }).then(function(snap){
-    var token = snap.val();
-    if(!token || token !== jeton){ goTo('ecran-erreur'); return; }
-    demarrerEcoutes();
+/* ─────────── Connexion : jeton Direction (sans code), ou mot de passe
+   choisi par Mamadou lui-même ─────────── */
+var LOCALSTORAGE_CLE = 'mamadou_connecte';
+
+function mnAfficherLogo(){
+  try{ $('mn-logo').src = DEP_LOGO_B64; $('mn-logo-accueil').src = DEP_LOGO_B64; }catch(e){}
+}
+
+function mnAfficherEcranLogin(motDePasseExistant){
+  mnAfficherLogo();
+  goTo('ecran-login');
+  $('mn-login-err').textContent = '';
+  if(motDePasseExistant){
+    $('mn-bloc-creer').hidden = true;
+    $('mn-bloc-entrer').hidden = false;
+    $('mn-pass-saisie').value = '';
+  } else {
+    $('mn-bloc-creer').hidden = false;
+    $('mn-bloc-entrer').hidden = true;
+    $('mn-pass-nouveau').value = '';
+    $('mn-pass-confirme').value = '';
+  }
+}
+
+function mnCreerMotDePasse(){
+  var p1 = $('mn-pass-nouveau').value || '';
+  var p2 = $('mn-pass-confirme').value || '';
+  var err = $('mn-login-err');
+  if(p1.length < 4){ err.textContent = '⚠️ Au moins 4 caractères.'; return; }
+  if(p1 !== p2){ err.textContent = '⚠️ Les deux mots de passe ne correspondent pas.'; return; }
+  err.textContent = '';
+  db.ref('dct_acces_mamadou/motDePasse').set(p1).then(function(){
+    activiteExterne('🔑', '<strong>Mamadou Niass</strong> a choisi son mot de passe.');
+    try{ localStorage.setItem(LOCALSTORAGE_CLE, '1'); }catch(e){}
+    mnAccueilOuvrir();
   }).catch(function(e){
-    console.error('mamadou: vérification du lien', e);
+    console.error('mamadou: échec création mot de passe', e);
+    err.textContent = '⚠️ Échec, réessayez (vérifiez la connexion).';
+  });
+}
+
+function mnEntrer(){
+  var saisie = $('mn-pass-saisie').value || '';
+  var err = $('mn-login-err');
+  db.ref('dct_acces_mamadou/motDePasse').once('value').then(function(snap){
+    var mdp = snap.val();
+    if(!mdp || saisie !== mdp){ err.textContent = '⚠️ Mot de passe incorrect.'; return; }
+    err.textContent = '';
+    try{ localStorage.setItem(LOCALSTORAGE_CLE, '1'); }catch(e){}
+    mnAccueilOuvrir();
+  }).catch(function(e){
+    console.error('mamadou: échec vérification mot de passe', e);
+    err.textContent = '⚠️ Échec, réessayez (vérifiez la connexion).';
+  });
+}
+
+function mnDemanderReinit(){
+  alert('Demandez à la direction de réinitialiser votre mot de passe depuis l’application (Réglages > Livreur).');
+}
+
+function mnOuvrirChangerMotDePasse(){
+  goTo('ecran-changer-mdp');
+  $('mn-chg-err').textContent = '';
+  $('mn-chg-actuel').value = '';
+  $('mn-chg-nouveau').value = '';
+  $('mn-chg-confirme').value = '';
+}
+function mnValiderChangementMotDePasse(){
+  var actuel = $('mn-chg-actuel').value || '';
+  var n1 = $('mn-chg-nouveau').value || '';
+  var n2 = $('mn-chg-confirme').value || '';
+  var err = $('mn-chg-err');
+  if(n1.length < 4){ err.textContent = '⚠️ Au moins 4 caractères.'; return; }
+  if(n1 !== n2){ err.textContent = '⚠️ Les deux mots de passe ne correspondent pas.'; return; }
+  db.ref('dct_acces_mamadou/motDePasse').once('value').then(function(snap){
+    var mdp = snap.val();
+    if(mdp && actuel !== mdp){ err.textContent = '⚠️ Mot de passe actuel incorrect.'; return; }
+    return db.ref('dct_acces_mamadou/motDePasse').set(n1).then(function(){
+      activiteExterne('🔑', '<strong>Mamadou Niass</strong> a changé son mot de passe.');
+      err.textContent = '';
+      goTo('ecran-accueil');
+    });
+  }).catch(function(e){
+    console.error('mamadou: échec changement mot de passe', e);
+    err.textContent = '⚠️ Échec, réessayez (vérifiez la connexion).';
+  });
+}
+
+/* ─────────── Démarrage ─────────── */
+(function(){
+  mnAfficherLogo();
+
+  // v1.1.0 — Cobey : « nous, pour accéder à son espace, on n’aura pas
+  // besoin de code [de mot de passe] » — le lien Direction saute
+  // directement l’écran de connexion.
+  var mDir = /[?&]direction=([^&]+)/.exec(location.search);
+  if(mDir){
+    var jetonDir = decodeURIComponent(mDir[1]);
+    _connexionAnonyme.then(function(){
+      return db.ref('dct_acces_mamadou/token').once('value');
+    }).then(function(snap){
+      var token = snap.val();
+      if(!token || token !== jetonDir){ goTo('ecran-erreur'); return; }
+      _modeDirection = true;
+      ACTEUR_NOM = 'Direction (test)';
+      try{ $('mn-lien-changer-mdp').style.display = 'none'; }catch(e){}
+      mnAccueilOuvrir();
+    }).catch(function(e){
+      console.error('mamadou: vérification du lien direction', e);
+      goTo('ecran-erreur');
+    });
+    return;
+  }
+
+  var dejaConnecte = false;
+  try{ dejaConnecte = localStorage.getItem(LOCALSTORAGE_CLE) === '1'; }catch(e){}
+  if(dejaConnecte){
+    _connexionAnonyme.then(function(){ mnAccueilOuvrir(); });
+    return;
+  }
+
+  _connexionAnonyme.then(function(){
+    return db.ref('dct_acces_mamadou/motDePasse').once('value');
+  }).then(function(snap){
+    mnAfficherEcranLogin(!!snap.val());
+  }).catch(function(e){
+    console.error('mamadou: vérification du mot de passe', e);
     goTo('ecran-erreur');
   });
 })();

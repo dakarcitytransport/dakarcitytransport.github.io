@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.11.0';
+var DEP_VERSION = 'v2.11.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20320,18 +20320,27 @@ window.renderAdminAlertes = function(){
 
 /* ─────────────────────────────────────────────
    v1.94.37 — RÉGLAGES > LIVREUR (espace Mamadou)
+   v1.1.0 (mamadou.html) — Cobey a complété le cahier des charges : un
+   mot de passe choisi par Mamadou lui-même (écran de connexion à son
+   nom, avec le logo DCT), pas de code pour la Direction qui veut voir
+   son interface, et le périmètre limité au Sénégal.
 
-   Pas un écran réimplémenté : littéralement SON lien, celui ouvert sur
-   son téléphone (mamadou.html?acces=...), généré et régénérable ici.
-   Cobey : « il faudra aussi mettre une case miroire pour la direction et
-   moi, pour qu'on puisse voir son interface, faire des tests
-   éventuellement aussi. » — en l'ouvrant depuis ce bouton, la Direction
-   voit très exactement son interface, sans aucune duplication de code à
-   maintenir à deux endroits (leçon du drift répété entre departs.js et
-   facture.html cette même session).
+   Deux liens bien distincts :
+   - le lien de Mamadou (mamadou.html, sans paramètre) : il se connecte
+     avec SON mot de passe, choisi à la première ouverture. Rien à
+     générer ici, juste à lui envoyer une fois.
+   - l'accès de test de la Direction (?direction=JETON) : saute l'écran
+     de mot de passe, généré et régénérable ici — « nous, pour accéder à
+     son espace, on n'aura pas besoin de code. » En l'ouvrant depuis ce
+     bouton, la Direction voit très exactement son interface, sans
+     aucune duplication de code à maintenir à deux endroits (leçon du
+     drift répété entre departs.js et facture.html cette même session).
    ───────────────────────────────────────────── */
-function _depLienMamadou(token){
-  return location.origin + '/mamadou.html?acces=' + encodeURIComponent(token);
+function _depLienMamadou(){
+  return location.origin + '/mamadou.html';
+}
+function _depLienMamadouDirection(token){
+  return location.origin + '/mamadou.html?direction=' + encodeURIComponent(token);
 }
 
 window.renderAdminMamadou = function(){
@@ -20340,22 +20349,30 @@ window.renderAdminMamadou = function(){
   var acces = window.mamadouAcces || {};
   var h = '<div style="padding:4px 2px 18px;">'
     + '<div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:16px;">'
-    +   'Lien permanent de Mamadou Niass (livreur à Dakar) : scan QR, saisie de secours, '
-    +   'liste des clients par container (reste à payer uniquement, jamais un montant encaissé), '
-    +   'encaissement et validation de la livraison.</div>';
+    +   'Espace de Mamadou Niass (livreur à Dakar) : scan QR, saisie de secours, '
+    +   'liste des clients par container limitée au Sénégal (reste à payer uniquement, jamais un montant encaissé), '
+    +   'encaissement, photos de remise et validation de la livraison, arrivée au dépôt. '
+    +   'Toutes ses actions sont notifiées dans l’Activité.</div>'
+
+    + '<div style="font-size:11.5px;font-weight:800;color:#999;letter-spacing:.03em;margin-bottom:6px;">LIEN À ENVOYER À MAMADOU</div>'
+    + '<div style="background:#F7F8FA;border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:12.5px;word-break:break-all;margin-bottom:8px;">'
+    +   esc(_depLienMamadou()) + '</div>'
+    + '<div style="font-size:11px;color:#999;margin-bottom:18px;line-height:1.5;">Il choisit lui-même son mot de passe à la première ouverture. '
+    +   (acces.motDePasse ? 'Un mot de passe est déjà configuré.' : 'Aucun mot de passe configuré pour le moment.') + '</div>'
+    + '<button type="button" class="btn" style="background:#111;color:#fff;margin-bottom:9px;" onclick="depCopierLienMamadou()">📋 Copier ce lien (WhatsApp)</button>'
+    + (acces.motDePasse ? '<button type="button" class="btn" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;margin-bottom:18px;" onclick="depReinitialiserMotDePasseMamadou()">🔄 Réinitialiser son mot de passe</button>' : '<div style="height:9px;"></div>')
+
+    + '<div style="font-size:11.5px;font-weight:800;color:#999;letter-spacing:.03em;margin-bottom:6px;">VOTRE ACCÈS DE TEST — SANS CODE</div>';
 
   if(!acces.token){
-    h += '<div style="font-size:12.5px;color:#999;margin-bottom:12px;">Aucun lien généré pour le moment.</div>'
-      + '<button type="button" class="btn" style="background:#006b2d;color:#fff;" onclick="depGenererLienMamadou()">🔗 Générer le lien</button>';
+    h += '<div style="font-size:12.5px;color:#999;margin-bottom:12px;">Aucun accès de test généré pour le moment.</div>'
+      + '<button type="button" class="btn" style="background:#006b2d;color:#fff;" onclick="depGenererLienMamadou()">🔗 Générer mon accès</button>';
   } else {
-    var lien = _depLienMamadou(acces.token);
-    h += '<div style="background:#F7F8FA;border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:12.5px;word-break:break-all;margin-bottom:12px;">'
-      +   esc(lien) + '</div>'
-      + (acces.creeLe ? ('<div style="font-size:11px;color:#999;margin-bottom:14px;">Généré le '+esc(dateHeureFr(acces.creeLe))+(acces.par?(' par '+esc(acces.par)):'')+'</div>') : '')
+    var lien = _depLienMamadouDirection(acces.token);
+    h += (acces.creeLe ? ('<div style="font-size:11px;color:#999;margin-bottom:10px;">Généré le '+esc(dateHeureFr(acces.creeLe))+(acces.par?(' par '+esc(acces.par)):'')+'</div>') : '')
       + '<button type="button" class="btn" style="background:#006b2d;color:#fff;" onclick="depOuvrirInterfaceMamadou()">👁️ Voir son interface</button>'
-      + '<button type="button" class="btn" style="background:#111;color:#fff;" onclick="depCopierLienMamadou()">📋 Copier le lien (WhatsApp)</button>'
-      + '<button type="button" class="btn" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;" onclick="depRegenererLienMamadou()">🔄 Régénérer le lien</button>'
-      + '<div style="font-size:11px;color:#999;margin-top:8px;line-height:1.5;">Régénérer invalide immédiatement l’ancien lien — à envoyer de nouveau à Mamadou après.</div>';
+      + '<button type="button" class="btn" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;" onclick="depRegenererLienMamadou()">🔄 Régénérer mon accès</button>'
+      + '<div style="font-size:11px;color:#999;margin-top:2px;line-height:1.5;">Régénérer invalide immédiatement l’ancien accès.</div>';
   }
   h += '</div>';
   sec.innerHTML = h;
@@ -20365,20 +20382,18 @@ window.depGenererLienMamadou = function(){
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
   var u = window.currentUser || {};
   var token = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
-  db.ref('dct_acces_mamadou').set({ token: token, creeLe: Date.now(), par: u.name || u.id || '' })
-    .then(function(){ toast('✅ Lien généré'); })
-    .catch(function(e){ console.error('departs: génération lien Mamadou', e); toast('❌ Échec, réessayez.'); });
+  db.ref('dct_acces_mamadou').update({ token: token, creeLe: Date.now(), par: u.name || u.id || '' })
+    .then(function(){ toast('✅ Accès généré'); })
+    .catch(function(e){ console.error('departs: génération accès Mamadou', e); toast('❌ Échec, réessayez.'); });
 };
 
 window.depRegenererLienMamadou = function(){
-  if(!confirm('Régénérer invalide immédiatement l’ancien lien. Continuer ?')) return;
+  if(!confirm('Régénérer invalide immédiatement votre ancien accès de test. Continuer ?')) return;
   window.depGenererLienMamadou();
 };
 
 window.depCopierLienMamadou = function(){
-  var acces = window.mamadouAcces || {};
-  if(!acces.token){ toast('⚠️ Aucun lien généré.'); return; }
-  var texte = 'Bonjour Mamadou, voici ton lien Dakar City Transport pour les livraisons :\n' + _depLienMamadou(acces.token);
+  var texte = 'Bonjour Mamadou, voici ton lien Dakar City Transport pour les livraisons :\n' + _depLienMamadou();
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(texte).then(function(){ toast('📋 Lien copié'); }).catch(function(){ toast('⚠️ Copie impossible sur ce navigateur.'); });
   } else {
@@ -20388,8 +20403,19 @@ window.depCopierLienMamadou = function(){
 
 window.depOuvrirInterfaceMamadou = function(){
   var acces = window.mamadouAcces || {};
-  if(!acces.token){ toast('⚠️ Aucun lien généré.'); return; }
-  window.open(_depLienMamadou(acces.token), '_blank');
+  if(!acces.token){ toast('⚠️ Aucun accès généré.'); return; }
+  window.open(_depLienMamadouDirection(acces.token), '_blank');
+};
+
+window.depReinitialiserMotDePasseMamadou = function(){
+  if(!confirm('Mamadou devra choisir un nouveau mot de passe à sa prochaine connexion. Continuer ?')) return;
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  db.ref('dct_acces_mamadou/motDePasse').set(null)
+    .then(function(){
+      toast('✅ Mot de passe réinitialisé');
+      try{ depActivite('🔑', 'a réinitialisé le mot de passe de Mamadou Niass'); }catch(e){}
+    })
+    .catch(function(e){ console.error('departs: réinitialisation mot de passe Mamadou', e); toast('❌ Échec, réessayez.'); });
 };
 
 

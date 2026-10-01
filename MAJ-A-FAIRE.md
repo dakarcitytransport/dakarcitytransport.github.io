@@ -1042,29 +1042,41 @@ ouvre la fiche, comme avant.
 
 ## 5 · Espace Mamadou — livreur à Dakar (lien externe)
 
-**Fait le 01/10 (v2.11.0 / v3.95.0)**, sauf les totaux de livraison
+**Fait le 01/10 (v2.11.1 / v3.95.1)**, sauf les totaux de livraison
 chiffrés (voir plus bas — une question reste en suspens). Nouvelle page
 `mamadou.html`, à part comme `chauffeur.html`/`facture.html` (ne charge
-pas departs.js, relit ses propres données en direct). Lien permanent
-généré et régénérable depuis **Réglages > Livreur** (Direction) :
-affiche le lien, permet de le copier (message WhatsApp prêt), de le
-régénérer (invalide l'ancien), et de **« Voir son interface »** — ouvre
-littéralement le lien de Mamadou dans un nouvel onglet, pas une
-réimplémentation séparée à maintenir en double (leçon tirée du
-chantier facture.html/departs.js, qui a déjà demandé plusieurs
-rattrapages cette session pour rester synchronisé).
+pas departs.js, relit ses propres données en direct).
+
+Deux accès bien distincts : Mamadou se connecte avec **son propre mot de
+passe**, choisi par lui-même à la première ouverture (écran à son nom,
+avec le logo DCT) ; la Direction dispose d'un **accès de test sans
+code**, généré et régénérable depuis **Réglages > Livreur**, qui ouvre
+littéralement le lien de Mamadou dans un nouvel onglet — pas une
+réimplémentation séparée à maintenir en double (leçon tirée du chantier
+facture.html/departs.js, qui a déjà demandé plusieurs rattrapages cette
+session pour rester synchronisé). La Direction peut aussi réinitialiser
+son mot de passe s'il l'oublie.
 
 Construit : les 3 cases d'accueil (scanner, saisie de secours,
 containers), le scan QR (même jeton `DCTQR1:` que l'appli interne — les
 étiquettes déjà imprimées fonctionnent telles quelles), la saisie de
-secours par numéro de client dans le container choisi, la liste des
-clients d'un container avec filtres (payé/reste à payer, avec
-livraison, par région de livraison) et tri par numéro de place comme
-Départ, la fiche client (photos, description, nombre de colis,
-statut payé/reste visible immédiatement), l'encaissement du colis et
-de la livraison (deux caisses séparées, comme partout ailleurs dans
-l'appli), et la validation de la livraison — verrouillée tant qu'il
-reste un montant à encaisser, sur le colis comme sur la livraison.
+secours par numéro de client dans le container choisi (containers
+affichés avec drapeau, date et nombre de clients pour s'y retrouver), la
+liste des clients d'un container — **limitée aux containers du
+Sénégal, le Mali est hors de son périmètre** — avec filtres (payé/reste
+à payer, avec livraison, par région de livraison) et tri par numéro de
+place comme Départ, la fiche client (photos de la collecte cliquables en
+plein écran pour bien identifier le colis, description, nombre de
+colis, statut payé/reste visible immédiatement), l'encaissement du
+colis et de la livraison (deux caisses séparées, comme partout ailleurs
+dans l'appli), ses propres photos de remise (1 à 5, obligatoires) et la
+validation de la livraison — verrouillée tant qu'il reste un montant à
+encaisser ou qu'aucune photo de remise n'a été prise. Il peut aussi
+valider lui-même l'étape **« Arrivée au dépôt »** dans le suivi du
+container, visible uniquement quand c'est la prochaine étape attendue —
+il est sur place avant tout le monde. Chacune de ses actions (mot de
+passe, encaissement, validation, arrivée au dépôt) est notifiée dans
+l'Activité DCT.
 
 **Non construit : les totaux de livraison chiffrés dans sa case
 container** (ce qu'il va toucher, ce qui a été encaissé par DCT, ce
@@ -1127,6 +1139,27 @@ tests éventuellement aussi. » Un accès (depuis l'espace Direction, pas le
 lien externe) qui affiche exactement l'interface de Mamadou — mêmes
 écrans, mêmes règles d'affichage — pour qu'Eric et la direction puissent
 voir ce qu'il voit et tester sans passer par le lien externe.
+
+**Fait le 01/10 — complété par Cobey dans la foulée :**
+> « alors il faudrait un mot de passe qu'il pourra choisir avec une
+> interface d'accueil pour lui avec son nom Mamadou Niass et le logo de
+> DCT, il ne doit avoir accès qu'aux containers du Sénégal pas du Mali,
+> nous pour accéder à son espace on n'aura pas besoin de code, et tout ce
+> qu'il fera devra être notifié dans les notifications. Pour la saisie de
+> secours, les containers ne sont pas détaillés assez, difficile pour lui
+> de se repérer. Il doit pouvoir cliquer sur les photos pour bien
+> identifier les colis, et lui doit prendre également maximum 5 photos
+> pour valider le paiement [la livraison]. »
+>
+> « il doit également pouvoir valider dans le suivi des containers
+> l'arrivée au dépôt à Dakar, car il sera là-bas en premier lieu ! »
+
+Tout est construit (détail technique ci-dessus, dans le résumé de tête
+de section) : mot de passe choisi par Mamadou (écran à son nom + logo
+DCT), accès Direction sans code, périmètre Sénégal uniquement, zoom des
+photos colis, photos de remise obligatoires (max 5), notifications sur
+chaque action, containers détaillés dans la saisie de secours, et
+validation de l'arrivée au dépôt.
 
 ---
 
