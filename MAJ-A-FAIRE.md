@@ -1090,6 +1090,29 @@ ouvre la fiche, comme avant.
 
 ## 4 · Factures et étiquettes
 
+- ~~Pas de **conditions générales** sur la facture.~~ **Fait le 01/10
+  (v2.12.0).** Cobey : « je voudrais mettre des conditions générales en
+  troisième page sur les factures, après le suivi des colis [...] une
+  mention légale comme quoi, au bout d'un certain temps, si les colis
+  ne sont pas récupérés, ils sont détruits [...] pour protéger et
+  anticiper les problèmes à venir. »
+
+  La facture a maintenant une 3e page, « Conditions générales de
+  transport » (9 articles : objet, délais de livraison, retrait des
+  colis, contenu/emballage, responsabilité et valeur déclarée,
+  réclamations, paiement, données personnelles, litiges) — toujours
+  présente, après la page 1 (prix) et la page 2 (suivi des colis,
+  quand il y en a un). L'article sur le retrait prévoit un délai de 60
+  jours, puis un rappel, puis 15 jours supplémentaires avant qu'un
+  colis non réclamé soit considéré abandonné (destruction, don ou
+  mise en vente) — pas de frais de gardiennage, sur demande de Cobey.
+  Cette page est capturée comme une page A4 à part à l'impression comme
+  à l'export PDF, exactement comme la page 2.
+
+  ⚠️ Ce texte n'a pas été relu par un juriste — à faire valider avant
+  diffusion à grande échelle, en particulier pour la partie France/UE
+  (droit de la consommation, RGPD).
+
 - Pouvoir créer des **factures manuelles** rattachées à un container,
   pour le suivi.
 - ~~Les **devis** utilisaient encore l'ancienne saisie (texte libre +

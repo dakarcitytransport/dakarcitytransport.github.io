@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.11.8';
+var DEP_VERSION = 'v2.12.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3553,6 +3553,8 @@ function injecterEcrans(){
   // nouvelle page à l'impression navigateur (Ctrl/Cmd+P) — l'export PDF
   // "Imprimer / PDF" ci-dessus gère déjà sa propre pagination.
   +       '.fac-doc-page2{page-break-before:always;margin-top:0 !important;}'
+  // v2.12.0 — même pagination pour la 3e page (conditions générales).
+  +       '.fac-doc-page3{page-break-before:always;margin-top:0 !important;}'
   +     '}'
   +   '</style>'
   +   '<div class="pub-wrap">'
@@ -8498,8 +8500,12 @@ window.depGenererPDFParBlocs = function(entete, blocs, nomFichier){
 // même PDF (même principe que _depExporterEtiquettesPDFViaCanvas) — retour
 // de Cobey du 29/08/2026 : le suivi doit être sur une page à part, après
 // le détail des prix.
-function _depExporterFacturePDFViaCanvas(el, nomFichier, elPage2){
+// v2.12.0 : `pagesSuite`, un tableau (plutôt qu'un seul élément) — la
+// facture a maintenant jusqu'à 2 pages après la 1re (suivi, conditions
+// générales), chacune capturée comme sa propre page A4 à la suite.
+function _depExporterFacturePDFViaCanvas(el, nomFichier, pagesSuite){
   if(!el){ toast('⚠️ Facture introuvable.'); return; }
+  pagesSuite = (pagesSuite || []).filter(function(p){ return !!p; });
   toast('⏳ Génération du PDF…');
   _depChargerHtml2canvasEtJsPDF(function(){
     if(!window.html2canvas || !window.jspdf) return;
@@ -8553,19 +8559,16 @@ function _depExporterFacturePDFViaCanvas(el, nomFichier, elPage2){
       });
     };
 
-    capturerPage(el, function(){
-      if(elPage2){
-        capturerPage(elPage2, function(){
-          restaurerLargeur();
-          try{ pdf.save(nomFichier || 'Facture.pdf'); }
-          catch(e){ console.error('departs: échec génération PDF facture', e); toast('❌ Échec de la génération du PDF, réessayez.'); }
-        });
-      } else {
-        restaurerLargeur();
-        try{ pdf.save(nomFichier || 'Facture.pdf'); }
-        catch(e){ console.error('departs: échec génération PDF facture', e); toast('❌ Échec de la génération du PDF, réessayez.'); }
-      }
-    });
+    var terminer = function(){
+      restaurerLargeur();
+      try{ pdf.save(nomFichier || 'Facture.pdf'); }
+      catch(e){ console.error('departs: échec génération PDF facture', e); toast('❌ Échec de la génération du PDF, réessayez.'); }
+    };
+    var capturerSuite = function(i){
+      if(i >= pagesSuite.length){ terminer(); return; }
+      capturerPage(pagesSuite[i], function(){ capturerSuite(i + 1); });
+    };
+    capturerPage(el, function(){ capturerSuite(0); });
   });
 }
 
@@ -8839,14 +8842,16 @@ window.depRetourFacturePublique = function(){
 // v1.19.73 : + le document "page 2" du suivi transport (.fac-doc-page2),
 // s'il existe, ajouté comme 2e page du même PDF (retour de Cobey du
 // 29/08/2026 : le suivi doit être sur une page à part, après les prix).
+// v2.12.0 : + la 3e page (conditions générales), toujours présente.
 window.depExporterFacturePDF = function(){
   var conteneur = $('pub-contenu');
   var doc = conteneur ? conteneur.querySelector('.fac-doc') : null;
   if(!doc){ toast('⚠️ Facture introuvable.'); return; }
   var docSuivi = conteneur ? conteneur.querySelector('.fac-doc-page2') : null;
+  var docCGV = conteneur ? conteneur.querySelector('.fac-doc-page3') : null;
   var infos = _depPubFactureCtx || {};
   var nomFichier = 'Facture-' + (infos.c ? depNumeroFacture(infos.c, infos.ctx) : Date.now()) + '.pdf';
-  _depExporterFacturePDFViaCanvas(doc, nomFichier, docSuivi);
+  _depExporterFacturePDFViaCanvas(doc, nomFichier, [docSuivi, docCGV]);
 };
 
 function depAfficherFacturePublique(ctx, cbApresQR){
@@ -8943,6 +8948,35 @@ function depRenderSuiviTransportPublic(c){
       + '</div>';
   });
   h += '</div>'; // .fac-suivi
+  return h;
+}
+
+// v2.12.0 — 3e page de la facture : conditions générales de transport
+// (retour de Cobey du 01/10/2026 : mention légale sur les colis non
+// réclamés, détruits passé un certain délai, + quelques clauses de
+// protection courantes). Texte statique, sans dépendance au client —
+// dupliqué à l'identique dans facture.html (depTexteCGVPublic), comme
+// le reste de cette page (voir le gros commentaire plus bas, avant
+// depRenderFacturePublique).
+function depTexteCGVPublic(){
+  var arts = [
+    ['Objet', 'Les pr&eacute;sentes conditions g&eacute;n&eacute;rales r&eacute;gissent le transport de colis entre le S&eacute;n&eacute;gal, la France et l\'Europe assur&eacute; par Dakar City Transport. Le client reconna&icirc;t les avoir lues et accept&eacute;es au moment de l\'inscription de son colis.'],
+    ['D&eacute;lais de livraison', 'Les d&eacute;lais annonc&eacute;s sont indicatifs et ne constituent pas un engagement contractuel. Dakar City Transport ne pourra &ecirc;tre tenu responsable des retards dus &agrave; des causes ind&eacute;pendantes de sa volont&eacute; (douane, conditions m&eacute;t&eacute;orologiques, gr&egrave;ves, force majeure).'],
+    ['Retrait des colis', 'Le client s\'engage &agrave; r&eacute;cup&eacute;rer son colis dans un d&eacute;lai de 60 jours &agrave; compter de la notification de disponibilit&eacute;. Pass&eacute; ce d&eacute;lai, un rappel sera envoy&eacute; au client par le moyen de contact fourni (t&eacute;l&eacute;phone/SMS). &Agrave; d&eacute;faut de retrait dans un d&eacute;lai de 15 jours suppl&eacute;mentaires apr&egrave;s ce rappel, Dakar City Transport se r&eacute;serve le droit de consid&eacute;rer le colis comme abandonn&eacute; et de proc&eacute;der &agrave; sa destruction, don ou mise en vente, sans d&eacute;dommagement ni recours possible du client, et sans que cela n\'engage la responsabilit&eacute; de Dakar City Transport.'],
+    ['Contenu et emballage', 'Le client garantit que le colis ne contient aucun objet interdit, dangereux, p&eacute;rissable sans emballage adapt&eacute;, ou prohib&eacute; par la r&eacute;glementation douani&egrave;re du pays de destination. Dakar City Transport se r&eacute;serve le droit de refuser ou d\'ouvrir tout colis suspect, avec ou sans la pr&eacute;sence du client.'],
+    ['Responsabilit&eacute; et valeur d&eacute;clar&eacute;e', 'Sauf d&eacute;claration de valeur et souscription d\'une assurance compl&eacute;mentaire au moment de l\'inscription, la responsabilit&eacute; de Dakar City Transport en cas de perte ou de dommage est limit&eacute;e &agrave; 50&nbsp;&euro; (ou &eacute;quivalent FCFA) par colis. Le client est invit&eacute; &agrave; d&eacute;clarer la valeur r&eacute;elle de son envoi pour b&eacute;n&eacute;ficier d\'une couverture adapt&eacute;e.'],
+    ['R&eacute;clamations', 'Toute r&eacute;clamation (colis endommag&eacute;, manquant, erreur de livraison) doit &ecirc;tre signal&eacute;e &agrave; Dakar City Transport dans un d&eacute;lai de 7 jours suivant la remise ou la mise &agrave; disposition du colis, accompagn&eacute;e de photos si n&eacute;cessaire. Pass&eacute; ce d&eacute;lai, le colis est r&eacute;put&eacute; conforme et complet.'],
+    ['Paiement', 'Le prix du transport est d&ucirc; au moment de l\'inscription du colis ou &agrave; la livraison, selon les modalit&eacute;s convenues. Tout colis non r&eacute;gl&eacute; pourra &ecirc;tre retenu par Dakar City Transport jusqu\'&agrave; r&egrave;glement complet.'],
+    ['Donn&eacute;es personnelles', 'Les informations collect&eacute;es (nom, t&eacute;l&eacute;phone, adresse) sont utilis&eacute;es exclusivement pour l\'organisation du transport et ne sont communiqu&eacute;es &agrave; aucun tiers, sauf obligation l&eacute;gale ou douani&egrave;re. Conform&eacute;ment au RGPD, le client dispose d\'un droit d\'acc&egrave;s, de rectification et de suppression de ses donn&eacute;es.'],
+    ['Litiges', 'En cas de litige, les parties s\'efforceront de trouver une solution amiable. &Agrave; d&eacute;faut, le litige rel&egrave;ve de la comp&eacute;tence des tribunaux de Paris.']
+  ];
+  var h = '<div class="fac-suivi-titre">Conditions g&eacute;n&eacute;rales de transport</div>';
+  arts.forEach(function(a, i){
+    h += '<div style="margin-bottom:13px;">'
+      +   '<div style="font-size:12.5px;font-weight:800;color:#111;margin-bottom:3px;">Article ' + (i + 1) + ' &mdash; ' + a[0] + '</div>'
+      +   '<div style="font-size:11.5px;color:#444;line-height:1.65;">' + a[1] + '</div>'
+      + '</div>';
+  });
   return h;
 }
 
@@ -9111,6 +9145,19 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
       +   '<div class="fac-footer">DAKAR CITY TRANSPORT &middot; Paris &middot; T&eacute;l&nbsp;: +33 6 69 18 30 01 / +33 6 03 67 04 98<br>Email&nbsp;: contact@dakarcitytransport.com &middot; Site web&nbsp;: dakarcitytransport.com &middot; TikTok &amp; Instagram&nbsp;: @dakar_ct</div>'
       + '</div>';
   }
+
+  // v2.12.0 — 3e page : conditions générales de transport, après le
+  // suivi des colis (retour de Cobey du 01/10/2026) — même habillage que
+  // la page 2 (voir depTexteCGVPublic), toujours présente (texte
+  // statique, pas de dépendance au client) et capturée comme une page
+  // A4 à part à l'export PDF (voir _depExporterFacturePDFViaCanvas).
+  h += '<div class="fac-doc fac-doc-page3" style="margin-top:14px;">'
+    +   '<div class="fac-topbar"></div>'
+    +   '<div class="fac-body">'
+    +     depTexteCGVPublic()
+    +   '</div>'
+    +   '<div class="fac-footer">DAKAR CITY TRANSPORT &middot; Paris &middot; T&eacute;l&nbsp;: +33 6 69 18 30 01 / +33 6 03 67 04 98<br>Email&nbsp;: contact@dakarcitytransport.com &middot; Site web&nbsp;: dakarcitytransport.com &middot; TikTok &amp; Instagram&nbsp;: @dakar_ct</div>'
+    + '</div>';
 
   // Lecture seule stricte pour un visiteur non connecté (lien WhatsApp) :
   // seul "Imprimer / PDF" reste — pas de retour vers l'appli, pas de
