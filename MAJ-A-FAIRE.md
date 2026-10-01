@@ -1347,6 +1347,20 @@ validation de l'arrivée au dépôt.
   apparaissait, et seulement à son tour, sans rien qui explique où en
   est le container en attendant.
 
+**Fait le 01/10 (v1.5.0), Cobey**, capture d'écran de la fiche client
+à l'appui : « sur l'interface de Mamadou, sur les photos, il ne voit
+pas l'heure et qui a pris la photo. Il faut le mettre. » Chaque photo
+de remise (preuve de livraison) enregistrait déjà l'heure exacte et
+l'auteur (`ts`/`par`, au moment de la prise) — juste jamais affichés.
+Une petite légende apparaît maintenant sous chaque vignette : l'heure
+(HH:MM) et le nom de la personne qui l'a prise.
+
+« Et aussi, moi, en tant qu'admin et avec la direction, il faut pouvoir
+réinitialiser son mot de passe en cas de problème » — déjà en place
+depuis le 01/10 (voir plus haut, "Réglages > Livreur" : bouton
+**🔄 Réinitialiser son mot de passe**), Mamadou doit alors en choisir un
+nouveau à sa prochaine connexion.
+
 ---
 
 ## 6 · Rapport financier

@@ -90,7 +90,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    souvent » — le destinataire ressort visuellement, avant tout le reste. */
 .bloc-dest{background:#EAF2FB;border:1.5px solid #BBD6F0;border-radius:12px;padding:14px;margin-bottom:14px;}
 .bloc-dest-titre{font-size:12px;font-weight:800;color:#1a5fa8;letter-spacing:.02em;margin-bottom:8px;}
-.vignettes{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;}
+.vignettes{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;align-items:flex-start;}
 .photo-vignette{width:64px;height:64px;border-radius:8px;background:#ddd;overflow:hidden;}
 .photo-vignette img{width:100%;height:100%;object-fit:cover;}
 .encaisser-bloc{border:1.5px dashed var(--border);border-radius:10px;padding:12px;margin-top:10px;}
@@ -112,9 +112,14 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 
 /* Photos de livraison prises par Mamadou (preuve de remise, max 5) */
 .liv-photos-bloc{background:#F7F8FA;border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-top:12px;}
-.liv-photo-item{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;background:#ddd;}
-.liv-photo-item img{width:100%;height:100%;object-fit:cover;}
+.liv-photo-item{width:68px;}
+.liv-photo-img{position:relative;width:68px;height:68px;border-radius:8px;overflow:hidden;background:#ddd;}
+.liv-photo-img img{width:100%;height:100%;object-fit:cover;}
 .liv-photo-suppr{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;}
+/* v1.5.0 — Cobey : « il ne voit pas l'heure et qui a pris la photo. »
+   Petite légende sous chaque vignette (l'heure exacte + l'acteur,
+   déjà enregistrés dans Firebase — p.ts/p.par — juste jamais affichés). */
+.liv-photo-info{font-size:9px;color:#888;text-align:center;margin-top:3px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 </style>
 </head>
 <body>
@@ -325,7 +330,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.4.0';
+var MAMADOU_VERSION = 'v1.5.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1044,8 +1049,15 @@ function _mnRenderPhotosLivraison(){
   Object.keys(_photosLivraisonActuelles).forEach(function(k){
     var p = _photosLivraisonActuelles[k];
     if(!p || !p.d) return;
-    h += '<div class="liv-photo-item"><img src="'+p.d+'" onclick="mnOuvrirZoom(\''+esc(p.d)+'\')">'
-      + '<button type="button" class="liv-photo-suppr" onclick="event.stopPropagation();mnSupprimerPhotoLivraison(\''+esc(k)+'\')">&times;</button></div>';
+    // v1.5.0 — Cobey : « il ne voit pas l'heure et qui a pris la photo. »
+    // Les deux étaient déjà enregistrés à la prise (p.ts/p.par, voir
+    // mnPhotoLivraisonChoisie) — juste jamais montrés jusqu'ici.
+    var heureStr = p.ts ? new Date(p.ts).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '—';
+    h += '<div class="liv-photo-item">'
+      +   '<div class="liv-photo-img"><img src="'+p.d+'" onclick="mnOuvrirZoom(\''+esc(p.d)+'\')">'
+      +     '<button type="button" class="liv-photo-suppr" onclick="event.stopPropagation();mnSupprimerPhotoLivraison(\''+esc(k)+'\')">&times;</button></div>'
+      +   '<div class="liv-photo-info">'+esc(heureStr)+'<br>'+esc(p.par || '—')+'</div>'
+      + '</div>';
   });
   $('f-liv-photos').innerHTML = h;
   var btn = $('f-liv-photo-btn');
