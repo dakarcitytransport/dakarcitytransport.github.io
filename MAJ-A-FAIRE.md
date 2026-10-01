@@ -983,6 +983,18 @@ collecte déjà ouverte :
 - toucher une carte ouvre l'écran du camion déjà existant (avec son
   détail client par client, enrichi au point précédent).
 
+**Complété le 01/10 (v2.11.6), Cobey :** « le bouton inscrire client ne
+doit être que sur la partie où on voit tous les clients [...] et les
+onglets, justement, il faut les descendre en bas, comme dans le
+parcours client. » Deux retouches à l'écran France & Europe :
+- le bouton **+ Inscrire un client** ne s'affiche plus que sur l'onglet
+  Clients (il disparaissait auparavant sur Collectes/Dispatch/Suivi,
+  où il n'a pas sa place) ;
+- la barre d'onglets **Clients / Collectes / Dispatch / Suivi**, qui
+  était sous l'en-tête, est descendue tout en bas de l'écran — au même
+  endroit que la barre de navigation (Accueil/Clients/Suivi/Activité)
+  utilisée partout ailleurs dans l'appli.
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage

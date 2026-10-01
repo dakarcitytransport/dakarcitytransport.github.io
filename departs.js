@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.11.5';
+var DEP_VERSION = 'v2.11.6';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13869,6 +13869,37 @@ function _frMajOngletSuivi(t){
   }
 }
 
+/* v2.11.6 — Cobey : « le bouton inscrire client ne doit être que sur
+   la partie où on voit tous les clients [...] et les onglets, il faut
+   les descendre en bas, comme dans le parcours client. » Deux
+   retouches, une fois au chargement :
+   1) la barre Clients/Collectes/Dispatch/Suivi, native en haut de
+      l'écran France, est déplacée tout en bas — même emplacement que
+      la barre de navigation Accueil/Clients/Suivi/Activité (.bottomnav)
+      utilisée partout ailleurs dans l'appli ;
+   2) le bouton "+ Inscrire un client" (natif, toujours visible) ne
+      s'affiche plus que sur l'onglet Clients. */
+function _frDeplacerOngletsEnBas(){
+  var ecran = document.getElementById('s-france');
+  if(!ecran) return;
+  var onglets = ecran.querySelector('.subtabs');
+  if(!onglets || onglets._depDeplace) return;
+  var btnInscrire = ecran.querySelector('button[onclick="ouvrirAjoutFrance()"]');
+  var barreInscrire = btnInscrire ? btnInscrire.parentNode : null;
+  if(!barreInscrire) return;
+  barreInscrire.id = barreInscrire.id || 'fr-barre-inscrire';
+  ecran.appendChild(onglets); // dernier enfant de l'écran : tout en bas, sous le bouton
+  onglets.style.borderBottom = 'none';
+  onglets.style.borderTop = '1.5px solid var(--border)';
+  onglets.style.paddingBottom = 'env(safe-area-inset-bottom, 0px)';
+  onglets._depDeplace = true;
+}
+
+function _frMajBarreInscrire(t){
+  var barre = document.getElementById('fr-barre-inscrire');
+  if(barre) barre.style.display = (t === 'clients' ? '' : 'none');
+}
+
 /* ─────────────────────────────────────────────
    12bis. AUTOCOMPLETE — suggestions de contact déjà connu + adresse (v1.19.15)
    ─────────────────────────────────────────────
@@ -16096,6 +16127,11 @@ function greffer(){
   // natifs, ne connaissent pas ce 4e onglet — on les complète.
   try{ _frAjouterOngletSuivi(); }catch(e){ console.error('departs: onglet Suivi France', e); }
 
+  // v2.11.6 — onglets France descendus en bas, bouton "Inscrire un
+  // client" limité à l'onglet Clients (voir _frDeplacerOngletsEnBas).
+  try{ _frDeplacerOngletsEnBas(); }catch(e){ console.error('departs: onglets France en bas', e); }
+  try{ _frMajBarreInscrire(window.franceTab || 'clients'); }catch(e){}
+
   if(typeof window.switchFranceTab === 'function' && !window.switchFranceTab._depPatch){
     var origSwitchFranceTab = window.switchFranceTab;
     window.switchFranceTab = function(t){
@@ -16103,6 +16139,7 @@ function greffer(){
       if(t === 'suivi' && !ouverte) t = 'collectes';
       origSwitchFranceTab(t);
       try{ _frMajOngletSuivi(t); }catch(e){}
+      try{ _frMajBarreInscrire(t); }catch(e){}
     };
     window.switchFranceTab._depPatch = true;
   }
