@@ -1011,6 +1011,13 @@ et ce même emplacement devient « 🚛 Dispatch » dès qu'on en ouvre une
 collectes »). La barre repasse ainsi à 3 onglets (Clients / Collectes
 ou Dispatch / Suivi), plus lisible et sans chevauchement.
 
+**Complété le 01/10 (v2.11.8), Cobey :** « les boutons du bas sont
+assez petits quand même. » Texte et zone tactile de la barre du bas
+(Clients / Collectes ou Dispatch / Suivi) agrandis — plus faciles à
+toucher du doigt — sans toucher aux onglets identiques utilisés
+ailleurs dans l'appli (collecte Sénégal, Espace partenaire), qui
+gardent leur taille d'origine.
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage

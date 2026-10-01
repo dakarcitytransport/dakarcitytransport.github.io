@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.11.7';
+var DEP_VERSION = 'v2.11.8';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13919,6 +13919,15 @@ function _frDeplacerOngletsEnBas(){
   ecran.appendChild(onglets); // dernier enfant de l'écran : tout en bas, sous le bouton
   onglets.style.borderBottom = 'none';
   onglets.style.borderTop = '1.5px solid var(--border)';
+  // v2.11.8 — Cobey : « les boutons du bas sont assez petits quand
+  // même. » Plus de place pour le doigt : padding et texte agrandis
+  // sur cette barre précise (les onglets du haut, ailleurs dans
+  // l'appli — s-collecte, Espace partenaire — gardent leur taille
+  // d'origine, inchangée).
+  Array.prototype.forEach.call(onglets.querySelectorAll('.subtab'), function(tab){
+    tab.style.padding = '15px 6px';
+    tab.style.fontSize = '14.5px';
+  });
   onglets.style.paddingBottom = 'env(safe-area-inset-bottom, 0px)';
   onglets._depDeplace = true;
 }
