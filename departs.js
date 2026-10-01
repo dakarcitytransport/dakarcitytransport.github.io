@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.10.32';
+var DEP_VERSION = 'v2.10.33';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4711,8 +4711,21 @@ window.depCarreDepotContainer = function(departId){
   // depCarreDepotFiltrer) — retour de Cobey du 28/08/2026.
   _depDepotCarreDepartId = departId;
   _depDepotCarrePeutInscrire = peutInscrire;
-  _depDepotCarreListe = clientsCollecte.concat(clientsDepot).concat(clientsFranceCarre)
-    .sort(function(a,b){ return String(a.c.name||'').localeCompare(String(b.c.name||'')); });
+  var _depotTousAffiches = clientsCollecte.concat(clientsDepot).concat(clientsFranceCarre);
+  // v1.94.35 : même visuel que l'écran Départ — numéro de place (voir
+  // _depPastilleRang) et tri du plus récent au plus ancien, plutôt
+  // qu'alphabétique (retour de Cobey du 30/09/2026 : « faut juste
+  // reprendre les numéro de position des clients, l'ordre du plus
+  // récent au plus haut de la liste [...] on met un visuel du type de
+  // départ »). _depRattraperRangs comble les rangs manquants pour les
+  // fiches d'avant ce numéro (voir depRenderDetail, même principe).
+  _depRattraperRangs(_depotTousAffiches, departId);
+  _depDepotCarreListe = _depotTousAffiches.sort(function(a,b){
+    var ra = (a.c.rangDepartId === departId) ? (parseInt(a.c.rangDepart, 10) || 0) : 0;
+    var rb = (b.c.rangDepartId === departId) ? (parseInt(b.c.rangDepart, 10) || 0) : 0;
+    if(ra !== rb) return rb - ra;
+    return String(a.c.name||'').localeCompare(String(b.c.name||''));
+  });
 
   var rech = $('depot-carre-recherche'); if(rech) rech.value = '';
   _depDepotCarreRenderListe('');
@@ -4759,7 +4772,8 @@ function _depDepotCarreRenderListe(filtre){
           : "depOuvrirFicheClient('"+x.collecteId+"','"+x.clientId+"',true)");
       h += '<div class="dep-cli" style="cursor:pointer;" onclick="'+clic+'">'
         +   '<div style="flex:1;min-width:0;">'
-        +     '<div class="dep-cli-n">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
+        +     '<div class="dep-cli-n">'+_depPastilleRang(c, departId)
+        +       esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
         +       (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
         +       (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')+'</div>'
         +     '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'

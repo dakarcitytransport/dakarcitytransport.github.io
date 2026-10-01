@@ -395,6 +395,21 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
+**Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
+tentative où j'avais mal compris (visuel des cartes de containers) :
+« faut juste reprendre les numéro de position des clients, l'ordre du
+plus récent au plus haut de la liste, on garde ce qui est en place dans
+dépôt, mais on met un visuel du type de départ. »
+
+La liste des clients d'un départ, vue depuis le carré « Inscription au
+dépôt », triait par ordre alphabétique et n'affichait aucun numéro de
+place. Elle reprend maintenant exactement le même principe que l'écran
+Départ : la pastille « N°X » (place dans le container, celle imprimée
+sur l'étiquette) devant chaque nom, et le tri va du plus récemment
+inscrit au plus ancien — tout le reste (recherche, boutons Facture/
+Photos, bouton d'inscription) reste inchangé.
+
 ### ~~Dépenses des tournées : le détail par poste~~
 **Fait le 27/09 (v3.94.7 / v2.10.6).** Sur « Dépenses du container »,
 capture d'écran du report des tournées à l'appui (« Camion DCT · 70 € »),
