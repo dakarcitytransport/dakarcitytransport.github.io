@@ -1365,9 +1365,16 @@ nouveau à sa prochaine connexion.
 la légende n'était sous la vignette que dans la petite liste de
 photos — pas dans la vue **zoomée en plein écran** (en appuyant sur la
 photo), là où Cobey regarde vraiment. L'heure et l'auteur apparaissent
-maintenant aussi dans cette vue agrandie, pour une photo de remise
-(absents pour une photo de colis, prise à la collecte — donnée non
-disponible ici).
+maintenant aussi dans cette vue agrandie, pour une photo de remise.
+
+**Complété le 01/10 (v1.5.2), Cobey :** « pour la photo de Mamadou qui
+prend la photo, oui, on voit, mais pas pour les photos qui ont été
+prises par les collaborateurs de DCT. » Les photos de colis (prises à
+la collecte, affichées juste après "Nombre de colis" sur la fiche)
+ont elles aussi une heure et un auteur enregistrés (posés par
+l'appli principale au moment de la photo) — jamais montrés ici non
+plus jusque-là. Même légende désormais que les photos de remise,
+vignette et zoom compris.
 
 ---
 

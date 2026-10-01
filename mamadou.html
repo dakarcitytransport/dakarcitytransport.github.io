@@ -91,8 +91,17 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .bloc-dest{background:#EAF2FB;border:1.5px solid #BBD6F0;border-radius:12px;padding:14px;margin-bottom:14px;}
 .bloc-dest-titre{font-size:12px;font-weight:800;color:#1a5fa8;letter-spacing:.02em;margin-bottom:8px;}
 .vignettes{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;align-items:flex-start;}
-.photo-vignette{width:64px;height:64px;border-radius:8px;background:#ddd;overflow:hidden;}
+.photo-vignette-wrap{width:64px;}
+.photo-vignette{width:64px;height:64px;border-radius:8px;background:#ddd;overflow:hidden;cursor:pointer;}
 .photo-vignette img{width:100%;height:100%;object-fit:cover;}
+/* v1.5.2 — Cobey : « pour la photo de Mamadou qui prend la photo, on
+   voit, mais pas pour les photos qui ont été prises par les
+   collaborateurs de DCT. » Même légende que .liv-photo-info pour les
+   photos de colis (prises à la collecte) — elles ont toujours
+   l'heure et l'auteur (p.ts/p.q, voir depFicheLPhotoChoisie et le
+   flux de validation collecte dans departs.js), juste jamais montrés
+   ici non plus. */
+.photo-vignette-info{font-size:9px;color:#888;text-align:center;margin-top:3px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .encaisser-bloc{border:1.5px dashed var(--border);border-radius:10px;padding:12px;margin-top:10px;}
 .encaisser-bloc label{margin-bottom:6px;}
 .meth-row{display:flex;gap:8px;margin-bottom:12px;}
@@ -108,14 +117,15 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .modal-zoom.open{display:flex;}
 .modal-zoom-contenu{display:flex;flex-direction:column;align-items:center;max-width:100%;max-height:100%;}
 .modal-zoom-contenu img{max-width:100%;max-height:80vh;border-radius:10px;display:block;}
-/* v1.5.1 — Cobey : « sur les photos, il ne voit pas l'heure et qui a
-   pris la photo » — vrai aussi (et surtout) sur cette vue zoomée en
-   plein écran, où il regarde vraiment la photo, pas sur la petite
-   vignette (voir .liv-photo-info). Vide/masquée pour une photo de
-   colis (prise à la collecte, pas par Mamadou — rien à afficher). */
+/* v1.5.1/v1.5.2 — Cobey : « sur les photos, il ne voit pas l'heure et
+   qui a pris la photo » — vrai aussi (et surtout) sur cette vue
+   zoomée en plein écran, où il regarde vraiment la photo, pas sur la
+   petite vignette (voir .liv-photo-info/.photo-vignette-info). Une
+   photo de colis (prise à la collecte, pas par Mamadou) a elle aussi
+   sa légende désormais — seule une photo sans ts/auteur connus
+   resterait muette ici. */
 .modal-zoom-info{color:#fff;font-size:13px;font-weight:600;margin-top:10px;text-align:center;}
 .modal-zoom-fermer{position:absolute;top:18px;right:18px;color:#fff;font-size:28px;cursor:pointer;line-height:1;}
-.photo-vignette{cursor:pointer;}
 
 /* Photos de livraison prises par Mamadou (preuve de remise, max 5) */
 .liv-photos-bloc{background:#F7F8FA;border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-top:12px;}
@@ -340,7 +350,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.5.1';
+var MAMADOU_VERSION = 'v1.5.2';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -969,6 +979,12 @@ function ouvrirFiche(ref, silencieux, provenance){
   // Photos des colis (prises à la collecte) — lecture ponctuelle, pas
   // d'écoute permanente. Cobey : « il doit pouvoir cliquer sur les
   // photos pour bien identifier les colis » — clic = zoom plein écran.
+  // v1.5.2 — Cobey : « pour la photo de Mamadou, on voit, mais pas pour
+  // les photos prises par les collaborateurs de DCT. » Elles ont elles
+  // aussi une heure et un auteur (p.ts/p.q, posés à la collecte — voir
+  // departs.js, depFicheLPhotoChoisie et le flux de validation) — même
+  // légende que les photos de remise, juste un nom de champ différent
+  // (q, pas par).
   var nodePhotos = ref.src === 'france' ? 'france_photos/' : 'dct_photos_colis/';
   $('f-vignettes').innerHTML = '';
   db.ref(nodePhotos + ref.clientId).once('value').then(function(snap){
@@ -976,7 +992,14 @@ function ouvrirFiche(ref, silencieux, provenance){
     var h = '';
     Object.keys(v).forEach(function(k){
       var p = v[k];
-      if(p && p.d) h += '<div class="photo-vignette" onclick="mnOuvrirZoom(\''+esc(p.d)+'\')"><img src="'+p.d+'"></div>';
+      if(!p || !p.d) return;
+      var heureStr = p.ts ? new Date(p.ts).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '—';
+      var auteur = p.q || p.par || '—';
+      var legende = heureStr + ' · ' + auteur;
+      h += '<div class="photo-vignette-wrap">'
+        +   '<div class="photo-vignette" onclick="mnOuvrirZoom(\''+esc(p.d)+'\',\''+esc(legende)+'\')"><img src="'+p.d+'"></div>'
+        +   '<div class="photo-vignette-info">'+esc(heureStr)+'<br>'+esc(auteur)+'</div>'
+        + '</div>';
     });
     $('f-vignettes').innerHTML = h;
   }).catch(function(){});
