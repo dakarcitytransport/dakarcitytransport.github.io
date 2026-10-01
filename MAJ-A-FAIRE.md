@@ -1161,6 +1161,25 @@ photos colis, photos de remise obligatoires (max 5), notifications sur
 chaque action, containers détaillés dans la saisie de secours, et
 validation de l'arrivée au dépôt.
 
+**01/10 — deux corrections, capture à l'appui :**
+- « le logo ne s'affiche pas pour lui » → le fichier image avait été
+  tronqué en le recopiant ; puis « reprends le même logo que celui de
+  l'écran d'accueil de DCT » → corrigé une seconde fois avec les octets
+  exacts du vrai logo de l'écran de connexion (`#dct-logo`),
+  au lieu de celui, différent, de facture.html.
+- « le système de filtre est plutôt chaotique, il y a trop
+  d'informations [...] il faudrait [...] des menus déroulants, pour les
+  régions ou quelque chose de plus facile » — la case Container listait
+  une pastille par région (jusqu'à 16 sur un seul container). Seul
+  payé/reste à payer/soldé reste en pastilles (3 choix) ; livraison et
+  région passent en deux menus déroulants.
+- « j'ai remarqué aussi que le bouton retour quand on clique sur des
+  clients nous revient à l'interface première. Le bouton retour doit
+  faire revenir à chaque fois sur l'écran précédent. » — la fiche
+  client renvoyait toujours à l'accueil, quel que soit l'écran d'où on
+  l'avait ouverte (container, saisie de secours, scan). Elle revient
+  maintenant à cet écran précis.
+
 ---
 
 ## 6 · Rapport financier

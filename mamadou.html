@@ -50,9 +50,13 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .cont-nom{font-size:14px;font-weight:800;color:#111;}
 .cont-sub{font-size:11.5px;color:#888;margin-top:2px;}
 .cont-fleche{color:#bbb;font-size:18px;}
-.filtres{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+.filtres{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
 .filtre{font-size:11.5px;font-weight:700;padding:7px 11px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:#555;cursor:pointer;}
 .filtre.on{background:var(--vert);border-color:var(--vert);color:#fff;}
+/* v1.2.0 — Cobey : « trop d'informations » — un pastille par région
+   (parfois plus de 15) devient deux menus déroulants (livraison, région). */
+.cd-selects{display:flex;gap:8px;margin-bottom:12px;}
+.cd-selects select{width:auto;flex:1;margin-bottom:0;padding:11px 10px;font-size:13px;}
 .recherche{margin-bottom:12px;}
 .cli-item{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
 .cli-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
@@ -222,6 +226,14 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
       </div>
       <input class="recherche" id="cd-recherche" placeholder="Rechercher un client&hellip;" oninput="cdAppliquerFiltres()">
       <div class="filtres" id="cd-filtres"></div>
+      <div class="cd-selects">
+        <select id="cd-filtre-livraison" onchange="cdFiltreLivraison(this.value)">
+          <option value="tous">Livraison : toutes</option>
+          <option value="avec">&#128666; Avec livraison</option>
+          <option value="sans">Sans livraison</option>
+        </select>
+        <select id="cd-filtre-region" onchange="cdFiltreRegion(this.value)"></select>
+      </div>
       <div id="cd-liste"></div>
       <div class="retour" onclick="fermerContainerDetail()">&larr; Retour aux containers</div>
     </div>
@@ -290,7 +302,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.0.0';
+var MAMADOU_VERSION = 'v1.2.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -616,7 +628,7 @@ function _scanBoucle(){
           if(!c2){ fermerScan(); alert('Client introuvable pour cette étiquette.'); return; }
           if(!containerAutorise(c2.departId)){ fermerScan(); alert('Ce colis appartient à un container hors de votre périmètre.'); return; }
           fermerScan();
-          ouvrirFiche(ref);
+          ouvrirFiche(ref, false, 'ecran-accueil');
           return;
         }
       }
@@ -670,7 +682,7 @@ function rechercherSecours(){
   var clients = clientsDuContainer(departId);
   var trouve = clients.find(function(x){ return refClientDe(x.c) === saisie; });
   if(!trouve){ _secoursErreur('Aucun client ' + saisie + ' dans ce container.'); return; }
-  ouvrirFiche({ src: trouve.src, collecteId: trouve.collecteId, clientId: trouve.clientId });
+  ouvrirFiche({ src: trouve.src, collecteId: trouve.collecteId, clientId: trouve.clientId }, false, 'ecran-secours');
 }
 function _secoursErreur(msg){
   var e = $('secours-err');
@@ -746,28 +758,40 @@ function validerArriveeDepot(){
     });
 }
 
+// v1.2.0 — Cobey : « le système de filtre est plutôt chaotique, il y a
+// trop d'informations » (capture : jusqu'à 16 régions, une pastille
+// chacune). Seul payé/reste à payer/soldé reste en pastilles (3 choix,
+// ça se lit d'un coup d'œil) ; livraison et région passent en menus
+// déroulants (voir _mnRemplirSelectsFiltres).
 function _cdRenderFiltres(){
+  var h = '';
+  h += '<div class="filtre '+(_cdFiltres.paye==='tous'?'on':'')+'" onclick="cdFiltre(\'paye\',\'tous\')">Tous</div>';
+  h += '<div class="filtre '+(_cdFiltres.paye==='reste'?'on':'')+'" onclick="cdFiltre(\'paye\',\'reste\')">Reste à payer</div>';
+  h += '<div class="filtre '+(_cdFiltres.paye==='paye'?'on':'')+'" onclick="cdFiltre(\'paye\',\'paye\')">Soldés</div>';
+  $('cd-filtres').innerHTML = h;
+  _mnRemplirSelectsFiltres();
+}
+function _mnRemplirSelectsFiltres(){
   var clients = clientsDuContainer(_cdDepartId);
   var regions = {};
   clients.forEach(function(x){
     var r = x.c.livraisonVille || x.c.livraisonVilleAutre || '';
     if(r) regions[r] = true;
   });
-  var h = '';
-  h += '<div class="filtre '+(_cdFiltres.paye==='tous'?'on':'')+'" onclick="cdFiltre(\'paye\',\'tous\')">Tous</div>';
-  h += '<div class="filtre '+(_cdFiltres.paye==='reste'?'on':'')+'" onclick="cdFiltre(\'paye\',\'reste\')">Reste à payer</div>';
-  h += '<div class="filtre '+(_cdFiltres.paye==='paye'?'on':'')+'" onclick="cdFiltre(\'paye\',\'paye\')">Soldés</div>';
-  h += '<div class="filtre '+(_cdFiltres.livraison==='avec'?'on':'')+'" onclick="cdFiltre(\'livraison\',\''+(_cdFiltres.livraison==='avec'?'tous':'avec')+'\')">🚚 Avec livraison</div>';
-  Object.keys(regions).sort().forEach(function(r){
-    h += '<div class="filtre '+(_cdFiltres.region===r?'on':'')+'" onclick="cdFiltre(\'region\',\''+(_cdFiltres.region===r?'':esc(r))+'\')">'+esc(r)+'</div>';
-  });
-  $('cd-filtres').innerHTML = h;
+  $('cd-filtre-livraison').value = _cdFiltres.livraison;
+  var selRegion = $('cd-filtre-region');
+  var regionsTriees = Object.keys(regions).sort();
+  selRegion.innerHTML = '<option value="">Toutes les régions</option>'
+    + regionsTriees.map(function(r){ return '<option value="'+esc(r)+'">'+esc(r)+'</option>'; }).join('');
+  selRegion.value = _cdFiltres.region || '';
 }
 function cdFiltre(type, val){
   _cdFiltres[type] = val;
   _cdRenderFiltres();
   cdAppliquerFiltres();
 }
+function cdFiltreLivraison(val){ _cdFiltres.livraison = val; cdAppliquerFiltres(); }
+function cdFiltreRegion(val){ _cdFiltres.region = val; cdAppliquerFiltres(); }
 function cdAppliquerFiltres(){
   if(!_cdDepartId) return;
   var recherche = ($('cd-recherche').value || '').toLowerCase().trim();
@@ -777,6 +801,7 @@ function cdAppliquerFiltres(){
     if(_cdFiltres.paye === 'reste' && pay.reste <= 0) return false;
     if(_cdFiltres.paye === 'paye' && pay.reste > 0) return false;
     if(_cdFiltres.livraison === 'avec' && !c.livraisonDakar) return false;
+    if(_cdFiltres.livraison === 'sans' && c.livraisonDakar) return false;
     if(_cdFiltres.region){
       var r = c.livraisonVille || c.livraisonVilleAutre || '';
       if(r !== _cdFiltres.region) return false;
@@ -800,7 +825,7 @@ function cdAppliquerFiltres(){
     var c = x.c;
     var pay = depCalculerPaiement(c);
     var rang = (c.rangDepartId === _cdDepartId && c.rangDepart) ? ('<span class="cli-rang">N°'+c.rangDepart+'</span>') : '';
-    h += '<div class="cli-item" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'})">'
+    h += '<div class="cli-item" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'},false,\'ecran-container-detail\')">'
       +   '<div class="cli-top"><div class="cli-nom">'+rang+esc(c.name||'')+'</div></div>'
       +   '<div class="cli-sub">'+esc(c.colis || '—')+'</div>'
       // v1.0.0 — Cobey : « sa case container, lui ne doit voir uniquement
@@ -817,8 +842,16 @@ function cdAppliquerFiltres(){
 
 /* ─────────── Fiche client ─────────── */
 var _ficheCtx = null;
+var _ficheProvenance = 'ecran-accueil';
 var _methColis = 'especes', _methLiv = 'especes';
-function ouvrirFiche(ref, silencieux){
+// v1.2.0 — Cobey : « le bouton retour nous revient à l'interface
+// première. Le bouton retour doit faire revenir à chaque fois sur
+// l'écran précédent. » — fermerFiche() renvoyait toujours à l'accueil,
+// quel que soit l'écran d'où la fiche avait été ouverte (container,
+// secours, scan). `provenance` mémorise cet écran ; absent (rafraîchissement
+// silencieux) ou lors d'un simple rafraîchissement, on garde celle déjà en place.
+function ouvrirFiche(ref, silencieux, provenance){
+  if(!silencieux && provenance) _ficheProvenance = provenance;
   var c = clientActuel(ref);
   if(!c){ if(!silencieux) alert('Client introuvable.'); return; }
   _ficheCtx = ref;
@@ -897,7 +930,15 @@ function ouvrirFiche(ref, silencieux){
 
   _mnMajBoutonValider();
 }
-function fermerFiche(){ _ficheCtx = null; goTo('ecran-accueil'); }
+function fermerFiche(){
+  _ficheCtx = null;
+  var retour = _ficheProvenance || 'ecran-accueil';
+  goTo(retour);
+  // Un encaissement fait dans la fiche ne rafraîchissait pas la liste
+  // du container tant qu'elle restait masquée (voir rafraichirEcranActif) —
+  // elle réaffichait donc un reste à payer périmé au retour.
+  if(retour === 'ecran-container-detail'){ _cdMajBlocArrivee(); cdAppliquerFiltres(); }
+}
 
 // v1.1.0 — Cobey : « il doit également prendre maximum 5 photos pour
 // valider le paiement [la livraison] » — en plus du reste à payer à 0,
