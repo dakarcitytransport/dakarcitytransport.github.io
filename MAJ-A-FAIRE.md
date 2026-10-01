@@ -929,6 +929,29 @@ jour où Issyaka la coche à son tour. Corrigé aux deux endroits
 
 ## 2 bis · France & Europe
 
+### ~~Chauffeur externe : pas de lien à envoyer~~
+**Fait le 01/10 (v2.11.3).** Cobey, capture d'écran à l'appui : « dans la
+version chauffeur externe de France Europe, on n'a pas le lien de
+génération pour envoyer au client [chauffeur]. Il faudrait faire la
+même chose que le parcours collecte, la même interface pour qu'on
+puisse lui envoyer un lien avec le code. »
+
+Le Dispatch France & Europe proposait bien un camion qu'on pouvait
+nommer « Chauffeur externe », mais c'était un nom comme un autre — sans
+code d'accès, sans lien à envoyer. Il a maintenant exactement le même
+bouton **🚚 Ajouter un chauffeur externe** que la collecte (Sénégal) :
+un code à 4 chiffres généré à la création, un bouton **📋 Copier le
+lien + code à envoyer**, et un bandeau « CHAUFFEUR EXTERNE » sur la
+carte du camion pour le retrouver.
+
+Les deux mondes ne partagent aucun arbre Firebase (une collecte France
+range ses camions dans `france/collectes/{id}/trucks`, jamais dans
+`dct/dispatch/{id}/trucks` comme une collecte Sénégal) — `chauffeur.html`
+(la page que le chauffeur ouvre) sait désormais distinguer les deux
+d'après le code reçu, et va chercher la tournée et les clients au bon
+endroit (`france/clients`, pas `dct/clients/{collecteId}`). L'arrêt de
+Chartres, propre au Sénégal, ne s'affiche pas sur une tournée France.
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage

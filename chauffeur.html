@@ -171,7 +171,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.5.2';
+var CHAUFFEUR_VERSION = 'v1.6.0';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -228,7 +228,21 @@ var _connexionAnonyme = firebase.auth
   ? firebase.auth().signInAnonymously().catch(function(e){ console.error('chauffeur: connexion anonyme', e); })
   : Promise.resolve();
 
-var ctx = null; // { collecteId, camion, nom, code }
+var ctx = null; // { collecteId, camion, nom, code, france }
+
+// v1.6.0 — chauffeur externe France & Europe. Les tournées Sénégal
+// (collecte) et France vivent dans deux arbres Firebase complètement
+// séparés et jamais au même endroit : dct/dispatch/{collecteId}/trucks/
+// {camion} pour une collecte, france/collectes/{collecteId}/trucks/
+// {camion} pour une collecte France & Europe (voir _frSauverCollecte,
+// dct-app.html — pas dct/dispatch, qui n'existe pas côté France). Un
+// seul point de vérité pour construire ce chemin, quel que soit l'arbre.
+function _cheminTruck(suffixe){
+  var base = ctx.france
+    ? 'france/collectes/' + ctx.collecteId + '/trucks/' + ctx.camion
+    : 'dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion;
+  return suffixe ? (base + '/' + suffixe) : base;
+}
 var clientsTournee = []; // [{id, ...fiche}]
 var truckCourant = null; // dernier objet camion reçu (pour horaires + carte)
 var carteInstance = null;
@@ -462,7 +476,7 @@ function ouvrirTournee(){
   }).then(function(snap){
     var v = snap.val();
     if(!v || !v.collecteId || !v.camion){ afficherErreurCode('Code invalide. Vérifie le code reçu.'); return; }
-    ctx = { collecteId: v.collecteId, camion: v.camion, nom: v.nom || '', code: code };
+    ctx = { collecteId: v.collecteId, camion: v.camion, nom: v.nom || '', code: code, france: !!v.france };
     chargerCatalogue();   // v1.2.0 : les articles proposés au chauffeur
     chargerTruck();
   }).catch(function(e){
@@ -719,10 +733,12 @@ function terminerChartres(){
 }
 
 function chargerTruck(){
-  chargerChartres();
+  // L'arrêt de Chartres n'existe que sur la route Sénégal (chargement
+  // vers Mitry-Mory) — une collecte France & Europe n'a pas cet arrêt.
+  if(!ctx.france) chargerChartres();
   // Écoute en direct : si DCT modifie les clients affectés pendant la
   // tournée, la liste se met à jour toute seule.
-  db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion).on('value', function(snap){
+  db.ref(_cheminTruck()).on('value', function(snap){
     var tk = snap.val();
     if(!tk){ afficherErreurCode('Cette tournée n\'existe plus.'); $('ecran-code').hidden = false; $('ecran-tournee').hidden = true; return; }
     afficherTournee(tk);
@@ -762,7 +778,8 @@ function afficherTournee(tk){
   var idsManquants = ids.filter(function(id){ return !clientsTournee.some(function(c){ return c.id === id; }); });
   if(idsManquants.length){
     Promise.all(idsManquants.map(function(id){
-      return db.ref('dct/clients/' + ctx.collecteId + '/' + id).once('value').then(function(s){
+      var cheminClient = ctx.france ? 'france/clients/' + id : 'dct/clients/' + ctx.collecteId + '/' + id;
+      return db.ref(cheminClient).once('value').then(function(s){
         var c = s.val(); if(!c) return null;
         c.id = id;
         return c;
@@ -847,7 +864,7 @@ function ouvrirWaze(id, adresse){
   var url = 'https://waze.com/ul?q=' + encodeURIComponent(adresse) + '&navigate=yes';
   if(ctx && !(truckCourant && truckCourant.wazeTs && truckCourant.wazeTs[id])){
     var ts = Date.now();
-    db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/wazeTs/' + id).set(ts)
+    db.ref(_cheminTruck('wazeTs/' + id)).set(ts)
       .catch(function(e){ console.error('chauffeur: écriture départ waze', e); });
   }
   window.open(url, '_blank');
@@ -858,8 +875,8 @@ function ouvrirWaze(id, adresse){
 // cas échéant, restent en base et seront simplement remplacées s'il
 // reprend une nouvelle série de photos.
 function revenirSurClient(id){
-  db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/chauffeurStatuts/' + id).remove().then(function(){
-    return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/finTs/' + id).remove();
+  db.ref(_cheminTruck('chauffeurStatuts/' + id)).remove().then(function(){
+    return db.ref(_cheminTruck('finTs/' + id)).remove();
   }).catch(function(e){
     console.error('chauffeur: annulation statut', e);
     alert('Erreur de connexion, réessaie.');
@@ -940,14 +957,15 @@ function _executerCloture(){
   var mapPhotos = {};
   photosCourantes.forEach(function(p, i){ mapPhotos['p' + i] = p; });
   var c = clientsTournee.find(function(x){ return x.id === id; });
-  db.ref('dct_photos_colis/' + id).set(mapPhotos).then(function(){
-    return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/chauffeurStatuts/' + id).set({
+  var cheminPhotos = ctx.france ? 'france_photos/' + id : 'dct_photos_colis/' + id;
+  db.ref(cheminPhotos).set(mapPhotos).then(function(){
+    return db.ref(_cheminTruck('chauffeurStatuts/' + id)).set({
       etat: 'recupere', ts: ts, nbPhotos: photosCourantes.length
     });
   }).then(function(){
     // finTs = heure de fin, comme côté DCT natif (confirmValider) — sert
     // au calcul de durée et à l'heure affichés dans Suivi live.
-    return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/finTs/' + id).set(ts);
+    return db.ref(_cheminTruck('finTs/' + id)).set(ts);
   }).then(function(){
     // v1.2.0 : le détail des colis, s'il a bougé. C'est le chauffeur qui
     // voit ce que le client confie réellement, donc ça part sur la fiche
@@ -973,18 +991,21 @@ function _executerCloture(){
          + (aChiffrer ? (', dont <strong>' + aChiffrer + ' à chiffrer</strong>') : ''),
       ts: ts, type: 'colis'
     });
+    var n = nbColisLignes();
     if(c){
       c.colisDetail = lignesColis.slice();
       c.colis = resumeLignes();
-      c.nbColis = nbColisLignes();
+      c.nbColis = n;
+      if(ctx.france) c.nb = n;
       c.hist = hist;
     }
-    return db.ref('dct/clients/' + ctx.collecteId + '/' + id).update({
-      colisDetail: lignesColis,
-      colis: resumeLignes(),
-      nbColis: nbColisLignes(),
-      hist: hist
-    }).then(function(){
+    // France & Europe nomme le champ `nb`, pas `nbColis` (voir
+    // lignesDepuisFiche plus haut) — les deux sont écrits côté France
+    // pour ne rien casser d'éventuel code natif lisant l'un ou l'autre.
+    var majColis = { colisDetail: lignesColis, colis: resumeLignes(), nbColis: n, hist: hist };
+    if(ctx.france) majColis.nb = n;
+    var cheminMajClient = ctx.france ? 'france/clients/' + id : 'dct/clients/' + ctx.collecteId + '/' + id;
+    return db.ref(cheminMajClient).update(majColis).then(function(){
       _activiteExterne('📦', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> a mis à jour les colis de <strong>'
         + esc(c ? c.name : '') + '</strong> — ' + nbColisLignes() + ' colis'
         + (aChiffrer ? (', dont ' + aChiffrer + ' à chiffrer') : ''));
@@ -1023,11 +1044,11 @@ function choisirMotif(motifId, motifLib){
   if(!id) return;
   var ts = Date.now();
   var c = clientsTournee.find(function(x){ return x.id === id; });
-  db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/chauffeurStatuts/' + id).set({
+  db.ref(_cheminTruck('chauffeurStatuts/' + id)).set({
     etat: 'refuse', motif: motifId, motifLib: motifLib, ts: ts
   }).then(function(){
     // finTs = heure de fin, comme côté DCT natif (confirmRefus).
-    return db.ref('dct/dispatch/' + ctx.collecteId + '/trucks/' + ctx.camion + '/finTs/' + id).set(ts);
+    return db.ref(_cheminTruck('finTs/' + id)).set(ts);
   }).then(function(){
     _activiteExterne('❌', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> — colis non récupéré chez <strong>' + esc(c ? c.name : '') + '</strong> (' + esc(motifLib) + ')');
     fermerEcranMotif();

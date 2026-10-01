@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.11.1';
+var DEP_VERSION = 'v2.11.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13532,6 +13532,116 @@ function _depMarquerRamasseCamionFrance(id){
 }
 
 /* ─────────────────────────────────────────────
+   v2.11.3 — CHAUFFEUR EXTERNE, FRANCE & EUROPE
+
+   Cobey : « dans la version chauffeur externe de France Europe, on n'a
+   pas le lien de génération pour envoyer au client [chauffeur]. Il
+   faudrait faire la même chose que le parcours collecte, la même
+   interface pour qu'on puisse lui envoyer un lien avec le code. »
+
+   Même principe que le chauffeur externe de la collecte Sénégal (voir
+   plus haut « CHAUFFEUR EXTERNE v1.20.5 ») : un camion « externe », un
+   code à 4 chiffres propre à cette collecte, un lien chauffeur.html à
+   copier pour WhatsApp (_depCopierLienExterne, déjà générique, réutilisé
+   tel quel). Mais les deux mondes ne partagent AUCUN arbre Firebase :
+   une collecte France range ses camions dans
+   france/collectes/{id}/trucks/{camion} (voir _frSauverCollecte,
+   dct-app.html), jamais dans dct/dispatch/{id}/trucks/{camion}. Le code
+   d'accès porte donc un champ `france:true` pour que chauffeur.html
+   (page à part, voir sa fonction _cheminTruck) sache dans quel arbre
+   aller chercher sa tournée et ses clients (france/clients, pas
+   dct/clients/{collecteId}).
+
+   _frDispatchDetail (dct-app.html) construit et RENVOIE une chaîne HTML
+   (elle ne touche jamais le DOM elle-même) — on peut donc y insérer le
+   bouton et le bandeau par simple remplacement de texte, sans la
+   gymnastique de correspondance DOM utilisée pour renderDispatchTab
+   (natif Sénégal, qui lui manipule le DOM directement).
+   ───────────────────────────────────────────── */
+
+window.depOuvrirNouveauCamionExterneFrance = function(){
+  var m = $('modal-add-truck-externe-fr');
+  if(!m){
+    m = document.createElement('div');
+    m.id = 'modal-add-truck-externe-fr';
+    m.className = 'modal-overlay';
+    m.style.cssText = 'align-items:center;';
+    m.innerHTML = '<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
+      +   '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🚚 Chauffeur externe</div>'
+      +   '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:16px;">Un code d&rsquo;acc&egrave;s sera g&eacute;n&eacute;r&eacute; &agrave; la cr&eacute;ation, propre &agrave; cette collecte France &amp; Europe.</div>'
+      +   '<div class="fg"><label class="fl">Pr&eacute;nom du chauffeur</label>'
+      +   '<input class="fi" id="new-truck-externe-fr-nom" placeholder="Amadou" maxlength="40"></div>'
+      +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">'
+      +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-add-truck-externe-fr\')">Annuler</button>'
+      +   '<button class="btn-sm btn-green-sm" onclick="depConfirmerNouveauCamionExterneFrance()">✅ Créer</button>'
+      +   '</div></div>';
+    document.body.appendChild(m);
+  }
+  var inp = $('new-truck-externe-fr-nom'); if(inp) inp.value = '';
+  openModal('modal-add-truck-externe-fr');
+  setTimeout(function(){ var i = $('new-truck-externe-fr-nom'); if(i) i.focus(); }, 300);
+};
+
+window.depConfirmerNouveauCamionExterneFrance = function(){
+  var nom = (($('new-truck-externe-fr-nom') || {}).value || '').trim();
+  if(!nom){ toast('⚠️ Indiquez le prénom du chauffeur'); return; }
+  if(typeof window._frCollecteActive !== 'function'){ toast('⚠️ Indisponible.'); return; }
+  var r = window._frCollecteActive();
+  if(!r){ toast('⚠️ Aucune collecte ouverte.'); return; }
+  var trks = r.trucks || {};
+  var num = 1;
+  while(trks['T' + String(num).padStart(2, '0')]) num++;
+  if(num > 99) return;
+  var k = 'T' + String(num).padStart(2, '0');
+  var couleurs = (typeof FR_COULEURS_CAMION !== 'undefined' && FR_COULEURS_CAMION.length)
+    ? FR_COULEURS_CAMION
+    : ['#0d47a1', '#e65100', '#6b21a8', '#1a7a40', '#c0392b', '#00838f', '#4a148c', '#f57f17'];
+  var couleur = couleurs[(num - 1) % couleurs.length];
+  var code = _depGenererCodeExterne();
+  trks[k] = { name: nom, clients: [], validated: [], refused: [], hours: {}, color: couleur, externe: true, codeExterne: code, chauffeurStatuts: {} };
+  r.trucks = trks;
+  closeModal('modal-add-truck-externe-fr');
+  try{ if(window.db && window.firebaseReady) db.ref('dct_codes_externe/' + code).set({ collecteId: r._id, camion: k, nom: nom, ts: Date.now(), france: true }); }catch(e){ console.error('departs: écriture code externe France', e); }
+  var p = (typeof window._frSauverCollecte === 'function') ? window._frSauverCollecte(r) : null;
+  (p || Promise.resolve()).then(function(){
+    try{ if(typeof window._activiteFrance === 'function') window._activiteFrance('🚚', 'a ajouté le chauffeur externe <strong>' + esc(nom) + '</strong>'); }catch(e){}
+    try{ renderFrance(); }catch(e){}
+    _depAfficherCodeExterne(nom, code);
+  });
+};
+
+function _frInjecterChauffeurExterne(h, r){
+  var trks = r.trucks || {};
+  var marqueurBtn = 'onclick="addTruckFrance()">➕ Ajouter un camion</button>';
+  var idx = h.indexOf(marqueurBtn);
+  if(idx >= 0){
+    idx += marqueurBtn.length;
+    var btnExterne = '<button style="width:100%;padding:13px;background:#EAF7EE;color:#006b2d;border:2.5px solid #006b2d;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:12px;font-family:var(--font);" onclick="depOuvrirNouveauCamionExterneFrance()">🚚 Ajouter un chauffeur externe</button>';
+    h = h.slice(0, idx) + btnExterne + h.slice(idx);
+  }
+  Object.keys(trks).forEach(function(k){
+    var tk = trks[k];
+    if(!tk || !tk.externe) return;
+    var marqueurCarte = '<div class="truck-card" onclick="ouvrirCamionFrance(\'' + k + '\')">';
+    if(h.indexOf(marqueurCarte) < 0) return;
+    var nb = (tk.clients || []).length;
+    var nbFait = (tk.clients || []).filter(function(id){
+      return (tk.validated || []).indexOf(id) !== -1 || (tk.refused || []).indexOf(id) !== -1;
+    }).length;
+    var bandeau = '<div style="border:2px solid #1a237e;background:#F5F6FC;border-radius:12px 12px 0 0;border-bottom:none;padding:10px 14px;">'
+      +   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+      +     '<span style="font-size:9px;font-weight:800;background:#1a237e;color:#fff;padding:3px 7px;border-radius:20px;">CHAUFFEUR EXTERNE</span>'
+      +     '<span style="font-size:12px;color:#444;font-weight:700;">' + nbFait + '/' + nb + ' ramass&eacute;' + (nbFait > 1 ? 's' : '') + '</span>'
+      +   '</div>'
+      +   '<button type="button" onclick="event.stopPropagation();_depCopierLienExterne(\'' + esc(tk.name).replace(/'/g, '&#39;') + '\',\'' + esc(tk.codeExterne || '') + '\')" style="width:100%;padding:8px;background:#fff;border:1.5px solid #1a237e;color:#1a237e;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--font);">📋 Copier le lien + code (' + esc(tk.codeExterne || '—') + ')</button>'
+      + '</div>'
+      + '<div class="truck-card" style="border-top-left-radius:0;border-top-right-radius:0;margin-top:-1px;" onclick="ouvrirCamionFrance(\'' + k + '\')">';
+    h = h.replace(marqueurCarte, bandeau);
+  });
+  return h;
+}
+
+/* ─────────────────────────────────────────────
    12bis. AUTOCOMPLETE — suggestions de contact déjà connu + adresse (v1.19.15)
    ─────────────────────────────────────────────
    Jusqu'ici, seul le formulaire natif "f-" (inscription collecte, index.html)
@@ -15722,6 +15832,21 @@ function greffer(){
       }catch(e){ console.error('departs: rafraîchissement sous-carrés Accès', e); }
     };
     window._rafraichirAdmin._depPatch = true;
+  }
+
+  // v2.11.3 — chauffeur externe France & Europe (voir le gros
+  // commentaire plus haut dans ce fichier, section CHAUFFEUR EXTERNE,
+  // FRANCE & EUROPE) : _frDispatchDetail renvoie une chaîne HTML, pas de
+  // manipulation DOM — on y insère le bouton et le bandeau par
+  // remplacement de texte (_frInjecterChauffeurExterne).
+  if(typeof window._frDispatchDetail === 'function' && !window._frDispatchDetail._depPatch){
+    var _frDispatchDetailOrig = window._frDispatchDetail;
+    window._frDispatchDetail = function(r){
+      var h = _frDispatchDetailOrig(r);
+      try{ h = _frInjecterChauffeurExterne(h, r); }catch(e){ console.error('departs: injection chauffeur externe France', e); }
+      return h;
+    };
+    window._frDispatchDetail._depPatch = true;
   }
 }
 
