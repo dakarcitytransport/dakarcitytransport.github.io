@@ -1180,6 +1180,29 @@ validation de l'arrivée au dépôt.
   l'avait ouverte (container, saisie de secours, scan). Elle revient
   maintenant à cet écran précis.
 
+**01/10 — trois autres demandes :**
+- « Mamadou Niass devrait avoir aussi les coordonnées du destinataire
+  pour chaque client, car c'est avec eux qu'il va être en contact le
+  plus souvent ! » — un bloc Destinataire (nom, téléphone, 2e numéro),
+  séparé de l'expéditeur, apparaît en tête de la fiche client quand ces
+  informations existent.
+- « il doit pouvoir entrer les prix soit en euros soit en FCFA aussi »
+  — l'encaissement (colis et livraison) propose désormais les deux
+  devises, avec conversion en direct, au même taux fixe que le reste de
+  l'application (1 € = 655,957 FCFA). Le montant est toujours stocké en
+  euros ; le FCFA saisi et le taux du jour sont conservés à part pour
+  l'historique.
+- « les boutons retour sont mal placés, il faut à chaque fois descendre
+  tout en bas de la page pour revenir en arrière, et je n'ai pas trouvé
+  l'endroit où il valide l'arrivée du container à Dakar » — le bouton
+  retour est désormais en haut de chaque écran (plus besoin de
+  descendre toute une liste de clients pour le retrouver). Dans la case
+  Container, une ligne reste affichée en permanence avec l'étape en
+  cours du suivi transport (« Départ de Mitry », « En cours de
+  navigation »…) — avant, seul le bouton « Valider l'arrivée au dépôt »
+  apparaissait, et seulement à son tour, sans rien qui explique où en
+  est le container en attendant.
+
 ---
 
 ## 6 · Rapport financier
