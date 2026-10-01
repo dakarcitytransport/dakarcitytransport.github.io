@@ -344,6 +344,115 @@ function depTexteCGVPublic(){
   return h;
 }
 
+// v2.12.1 — Export PDF réel, pour cette page publique aussi (retour de
+// Cobey du 01/10/2026 : le bouton "Imprimer / PDF" ouvrait la boîte
+// d'impression du navigateur, qui laisse le client se débrouiller pour
+// "imprimer → enregistrer en PDF" — exactement ce qu'un audit précédent
+// avait fait corriger partout ailleurs dans l'appli (voir
+// _depExporterFacturePDFViaCanvas dans departs.js), sauf ici : cette
+// page publique, à l'époque, n'avait pas le cadre .app qui forçait ce
+// chantier, et avait donc gardé le simple window.print(). Reprend la
+// même mécanique (html2canvas + jsPDF, chargés à la demande), dupliquée
+// à l'identique depuis departs.js.
+
+function toast(msg){
+  var el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);'
+    + 'background:#222;color:#fff;font-family:var(--font);font-size:13px;font-weight:600;'
+    + 'padding:10px 16px;border-radius:10px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);'
+    + 'max-width:86vw;text-align:center;';
+  document.body.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 3200);
+}
+
+var _depHtml2canvasEnCours = false;
+function _depChargerHtml2canvasEtJsPDF(cb){
+  if(window.html2canvas && window.jspdf && window.jspdf.jsPDF){ cb(); return; }
+  if(_depHtml2canvasEnCours){ setTimeout(function(){ _depChargerHtml2canvasEtJsPDF(cb); }, 200); return; }
+  _depHtml2canvasEnCours = true;
+  function chargerScript(src, suite){
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = suite;
+    s.onerror = function(){
+      _depHtml2canvasEnCours = false;
+      console.error('facture: échec chargement PDF (connexion internet ?)');
+      toast('⚠️ Impossible de générer le PDF (connexion internet ?).');
+    };
+    document.head.appendChild(s);
+  }
+  chargerScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', function(){
+    chargerScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', function(){
+      _depHtml2canvasEnCours = false;
+      cb();
+    });
+  });
+}
+
+var DEP_PDF_SCALE_CAPTURE = 2;
+
+function _depExporterFacturePDFViaCanvas(el, nomFichier, pagesSuite){
+  if(!el){ toast('⚠️ Facture introuvable.'); return; }
+  toast('⏳ Génération du PDF…');
+  pagesSuite = (pagesSuite || []).filter(function(p){ return !!p; });
+  _depChargerHtml2canvasEtJsPDF(function(){
+    if(!window.html2canvas || !window.jspdf) return;
+    var pageW = 210, pageH = 297, marge = 6;
+    var largeurUtile = pageW - marge*2, hauteurUtile = pageH - marge*2;
+
+    var pdf = null;
+    var capturerPage = function(elACapturer, cbSuite){
+      window.html2canvas(elACapturer, {
+        scale: DEP_PDF_SCALE_CAPTURE,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 800, // comme sur un écran large : .fac-parties en 2 colonnes, pas empilé
+        ignoreElements: function(node){ return !!(node.classList && node.classList.contains('no-print')); }
+      }).then(function(canvas){
+        var imgWmm = (canvas.width / DEP_PDF_SCALE_CAPTURE) * 25.4 / 96;
+        var imgHmm = (canvas.height / DEP_PDF_SCALE_CAPTURE) * 25.4 / 96;
+        var ratio = Math.min(largeurUtile / imgWmm, hauteurUtile / imgHmm);
+        var wMm = imgWmm * ratio, hMm = imgHmm * ratio;
+        var xMm = marge + (largeurUtile - wMm) / 2;
+        var yMm = marge;
+
+        if(!pdf){
+          pdf = new window.jspdf.jsPDF({ unit: 'mm', format: [pageW, pageH], orientation: 'portrait' });
+        } else {
+          pdf.addPage([pageW, pageH], 'portrait');
+        }
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', xMm, yMm, wMm, hMm);
+        cbSuite();
+      }).catch(function(e){
+        console.error('facture: échec capture PDF', e);
+        toast('❌ Échec de la génération du PDF, réessayez.');
+      });
+    };
+
+    var terminer = function(){
+      try{ pdf.save(nomFichier || 'Facture.pdf'); }
+      catch(e){ console.error('facture: échec génération PDF', e); toast('❌ Échec de la génération du PDF, réessayez.'); }
+    };
+    var capturerSuite = function(i){
+      if(i >= pagesSuite.length){ terminer(); return; }
+      capturerPage(pagesSuite[i], function(){ capturerSuite(i + 1); });
+    };
+    capturerPage(el, function(){ capturerSuite(0); });
+  });
+}
+
+function exporterFacturePDFPublic(){
+  var conteneur = $('pub-contenu');
+  var doc = conteneur ? conteneur.querySelector('.fac-doc') : null;
+  if(!doc){ toast('⚠️ Facture introuvable.'); return; }
+  var docSuivi = conteneur ? conteneur.querySelector('.fac-doc-page2') : null;
+  var docCGV = conteneur ? conteneur.querySelector('.fac-doc-page3') : null;
+  var infos = window._depPubFactureCtx || {};
+  var nomFichier = 'Facture-' + (infos.c ? depNumeroFacture(infos.c, infos.ctx) : Date.now()) + '.pdf';
+  _depExporterFacturePDFViaCanvas(doc, nomFichier, [docSuivi, docCGV]);
+}
+
 // ═══════════ LIGNES DE COLIS — v2.10.25 ═══════════
 // Cette page ignorait entièrement le détail ligne par ligne (colisDetail)
 // et affichait tout `c.colis` sur UNE seule ligne de facture, prix total
@@ -656,11 +765,10 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     + '</div>';
 
   // Page publique autonome : lecture seule stricte, jamais "connectée" —
-  // uniquement "Imprimer / PDF" (impression navigateur standard, cette
-  // page n'a pas le cadre .app qui obligeait departs.js à passer par une
-  // capture canvas/jsPDF).
+  // un seul bouton, qui génère un vrai PDF (voir exporterFacturePDFPublic,
+  // v2.12.1) plutôt que d'ouvrir la boîte d'impression du navigateur.
   h += '<div class="fac-actions no-print">'
-    +    '<button type="button" class="fac-btn fac-btn-print" onclick="window.print()">&#128424;&#65039; Imprimer / PDF</button>'
+    +    '<button type="button" class="fac-btn fac-btn-print" onclick="exporterFacturePDFPublic()">&#128424;&#65039; Imprimer / PDF</button>'
     +  '</div>';
 
   var box = $('pub-contenu');
@@ -739,6 +847,7 @@ var _connexionAnonyme = firebase.auth
 
       var contenu = $('pub-contenu');
       if(contenu) contenu.style.display = 'block';
+      window._depPubFactureCtx = { ctx: ctx, c: c };
       depRenderFacturePublique(c, ctx);
     });
   }).catch(function(e){

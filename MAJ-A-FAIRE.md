@@ -1113,6 +1113,21 @@ ouvre la fiche, comme avant.
   diffusion à grande échelle, en particulier pour la partie France/UE
   (droit de la consommation, RGPD).
 
+- ~~Sur la facture publique (lien client), **"Imprimer / PDF" ouvrait
+  la boîte d'impression du navigateur**, pas un vrai PDF.~~ **Fait le
+  01/10 (v2.12.1).** Cobey, en vérifiant la page 3 : « quand le client
+  appuie sur imprimer/pdf ça va directement dans le menu d'impression,
+  faut que ça génère un PDF avant. »
+
+  Un audit précédent (28/09/2026) avait déjà fait remplacer ce
+  window.print() par un vrai export PDF (html2canvas + jsPDF) partout
+  ailleurs dans l'appli — sauf sur cette page publique autonome
+  (facture.html), qui n'était pas concernée à l'époque puisqu'elle n'a
+  pas le cadre .app du reste de l'appli. Reprend la même mécanique :
+  le bouton génère et télécharge directement un vrai fichier PDF (les
+  3 pages — prix, suivi s'il y en a, conditions générales), sans passer
+  par la boîte d'impression du navigateur.
+
 - Pouvoir créer des **factures manuelles** rattachées à un container,
   pour le suivi.
 - ~~Les **devis** utilisaient encore l'ancienne saisie (texte libre +
