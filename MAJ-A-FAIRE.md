@@ -964,6 +964,25 @@ même que la facture soit faite :
   récupéré par le chauffeur — à facturer** (ou non récupéré, avec le
   motif) — elle disparaît dès que DCT facture ou refuse le client.
 
+**Complété le 01/10 (v2.11.5), Cobey** (nouvelle capture d'écran, le
+vrai écran « Suivi live » du Sénégal à l'appui) : « je veux le même
+système que je t'envoie sur la photo de suivi, mais pour France,
+Europe. C'est ça que je veux en fait. » France & Europe a maintenant
+son propre outil de suivi, un 4e sous-onglet **📍 Suivi** dans sa
+barre (à côté de Clients / Collectes / Dispatch), scopé sur la
+collecte déjà ouverte :
+- une bande sombre reprend la date et le statut de la collecte, avec
+  le total **CLIENTS traités / assignés** sur l'ensemble des camions ;
+- chaque camion apparaît en carte avec sa couleur, son nombre de
+  clients traités, et son état (**pas encore commencé** / **en
+  route** / **dernier statut** avec l'heure) ;
+- pour un camion chauffeur externe, « en route » et l'heure
+  proviennent des vrais horodatages posés par chauffeur.html (Waze
+  ouvert, clôture faite) — un suivi réellement en direct, pas une
+  simple maquette ;
+- toucher une carte ouvre l'écran du camion déjà existant (avec son
+  détail client par client, enrichi au point précédent).
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage

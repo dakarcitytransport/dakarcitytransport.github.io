@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.11.4';
+var DEP_VERSION = 'v2.11.5';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13697,6 +13697,179 @@ function _frInjecterStatutsChauffeurCamion(){
 }
 
 /* ─────────────────────────────────────────────
+   v2.11.5 — SUIVI LIVE, FRANCE & EUROPE
+
+   Cobey, capture d'écran du Suivi live (Sénégal) à l'appui : « je veux
+   le même système que je t'envoie sur la photo de suivi, mais pour
+   France Europe. »
+
+   Pas un nouvel onglet dans la navigation globale (Accueil/Clients/
+   Suivi/Activité, propre à la collecte Sénégal) : un 4e sous-onglet
+   "📍 Suivi", à côté de Clients/Collectes/Dispatch, DANS l'écran France
+   & Europe — la collecte à suivre est déjà celle qu'on a ouverte, pas
+   besoin du sélecteur de date du Suivi natif.
+
+   Toute la logique de calcul (statut d'un client, stats d'un camion,
+   formatage heure/chrono, palette de couleurs) est générique — voir
+   _suiviStatut/_suiviStatsCamion/_hhmm/_chrono/_suiviAdresse/SUIVI_C,
+   natifs (dct-app.html) — réutilisée telle quelle, sans rien dupliquer.
+   Seule la source des données change : france/collectes/{id}/trucks au
+   lieu de dispatchParCollecte/dct/clients.
+
+   Ce que ce Suivi peut réellement montrer dépend de ce que le camion a
+   comme champs : un camion France interne (créé depuis "Ajouter un
+   camion") n'a ni wazeTs ni finTs — Début/Fin estimée resteront "—",
+   comme le natif quand personne n'a encore tapé Waze. Un camion
+   "chauffeur externe", lui, les a : chauffeur.html écrit wazeTs (tap
+   sur "🧭 Waze") et finTs (Récupéré/Non récupéré) par les mêmes
+   fonctions génériques que la collecte Sénégal (voir _cheminTruck,
+   chauffeur.html) — le Suivi live fonctionne donc pleinement pour lui.
+   ───────────────────────────────────────────── */
+
+function _frRenderSuivi(){
+  var col = (typeof window._frCollecteActive === 'function') ? window._frCollecteActive() : null;
+  if(!col){
+    return '<div class="suivi-band" style="padding:16px 16px 18px;">'
+      +   '<div style="display:flex;align-items:center;gap:7px;"><span class="suivi-off"></span>'
+      +   '<span style="color:#fff;font-size:17px;font-weight:800;">Suivi live</span></div>'
+      +   '<div style="color:rgba(255,255,255,0.55);font-size:12.5px;margin-top:8px;">Aucune collecte ouverte.</div>'
+      + '</div>'
+      + '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:30px 14px;background:#f1f3f6;">Ouvrez une collecte depuis l&rsquo;onglet Collectes.</div>';
+  }
+  var trks = col.trucks || {};
+  var cls = (window.franceData || {}).clients || {};
+  var keys = Object.keys(trks);
+
+  var totC = 0, totT = 0, debut = null, toutesDurees = [], camionsActifs = 0;
+  keys.forEach(function(k){
+    var s = _suiviStatsCamion(trks[k]);
+    totC += s.total; totT += s.traites;
+    if(s.depart && (!debut || s.depart < debut)) debut = s.depart;
+    toutesDurees = toutesDurees.concat(s.durees);
+    if(s.total > s.traites) camionsActifs++;
+  });
+
+  var roule = false;
+  keys.forEach(function(k){ if(_suiviStatsCamion(trks[k]).enRoute) roule = true; });
+  var b = '<div class="suivi-band" style="padding:16px 16px 18px;">'
+    + '<div style="display:flex;align-items:center;gap:7px;">' + (roule ? '<span class="suivi-pulse"></span>' : '<span class="suivi-off"></span>')
+    +   '<span style="color:#fff;font-size:17px;font-weight:800;">Suivi live</span></div>';
+  var tagS = col.statut === 'en_cours' ? 'En cours' : (col.statut === 'terminee' ? 'Terminée' : 'À venir');
+  b += '<div style="display:inline-block;margin-top:10px;background:rgba(255,255,255,0.14);color:#fff;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;">' + esc(col.dateLib || '') + ' &middot; ' + tagS + '</div>';
+  b += '<div style="color:rgba(255,255,255,0.55);font-size:10px;font-weight:700;letter-spacing:0.9px;margin-top:14px;">ENSEMBLE DES CAMIONS</div>';
+
+  var c1, c2, c3, l1, l2, l3;
+  if(col.statut === 'terminee'){
+    var finT = null;
+    keys.forEach(function(k){ var s = _suiviStatsCamion(trks[k]); if(s.dernier && (!finT || s.dernier > finT)) finT = s.dernier; });
+    c1 = totT + '/' + totC; l1 = 'CLIENTS';
+    c2 = keys.length; l2 = 'CAMIONS';
+    c3 = (debut ? _hhmm(debut) : '&mdash;') + ' &rarr; ' + (finT ? _hhmm(finT) : '&mdash;'); l3 = 'AMPLITUDE';
+  } else if(col.statut === 'a_venir'){
+    c1 = '0/' + totC; l1 = 'CLIENTS';
+    c2 = keys.length; l2 = 'CAMIONS';
+    c3 = '&mdash;'; l3 = 'D&Eacute;BUT';
+  } else {
+    c1 = totT + '/' + totC; l1 = 'CLIENTS';
+    c2 = debut ? _hhmm(debut) : '&mdash;'; l2 = 'D&Eacute;BUT';
+    var moy = 0;
+    if(toutesDurees.length){
+      for(var i = 0; i < toutesDurees.length; i++) moy += toutesDurees[i];
+      moy = moy / toutesDurees.length;
+    }
+    var restants = totC - totT;
+    if(moy > 0 && restants > 0){
+      var par = Math.ceil(restants / Math.max(1, camionsActifs));
+      c3 = _hhmm(Date.now() + moy * par);
+    } else if(restants === 0 && totC > 0){ c3 = 'Termin&eacute;'; }
+    else { c3 = '&mdash;'; }
+    l3 = 'FIN ESTIM&Eacute;E';
+  }
+  b += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;">'
+    + '<div><div style="color:#fff;font-size:19px;font-weight:800;">' + c1 + '</div><div style="color:rgba(255,255,255,0.5);font-size:9.5px;letter-spacing:0.6px;">' + l1 + '</div></div>'
+    + '<div><div style="color:#fff;font-size:19px;font-weight:800;">' + c2 + '</div><div style="color:rgba(255,255,255,0.5);font-size:9.5px;letter-spacing:0.6px;">' + l2 + '</div></div>'
+    + '<div><div style="color:#fff;font-size:17px;font-weight:800;">' + c3 + '</div><div style="color:rgba(255,255,255,0.5);font-size:9.5px;letter-spacing:0.6px;">' + l3 + '</div></div>'
+    + '</div></div>';
+
+  var h = '<div style="background:#f1f3f6;padding:14px 14px 4px;">';
+  if(!keys.length){
+    h += '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:30px 14px;">Aucun camion sur cette collecte.</div>';
+  }
+  keys.forEach(function(k){
+    var tk = trks[k], s = _suiviStatsCamion(tk);
+    var coul = tk.color || '#1a1a2e';
+    h += '<div class="suivi-card" onclick="ouvrirCamionFrance(\'' + k + '\')">'
+      +   '<div style="display:flex;align-items:center;gap:8px;">'
+      +     '<span style="width:11px;height:11px;border-radius:3px;background:' + coul + ';flex-shrink:0;"></span>'
+      +     '<span style="font-size:14px;font-weight:800;color:#14304f;flex:1;word-break:break-word;">&#128667; ' + esc(tk.name) + '</span>'
+      +     '<span style="font-size:12.5px;font-weight:800;color:#64748b;white-space:nowrap;">' + s.traites + '/' + s.total + ' &rsaquo;</span>'
+      +   '</div>';
+    if(s.total){
+      h += '<div style="display:flex;gap:3px;margin-top:10px;">';
+      s.segments.forEach(function(st){ h += '<span style="flex:1;height:5px;border-radius:3px;background:' + SUIVI_C[st].seg + ';"></span>'; });
+      h += '</div>';
+    }
+    if(s.enRoute){
+      var cE = cls[s.enRoute.id] || {};
+      var adr = _suiviAdresse(cE);
+      h += '<div style="margin-top:11px;border:1px solid #f0c9a0;background:#fff3e0;border-radius:10px;padding:10px;">'
+        +   '<div style="font-size:9.5px;font-weight:800;letter-spacing:0.8px;color:#c2410c;">EN ROUTE</div>'
+        +   '<div style="font-size:14px;font-weight:800;color:#14304f;margin-top:3px;">' + esc(_nomAffiche(cE) || 'Client') + '</div>'
+        +   (adr ? ('<div style="font-size:12px;color:#64748b;margin-top:2px;">' + esc(adr) + '</div>') : '')
+        +   '<div style="font-size:12.5px;font-weight:800;color:#c2410c;margin-top:6px;">&#9201; En route depuis ' + _chrono(Date.now() - s.enRoute.dep) + '</div>'
+        + '</div>';
+    } else if(s.total && s.traites === s.total){
+      h += '<div style="margin-top:11px;border:1px solid #a8e6c4;background:#d4f5e4;border-radius:10px;padding:10px;">'
+        +   '<div style="font-size:9.5px;font-weight:800;letter-spacing:0.8px;color:#0a5c30;">TOURN&Eacute;E TERMIN&Eacute;E</div>'
+        +   '<div style="font-size:13px;color:#0a5c30;margin-top:3px;">' + s.traites + ' clients trait&eacute;s sur ' + s.total + '</div></div>';
+    } else {
+      h += '<div style="margin-top:11px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:10px;padding:10px;">'
+        +   '<div style="font-size:9.5px;font-weight:800;letter-spacing:0.8px;color:#64748b;">PAS ENCORE COMMENC&Eacute;</div>'
+        +   '<div style="font-size:13px;color:#64748b;margin-top:3px;">' + s.total + ' clients pr&eacute;vus</div></div>';
+    }
+    var det = [];
+    if(s.collectes) det.push(s.collectes + ' collect&eacute;' + (s.collectes > 1 ? 's' : ''));
+    if(s.refuses) det.push(s.refuses + ' refus&eacute;' + (s.refuses > 1 ? 's' : ''));
+    h += '<div style="display:flex;justify-content:space-between;gap:8px;margin-top:10px;font-size:11.5px;color:#94a3b8;">'
+      +   '<span>' + (det.length ? det.join(' &middot; ') : 'Aucun statut') + '</span>'
+      +   '<span style="white-space:nowrap;">' + (s.dernier ? ('Dernier statut ' + _hhmm(s.dernier)) : '') + '</span></div>';
+    h += '</div>';
+  });
+  if(keys.length) h += '<div style="text-align:center;font-size:11.5px;color:#94a3b8;margin:12px 0 4px;">Touche une carte pour voir le d&eacute;tail du camion.</div>';
+  h += '</div>';
+  return b + h;
+}
+
+function _frRenderSuiviEcran(){
+  try{ if(typeof window.majBoutonFrance === 'function') window.majBoutonFrance(); }catch(e){}
+  var box = document.getElementById('france-content');
+  if(box) box.innerHTML = _frRenderSuivi();
+}
+
+// Le 4e sous-onglet n'existe pas dans le HTML natif (Clients/Collectes/
+// Dispatch) — ajouté une seule fois, juste après "Dispatch".
+function _frAjouterOngletSuivi(){
+  if(document.getElementById('ftab-suivi')) return;
+  var dispatchTab = document.getElementById('ftab-dispatch');
+  if(!dispatchTab || !dispatchTab.parentNode) return;
+  var tab = document.createElement('div');
+  tab.className = 'subtab';
+  tab.id = 'ftab-suivi';
+  tab.innerHTML = '&#128205; Suivi';
+  tab.onclick = function(){ window.switchFranceTab('suivi'); };
+  dispatchTab.parentNode.insertBefore(tab, dispatchTab.nextSibling);
+}
+
+function _frMajOngletSuivi(t){
+  var onglet = document.getElementById('ftab-suivi');
+  if(onglet) onglet.className = 'subtab' + (t === 'suivi' ? ' active' : '');
+  if(t === 'suivi'){
+    var so = document.getElementById('fr-sous');
+    if(so) so.textContent = 'Suivi en direct';
+  }
+}
+
+/* ─────────────────────────────────────────────
    12bis. AUTOCOMPLETE — suggestions de contact déjà connu + adresse (v1.19.15)
    ─────────────────────────────────────────────
    Jusqu'ici, seul le formulaire natif "f-" (inscription collecte, index.html)
@@ -15915,6 +16088,35 @@ function greffer(){
       try{ _frInjecterStatutsChauffeurCamion(); }catch(e){ console.error('departs: statuts chauffeur externe (camion France)', e); }
     };
     window.renderCamionFrance._depPatch = true;
+  }
+
+  // v2.11.5 — Suivi live, France & Europe (voir le gros commentaire plus
+  // haut, section SUIVI LIVE, FRANCE & EUROPE). Le 4e sous-onglet
+  // "📍 Suivi" est injecté une fois ; switchFranceTab/renderFrance,
+  // natifs, ne connaissent pas ce 4e onglet — on les complète.
+  try{ _frAjouterOngletSuivi(); }catch(e){ console.error('departs: onglet Suivi France', e); }
+
+  if(typeof window.switchFranceTab === 'function' && !window.switchFranceTab._depPatch){
+    var origSwitchFranceTab = window.switchFranceTab;
+    window.switchFranceTab = function(t){
+      var ouverte = !!(window.currentCollecteFrId && typeof window._frCollectes === 'function' && window._frCollectes()[window.currentCollecteFrId]);
+      if(t === 'suivi' && !ouverte) t = 'collectes';
+      origSwitchFranceTab(t);
+      try{ _frMajOngletSuivi(t); }catch(e){}
+    };
+    window.switchFranceTab._depPatch = true;
+  }
+
+  if(typeof window.renderFrance === 'function' && !window.renderFrance._depPatchSuivi){
+    var origRenderFranceSuivi = window.renderFrance;
+    window.renderFrance = function(){
+      if(window.franceTab === 'suivi'){
+        try{ _frRenderSuiviEcran(); }catch(e){ console.error('departs: rendu Suivi France', e); }
+        return;
+      }
+      origRenderFranceSuivi.apply(this, arguments);
+    };
+    window.renderFrance._depPatchSuivi = true;
   }
 }
 
