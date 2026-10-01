@@ -1376,6 +1376,23 @@ l'appli principale au moment de la photo) — jamais montrés ici non
 plus jusque-là. Même légende désormais que les photos de remise,
 vignette et zoom compris.
 
+**Complété le 01/10 (v1.5.3), Cobey :** « c'est bon, mais il manque la
+date. » Les légendes (photos de remise et de colis) n'affichaient que
+l'heure — la date (jj/mm) est ajoutée devant, utile pour une photo
+qui ne daterait pas du jour même.
+
+**Complété le 01/10 (v1.5.4), Cobey :** « pour son code faut mettre
+l'interface sur des chiffres comme pour celui de DCT. » Le mot de
+passe de Mamadou (création, connexion, changement) utilise maintenant
+le même clavier numérique et la même présentation que le code PIN des
+collaborateurs dans l'appli principale (4 chiffres, gros, centrés,
+espacés) — un nouveau mot de passe doit désormais être composé de
+4 chiffres exactement, comme le PIN. La connexion avec un mot de passe
+déjà choisi avant ce changement continue de fonctionner telle quelle
+(aucun verrou de format à la saisie, seulement à la création/au
+changement), pour ne pas bloquer Mamadou s'il en avait choisi un
+différent.
+
 ---
 
 ## 6 · Rapport financier

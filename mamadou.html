@@ -21,6 +21,12 @@ h1{font-size:17px;text-align:center;color:#111;margin:0 0 4px;}
 .sub{font-size:12.5px;text-align:center;color:#777;margin:0 0 20px;line-height:1.5;}
 label{font-size:11.5px;font-weight:700;color:#444;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.02em;}
 input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:var(--font);margin-bottom:14px;background:#fff;}
+/* v1.5.4 — Cobey : « pour son code faut mettre l'interface sur des
+   chiffres comme pour celui de DCT » — même code à 4 chiffres que
+   l'écran de connexion collaborateur de l'appli principale
+   (#collab-pin-input, dct-app.html) : clavier numérique au clic,
+   gros chiffres centrés et espacés. */
+.mn-pin-input{font-size:32px;text-align:center;letter-spacing:12px;border:2.5px solid var(--vert);padding:14px;}
 .btn{width:100%;padding:15px;border:none;border-radius:10px;font-size:14.5px;font-weight:800;font-family:var(--font);cursor:pointer;}
 .btn-green{background:var(--vert);color:#fff;}
 .btn-light{background:#e8f7ee;color:#00b34e;border:1.5px solid #B7E4C7;}
@@ -161,16 +167,16 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
       <div id="mn-login-err" class="err"></div>
 
       <div id="mn-bloc-creer">
-        <label>Choisissez votre mot de passe</label>
-        <input id="mn-pass-nouveau" type="password" placeholder="Au moins 4 caract&egrave;res">
+        <label>Choisissez votre mot de passe &mdash; 4 chiffres</label>
+        <input id="mn-pass-nouveau" type="password" inputmode="numeric" maxlength="4" class="mn-pin-input" placeholder="&bull;&bull;&bull;&bull;">
         <label>Confirmez-le</label>
-        <input id="mn-pass-confirme" type="password" placeholder="Retapez-le">
+        <input id="mn-pass-confirme" type="password" inputmode="numeric" maxlength="4" class="mn-pin-input" placeholder="&bull;&bull;&bull;&bull;">
         <button class="btn btn-green" onclick="mnCreerMotDePasse()">Valider</button>
       </div>
 
       <div id="mn-bloc-entrer" hidden>
         <label>Mot de passe</label>
-        <input id="mn-pass-saisie" type="password" placeholder="Votre mot de passe">
+        <input id="mn-pass-saisie" type="password" inputmode="numeric" class="mn-pin-input" placeholder="&bull;&bull;&bull;&bull;">
         <button class="btn btn-green" onclick="mnEntrer()">Entrer</button>
         <div class="lien-discret" onclick="mnDemanderReinit()">Mot de passe oubli&eacute; ?</div>
       </div>
@@ -207,11 +213,11 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
       <h1 style="text-align:left;">Changer mon mot de passe</h1>
       <div id="mn-chg-err" class="err"></div>
       <label>Mot de passe actuel</label>
-      <input id="mn-chg-actuel" type="password">
-      <label>Nouveau mot de passe</label>
-      <input id="mn-chg-nouveau" type="password">
+      <input id="mn-chg-actuel" type="password" inputmode="numeric" class="mn-pin-input" placeholder="&bull;&bull;&bull;&bull;">
+      <label>Nouveau mot de passe &mdash; 4 chiffres</label>
+      <input id="mn-chg-nouveau" type="password" inputmode="numeric" maxlength="4" class="mn-pin-input" placeholder="&bull;&bull;&bull;&bull;">
       <label>Confirmez-le</label>
-      <input id="mn-chg-confirme" type="password">
+      <input id="mn-chg-confirme" type="password" inputmode="numeric" maxlength="4" class="mn-pin-input" placeholder="&bull;&bull;&bull;&bull;">
       <button class="btn btn-green" onclick="mnValiderChangementMotDePasse()">Valider</button>
     </div>
   </div>
@@ -350,10 +356,19 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.5.2';
+var MAMADOU_VERSION = 'v1.5.4';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// v1.5.3 — Cobey : « c'est bon, mais il manque la date » (légendes des
+// photos, voir _mnRenderPhotosLivraison / le rendu des photos de
+// colis). L'heure seule ne suffit pas pour une photo prise un autre
+// jour — jj/mm + heure, l'année ne tient pas dans une légende de 64px.
+function _mnDateHeure(ts){
+  if(!ts) return '—';
+  var d = new Date(ts);
+  return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'}) + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 }
 function initiales(prenom, nom){
   var a = (prenom||'').trim().charAt(0), b = (nom||'').trim().charAt(0);
@@ -993,12 +1008,12 @@ function ouvrirFiche(ref, silencieux, provenance){
     Object.keys(v).forEach(function(k){
       var p = v[k];
       if(!p || !p.d) return;
-      var heureStr = p.ts ? new Date(p.ts).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '—';
+      var dateHeureStr = _mnDateHeure(p.ts);
       var auteur = p.q || p.par || '—';
-      var legende = heureStr + ' · ' + auteur;
+      var legende = dateHeureStr + ' · ' + auteur;
       h += '<div class="photo-vignette-wrap">'
         +   '<div class="photo-vignette" onclick="mnOuvrirZoom(\''+esc(p.d)+'\',\''+esc(legende)+'\')"><img src="'+p.d+'"></div>'
-        +   '<div class="photo-vignette-info">'+esc(heureStr)+'<br>'+esc(auteur)+'</div>'
+        +   '<div class="photo-vignette-info">'+esc(dateHeureStr)+'<br>'+esc(auteur)+'</div>'
         + '</div>';
     });
     $('f-vignettes').innerHTML = h;
@@ -1085,12 +1100,14 @@ function _mnRenderPhotosLivraison(){
     // v1.5.0 — Cobey : « il ne voit pas l'heure et qui a pris la photo. »
     // Les deux étaient déjà enregistrés à la prise (p.ts/p.par, voir
     // mnPhotoLivraisonChoisie) — juste jamais montrés jusqu'ici.
-    var heureStr = p.ts ? new Date(p.ts).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '—';
-    var legende = heureStr + ' · ' + (p.par || '—');
+    // v1.5.3 — « il manque la date » : _mnDateHeure() (jj/mm + heure),
+    // pas la seule heure.
+    var dateHeureStr = _mnDateHeure(p.ts);
+    var legende = dateHeureStr + ' · ' + (p.par || '—');
     h += '<div class="liv-photo-item">'
       +   '<div class="liv-photo-img"><img src="'+p.d+'" onclick="mnOuvrirZoom(\''+esc(p.d)+'\',\''+esc(legende)+'\')">'
       +     '<button type="button" class="liv-photo-suppr" onclick="event.stopPropagation();mnSupprimerPhotoLivraison(\''+esc(k)+'\')">&times;</button></div>'
-      +   '<div class="liv-photo-info">'+esc(heureStr)+'<br>'+esc(p.par || '—')+'</div>'
+      +   '<div class="liv-photo-info">'+esc(dateHeureStr)+'<br>'+esc(p.par || '—')+'</div>'
       + '</div>';
   });
   $('f-liv-photos').innerHTML = h;
@@ -1287,7 +1304,10 @@ function mnCreerMotDePasse(){
   var p1 = $('mn-pass-nouveau').value || '';
   var p2 = $('mn-pass-confirme').value || '';
   var err = $('mn-login-err');
-  if(p1.length < 4){ err.textContent = '⚠️ Au moins 4 caractères.'; return; }
+  // v1.5.4 — Cobey : « pour son code faut mettre l'interface sur des
+  // chiffres comme pour celui de DCT » — même règle que le PIN
+  // collaborateur de l'appli principale (4 chiffres exactement).
+  if(!/^[0-9]{4}$/.test(p1)){ err.textContent = '⚠️ Le mot de passe doit contenir exactement 4 chiffres.'; return; }
   if(p1 !== p2){ err.textContent = '⚠️ Les deux mots de passe ne correspondent pas.'; return; }
   err.textContent = '';
   db.ref('dct_acces_mamadou/motDePasse').set(p1).then(function(){
@@ -1331,7 +1351,7 @@ function mnValiderChangementMotDePasse(){
   var n1 = $('mn-chg-nouveau').value || '';
   var n2 = $('mn-chg-confirme').value || '';
   var err = $('mn-chg-err');
-  if(n1.length < 4){ err.textContent = '⚠️ Au moins 4 caractères.'; return; }
+  if(!/^[0-9]{4}$/.test(n1)){ err.textContent = '⚠️ Le mot de passe doit contenir exactement 4 chiffres.'; return; }
   if(n1 !== n2){ err.textContent = '⚠️ Les deux mots de passe ne correspondent pas.'; return; }
   db.ref('dct_acces_mamadou/motDePasse').once('value').then(function(snap){
     var mdp = snap.val();
