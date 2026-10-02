@@ -78,7 +78,13 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .cli-sub{font-size:12px;color:#777;margin-top:3px;}
 .cli-reste{font-size:12px;font-weight:800;color:#992020;margin-top:5px;}
 .cli-paye{font-size:11.5px;font-weight:700;color:#006b2d;margin-top:5px;}
-.cli-liv{display:inline-block;background:#FFF4E0;color:#a04800;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-top:5px;}
+.cli-liv{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-top:5px;}
+/* v1.6.1 — Cobey : « ça manque de couleur pour distinguer ce qui a été
+   payé et ce qui reste. » Même code couleur que le colis juste
+   au-dessus (.cli-reste rouge / .cli-paye vert), appliqué à la
+   livraison : orange tant qu'il reste à payer, vert une fois soldée. */
+.cli-liv-reste{background:#FFF4E0;color:#a04800;}
+.cli-liv-soldee{background:#D4F0E0;color:#006b2d;}
 .vide{text-align:center;color:#aaa;padding:30px 10px;font-size:13px;}
 
 /* Fiche */
@@ -366,7 +372,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.6.0';
+var MAMADOU_VERSION = 'v1.6.1';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -973,7 +979,9 @@ function cdAppliquerFiltres(){
     var liv = '';
     if(c.livraisonDakar){
       var payLiv = depCalculerPaiementLivraison(c);
-      liv = '<div class="cli-liv">🚚 Livraison : ' + payLiv.total + ' €'
+      // v1.6.1 — Cobey : « ça manque de couleur pour distinguer ce qui a
+      // été payé et ce qui reste. »
+      liv = '<div class="cli-liv ' + (payLiv.reste > 0 ? 'cli-liv-reste' : 'cli-liv-soldee') + '">🚚 Livraison : ' + payLiv.total + ' €'
         + (payLiv.reste > 0 ? ' (reste ' + payLiv.reste + ' €)' : ' — soldée') + '</div>';
     }
     h += '<div class="cli-item" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'},false,\'ecran-container-detail\')">'

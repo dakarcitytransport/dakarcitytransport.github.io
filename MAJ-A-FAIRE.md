@@ -1704,6 +1704,12 @@ Mamadou Niass à l'appui, trois points dans le même message :
    principe que le colis juste au-dessus (jamais l'encaissé, règle
    v1.0.0 inchangée pour le colis ET pour ce nouvel ajout livraison).
 
+**v1.6.1 :** Cobey, sur ce même badge livraison : « c'est bon mais ça
+manque de couleur pour distinguer ce qui a été payé et ce qui reste. »
+Le badge était toujours orange, soldé ou pas. Reprend maintenant le
+même code couleur que le colis juste au-dessus : orange tant qu'il
+reste à payer, vert une fois soldée.
+
 Ce qui reste **non construit** : ce que Mamadou touche lui-même par
 livraison (commission/forfait) — **question toujours en suspens pour
 Cobey**, sur quelle base il est rémunéré ; sans cette règle, impossible
