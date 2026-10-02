@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.0';
+var DEP_VERSION = 'v2.20.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1053,6 +1053,10 @@ function _depLignesColis(c){
       var o = { nom:(l.nom||'Colis'), qte:qte, pu:pu,
                 total:(l.total != null ? (parseFloat(l.total)||0) : qte*pu) };
       if(l.lot){ o.lot = true; o.nbLot = parseInt(l.nbLot,10) || 1; }
+      // v2.20.1 — l'id d'utilisation posé par depFideliteAppliquerRemise
+      // doit survivre à ce passage, sinon depFideliteAnnulerRemise ne
+      // retrouve plus jamais sa ligne (elle la cherche par cet id).
+      if(l.remiseUsageId) o.remiseUsageId = l.remiseUsageId;
       return o;
     });
     // v1.25.4 : le detail saisi fait foi sur les prix. La v1.25.2 le
@@ -10375,6 +10379,32 @@ function depRenderFacture(c){
           +   'expire le ' + _depFideliteDateFr(_calcFid.dateExpiration) + '.</div>'
           + '<button type="button" class="btn btn-gray" style="margin-top:10px;background:#fff;border-color:#F0B37E;color:#C25E00;" '
           +   'onclick="depFideliteAppliquerRemise()">&#9989; Appliquer une remise (&minus;' + DEP_FIDELITE_MONTANT + '&nbsp;&euro;)</button>'
+          + '</div>';
+      }
+      // v2.20.1 — les remises déjà appliquées SUR CETTE FACTURE précise
+      // (on reconnaît "cette facture" par ctxFact, pas juste le client :
+      // un même client peut avoir plusieurs envois) peuvent se retirer —
+      // Cobey, après un essai : « j'ai appliqué des remises pour tester,
+      // mais du coup je l'ai enlevé [du panier]. Comment on fait ? J'arrive
+      // pas à supprimer. »
+      var _appliqueesIci = _calcFid.utilisees.filter(function(r){
+        var cible = r.cible || {};
+        return (cible.collecteId || '') === (ctxFact.collecteId || '')
+          && cible.clientId === ctxFact.clientId
+          && !!cible.depot === !!ctxFact.depot
+          && !!cible.france === !!ctxFact.france;
+      });
+      if(_appliqueesIci.length){
+        h += '<div style="background:#fff;border:1.5px solid #F0B37E;border-radius:var(--radius);padding:14px;margin-bottom:16px;">'
+          + '<div style="font-size:11.5px;font-weight:800;color:#C25E00;letter-spacing:.03em;margin-bottom:8px;">'
+          +   'REMISE' + (_appliqueesIci.length>1?'S':'') + ' FID&Eacute;LIT&Eacute; APPLIQU&Eacute;E' + (_appliqueesIci.length>1?'S':'') + ' SUR CETTE FACTURE</div>'
+          + _appliqueesIci.map(function(r){
+              return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #F5E2CC;">'
+                + '<span style="font-size:12.5px;color:#333;">&minus;' + DEP_FIDELITE_MONTANT + ' &euro; &middot; appliqu&eacute;e le ' + _depFideliteDateFr(r.dateUtilisation) + '</span>'
+                + '<button type="button" class="btn btn-gray" style="width:auto;padding:5px 12px;font-size:11.5px;" '
+                +   'onclick="depFideliteAnnulerRemise(\'' + esc(r.usageId) + '\')">&#8617;&#65039; Annuler</button>'
+                + '</div>';
+            }).join('')
           + '</div>';
       }
     }catch(eFidFact){ console.error('departs: remise fidélité sur facture', eFidFact); }
@@ -21442,6 +21472,21 @@ window.depRenderFideliteContact = function(){
    une ligne à prix négatif, visible et imprimée comme n'importe quel
    autre article. ───── */
 
+// v2.20.1 — _depLignesColis(c) RECONSTRUIT une ligne neuve pour chacun des
+// articles (y compris quand elle "recolle" le détail à la description
+// texte, dès que le nombre de colis physiques ne retombe plus sur
+// c.nbColis — ce qui arrive justement dès qu'une ligne de remise
+// s'ajoute, puisqu'elle n'est pas un vrai colis) : un champ maison comme
+// remiseUsageId ne survit pas forcément à cet aller-retour. Dès que
+// colisDetail existe déjà (donc après une première remise posée), on part
+// directement de lui plutôt que de repasser par cette reconstruction.
+function _depFideliteLignesActuelles(c){
+  if(Array.isArray(c.colisDetail) && c.colisDetail.length){
+    return c.colisDetail.map(function(l){ return Object.assign({}, l); });
+  }
+  return _depLignesColis(c);
+}
+
 window.depFideliteAppliquerRemise = function(){
   var ctx = _depFactureCtx;
   if(!ctx){ toast('⚠️ Facture introuvable.'); return; }
@@ -21455,13 +21500,21 @@ window.depFideliteAppliquerRemise = function(){
   var refClient = calc.refClient;
   var u = window.currentUser || {};
 
-  var lignes = _depLignesColis(c);
+  // Généré ici (avant la ligne) et pas après : la ligne porte cet id
+  // (remiseUsageId) pour que depFideliteAnnulerRemise retrouve plus tard
+  // exactement CETTE ligne, sans dépendre de son texte.
+  var usageId = (typeof window._idUnique === 'function')
+    ? window._idUnique('U', (window.fideliteUsagesData||{})[refClient] || {})
+    : ('U' + Date.now().toString(36).toUpperCase());
+
+  var lignes = _depFideliteLignesActuelles(c);
   if(!lignes.length){
     lignes = [{ nom: (c.colis || 'Colis'), qte: (parseInt(c.nbColis, 10) || 1), pu: 0, total: (parseFloat(c.prix) || 0) }];
   }
   lignes.push({
     nom: '🎁 Remise fidélité (expirait le ' + _depFideliteDateFr(remise.dateExpiration) + ')',
-    qte: 1, pu: -DEP_FIDELITE_MONTANT, total: -DEP_FIDELITE_MONTANT
+    qte: 1, pu: -DEP_FIDELITE_MONTANT, total: -DEP_FIDELITE_MONTANT,
+    remiseUsageId: usageId
   });
   c.colisDetail = lignes;
   // v2.20.0 — la description texte (c.colis) doit rester en phase avec le
@@ -21479,13 +21532,10 @@ window.depFideliteAppliquerRemise = function(){
 
   _depEcrireFacture(ctx, { colisDetail: lignes, colis: c.colis, prix: c.prix, prixADefinir: false });
 
-  // Écriture ciblée et immédiate, avec une clé posée localement d'abord
-  // (même clé envoyée à Firebase via .set()) — le calcul qui suit se
-  // recalcule donc juste, sans attendre le retour du serveur (même
-  // principe que _depEcrireClient/_depEcrireFacture plus haut).
-  var usageId = (typeof window._idUnique === 'function')
-    ? window._idUnique('U', (window.fideliteUsagesData||{})[refClient] || {})
-    : ('U' + Date.now().toString(36).toUpperCase());
+  // Écriture ciblée et immédiate, avec la clé générée plus haut (même clé
+  // envoyée à Firebase via .set()) — le calcul qui suit se recalcule donc
+  // juste, sans attendre le retour du serveur (même principe que
+  // _depEcrireClient/_depEcrireFacture plus haut).
   var usageObj = {
     montant: DEP_FIDELITE_MONTANT, le: Date.now(), par: u.name || u.id || '',
     dateExpirationOrigine: remise.dateExpiration,
@@ -21498,6 +21548,51 @@ window.depFideliteAppliquerRemise = function(){
 
   try{ depActivite('🎁', 'a appliqué une remise fidélité de ' + DEP_FIDELITE_MONTANT + ' € sur la facture de <strong>' + esc(c.name||'') + '</strong>'); }catch(eAct){}
   toast('🎁 Remise de ' + DEP_FIDELITE_MONTANT + ' € appliquée.');
+  depRenderFacture(c);
+};
+
+/* ───── Annulation d'une remise déjà appliquée (bouton "↩️ Annuler" sur
+   depRenderFacture ci-dessus) — Cobey, après un essai : « j'ai appliqué
+   des remises pour tester, mais du coup je l'ai enlevé [du panier].
+   Comment on fait ? J'arrive pas à supprimer. » Symétrique de
+   depFideliteAppliquerRemise : retire la ligne à prix négatif ET
+   l'évènement d'utilisation, pour que la remise redevienne disponible
+   (plutôt que simplement effacée) — elle n'a pas été perdue, juste pas
+   utilisée sur cette facture-ci. ───── */
+
+window.depFideliteAnnulerRemise = function(usageId){
+  var ctx = _depFactureCtx;
+  if(!ctx){ toast('⚠️ Facture introuvable.'); return; }
+  var c = _depClientFacture(ctx);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+
+  var lignes = _depFideliteLignesActuelles(c);
+  var idx = -1;
+  for(var i = 0; i < lignes.length; i++){
+    if(lignes[i].remiseUsageId === usageId){ idx = i; break; }
+  }
+  if(idx === -1){ toast('⚠️ Cette remise ne se trouve plus sur cette facture.'); return; }
+  lignes.splice(idx, 1);
+  c.colisDetail = lignes;
+  // Même resynchronisation colis/prix que depFideliteAppliquerRemise —
+  // voir son commentaire v2.20.0 sur le "recollage".
+  c.colis = lignes.map(function(l){
+    if(l.lot) return (l.qte > 1 ? ('lot de ' + l.qte + ' ') : '') + l.nom;
+    var deja = /^\s*\d/.test(l.nom || '');
+    return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
+  }).join(', ');
+  c.prix = depArrondi2(lignes.reduce(function(s, l){ return s + (parseFloat(l.total) || 0); }, 0));
+
+  _depEcrireFacture(ctx, { colisDetail: lignes, colis: c.colis, prix: c.prix });
+
+  var refClient = depRefClientPour(_depCleContact(c));
+  if(window.fideliteUsagesData && window.fideliteUsagesData[refClient]){
+    delete window.fideliteUsagesData[refClient][usageId];
+  }
+  if(window.db && window.firebaseReady) db.ref('dct_fidelite_usages/' + refClient + '/' + usageId).remove();
+
+  try{ depActivite('🎁', 'a annulé une remise fidélité sur la facture de <strong>' + esc(c.name||'') + '</strong>'); }catch(eAct){}
+  toast('↩️ Remise annulée — redevient disponible.');
   depRenderFacture(c);
 };
 

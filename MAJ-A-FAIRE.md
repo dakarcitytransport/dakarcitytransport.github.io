@@ -447,6 +447,28 @@ utilisées, pour rester fiable même si une fiche est corrigée après coup.
 **Premier jet** — à affiner avec Cobey à l'usage, comme pour la taxe
 prestataire (Mali).
 
+**v2.20.1 :** Cobey, après avoir testé en vrai, capture d'écran de la
+facture à l'appui (quatre « 🎁 Remise fidélité » accumulées sur la même
+ligne « Colis ») : « j'ai appliqué des remises pour tester, mais du
+coup, je l'ai enlevé. Comment on fait ? J'arrive pas à supprimer. »
+Il n'y avait effectivement aucun moyen de revenir en arrière une fois
+une remise appliquée. Un bouton **« ↩️ Annuler »** apparaît maintenant à
+côté de chaque remise appliquée sur la facture en cours : il retire la
+ligne, remet le prix à ce qu'il était, et la remise redevient
+disponible pour ce client (elle n'est pas perdue, juste pas utilisée
+sur cette facture-ci).
+
+En creusant pour le construire : `_depLignesColis` (la fonction qui
+reconstruit le détail d'une fiche à l'affichage) reconstruit une ligne
+toute neuve pour chaque article, et perdait au passage un repère interne
+posé sur la ligne de remise — pire, elle pouvait même la "recoller"
+depuis le texte et la dédoubler, la ligne de remise n'étant pas un vrai
+colis physique et faisant donc mentir le compte de colis de la fiche.
+Les deux fonctions de remise (appliquer/annuler) partent désormais
+directement du détail déjà enregistré sur la fiche plutôt que de le
+faire refabriquer par cette fonction, pour ne plus jamais perdre ce
+repère.
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :
