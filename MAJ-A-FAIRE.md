@@ -596,14 +596,15 @@ PREMIÈRE d'entre elles ; une fois toutes les remises utilisées, le
 compteur repart à zéro et une nouvelle facture qualifiante relance son
 propre cycle, avec sa propre échéance — ce mécanisme-là ne change pas.
 
-⚠️ À savoir : les remises déjà posées sur de vraies factures AVANT ce
-correctif l'ont été sous l'ancien calcul (par cumul), qui en accordait
-parfois plus que ce nouveau calcul (par facture) n'en aurait jamais
-accordé pour les mêmes envois. Rien n'a été touché sur les factures
-déjà émises — ces remises déjà appliquées restent annulables
-normalement — mais si on recalcule leur historique avec la nouvelle
-règle, le total de remises « gagnées » peut apparaître plus bas que le
-nombre réellement déjà utilisé par le passé pour ce client-là.
+**v2.20.18 :** en signalant le point précédent (aucune remise n'avait en
+fait encore été appliquée en vrai depuis le déploiement — le risque
+n'était qu'hypothétique), Cobey a tranché sur le principe : « ah nan ça
+faut corriger, faut laisser uniquement les remises du nouveau calcul,
+une erreur est vite arrivée. » Le moteur ne garde donc JAMAIS plus de
+remises « utilisées » que ce que le nouveau calcul (par facture)
+reconnaît légitimement : un usage réel qui ne correspondrait à aucune
+remise recalculée ne serait pas conservé comme valable — il ne compte
+simplement pas, plutôt que d'être toléré par prudence.
 
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première

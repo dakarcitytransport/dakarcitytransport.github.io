@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.17';
+var DEP_VERSION = 'v2.20.18';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -21672,18 +21672,12 @@ function _depFideliteCalculer(contactKey){
       // Cobey du 02/10/2026 : « le compteur se remet à zéro à chaque
       // utilisation totale de la remise »).
       if(!disponibles.length){ cycleDebut = null; dateExpiration = null; }
-    } else {
-      // v2.20.17 — un usage réel (déjà écrit dans dct_fidelite_usages)
-      // qui ne correspond plus à aucune remise "disponible" recalculée
-      // ici (typique : des remises posées AVANT ce correctif, sous
-      // l'ancien calcul par cumul, qui en accordait souvent plus que le
-      // nouveau calcul par facture n'en aurait jamais accordé). On le
-      // garde quand même dans "utilisées" — sans ça, le bouton "Annuler"
-      // de cette ligne bien réelle sur la facture disparaîtrait, et le
-      // compteur "remises utilisées" sous-compterait un historique
-      // pourtant vrai.
-      utilisees.push({ montant: e.montant, dateGagnee: null, dateUtilisation: e.le, usageId: e.usageId, cible: e.cible, statut: 'utilisee', horsCycle: true });
     }
+    // v2.20.17 — Cobey, après avoir pesé le risque : « ça, faut corriger,
+    // faut laisser uniquement les remises du nouveau calcul, une erreur
+    // est vite arrivée. » Un usage qui ne correspond à AUCUNE remise
+    // disponible recalculée ici n'est tout simplement pas compté — on ne
+    // garde jamais plus que ce que le nouveau calcul reconnaît.
   });
   expirerSiDepasse(Date.now());
 
