@@ -499,6 +499,17 @@ calculait jour pour jour (gagnée le 6 septembre 2026 → expire le
 30 septembre 2027), pour que la cliente garde ses remises jusqu'au
 départ réel du container de ce mois-là, quelle que soit sa date exacte.
 
+**v2.20.12 :** Cobey, capture d'écran de la fiche fidélité de Fatou
+Sylva Gomis (6 remises disponibles) et de sa facture (1320 € payés,
+0 € restant) à l'appui : « je peux appliquer les remises sur la
+facture qu'il a déjà payée. C'est pas logique de pouvoir faire ça. »
+Exact : une fois la facture soldée, appliquer une remise aurait fait
+tomber le prix sous ce qui a déjà été encaissé — comme si DCT devait de
+l'argent au client. Le bouton « Appliquer une remise » ne s'affiche
+plus dès que « Reste à payer » est à 0 € ; les remises restent
+visibles et disponibles (rien n'est perdu), juste plus applicables sur
+cette facture-là — un message le dit, à la place du bouton.
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :
