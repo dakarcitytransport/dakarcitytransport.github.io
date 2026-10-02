@@ -557,6 +557,20 @@ confusion. Ils n'apparaissent plus du tout dans « Ses envois » ; le
 compteur (« Ses envois (N) ») ne porte plus que sur ceux qui comptent
 réellement pour le programme.
 
+**v2.20.16 :** Cobey, capture d'écran du « Suivi financier global »
+d'une collecte France & Europe terminée : « ici dans le suivi global de
+tout les camions on a le total facturé mais on n'a pas le total
+encaissé réel ! dans chaque camion on l'a mais, mais j'ai vu que là ici
+y'a pas, je crois c'est un oubli. » Le bandeau global (tous camions
+confondus) n'affichait que le « 📋 Facturé » (valeur des clients
+ramassés/validés), jamais le « ✅ Collecté » (l'argent réellement
+encaissé via les versements) — côté Sénégal ET côté France. En
+creusant, le détail d'un camion France non plus ne l'avait jamais eu
+(seul le détail d'un camion Sénégal l'affichait déjà). Le « ✅ Collecté »
+apparaît maintenant aux trois endroits qui en manquaient : le bandeau
+global Sénégal, le bandeau global France, et le détail d'un camion
+France.
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :

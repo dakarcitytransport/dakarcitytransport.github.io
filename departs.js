@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.15';
+var DEP_VERSION = 'v2.20.16';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16526,6 +16526,7 @@ function greffer(){
       origRenderDispatchTab.apply(this, arguments);
       try{ _depAjouterBoutonCamionExterne(); }catch(e){ console.error('departs: bouton chauffeur externe', e); }
       try{ _depAfficherSectionExterne(); }catch(e){ console.error('departs: section chauffeurs externes', e); }
+      try{ _depInjecterEncaisseGlobalDispatch(); }catch(e){ console.error('departs: encaissé global dispatch', e); }
     };
     window.renderDispatchTab._depPatch = true;
   }
@@ -16759,6 +16760,7 @@ function greffer(){
     window._frDispatchDetail = function(r){
       var h = _frDispatchDetailOrig(r);
       try{ h = _frInjecterChauffeurExterne(h, r); }catch(e){ console.error('departs: injection chauffeur externe France', e); }
+      try{ h = _frInjecterEncaisseGlobal(h, r); }catch(e){ console.error('departs: encaissé global dispatch France', e); }
       return h;
     };
     window._frDispatchDetail._depPatch = true;
@@ -16774,6 +16776,7 @@ function greffer(){
       origRenderCamionFrance.apply(this, arguments);
       try{ _frInjecterStatutsChauffeurCamion(); }catch(e){ console.error('departs: statuts chauffeur externe (camion France)', e); }
       try{ _frInjecterBoutonsPhotos(); }catch(e){ console.error('departs: bouton photos (camion France)', e); }
+      try{ _frInjecterEncaisseCamion(); }catch(e){ console.error('departs: encaissé réel (camion France)', e); }
     };
     window.renderCamionFrance._depPatch = true;
   }
@@ -17916,6 +17919,93 @@ function _depEncaisseDuCamion(tk){
     if(c) total += depCalculerPaiement(c).paye;
   });
   return depArrondi2(total);
+}
+
+// v2.20.16 — Cobey, sur le bandeau "Suivi financier global" d'une
+// collecte (ici vu depuis Archivage, France & Europe) : « on a le total
+// facturé mais on n'a pas le total encaissé réel ! Dans chaque camion on
+// l'a, mais j'ai vu que là ici y'a pas, je crois c'est un oubli. » Vrai
+// pour ce bandeau-là — le "✅ Collecté" (voir _depEncaisseDuCamion
+// ci-dessus, déjà posé par camion depuis la v1.62.0) n'avait en fait
+// jamais été ajouté aux bandeaux GLOBAUX (toute la collecte, tous
+// camions confondus) : ni côté Sénégal, ni côté France, où aucun camion
+// ne l'affichait non plus avant ce correctif — Cobey pensait l'avoir
+// "dans chaque camion" en se souvenant du Sénégal seul.
+function _depEncaisseGlobalCollecte(){
+  var colId = window.currentCollecteId;
+  var trks = ((window.dispatchParCollecte || {})[colId] || {}).trucks || {};
+  var total = 0;
+  Object.keys(trks).forEach(function(k){ total += _depEncaisseDuCamion(trks[k]); });
+  return depArrondi2(total);
+}
+
+// Insère la ligne "✅ Collecté" dans le bandeau "Suivi financier global"
+// natif de l'onglet Dispatch (Sénégal) — juste après la barre de
+// progression, même emplacement que son équivalent par camion.
+function _depInjecterEncaisseGlobalDispatch(){
+  var box = document.querySelector('#collecte-content .finance-global');
+  if(!box || box.querySelector('.dep-finance-encaisse-global')) return;
+  var bar = box.querySelector('.finance-bar-bg');
+  if(!bar) return;
+  var row = document.createElement('div');
+  row.className = 'finance-row dep-finance-encaisse-global';
+  row.style.cssText = 'margin-top:4px;';
+  row.innerHTML = '<span class="finance-label">&#9989; Collect&eacute;</span>'
+    + '<span class="finance-val" style="color:#006b2d;">' + _depEncaisseGlobalCollecte() + ' &euro;</span>';
+  bar.parentNode.insertBefore(row, bar);
+}
+
+// Même somme, côté France (tous les camions de la collecte ouverte).
+function _frEncaisseDuCamion(tk){
+  var total = 0;
+  var cls = (window.franceData || {}).clients || {};
+  (tk && Array.isArray(tk.validated) ? tk.validated : []).forEach(function(id){
+    var c = cls[id];
+    if(c) total += depCalculerPaiement(c).paye;
+  });
+  return depArrondi2(total);
+}
+
+// _frDispatchDetail (natif) renvoie une CHAÎNE HTML, pas du DOM déjà posé
+// (contrairement à renderDispatchTab côté Sénégal) — on insère donc la
+// ligne directement dans cette chaîne, avant la barre de progression du
+// bandeau global (le seul ".finance-bar-bg" de tout cet écran, les
+// cartes de camion plus bas utilisent ".progress-bg", un autre repère).
+function _frInjecterEncaisseGlobal(h, r){
+  var marqueur = '<div class="finance-bar-bg">';
+  var idx = h.indexOf(marqueur);
+  if(idx < 0) return h;
+  var trks = r.trucks || {};
+  var enc = depArrondi2(Object.keys(trks).reduce(function(s, k){ return s + _frEncaisseDuCamion(trks[k]); }, 0));
+  var ligne = '<div class="finance-row" style="margin-top:4px;"><span class="finance-label">&#9989; Collect&eacute;</span>'
+    + '<span class="finance-val" style="color:#006b2d;">' + enc + ' &euro;</span></div>';
+  return h.slice(0, idx) + ligne + h.slice(idx);
+}
+
+// Même ligne, sur l'écran détaillé d'UN camion France (renderCamionFrance,
+// natif) — même technique DOM que _depMajBlocDepensesCamion (Sénégal,
+// par camion) : on part du champ "Restant" déjà posé, on remonte à la
+// boîte qui le contient, on y ajoute la ligne à la fin.
+function _frInjecterEncaisseCamion(){
+  if(typeof window._frCollecteActive !== 'function') return;
+  var r = window._frCollecteActive();
+  if(!r) return;
+  var tk = (r.trucks || {})[window._frCamion];
+  if(!tk) return;
+  var remRow = $('frc-restant');
+  if(!remRow || !remRow.parentNode) return;
+  var box = remRow.parentNode.parentNode;
+  if(!box) return;
+  var rowE = $('frc-finance-encaisse');
+  if(!rowE){
+    rowE = document.createElement('div');
+    rowE.id = 'frc-finance-encaisse';
+    rowE.className = 'finance-row';
+    rowE.style.cssText = 'margin-top:4px;';
+  }
+  rowE.innerHTML = '<span class="finance-label">&#9989; Collect&eacute;</span>'
+    + '<span class="finance-val" style="color:#006b2d;">' + _frEncaisseDuCamion(tk) + ' &euro;</span>';
+  box.appendChild(rowE);
 }
 
 /* Le bouton et le bilan, posés sous « Imprimer toutes les étiquettes »
