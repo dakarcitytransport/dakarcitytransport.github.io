@@ -616,6 +616,16 @@ pour une facture à 0 € où rien n'a jamais été payé, qui affichait donc
 deux cas : une vraie facture soldée garde ce message ; une facture à
 0 € dit « Facture à 0 € — remise non applicable ici » à la place.
 
+**v2.20.21 :** Cobey : « on va faire à partir du conteneur du 18
+octobre 2026. C'est à partir de ces factures-là que va commencer. Tout
+ce qui est avant, ça ne compte pas. » Décale la date de départ du
+programme (`DEP_FIDELITE_DATE_DEBUT`), jusque-là le 13 septembre 2026,
+au 18 octobre 2026 — même mécanique (rétroactif à partir de cette
+date, exclu par prudence sans date fiable, voir v2.20.14), seule la
+date elle-même change. Mise à jour aussi le seul texte affiché à
+l'écran qui la citait (« Total envoyé (encaissé, depuis le 13/09) » →
+« ... depuis le 18/10 »).
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :

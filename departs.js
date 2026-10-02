@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.20';
+var DEP_VERSION = 'v2.20.21';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -21476,11 +21476,14 @@ window.depEnregistrerTaxePrestataireDetail = function(){
 
 var DEP_FIDELITE_SEUIL = 200;      // € payés sur UNE facture (colis) pour gagner une remise
 var DEP_FIDELITE_MONTANT = 10;     // € par remise
-// Le container du 13 septembre 2026 — demande explicite de Cobey, point
-// de départ du rétroactif. dateDepart est stocké au format ISO
-// (2026-09-13, voir window.depEnregistrer) : une comparaison de texte
+// Le container du 18 octobre 2026 — demande explicite de Cobey, point
+// de départ du programme (v2.20.21, corrige la date du 13/09 posée au
+// premier jet : « on va faire à partir du conteneur du 18 octobre 2026.
+// C'est à partir de ces factures-là que ça va commencer. Tout ce qui
+// est avant, ça ne compte pas. »). dateDepart est stocké au format ISO
+// (2026-10-18, voir window.depEnregistrer) : une comparaison de texte
 // suffit, l'ordre lexicographique suit l'ordre chronologique.
-var DEP_FIDELITE_DATE_DEBUT = '2026-09-13';
+var DEP_FIDELITE_DATE_DEBUT = '2026-10-18';
 // Même date, en horodatage (ms) — nécessaire pour la comparer à c.creeLe
 // (un vrai horodatage, pas une date ISO texte). Voir _depFideliteEnvoiEligible.
 var DEP_FIDELITE_DATE_DEBUT_TS = new Date(DEP_FIDELITE_DATE_DEBUT + 'T00:00:00').getTime();
@@ -21869,7 +21872,7 @@ window.depRenderFideliteContact = function(){
   };
 
   var h = '<div class="dep-fiche-card">'
-    +   kv('Total envoy&eacute; <span style="font-weight:600;color:#999;">(encaiss&eacute;, depuis le 13/09)</span>', _depEuros(calc.totalEnvoye) + ' &euro;')
+    +   kv('Total envoy&eacute; <span style="font-weight:600;color:#999;">(encaiss&eacute;, depuis le 18/10)</span>', _depEuros(calc.totalEnvoye) + ' &euro;')
     +   (calc.dateExpiration ? kv('Remises valables jusqu&rsquo;au', '<b style="color:#C25E00;">' + _depFideliteDateFr(calc.dateExpiration) + '</b>') : '')
     + '</div>';
 
