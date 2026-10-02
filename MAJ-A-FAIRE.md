@@ -1422,7 +1422,7 @@ différent.
 ## 6 · Rapport financier
 
 ### ~~La taxe du partenaire, sur les conteneurs du Mali~~
-**Fait le 02/10 (v2.14.0 → v2.15.0).** Cobey : « pour les clients Mali,
+**Fait le 02/10 (v2.14.0 → v2.16.0).** Cobey : « pour les clients Mali,
 en fait, avec le partenaire avec lequel on envoie, il y a des taxes.
 [...] si on facture un baril à 150 euros à une cliente, comme ce n'est
 pas nous qui gérons le conteneur, c'est le prestataire [...] il va nous
@@ -1450,15 +1450,34 @@ financier, dans le container, en interne. »
 Le champ a donc été retiré des trois fiches client. La saisie se fait
 désormais **uniquement** depuis **Rapport financier > Containers >
 [un container du Mali]**, qui liste tous ses clients (Collecte, Dépôt
-direct et France & Europe confondus) avec, pour chacun, un bouton pour
-renseigner ou modifier la taxe prélevée par le partenaire — rien sur
-la fiche du client, rien sur sa facture.
+direct et France & Europe confondus) — rien sur la fiche du client,
+rien sur sa facture.
+
+**Ajusté le même jour (v2.16.0)**, encore sur ce même écran. D'abord :
+« il faudrait retirer tout ce qui est dépenses et autre gestion du
+conteneur similaire à Sénégal, car on n'a pas besoin » — DCT ne gérant
+ni le container ni ses dépenses côté Mali, toute la carte « Dépenses de
+ce container » (fixes, tournées de camions, bouton « Gérer les
+dépenses ») a disparu pour ces containers-là ; elle reste exactement
+telle quelle pour le Sénégal. À la place, une carte plus légère :
+Total encaissé, Taxe prestataire, Résultat réel.
+
+Ensuite : « il faudrait aussi avoir le détail de la fiche client [...]
+les prix, la soustraction pour chaque client [...] une interface qui
+reprenne les informations de la facture et qu'on puisse enlever la
+taxe et avoir le prix réel pour chaque client [...] sans être dans la
+facture réelle, pour pas que ça change la facture du client [...] on
+clique sur le client et on tombe sur une interface. » Chaque client de
+la liste s'ouvre donc maintenant en tapant dessus, sur un écran dédié
+qui reprend son détail de colis **en lecture seule** (jamais l'écran
+de la vraie facture), avec la taxe à saisir juste en dessous et le
+« Prix réel pour DCT » (facturé − taxe) recalculé automatiquement.
 
 Le bilan financier montre **les deux chiffres** (confirmé par Cobey :
 les deux, pas l'un à la place de l'autre) :
-- dans le détail d'un container du Mali, sous le « Résultat colis »
-  habituel (le facturé/encaissé brut), une ligne « 🤝 Taxe prestataire »
-  et un nouveau « Résultat réel après taxes » ;
+- dans le détail d'un container du Mali, sous le « Total encaissé »,
+  une ligne « 🤝 Taxe prestataire » et un « Résultat réel après
+  taxes » ;
 - dans le Bilan global (Rapport financier > Bilan), sous le
   « Bénéfice » habituel, une ligne « Taxes prestataire » (tous
   conteneurs Mali confondus) et un « Bénéfice réel » — n'apparaît que si

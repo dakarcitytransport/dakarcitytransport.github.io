@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.15.0';
+var DEP_VERSION = 'v2.16.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4065,6 +4065,25 @@ function injecterEcrans(){
   +   '<div class="content"><div id="dep-rf-c-contenu"></div></div>'
   + '</div>'
 
+  /* ---- ÉCRAN (v2.16.0) : le détail d'un client, pour y renseigner la
+     taxe du partenaire Mali — ouvert en tapant sur un client dans la
+     liste de _depHtmlListeTaxesContainer. Reprend les informations de
+     sa facture (détail des colis, total) en LECTURE SEULE, à côté
+     plutôt qu'à l'intérieur : ce n'est pas l'écran de la vraie facture,
+     qui ne change jamais (demande de Cobey du 02/10/2026 : « une
+     interface qui reprenne les informations de la facture [...] sans
+     être dans la facture réelle, pour pas que ça change la facture du
+     client »). ---- */
+  + '<div class="screen" id="s-taxe-prestataire-detail">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="depTaxePrestataireDetailRetour()">&larr; Container</button>'
+  +     '<div><div class="h-title" id="dep-taxe-detail-nom">Client</div>'
+  +     '<div class="h-sub" id="dep-taxe-detail-sous"></div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="dep-taxe-detail-contenu"></div></div>'
+  + '</div>'
+
   /* ---- ÉCRAN (v1.63.0) : Rapport financier > Bilan — recettes,
      dépenses, bénéfice. Ce que l'appli calcule elle-même, plus la
      reprise de l'ancienne application 360 : les comptes ne commencent
@@ -4671,33 +4690,6 @@ function injecterEcrans(){
     +   '<button class="btn-sm" style="background:#FDEDED;color:#992020;border:1.5px solid #F5C6C6;" onclick="depPrixArticleThemeSupprimerConfirmer()">Supprimer</button>'
     + '</div></div></div>';
   document.body.appendChild(m19);
-
-  /* ---- Modale (v2.14.0, revue v2.15.0) : taxe prestataire sur un client
-     d'un container du Mali — DCT ne gère pas le container, c'est un
-     partenaire ; il prélève sa part sur le prix facturé au client, le
-     reste est le vrai gain de DCT. Ouverte depuis la liste des clients du
-     container, dans Rapport financier (demande de Cobey du 02/10/2026,
-     revue le même jour : « cette étape-là se fait en amont [...] la taxe
-     prestataire ne concerne que de l'interne [...] qu'on le fasse
-     directement dans le bilan financier, dans le container »). Voir
-     depOuvrirTaxePrestataire / depEnregistrerTaxePrestataire. ---- */
-  var m20 = document.createElement('div');
-  m20.className = 'modal-overlay';
-  m20.id = 'modal-dep-taxe-prestataire';
-  m20.innerHTML = '<div class="modal-sheet">'
-    + '<div class="modal-title">&#129309; Taxe prestataire</div>'
-    + '<div style="font-size:14px;font-weight:700;color:var(--text);margin:-6px 0 10px;" id="dep-taxe-prestataire-nom"></div>'
-    + '<div style="font-size:12.5px;color:var(--text3);background:#f7f7f7;border-radius:8px;padding:9px 11px;margin-bottom:14px;line-height:1.5;">'
-    +   'Ce que le partenaire qui envoie ce container pr&eacute;l&egrave;ve sur le prix factur&eacute; &agrave; ce client. '
-    +   'Le reste est le vrai gain de DCT &mdash; il vient corriger le bilan financier de ce container. '
-    +   'Le client, lui, garde son prix d\'origine sur sa facture : ceci reste interne.</div>'
-    + '<div class="fg"><label class="fl">Montant pr&eacute;lev&eacute; (&euro;)</label>'
-    +   '<input class="fi" id="dep-taxe-prestataire-montant" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0"></div>'
-    + '<div class="modal-confirm-btns">'
-    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-taxe-prestataire\')">Annuler</button>'
-    +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerTaxePrestataire()">&#9989; Enregistrer</button>'
-    + '</div></div>';
-  document.body.appendChild(m20);
 }
 
 // v1.19.16 : choix du pays de destination à l'inscription collecte —
@@ -19286,73 +19278,100 @@ window.depRapfinContainer = function(id){
   // La livraison est une caisse à part, encaissée à Dakar, et elle ne
   // doit pas venir gonfler ce chiffre (retour de Cobey du 24/09/2026).
   // Elle reste lisible juste au-dessus, dans l'encart Caisse.
-  var totCam = _depTotalCamionsDe(id);
-  var totFix = _depTotalFixesDe(id);
-  var totDep = depArrondi2(totCam + totFix);
-  var resultat = _depResultatColis(id, cp);
-  // v2.14.0 / v2.15.0 — Conteneurs du Mali : DCT ne gère pas le
-  // container, c'est un partenaire qui prélève sa part sur chaque client
-  // (saisie plus bas, dans la liste nominative de ce container — voir
-  // _depHtmlListeTaxesContainer). "Résultat colis" ci-dessous reste le
-  // facturé/encaissé brut ; ce second chiffre est le vrai gain de DCT une
-  // fois la part du partenaire retirée — Cobey a demandé explicitement à
-  // voir les deux, pas seulement l'un ou l'autre.
+  // v2.16.0 — Conteneurs du Mali : DCT ne gère ni le container ni ses
+  // dépenses (c'est le partenaire qui s'en charge) — Cobey : « il
+  // faudrait retirer tout ce qui est dépenses et autre gestion du
+  // container similaire à Sénégal, car on n'a pas besoin. » Toute la
+  // branche "Dépenses de ce container" (fixes, tournées, bouton Gérer)
+  // ne s'affiche donc plus que pour un container que DCT gère vraiment ;
+  // le Mali a sa propre carte plus légère, juste en dessous.
   var estMali = (depPaysDepart(d) === 'ML');
-  var resultatReel = depArrondi2(resultat - (cp.taxePrestataire || 0));
-  // v1.94.12 : Cobey : « dans la case dépense de ce container, on doit
-  // aussi voir le détail global » — même détail par poste que sur
-  // l'écran "Dépenses du container", ici aussi.
-  var repFixes = _depRepartitionFixes(id);
-  var repCont  = _depRepartitionDepensesContainer(id);
 
-  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
-    +   'padding:14px;margin-bottom:14px;">'
-    + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">'
-    +   '&#127991;&#65039; D&eacute;penses de ce container</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
-    +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses fixes</span>'
-    +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
-    + '</div>'
-    +   _depLignesRepartition(repFixes)
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;'
-    +   'margin-top:3px;">'
-    +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#128666; Tourn&eacute;es des camions</span>'
-    +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totCam) + ' &euro;</b>'
-    + '</div>'
-    +   _depLignesRepartition(repCont)
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
-    +   'margin-top:5px;border-top:2px solid var(--border);">'
-    +   '<span style="font-size:13px;font-weight:800;color:var(--text);">R&eacute;sultat colis'
-    +     '<span style="font-weight:600;color:#999;"> (colis encaiss&eacute;s &minus; d&eacute;penses)</span></span>'
-    +   '<b style="font-size:18px;color:' + (resultat < 0 ? '#B3261E' : '#006b2d') + ';">'
-    +     _depEuros(resultat) + ' &euro;</b>'
-    + '</div>'
-    + (estMali
-      ? ('<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;margin-top:3px;">'
-          +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#129309; Taxe prestataire'
-          +     '<span style="font-weight:600;color:#999;"> (pr&eacute;lev&eacute;e par le partenaire)</span></span>'
-          +   '<b style="font-size:13.5px;color:#B3261E;">&minus;' + _depEuros(cp.taxePrestataire || 0) + ' &euro;</b>'
-          + '</div>'
-          + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
-          +   'margin-top:5px;border-top:2px dashed var(--border);">'
-          +   '<span style="font-size:13px;font-weight:800;color:var(--text);">R&eacute;sultat r&eacute;el apr&egrave;s taxes</span>'
-          +   '<b style="font-size:18px;color:' + (resultatReel < 0 ? '#B3261E' : '#006b2d') + ';">'
-          +     _depEuros(resultatReel) + ' &euro;</b>'
-          + '</div>')
-      : '')
-    + (cp.livPaye
-      ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.4;">'
-        + '&#128666; La livraison a sa propre caisse : ' + _depEuros(cp.livPaye)
-        + ' &euro; encaiss&eacute;s, non compt&eacute;s ici.</div>'
-      : '')
-    + '<button class="btn btn-gray" style="margin-top:12px;" onclick="depOuvrirRapfinFixes(\'' + id + '\')">'
-    +   '&#127968; G&eacute;rer les d&eacute;penses de ce container</button>'
-    + '</div>';
+  if(estMali){
+    // v2.16.0 : sans dépense à soustraire, le "résultat" du container
+    // Mali est simplement l'encaissé moins la part du partenaire.
+    var resultatReelMali = depArrondi2(cp.colisPaye - (cp.taxePrestataire || 0));
+    h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+      +   'padding:14px;margin-bottom:14px;">'
+      + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">'
+      +   '&#127991;&#65039; R&eacute;sultat de ce container</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
+      +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">Total encaiss&eacute;</span>'
+      +   '<b style="font-size:13.5px;color:var(--text);">' + _depEuros(cp.colisPaye) + ' &euro;</b>'
+      + '</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;margin-top:3px;">'
+      +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#129309; Taxe prestataire'
+      +     '<span style="font-weight:600;color:#999;"> (pr&eacute;lev&eacute;e par le partenaire)</span></span>'
+      +   '<b style="font-size:13.5px;color:#B3261E;">&minus;' + _depEuros(cp.taxePrestataire || 0) + ' &euro;</b>'
+      + '</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
+      +   'margin-top:5px;border-top:2px solid var(--border);">'
+      +   '<span style="font-size:13px;font-weight:800;color:var(--text);">R&eacute;sultat r&eacute;el apr&egrave;s taxes</span>'
+      +   '<b style="font-size:18px;color:' + (resultatReelMali < 0 ? '#B3261E' : '#006b2d') + ';">'
+      +     _depEuros(resultatReelMali) + ' &euro;</b>'
+      + '</div>'
+      + (cp.livPaye
+        ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.4;">'
+          + '&#128666; La livraison a sa propre caisse : ' + _depEuros(cp.livPaye)
+          + ' &euro; encaiss&eacute;s, non compt&eacute;s ici.</div>'
+        : '')
+      + '</div>';
 
-  // v2.15.0 — Conteneurs du Mali : la liste nominative de tous les
-  // clients, avec la taxe du partenaire à saisir pour chacun. Gérée ici,
-  // en interne, et nulle part ailleurs (voir le commentaire du §13quater).
-  if(estMali) h += _depHtmlListeTaxesContainer(id);
+    // v2.15.0 / v2.16.0 — la liste nominative de tous les clients, avec
+    // la taxe du partenaire à saisir pour chacun. Gérée ici, en interne,
+    // et nulle part ailleurs (voir le commentaire du §13quater).
+    h += _depHtmlListeTaxesContainer(id);
+  } else {
+    /* v1.66.0 — Ce que ce container a coûté, et ce qu'il laisse.
+       Les tournées qui l'ont rempli (report au prorata des clients, voir
+       _depCamionsParContainer) et ses dépenses propres, saisies juste à
+       côté. Le résultat part de l'encaissé, pas du facturé : un euro pas
+       encore versé n'est pas un euro gagné. */
+    // v1.70.0 : le résultat d'un container ne porte que sur les COLIS.
+    // La livraison est une caisse à part, encaissée à Dakar, et elle ne
+    // doit pas venir gonfler ce chiffre (retour de Cobey du 24/09/2026).
+    // Elle reste lisible juste au-dessus, dans l'encart Caisse.
+    var totCam = _depTotalCamionsDe(id);
+    var totFix = _depTotalFixesDe(id);
+    var totDep = depArrondi2(totCam + totFix);
+    var resultat = _depResultatColis(id, cp);
+    // v1.94.12 : Cobey : « dans la case dépense de ce container, on doit
+    // aussi voir le détail global » — même détail par poste que sur
+    // l'écran "Dépenses du container", ici aussi.
+    var repFixes = _depRepartitionFixes(id);
+    var repCont  = _depRepartitionDepensesContainer(id);
+
+    h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+      +   'padding:14px;margin-bottom:14px;">'
+      + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">'
+      +   '&#127991;&#65039; D&eacute;penses de ce container</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
+      +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses fixes</span>'
+      +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
+      + '</div>'
+      +   _depLignesRepartition(repFixes)
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;'
+      +   'margin-top:3px;">'
+      +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#128666; Tourn&eacute;es des camions</span>'
+      +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totCam) + ' &euro;</b>'
+      + '</div>'
+      +   _depLignesRepartition(repCont)
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
+      +   'margin-top:5px;border-top:2px solid var(--border);">'
+      +   '<span style="font-size:13px;font-weight:800;color:var(--text);">R&eacute;sultat colis'
+      +     '<span style="font-weight:600;color:#999;"> (colis encaiss&eacute;s &minus; d&eacute;penses)</span></span>'
+      +   '<b style="font-size:18px;color:' + (resultat < 0 ? '#B3261E' : '#006b2d') + ';">'
+      +     _depEuros(resultat) + ' &euro;</b>'
+      + '</div>'
+      + (cp.livPaye
+        ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.4;">'
+          + '&#128666; La livraison a sa propre caisse : ' + _depEuros(cp.livPaye)
+          + ' &euro; encaiss&eacute;s, non compt&eacute;s ici.</div>'
+        : '')
+      + '<button class="btn btn-gray" style="margin-top:12px;" onclick="depOuvrirRapfinFixes(\'' + id + '\')">'
+      +   '&#127968; G&eacute;rer les d&eacute;penses de ce container</button>'
+      + '</div>';
+  }
 
   // La liste nominative n'apparaît qu'ici, et seulement si on a tapé
   // l'une des deux cases RESTE DÛ.
@@ -20661,37 +20680,40 @@ function _depFmInjecterSuiviContainer(departId){
 }
 
 /* ─────────────────────────────────────────────
-   13quater (v2.14.0 / v2.15.0). TAXE PRESTATAIRE — conteneurs du Mali.
+   13quater (v2.14.0 → v2.16.0). TAXE PRESTATAIRE — conteneurs du Mali.
 
    DCT ne gère pas ces conteneurs-là : c'est un partenaire qui envoie le
    colis au Mali, et il prélève sa part sur le prix facturé au client (ex.
    facturé 150 €, le partenaire en prend 120, DCT ne touche vraiment que
-   30). Le client, lui, règle la totalité — aucune nuance à lui faire
-   porter. Mais sans ce champ, le bilan financier comptait les 150 € comme
-   un encaissement DCT, faussant le résultat réel du container (demande de
-   Cobey du 02/10/2026, confirmée par deux choix explicites : le champ vit
-   SUR LA FICHE DU CLIENT, pas dans une liste à part ; et le bilan montre
-   LES DEUX chiffres, le facturé et le réel après taxes — voir
-   depRapfinContainer plus bas).
+   30). Le client, lui, règle la totalité, et sa facture n'en montre
+   jamais rien — c'est une donnée purement interne à DCT.
 
-   v2.15.0 — Revu le même jour par Cobey : « je voulais plutôt pouvoir
-   gérer ça dans le rapport financier, dans la carte container Mali [...]
-   on ne fait aucune dépense, on ne gère rien [...] cette étape-là se fait
-   en amont, après avoir enregistré les clients [...] la taxe prestataire
-   ne concerne que de l'interne [...] il ne faut pas qu'on le fasse depuis
+   v2.15.0 — Cobey a d'abord demandé le champ sur la fiche du client, puis
+   reconsidéré le même jour : « je voulais plutôt pouvoir gérer ça dans le
+   rapport financier, dans la carte container Mali [...] on ne fait aucune
+   dépense, on ne gère rien [...] cette étape-là se fait en amont, après
+   avoir enregistré les clients [...] il ne faut pas qu'on le fasse depuis
    chaque case de Collecte/France & Europe/Dépôt direct, mais qu'on le
    fasse directement dans le bilan financier, dans le container, en
-   interne. » Retiré des trois fiches client (voir depRenderFicheLecture /
-   _renderFicheFrance) ; la saisie se fait désormais UNIQUEMENT depuis
-   Rapport financier > Containers > [container Mali], qui liste tous ses
-   clients avec, pour chacun, la taxe prélevée (voir _depListeTaxesContainer
-   plus bas, injectée par window.depRapfinContainer).
+   interne. » Retiré des trois fiches client ; la liste nominative de tous
+   les clients du container (_depHtmlListeTaxesContainer, injectée par
+   window.depRapfinContainer) est seule à en montrer trace.
+
+   v2.16.0 — Cobey, sur cette même liste : « il faudrait aussi avoir le
+   détail de la fiche client [...] les prix, la soustraction pour chaque
+   client [...] une interface qui reprenne les informations de la facture
+   et qu'on puisse enlever la taxe et avoir le prix réel pour chaque
+   client [...] sans être dans la facture réelle, pour pas que ça change
+   la facture du client. » Taper un client de la liste ouvre désormais un
+   écran dédié (#s-taxe-prestataire-detail, voir depOuvrirTaxePrestataireDe
+   / depRenderTaxePrestataireDetail) qui reprend son détail de colis en
+   lecture seule (jamais la vraie facture), avec la taxe à saisir juste en
+   dessous et le prix réel (facturé − taxe) calculé automatiquement.
 
    Un seul champ, `taxePrestataire`, sur le client — pas un nouveau nœud
    Firebase : il vit avec le reste de sa fiche, quelle que soit sa source
    (Collecte, Dépôt direct, France & Europe), via les mêmes
-   _depClientFacture/_depEcrireFacture déjà centralisés plus haut. La
-   facture du client, elle, ne le montre jamais — c'est une donnée interne.
+   _depClientFacture/_depEcrireFacture déjà centralisés plus haut.
    ───────────────────────────────────────────── */
 
 // true si ce départ est un container du Mali (voir depPaysDepart).
@@ -20699,43 +20721,6 @@ function _depEstContainerMali(departId){
   var d = (window.departsData||{})[departId];
   return !!(d && depPaysDepart(d) === 'ML');
 }
-
-var _depTaxeCtx = null; // { collecteId, clientId, depot } ou { france:true, clientId }
-
-// Pont pour les boutons de la liste (voir _depListeTaxesContainer) — évite
-// d'avoir à poser du JSON à la main dans chaque onclick.
-window.depOuvrirTaxePrestataireDe = function(src, colId, clientId){
-  window.depOuvrirTaxePrestataire(_depCibleDe(src, colId, clientId));
-};
-
-// Ouvre la modale, pré-remplie avec la valeur déjà enregistrée s'il y en
-// a une — ctx au même format que _depClientFacture/_depEcrireFacture.
-window.depOuvrirTaxePrestataire = function(ctx){
-  _depTaxeCtx = ctx;
-  var c = _depClientFacture(ctx);
-  var t = $('dep-taxe-prestataire-nom');
-  if(t) t.textContent = c ? _depNomFiche(c) : '';
-  var i = $('dep-taxe-prestataire-montant');
-  if(i) i.value = (c && c.taxePrestataire) ? String(c.taxePrestataire) : '';
-  openModal('modal-dep-taxe-prestataire');
-};
-
-window.depEnregistrerTaxePrestataire = function(){
-  var ctx = _depTaxeCtx;
-  if(!ctx) return;
-  var i = $('dep-taxe-prestataire-montant');
-  var montant = Math.max(0, parseFloat((i && i.value) || '0') || 0);
-  var c = _depClientFacture(ctx);
-  closeModal('modal-dep-taxe-prestataire');
-  if(!c) return;
-  c.taxePrestataire = montant;
-  _depEcrireFacture(ctx, { taxePrestataire: montant });
-  toast('🤝 Taxe prestataire enregistrée.');
-  // v2.15.0 : gérée depuis l'écran du container — c'est lui qu'on
-  // rafraîchit, plus les fiches clients (voir le commentaire plus haut).
-  try{ if(_depRapfinId) window.depRapfinContainer(_depRapfinId); }
-  catch(e){ console.error('departs: rafraîchir après taxe prestataire', e); }
-};
 
 // v2.15.0 — La liste nominative des clients d'un container Mali, avec la
 // taxe prélevée par le partenaire sur chacun. Repris de _depToutesLesFiches
@@ -20755,11 +20740,11 @@ function _depHtmlListeTaxesContainer(departId){
     + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:4px;">'
     +   '&#129309; Taxe prestataire &mdash; par client</div>'
     + '<div style="font-size:11.5px;color:var(--text3);margin-bottom:10px;line-height:1.5;">'
-    +   'Ce que le partenaire qui g&egrave;re ce container pr&eacute;l&egrave;ve sur chaque client. '
-    +   'Le client garde son prix d\'origine sur sa facture &mdash; ceci reste interne &agrave; DCT.</div>'
+    +   'Tapez un client pour voir le d&eacute;tail de sa facture et renseigner la taxe pr&eacute;lev&eacute;e '
+    +   'par le partenaire. Le client garde son prix d\'origine sur sa facture &mdash; ceci reste interne &agrave; DCT.</div>'
     + liste.map(function(x){
         var c = x.c;
-        return '<div class="dep-cli">'
+        return '<div class="dep-cli" style="cursor:pointer;" onclick="depOuvrirTaxePrestataireDe(\''+x.src+'\',\''+esc(x.collecteId||'')+'\',\''+esc(x.clientId)+'\')">'
           + '<div class="dep-cli-n">' + esc(_depNomFiche(c))
           +   (x.src === 'depot'  ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
           +   (x.src === 'france' ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')
@@ -20770,14 +20755,108 @@ function _depHtmlListeTaxesContainer(departId){
                 ? ('<b style="color:#B3261E;">' + c.taxePrestataire + ' &euro; pr&eacute;lev&eacute;s</b>')
                 : '<span style="color:var(--text3);">Non renseign&eacute;e</span>')
           + '</div>'
-          + '<div class="dep-cli-btns" style="margin-top:10px;">'
-          +   '<button class="dep-cli-btn" onclick="depOuvrirTaxePrestataireDe(\''+x.src+'\',\''+esc(x.collecteId||'')+'\',\''+esc(x.clientId)+'\')">'
-          +     '&#9999;&#65039; ' + (c.taxePrestataire ? 'Modifier' : 'Renseigner') + '</button>'
-          + '</div>'
           + '</div>';
       }).join('')
     + '</div>';
 }
+
+// v2.16.0 — Contexte du client dont on consulte/édite le détail — même
+// format que _depClientFacture/_depEcrireFacture, posé par _depCibleDe.
+var _depTaxeDetailCtx = null;
+
+window.depOuvrirTaxePrestataireDe = function(src, colId, clientId){
+  var ctx = _depCibleDe(src, colId, clientId);
+  var c = _depClientFacture(ctx);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  _depTaxeDetailCtx = ctx;
+  depRenderTaxePrestataireDetail();
+  goTo('s-taxe-prestataire-detail');
+};
+
+// Retour vers le container d'où l'on vient — _depRapfinId, posé par
+// window.depRapfinContainer, reste valable tant qu'on n'a pas ouvert un
+// autre container entretemps.
+window.depTaxePrestataireDetailRetour = function(){
+  if(_depRapfinId) window.depRapfinContainer(_depRapfinId);
+  else goTo('s-rapfin-containers');
+};
+
+// Reprend le détail de la vraie facture (colisDetail, comme imprimé sur
+// la facture du client) en LECTURE SEULE, puis la taxe à saisir et le
+// prix réel calculé — jamais sur l'écran de la vraie facture, qui ne
+// bouge pas d'un centime pour le client.
+function depRenderTaxePrestataireDetail(){
+  var ctx = _depTaxeDetailCtx;
+  var box = $('dep-taxe-detail-contenu');
+  var c = ctx ? _depClientFacture(ctx) : null;
+  if(!c || !box){ toast('⚠️ Client introuvable.'); window.depTaxePrestataireDetailRetour(); return; }
+
+  var t = $('dep-taxe-detail-nom'); if(t) t.textContent = _depNomFiche(c);
+  var d = (window.departsData||{})[c.departId];
+  var sous = $('dep-taxe-detail-sous'); if(sous) sous.textContent = (d && d.nom) || '';
+
+  var lignes = _depLignesColis(c);
+  if(!lignes.length){
+    lignes = [{ nom:(c.colis||'Colis'), qte:(parseInt(c.nbColis,10)||1), total:(parseFloat(c.prix)||0) }];
+  }
+  var prixFacture = parseFloat(c.prix) || 0;
+  var taxe = parseFloat(c.taxePrestataire) || 0;
+  var reel = depArrondi2(prixFacture - taxe);
+
+  var h = '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:14px;margin-bottom:14px;">'
+    + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">'
+    +   '&#128196; D&eacute;tail factur&eacute; au client</div>'
+    + lignes.map(function(l){
+        return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;">'
+          +   '<span style="font-size:12.5px;color:var(--text3);">' + esc(l.nom) + (l.qte > 1 ? ' &times;' + l.qte : '') + '</span>'
+          +   '<span style="font-size:13px;font-weight:700;color:var(--text);">' + _depEuros(l.total) + ' &euro;</span>'
+          + '</div>';
+      }).join('')
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
+    +   'margin-top:5px;border-top:2px solid var(--border);">'
+    +   '<span style="font-size:13px;font-weight:800;color:var(--text);">Total factur&eacute; au client</span>'
+    +   '<b style="font-size:18px;color:var(--text);">' + _depEuros(prixFacture) + ' &euro;</b>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.4;">'
+    +   'Ce montant ne change jamais : c\'est celui de la vraie facture du client.</div>'
+    + '</div>'
+
+    + '<div style="background:#FFF3E0;border:1.5px solid #F0C36D;border-radius:var(--radius);'
+    +   'padding:14px;margin-bottom:14px;">'
+    + '<div style="font-size:11.5px;font-weight:800;color:#8A5200;letter-spacing:.03em;margin-bottom:8px;">'
+    +   '&#129309; TAXE PRESTATAIRE</div>'
+    + '<div class="fg" style="margin-bottom:0;"><label class="fl">Montant pr&eacute;lev&eacute; par le partenaire (&euro;)</label>'
+    +   '<input class="fi" id="dep-taxe-detail-montant" type="number" inputmode="decimal" min="0" step="0.01" '
+    +     'placeholder="0" value="' + (taxe || '') + '"></div>'
+    + '<button class="btn btn-green" style="margin-top:12px;" onclick="depEnregistrerTaxePrestataireDetail()">'
+    +   '&#9989; Enregistrer</button>'
+    + '</div>'
+
+    + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+    +   '<span style="font-size:13px;font-weight:800;color:var(--text);">Prix r&eacute;el pour DCT</span>'
+    +   '<b style="font-size:22px;color:' + (reel < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(reel) + ' &euro;</b>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:6px;line-height:1.4;">'
+    +   'Factur&eacute; moins la taxe prestataire &mdash; ne concerne que DCT, en interne.</div>'
+    + '</div>';
+
+  box.innerHTML = h;
+}
+
+window.depEnregistrerTaxePrestataireDetail = function(){
+  var ctx = _depTaxeDetailCtx;
+  if(!ctx) return;
+  var i = $('dep-taxe-detail-montant');
+  var montant = Math.max(0, parseFloat((i && i.value) || '0') || 0);
+  var c = _depClientFacture(ctx);
+  if(!c) return;
+  c.taxePrestataire = montant;
+  _depEcrireFacture(ctx, { taxePrestataire: montant });
+  toast('🤝 Taxe prestataire enregistrée.');
+  depRenderTaxePrestataireDetail();
+};
 
 /* ─────────────────────────────────────────────
    13bis. PRIX ARTICLES — grille tarifaire de référence, carré ouvert à
