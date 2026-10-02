@@ -1422,35 +1422,40 @@ différent.
 ## 6 · Rapport financier
 
 ### ~~La taxe du partenaire, sur les conteneurs du Mali~~
-**Fait le 02/10 (v2.14.0 / v2.14.1).** Cobey : « pour les clients Mali, en fait,
-avec le partenaire avec lequel on envoie, il y a des taxes. [...] si on
-facture un baril à 150 euros à une cliente, comme ce n'est pas nous qui
-gérons le conteneur, c'est le prestataire [...] il va nous prendre 120
-euros, par exemple. Et le reste, ça sera pour nous. [...] le client,
-lui, sera facturé de la totalité. [...] on ne veut pas fausser les
-résultats. Donc, j'ai pensé que dans le bilan financier, dans les
-conteneurs du Mali [...] on pourrait plutôt marquer les taxes pour
-chaque client que le Mali nous prend et qui régulariserait les prix de
-la globalité. »
+**Fait le 02/10 (v2.14.0 → v2.15.0).** Cobey : « pour les clients Mali,
+en fait, avec le partenaire avec lequel on envoie, il y a des taxes.
+[...] si on facture un baril à 150 euros à une cliente, comme ce n'est
+pas nous qui gérons le conteneur, c'est le prestataire [...] il va nous
+prendre 120 euros, par exemple. Et le reste, ça sera pour nous. [...]
+le client, lui, sera facturé de la totalité. [...] on ne veut pas
+fausser les résultats. »
 
 DCT ne gère pas les conteneurs du Mali : c'est un partenaire qui prend
 en charge l'envoi, et il prélève sa part sur chaque client — le client,
-lui, règle bien la totalité facturée. Un nouveau champ « 🤝 Taxe
-prestataire (Mali) » apparaît maintenant **sur la fiche de chaque
-client** parti dans un container du Mali (Collecte, Dépôt direct ou
-France & Europe — confirmé par Cobey : sur la fiche, pas dans une liste
-à part), dans un encart bien visible avec un bouton « Renseigner/
-Modifier le montant » qui ouvre une petite modale.
+lui, règle bien la totalité facturée, sur sa facture comme avant.
 
-**Ajusté le même jour (v2.14.1)** : Cobey ne retrouvait pas l'endroit
-où saisir le montant (« j'ai pas bien compris où est-ce que j'en rentre
-le montant pour chaque client »). Le champ était bien là, mais noyé
-comme une simple ligne parmi toutes les autres informations de la
-fiche — il est maintenant posé dans son propre encart orange, juste
-après le prix, avec un texte qui explique le mécanisme.
+**Revu le même jour (v2.15.0)** : la première version posait le champ
+sur la fiche de chaque client (Collecte, Dépôt direct, France &
+Europe), comme Cobey l'avait d'abord demandé — mais il manquait de
+visibilité (« j'ai pas bien compris où est-ce que j'en rentre le
+montant »), puis Cobey a reconsidéré l'emplacement : « je voulais
+plutôt pouvoir gérer ça dans le rapport financier, dans la carte
+container Mali [...] on ne fait aucune dépense, on ne gère rien [...]
+cette étape-là se fait en amont, après avoir enregistré les clients
+[...] la taxe prestataire ne concerne que de l'interne [...] il ne faut
+pas qu'on le fasse depuis chaque case de Collecte/France &
+Europe/Dépôt direct, mais qu'on le fasse directement dans le bilan
+financier, dans le container, en interne. »
 
-Le bilan financier montre désormais **les deux chiffres** (confirmé par
-Cobey : les deux, pas l'un à la place de l'autre) :
+Le champ a donc été retiré des trois fiches client. La saisie se fait
+désormais **uniquement** depuis **Rapport financier > Containers >
+[un container du Mali]**, qui liste tous ses clients (Collecte, Dépôt
+direct et France & Europe confondus) avec, pour chacun, un bouton pour
+renseigner ou modifier la taxe prélevée par le partenaire — rien sur
+la fiche du client, rien sur sa facture.
+
+Le bilan financier montre **les deux chiffres** (confirmé par Cobey :
+les deux, pas l'un à la place de l'autre) :
 - dans le détail d'un container du Mali, sous le « Résultat colis »
   habituel (le facturé/encaissé brut), une ligne « 🤝 Taxe prestataire »
   et un nouveau « Résultat réel après taxes » ;

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.14.1';
+var DEP_VERSION = 'v2.15.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4672,23 +4672,25 @@ function injecterEcrans(){
     + '</div></div></div>';
   document.body.appendChild(m19);
 
-  /* ---- Modale (v2.14.0) : taxe prestataire sur un client d'un container
-     du Mali — DCT ne gère pas le container, c'est un partenaire ; il
-     prélève sa part sur le prix facturé au client, le reste est le vrai
-     gain de DCT. Posée ici sur la fiche du client, elle régularise le
-     bilan financier du container (demande de Cobey du 02/10/2026 : « le
-     client sera facturé de la totalité [...] on pourrait marquer les
-     taxes pour chaque client que le Mali nous prend et qui régulariserait
-     les prix de la globalité »). Voir depOuvrirTaxePrestataire /
-     depEnregistrerTaxePrestataire. ---- */
+  /* ---- Modale (v2.14.0, revue v2.15.0) : taxe prestataire sur un client
+     d'un container du Mali — DCT ne gère pas le container, c'est un
+     partenaire ; il prélève sa part sur le prix facturé au client, le
+     reste est le vrai gain de DCT. Ouverte depuis la liste des clients du
+     container, dans Rapport financier (demande de Cobey du 02/10/2026,
+     revue le même jour : « cette étape-là se fait en amont [...] la taxe
+     prestataire ne concerne que de l'interne [...] qu'on le fasse
+     directement dans le bilan financier, dans le container »). Voir
+     depOuvrirTaxePrestataire / depEnregistrerTaxePrestataire. ---- */
   var m20 = document.createElement('div');
   m20.className = 'modal-overlay';
   m20.id = 'modal-dep-taxe-prestataire';
   m20.innerHTML = '<div class="modal-sheet">'
-    + '<div class="modal-title">&#129309; Taxe prestataire (Mali)</div>'
+    + '<div class="modal-title">&#129309; Taxe prestataire</div>'
+    + '<div style="font-size:14px;font-weight:700;color:var(--text);margin:-6px 0 10px;" id="dep-taxe-prestataire-nom"></div>'
     + '<div style="font-size:12.5px;color:var(--text3);background:#f7f7f7;border-radius:8px;padding:9px 11px;margin-bottom:14px;line-height:1.5;">'
     +   'Ce que le partenaire qui envoie ce container pr&eacute;l&egrave;ve sur le prix factur&eacute; &agrave; ce client. '
-    +   'Le reste est le vrai gain de DCT &mdash; il vient corriger le bilan financier de ce container.</div>'
+    +   'Le reste est le vrai gain de DCT &mdash; il vient corriger le bilan financier de ce container. '
+    +   'Le client, lui, garde son prix d\'origine sur sa facture : ceci reste interne.</div>'
     + '<div class="fg"><label class="fl">Montant pr&eacute;lev&eacute; (&euro;)</label>'
     +   '<input class="fi" id="dep-taxe-prestataire-montant" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0"></div>'
     + '<div class="modal-confirm-btns">'
@@ -10944,28 +10946,6 @@ function depRenderFicheLecture(colId, clientId, depot){
           +   'onclick="depOuvrirAcompte()">&#127991;&#65039; Acompte</button>'
           + '</div>')
     + '</div>'
-    // v2.14.0 — Taxe prestataire (Mali) : DCT ne gère pas ce container,
-    // c'est un partenaire qui prélève sa part sur le prix facturé au
-    // client ; le champ vit sur la fiche (demande de Cobey du
-    // 02/10/2026), et régularise le bilan financier du container (voir
-    // depRapfinContainer). Carte à part, bien visible — repéré trop
-    // discret quand c'était une simple ligne noyée parmi les autres
-    // (retour de Cobey du 02/10/2026 : "j'ai pas bien compris où est-ce
-    // que j'en rentre le montant").
-    +   (_depEstContainerMali(c.departId)
-          ? ('<div style="background:#FFF3E0;border:1.5px solid #F0C36D;border-radius:var(--radius);'
-              +   'padding:14px;margin-bottom:14px;">'
-              +   '<div style="font-size:11.5px;font-weight:800;color:#8A5200;letter-spacing:.03em;margin-bottom:6px;">'
-              +     '&#129309; TAXE PRESTATAIRE (MALI)</div>'
-              +   '<div style="font-size:13px;color:#333;">' + (c.taxePrestataire
-                    ? ('<b>' + c.taxePrestataire + '&nbsp;&euro;</b> pr&eacute;lev&eacute;s par le partenaire')
-                    : 'Non renseign&eacute;e &mdash; le client est factur&eacute; en totalit&eacute;, '
-                      + 'mais le partenaire qui envoie ce container en pr&eacute;l&egrave;ve une part.') + '</div>'
-              +   '<button type="button" class="btn btn-gray" style="margin-top:10px;background:#fff;border-color:#F0C36D;color:#8A5200;" '
-              +     'onclick="depOuvrirTaxePrestataire({collecteId:\''+esc(colId)+'\',clientId:\''+esc(clientId)+'\',depot:'+(!!depot)+'})">'
-              +     '&#9999;&#65039; ' + (c.taxePrestataire ? 'Modifier le montant' : 'Renseigner le montant') + '</button>'
-              + '</div>')
-          : '')
     + '<div class="dep-fiche-card">'
     +   (c.livraisonDakar
           ? (kv('Destinataire', esc(c.destinataireNom||'—')
@@ -15697,29 +15677,6 @@ function greffer(){
       // France & Europe a le même droit qu'un autre de voir ses deux
       // factures d'un même container réunies.
       try{ _depBoutonsFusionFrance(); }catch(eFus){ console.error('departs: regroupement (fiche france)', eFus); }
-      // v2.14.0 : taxe prestataire (Mali) — même champ que sur la fiche
-      // Collecte/Dépôt (voir depOuvrirTaxePrestataire), posé ici pour les
-      // clients France & Europe partis dans un container du Mali.
-      try{
-        var idTaxeFr = window.franceClientId;
-        var cTaxeFr = ((window.franceData||{}).clients||{})[idTaxeFr];
-        var blocTaxeFr = document.getElementById('dep-fr-taxe-prestataire');
-        if(blocTaxeFr) blocTaxeFr.remove();
-        if(cTaxeFr && cTaxeFr.departId && _depEstContainerMali(cTaxeFr.departId)){
-          blocTaxeFr = document.createElement('div');
-          blocTaxeFr.id = 'dep-fr-taxe-prestataire';
-          blocTaxeFr.style.cssText = 'background:#FFF3E0;border:1.5px solid #F0C36D;border-radius:10px;padding:10px 12px;margin-bottom:14px;';
-          blocTaxeFr.innerHTML = '<div style="font-size:11.5px;font-weight:800;color:#8A5200;margin-bottom:4px;">&#129309; TAXE PRESTATAIRE (MALI)</div>'
-            + '<div style="font-size:13px;color:#333;">' + (cTaxeFr.taxePrestataire
-                ? ('<b>' + cTaxeFr.taxePrestataire + '&nbsp;&euro;</b> pr&eacute;lev&eacute;s par le partenaire')
-                : 'Non renseign&eacute;e &mdash; le client est factur&eacute; en totalit&eacute;, mais le '
-                  + 'partenaire qui envoie ce container en pr&eacute;l&egrave;ve une part.') + '</div>'
-            + '<button type="button" class="btn btn-gray" style="margin-top:10px;background:#fff;border-color:#F0C36D;color:#8A5200;" '
-            +   'onclick="depOuvrirTaxePrestataire({france:true,clientId:\''+esc(idTaxeFr)+'\'})">'
-            +   '&#9999;&#65039; ' + (cTaxeFr.taxePrestataire ? 'Modifier le montant' : 'Renseigner le montant') + '</button>';
-          if(box) box.insertBefore(blocTaxeFr, box.firstChild);
-        }
-      }catch(eTaxeFr){ console.error('departs: taxe prestataire fiche france', eTaxeFr); }
     };
     window._renderFicheFrance._depPatch = true;
   }
@@ -19333,12 +19290,13 @@ window.depRapfinContainer = function(id){
   var totFix = _depTotalFixesDe(id);
   var totDep = depArrondi2(totCam + totFix);
   var resultat = _depResultatColis(id, cp);
-  // v2.14.0 — Conteneurs du Mali : DCT ne gère pas le container, c'est un
-  // partenaire qui prélève sa part sur chaque client (voir
-  // depOuvrirTaxePrestataire, sur la fiche du client). "Résultat colis"
-  // ci-dessous reste le facturé/encaissé brut ; ce second chiffre est le
-  // vrai gain de DCT une fois la part du partenaire retirée — Cobey a
-  // demandé explicitement à voir les deux, pas seulement l'un ou l'autre.
+  // v2.14.0 / v2.15.0 — Conteneurs du Mali : DCT ne gère pas le
+  // container, c'est un partenaire qui prélève sa part sur chaque client
+  // (saisie plus bas, dans la liste nominative de ce container — voir
+  // _depHtmlListeTaxesContainer). "Résultat colis" ci-dessous reste le
+  // facturé/encaissé brut ; ce second chiffre est le vrai gain de DCT une
+  // fois la part du partenaire retirée — Cobey a demandé explicitement à
+  // voir les deux, pas seulement l'un ou l'autre.
   var estMali = (depPaysDepart(d) === 'ML');
   var resultatReel = depArrondi2(resultat - (cp.taxePrestataire || 0));
   // v1.94.12 : Cobey : « dans la case dépense de ce container, on doit
@@ -19390,6 +19348,11 @@ window.depRapfinContainer = function(id){
     + '<button class="btn btn-gray" style="margin-top:12px;" onclick="depOuvrirRapfinFixes(\'' + id + '\')">'
     +   '&#127968; G&eacute;rer les d&eacute;penses de ce container</button>'
     + '</div>';
+
+  // v2.15.0 — Conteneurs du Mali : la liste nominative de tous les
+  // clients, avec la taxe du partenaire à saisir pour chacun. Gérée ici,
+  // en interne, et nulle part ailleurs (voir le commentaire du §13quater).
+  if(estMali) h += _depHtmlListeTaxesContainer(id);
 
   // La liste nominative n'apparaît qu'ici, et seulement si on a tapé
   // l'une des deux cases RESTE DÛ.
@@ -20698,7 +20661,7 @@ function _depFmInjecterSuiviContainer(departId){
 }
 
 /* ─────────────────────────────────────────────
-   13quater (v2.14.0). TAXE PRESTATAIRE — conteneurs du Mali.
+   13quater (v2.14.0 / v2.15.0). TAXE PRESTATAIRE — conteneurs du Mali.
 
    DCT ne gère pas ces conteneurs-là : c'est un partenaire qui envoie le
    colis au Mali, et il prélève sa part sur le prix facturé au client (ex.
@@ -20711,10 +20674,24 @@ function _depFmInjecterSuiviContainer(departId){
    LES DEUX chiffres, le facturé et le réel après taxes — voir
    depRapfinContainer plus bas).
 
+   v2.15.0 — Revu le même jour par Cobey : « je voulais plutôt pouvoir
+   gérer ça dans le rapport financier, dans la carte container Mali [...]
+   on ne fait aucune dépense, on ne gère rien [...] cette étape-là se fait
+   en amont, après avoir enregistré les clients [...] la taxe prestataire
+   ne concerne que de l'interne [...] il ne faut pas qu'on le fasse depuis
+   chaque case de Collecte/France & Europe/Dépôt direct, mais qu'on le
+   fasse directement dans le bilan financier, dans le container, en
+   interne. » Retiré des trois fiches client (voir depRenderFicheLecture /
+   _renderFicheFrance) ; la saisie se fait désormais UNIQUEMENT depuis
+   Rapport financier > Containers > [container Mali], qui liste tous ses
+   clients avec, pour chacun, la taxe prélevée (voir _depListeTaxesContainer
+   plus bas, injectée par window.depRapfinContainer).
+
    Un seul champ, `taxePrestataire`, sur le client — pas un nouveau nœud
    Firebase : il vit avec le reste de sa fiche, quelle que soit sa source
    (Collecte, Dépôt direct, France & Europe), via les mêmes
-   _depClientFacture/_depEcrireFacture déjà centralisés plus haut.
+   _depClientFacture/_depEcrireFacture déjà centralisés plus haut. La
+   facture du client, elle, ne le montre jamais — c'est une donnée interne.
    ───────────────────────────────────────────── */
 
 // true si ce départ est un container du Mali (voir depPaysDepart).
@@ -20725,11 +20702,19 @@ function _depEstContainerMali(departId){
 
 var _depTaxeCtx = null; // { collecteId, clientId, depot } ou { france:true, clientId }
 
+// Pont pour les boutons de la liste (voir _depListeTaxesContainer) — évite
+// d'avoir à poser du JSON à la main dans chaque onclick.
+window.depOuvrirTaxePrestataireDe = function(src, colId, clientId){
+  window.depOuvrirTaxePrestataire(_depCibleDe(src, colId, clientId));
+};
+
 // Ouvre la modale, pré-remplie avec la valeur déjà enregistrée s'il y en
 // a une — ctx au même format que _depClientFacture/_depEcrireFacture.
 window.depOuvrirTaxePrestataire = function(ctx){
   _depTaxeCtx = ctx;
   var c = _depClientFacture(ctx);
+  var t = $('dep-taxe-prestataire-nom');
+  if(t) t.textContent = c ? _depNomFiche(c) : '';
   var i = $('dep-taxe-prestataire-montant');
   if(i) i.value = (c && c.taxePrestataire) ? String(c.taxePrestataire) : '';
   openModal('modal-dep-taxe-prestataire');
@@ -20746,11 +20731,53 @@ window.depEnregistrerTaxePrestataire = function(){
   c.taxePrestataire = montant;
   _depEcrireFacture(ctx, { taxePrestataire: montant });
   toast('🤝 Taxe prestataire enregistrée.');
-  try{
-    if(ctx.france){ if(typeof window._renderFicheFrance === 'function') window._renderFicheFrance(); }
-    else { depRenderFicheLecture(ctx.collecteId, ctx.clientId, ctx.depot); }
-  }catch(e){ console.error('departs: rafraîchir après taxe prestataire', e); }
+  // v2.15.0 : gérée depuis l'écran du container — c'est lui qu'on
+  // rafraîchit, plus les fiches clients (voir le commentaire plus haut).
+  try{ if(_depRapfinId) window.depRapfinContainer(_depRapfinId); }
+  catch(e){ console.error('departs: rafraîchir après taxe prestataire', e); }
 };
+
+// v2.15.0 — La liste nominative des clients d'un container Mali, avec la
+// taxe prélevée par le partenaire sur chacun. Repris de _depToutesLesFiches
+// (les trois parcours), filtré sur ce container — même principe que la
+// liste "RESTE DÛ" plus haut dans cet écran.
+function _depListeTaxesContainer(departId){
+  return _depToutesLesFiches()
+    .filter(function(x){ return x.c && x.c.departId === departId && !_depEstFusionnee(x.c); })
+    .sort(function(a,b){ return _depNomFiche(a.c).localeCompare(_depNomFiche(b.c)); });
+}
+
+function _depHtmlListeTaxesContainer(departId){
+  var liste = _depListeTaxesContainer(departId);
+  if(!liste.length) return '';
+  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:14px;margin-bottom:14px;">'
+    + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:4px;">'
+    +   '&#129309; Taxe prestataire &mdash; par client</div>'
+    + '<div style="font-size:11.5px;color:var(--text3);margin-bottom:10px;line-height:1.5;">'
+    +   'Ce que le partenaire qui g&egrave;re ce container pr&eacute;l&egrave;ve sur chaque client. '
+    +   'Le client garde son prix d\'origine sur sa facture &mdash; ceci reste interne &agrave; DCT.</div>'
+    + liste.map(function(x){
+        var c = x.c;
+        return '<div class="dep-cli">'
+          + '<div class="dep-cli-n">' + esc(_depNomFiche(c))
+          +   (x.src === 'depot'  ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
+          +   (x.src === 'france' ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')
+          + '</div>'
+          + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+          +   '<span>Factur&eacute; ' + (c.prix||0) + ' &euro;</span>'
+          +   (c.taxePrestataire
+                ? ('<b style="color:#B3261E;">' + c.taxePrestataire + ' &euro; pr&eacute;lev&eacute;s</b>')
+                : '<span style="color:var(--text3);">Non renseign&eacute;e</span>')
+          + '</div>'
+          + '<div class="dep-cli-btns" style="margin-top:10px;">'
+          +   '<button class="dep-cli-btn" onclick="depOuvrirTaxePrestataireDe(\''+x.src+'\',\''+esc(x.collecteId||'')+'\',\''+esc(x.clientId)+'\')">'
+          +     '&#9999;&#65039; ' + (c.taxePrestataire ? 'Modifier' : 'Renseigner') + '</button>'
+          + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div>';
+}
 
 /* ─────────────────────────────────────────────
    13bis. PRIX ARTICLES — grille tarifaire de référence, carré ouvert à
