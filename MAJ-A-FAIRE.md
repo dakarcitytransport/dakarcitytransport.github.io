@@ -489,6 +489,16 @@ ses 4 remises de test, deux soucis :
    à la Fidélité fait maintenant revenir bien sur cet écran-là, pour le
    contact qu'on regardait.
 
+**v2.20.3 :** Cobey, sur l'échéance d'un an : « elle doit être en date de
+la fin du mois. Pourquoi ? Car les conteneurs [...] ne sont jamais à la
+même date [...] peut-être que dans un an [...] le conteneur partira le
+24 septembre [...] pour ne pas pénaliser, on va lui laisser quand même
+la possibilité de finaliser le mois avec ses remises. » L'échéance se
+calculait jour pour jour (gagnée le 6 septembre 2026 → expire le
+6 septembre 2027 pile) — recalée sur la fin du mois (expire le
+30 septembre 2027), pour que la cliente garde ses remises jusqu'au
+départ réel du container de ce mois-là, quelle que soit sa date exacte.
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :

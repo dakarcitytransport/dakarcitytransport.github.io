@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.2';
+var DEP_VERSION = 'v2.20.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -21114,11 +21114,16 @@ function _depFideliteDateFr(ts){
   return jj + '/' + mm + '/' + d.getFullYear();
 }
 
-// Un an jour pour jour après `ts` (et non 365 jours fixes, pour tomber
-// juste même à cheval sur une année bissextile).
+// Fin du mois, un an plus tard — pas jour pour jour (retour de Cobey du
+// 02/10/2026) : « les conteneurs, les départs de conteneurs ne sont
+// jamais à la même date [...] on va lui laisser quand même la
+// possibilité de finaliser le mois avec ses remises pour envoyer le
+// conteneur à son départ ». new Date(année, mois+1, 0) donne le dernier
+// jour du mois voulu (le jour 0 du mois suivant) — trucage standard, pas
+// un décalage par erreur.
 function _depFideliteDateExpiration(ts){
   var d = new Date(ts);
-  return new Date(d.getFullYear() + 1, d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds()).getTime();
+  return new Date(d.getFullYear() + 1, d.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
 }
 
 // true si ce container compte pour le programme — pas encore affecté
