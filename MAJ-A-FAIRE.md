@@ -1679,13 +1679,35 @@ chemin Firebase `departs/{id}/etapesTransport`) pendant que l'écran
 jour tout seul, comme les autres déjà couverts (liste des départs,
 Espaces, Nouvelle collecte), dès que la donnée change — où que ce soit.
 
-**Non construit : les totaux de livraison chiffrés dans sa case
-container** (ce qu'il va toucher, ce qui a été encaissé par DCT, ce
-qu'il encaisse sur place, le total). **Question pour Cobey :** sur
-quelle base Mamadou est-il rémunéré par livraison (un forfait fixe ? un
-pourcentage du prix de la livraison ?) — rien dans l'appli ne définit
-encore cette règle, impossible de calculer « ce qu'il va toucher » sans
-elle.
+**v1.6.0 (mamadou.html, 02/10) :** Cobey, capture d'écran de l'espace de
+Mamadou Niass à l'appui, trois points dans le même message :
+
+1. « Le statut de livraison affiche toujours une étape en avance par
+   rapport au suivi de transport de la case départ de DCT. » Cette page
+   affichait `etapeSuivante()` (la PROCHAINE étape à valider) sous le
+   libellé « Étape en cours » — alors que « En cours de navigation » est
+   une phase qui dure, pas un événement ponctuel : la cocher ne veut pas
+   dire que l'étape suivante (Arrivée au port) a déjà commencé. Reprend
+   ici l'exception déjà posée côté DCT pour la même raison (facture
+   publique, v1.94.36) : tant que « navigation » est la dernière étape
+   cochée, c'est elle qui est « en cours », pas celle d'après. Le reste
+   (ce qu'il a le droit de valider lui-même) ne change pas.
+2. « Niass a besoin de savoir le total facturé en livraison du
+   container, le total encaissé et le total restant [...] comme dans
+   les containers de bilan financier, mais adapté à la livraison ! »
+   Nouveau bandeau en haut du container (visible seulement s'il contient
+   au moins un client avec livraison), qui somme la caisse livraison
+   (jamais le colis) de tous ses clients.
+3. « Pour chaque client on doit avoir le montant du prix de la
+   livraison sur sa case. » Chaque carte affiche maintenant son prix de
+   livraison et, s'il en reste, ce qu'il reste à payer dessus — même
+   principe que le colis juste au-dessus (jamais l'encaissé, règle
+   v1.0.0 inchangée pour le colis ET pour ce nouvel ajout livraison).
+
+Ce qui reste **non construit** : ce que Mamadou touche lui-même par
+livraison (commission/forfait) — **question toujours en suspens pour
+Cobey**, sur quelle base il est rémunéré ; sans cette règle, impossible
+de calculer « ce qu'il va toucher » séparément de ce que DCT encaisse.
 
 Un accès séparé, sur le modèle du lien des chauffeurs externes.
 

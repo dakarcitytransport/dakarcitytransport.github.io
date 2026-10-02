@@ -270,6 +270,16 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
         <div style="font-size:12.5px;color:#a04800;font-weight:700;margin-bottom:8px;">&#128230; Ce container n&rsquo;est pas encore arriv&eacute; au d&eacute;p&ocirc;t.</div>
         <button type="button" class="btn btn-green" style="margin-bottom:0;" onclick="validerArriveeDepot()">&#9989; Valider l&rsquo;arriv&eacute;e au d&eacute;p&ocirc;t</button>
       </div>
+      <!-- v1.6.0 — Cobey : « Niass a besoin de savoir le total facturé
+           en livraison du container, le total encaissé et le total
+           restant [...] adapté à la livraison ! » Caisse livraison
+           uniquement (jamais le colis, voir la garde v1.0.0 plus bas). -->
+      <div id="cd-finance-liv" hidden style="background:#EAF2FB;border:1.5px solid #B9D4F0;border-radius:10px;padding:12px;margin-bottom:14px;">
+        <div style="font-size:11px;color:#1a4971;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">&#128666; Livraison &mdash; ce container</div>
+        <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:6px 0;"><span class="k">Factur&eacute;</span><span class="v" id="cd-liv-facture">&mdash;</span></div>
+        <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:6px 0;"><span class="k">Encaiss&eacute;</span><span class="v" id="cd-liv-encaisse" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="padding:6px 0;"><span class="k">Restant</span><span class="v" id="cd-liv-restant" style="color:#992020;">&mdash;</span></div>
+      </div>
       <input class="recherche" id="cd-recherche" placeholder="Rechercher un client&hellip;" oninput="cdAppliquerFiltres()">
       <div class="filtres" id="cd-filtres"></div>
       <div class="cd-selects">
@@ -356,7 +366,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.5.4';
+var MAMADOU_VERSION = 'v1.6.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -427,6 +437,27 @@ function etapeSuivante(d){
   var fait = (d && d.etapesTransport) || {};
   var dernierIdx = -1;
   etapes.forEach(function(e, i){ if(fait[e.key] && fait[e.key].fait) dernierIdx = i; });
+  return etapes[dernierIdx + 1] || null;
+}
+
+// v1.6.0 — Cobey : « le statut de livraison affiche toujours une étape
+// en avance par rapport au suivi de transport de la case départ de
+// DCT. » Cette page affichait etapeSuivante() (la PROCHAINE étape à
+// valider) sous le libellé « Étape en cours » — mais « En cours de
+// navigation » est une phase qui dure, pas un événement ponctuel : la
+// cocher ne veut pas dire que l'étape suivante (Arrivée au port) a déjà
+// commencé. Même exception que sur la facture publique côté DCT
+// (depRenderSuiviTransportPublic, departs.js, v1.94.36) : tant que
+// « navigation » est la dernière étape cochée, c'est ELLE qui est «en
+// cours », pas celle d'après. etapeSuivante() reste inchangée — elle
+// sert aussi à savoir ce que Mamadou a le droit de valider lui-même
+// (validerArriveeDepot) ; seul ce qu'on AFFICHE comme « en cours » change.
+function etapeAffichee(d){
+  var etapes = depEtapesTransportPour(depPaysDepart(d));
+  var fait = (d && d.etapesTransport) || {};
+  var dernierIdx = -1;
+  etapes.forEach(function(e, i){ if(fait[e.key] && fait[e.key].fait) dernierIdx = i; });
+  if(dernierIdx >= 0 && etapes[dernierIdx].key === 'navigation') return etapes[dernierIdx];
   return etapes[dernierIdx + 1] || null;
 }
 
@@ -590,7 +621,7 @@ function mnAccueilOuvrir(){
 
 function rafraichirEcranActif(){
   if(!_accueilAffiche) return;
-  if(!$('ecran-container-detail').hidden){ _cdMajBlocArrivee(); cdAppliquerFiltres(); }
+  if(!$('ecran-container-detail').hidden){ _cdMajBlocArrivee(); _cdMajFinanceLivraison(); cdAppliquerFiltres(); }
   if(!$('ecran-fiche').hidden && _ficheCtx) ouvrirFiche(_ficheCtx, true);
 }
 
@@ -799,6 +830,7 @@ function ouvrirContainerDetail(departId){
   $('cd-nom').textContent = (departsData[departId]||{}).nom || departId;
   $('cd-recherche').value = '';
   _cdMajBlocArrivee();
+  _cdMajFinanceLivraison();
   _cdRenderFiltres();
   cdAppliquerFiltres();
 }
@@ -822,10 +854,35 @@ function _cdMajBlocArrivee(){
   var d = departsData[_cdDepartId] || {};
   var suivante = etapeSuivante(d);
   bloc.hidden = !(suivante && suivante.key === 'arrivee_depot');
-  ligne.innerHTML = suivante
-    ? ('📍 Étape en cours : <strong>' + esc(suivante.label) + '</strong>')
+  var affichee = etapeAffichee(d);
+  ligne.innerHTML = affichee
+    ? ('📍 Étape en cours : <strong>' + esc(affichee.label) + '</strong>')
     : '✅ Toutes les étapes du suivi sont validées.';
 }
+// v1.6.0 — Cobey : « Niass a besoin de savoir le total facturé en
+// livraison du container, le total encaissé et le total restant [...]
+// comme dans les containers de bilan financier, mais adapté à la
+// livraison ! » Somme depCalculerPaiementLivraison() (déjà utilisée sur
+// la fiche d'un client, caisse livraison séparée du colis) sur TOUS les
+// clients du container — pas seulement ceux affichés après filtrage, le
+// bilan porte sur le container entier. N'affiche le bloc que s'il y a
+// au moins un client avec livraison : sinon rien à résumer.
+function _cdMajFinanceLivraison(){
+  var bloc = $('cd-finance-liv');
+  if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT){ bloc.hidden = true; return; }
+  var clients = clientsDuContainer(_cdDepartId).filter(function(x){ return x.c.livraisonDakar; });
+  if(!clients.length){ bloc.hidden = true; return; }
+  var facture = 0, encaisse = 0, restant = 0;
+  clients.forEach(function(x){
+    var payLiv = depCalculerPaiementLivraison(x.c);
+    facture += payLiv.total; encaisse += payLiv.paye; restant += payLiv.reste;
+  });
+  bloc.hidden = false;
+  $('cd-liv-facture').textContent = depArrondi2(facture) + ' €';
+  $('cd-liv-encaisse').textContent = depArrondi2(encaisse) + ' €';
+  $('cd-liv-restant').textContent = depArrondi2(restant) + ' €';
+}
+
 function validerArriveeDepot(){
   if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT) return;
   var d = departsData[_cdDepartId] || {};
@@ -909,6 +966,16 @@ function cdAppliquerFiltres(){
     var c = x.c;
     var pay = depCalculerPaiement(c);
     var rang = (c.rangDepartId === _cdDepartId && c.rangDepart) ? ('<span class="cli-rang">N°'+c.rangDepart+'</span>') : '';
+    // v1.6.0 — Cobey : « pour chaque client on doit avoir le montant du
+    // prix de la livraison sur sa case. » Le badge "🚚 Livraison" seul ne
+    // donnait aucun montant — même esprit que le colis juste au-dessus
+    // (v1.0.0 : jamais l'encaissé, juste le prix et ce qu'il en reste).
+    var liv = '';
+    if(c.livraisonDakar){
+      var payLiv = depCalculerPaiementLivraison(c);
+      liv = '<div class="cli-liv">🚚 Livraison : ' + payLiv.total + ' €'
+        + (payLiv.reste > 0 ? ' (reste ' + payLiv.reste + ' €)' : ' — soldée') + '</div>';
+    }
     h += '<div class="cli-item" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'},false,\'ecran-container-detail\')">'
       +   '<div class="cli-top"><div class="cli-nom">'+rang+esc(c.name||'')+'</div></div>'
       +   '<div class="cli-sub">'+esc(c.colis || '—')+'</div>'
@@ -918,7 +985,7 @@ function cdAppliquerFiltres(){
       +   (pay.reste > 0
             ? ('<div class="cli-reste">Reste à payer : '+pay.reste+' €</div>')
             : '<div class="cli-paye">✅ Soldé</div>')
-      +   (c.livraisonDakar ? '<div class="cli-liv">🚚 Livraison</div>' : '')
+      +   liv
       + '</div>';
   });
   $('cd-liste').innerHTML = h;
