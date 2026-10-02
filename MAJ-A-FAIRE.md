@@ -1056,6 +1056,23 @@ ouvre la fiche, comme avant.
 
 ## 3 · Bug
 
+- ~~Impossible de remettre un **prix à 0 €** sur une fiche du Dépôt
+  direct — « il faut absolument mettre un prix ».~~ **Réglé le 02/10
+  (v2.18.0).** Cobey : « la facture n'est pas forcément obligatoire
+  d'être payée pour être validée, car le client peut payer maximum
+  jusqu'à l'arrivée du colis à Dakar [...] quand un collaborateur va
+  chez un client faire une ramasse et que ce client-là a un prix à 0,
+  mais que par accident il met 10 euros et qu'il valide, s'il veut
+  rectifier et enlever les 10 euros, une fois qu'il remet 0 euros, on a
+  un message d'erreur [...] ça contredit le fait qu'une facture peut
+  être validée à 0. »
+
+  Le formulaire « Inscrire un client au dépôt » refusait tout prix
+  inférieur OU ÉGAL à 0 — un 0 € volontaire (envoi gratuit, geste
+  commercial) tombait dans le même filet qu'un champ resté vide par
+  erreur. Seul un prix négatif est désormais bloqué ; 0 € s'enregistre
+  normalement, comme partout ailleurs dans l'application.
+
 - ~~Le **regroupement de factures** ne fonctionne pas pour tout le monde.~~
   **Réglé le 24/09 (v1.54.0).** Le bouton « Regrouper avec une autre
   facture » n'existait que sur les fiches de la Collecte. Le carré Départ,

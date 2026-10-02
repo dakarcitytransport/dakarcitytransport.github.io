@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.17.0';
+var DEP_VERSION = 'v2.18.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -11881,8 +11881,15 @@ window.depEnregistrerDepot = function(){
   var nbColis   = parseInt((($('dp-nb')||{}).value), 10) || 1;
   // v1.19.55 : plus de "prix à définir sur place" ici — le prix est acté
   // immédiatement à l'inscription au dépôt (retour de Cobey du 28/08/2026).
+  // v2.18.0 : 0 € est un prix valide — la facture n'est pas obligée d'être
+  // payée pour être validée (le client peut régler jusqu'à l'arrivée du
+  // colis à Dakar), et rien n'empêche un prix nul par ailleurs non plus.
+  // "<= 0" bloquait donc à tort la correction d'une fiche remise à 0 après
+  // une saisie erronée (retour de Cobey du 02/10/2026 : un collaborateur
+  // tape 10 € par accident, valide, puis ne peut plus remettre 0 € —
+  // "il faut absolument mettre un prix pour valider la facture").
   var prix      = parseFloat(($('dp-prix')||{}).value) || 0;
-  if(prix <= 0){ toast('⚠️ Indiquez un prix.'); return; }
+  if(prix < 0){ toast('⚠️ Entrez un prix valide.'); return; }
   var dnom      = (($('dp-dest-nom')||{}).value || '').trim();
   var dtel      = (($('dp-dest-tel')||{}).value || '').trim();
   var dtel2     = (($('dp-dest-tel2')||{}).value || '').trim();
