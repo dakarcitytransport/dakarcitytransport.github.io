@@ -1422,7 +1422,7 @@ différent.
 ## 6 · Rapport financier
 
 ### ~~La taxe du partenaire, sur les conteneurs du Mali~~
-**Fait le 02/10 (v2.14.0 → v2.16.0).** Cobey : « pour les clients Mali,
+**Fait le 02/10 (v2.14.0 → v2.17.0).** Cobey : « pour les clients Mali,
 en fait, avec le partenaire avec lequel on envoie, il y a des taxes.
 [...] si on facture un baril à 150 euros à une cliente, comme ce n'est
 pas nous qui gérons le conteneur, c'est le prestataire [...] il va nous
@@ -1482,6 +1482,17 @@ les deux, pas l'un à la place de l'autre) :
   « Bénéfice » habituel, une ligne « Taxes prestataire » (tous
   conteneurs Mali confondus) et un « Bénéfice réel » — n'apparaît que si
   au moins une taxe a été renseignée.
+
+**Corrigé le même jour (v2.17.0)** : Cobey a repéré que la taxe ne se
+retirait que dans l'écran du container, pas partout où un « Bénéfice
+réel » s'affiche — « les bénéfices réels ne tiennent pas compte de la
+soustraction de la taxe du prestataire ». Le calcul central
+(`_depResultatColis`, utilisé par le détail du container, les cartes de
+la liste Containers et le détail « Dépenses par catégorie ») retire
+désormais la taxe prestataire partout où il est utilisé ; le sous-titre
+de la carte d'un container Mali dans la liste Containers dit maintenant
+« encaissé − taxe prestataire » au lieu de « encaissé − dépenses », qui
+n'avait pas de sens pour un container que DCT ne gère pas.
 
 Rien ne change pour les conteneurs du Sénégal.
 
