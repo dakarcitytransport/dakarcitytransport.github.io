@@ -1697,6 +1697,13 @@ poste « ⛽ Carburant » apparaît dans le menu de "Dépenses du
 container", et remonte comme les autres dans le total du Bilan
 financier.
 
+### ~~Chauffeur France, absent des dépenses fixes~~
+**Fait le 02/10 (v2.20.6).** Cobey : « dans Rapport financier, dans les
+dépenses fixes, tu peux ajouter "Chauffeur France". » Nouveau poste
+« 🚗 Chauffeur France » dans le menu de "Dépenses du container", pour
+la paye du chauffeur des tournées France & Europe — jusqu'ici sans
+case dédiée, noyée dans "Autre" ou "Salaires".
+
 ### ~~L'en-tête de jour du "Report des tournées", qui se chevauchait~~
 **Fait le 29/09 (v2.10.28 / v3.94.29).** Cobey, capture d'écran à
 l'appui : « l'affichage des prix total par jour n'est pas optimal.

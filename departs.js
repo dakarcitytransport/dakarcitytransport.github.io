@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.5';
+var DEP_VERSION = 'v2.20.6';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19846,6 +19846,11 @@ var DEP_POSTES_FIXES = [
   // aucune collecte précise (une réserve, un plein pour le générateur…)
   // a maintenant sa place ici aussi.
   { cle:'carburant',    icone:'&#9981;',   label:'Carburant' },
+  // v2.20.6 : Cobey, 02/10/2026 : « dans les dépenses fixes, tu peux
+  // ajouter "Chauffeur France" » — la paye du chauffeur qui fait les
+  // tournées France & Europe, jusqu'ici sans poste dédié (noyée dans
+  // "Autre" ou "Salaires").
+  { cle:'chauffeur_france', icone:'&#128663;', label:'Chauffeur France' },
   { cle:'autre',        icone:'&#128176;', label:'Autre' }
 ];
 var _depPosteFixe = 'loyer';
