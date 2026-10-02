@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.10';
+var DEP_VERSION = 'v2.20.11';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14490,6 +14490,19 @@ function _frFusionnerOngletCollectesDispatch(t){
   onglet.innerHTML = ouverte ? '&#128666; Dispatch' : '&#128197; Collectes';
   onglet.onclick = function(){ window.switchFranceTab(ouverte ? 'dispatch' : 'collectes'); };
   onglet.className = 'subtab' + ((t === 'collectes' || t === 'dispatch') ? ' active' : '');
+
+  // v2.20.11 — Cobey, capture d'écran de l'onglet "Clients inscrits"
+  // (aucune collecte ouverte) à l'appui : « sur cette page le bouton
+  // suivi ne sert à rien, il ne fonctionne même pas, il faut d'abord
+  // cliquer sur collecte et aller dans la dispatch pour après avoir la
+  // possibilité de cliquer sur suivi [...] on le garde uniquement dans
+  // la collecte ». Rien à suivre tant qu'aucune collecte n'est ouverte
+  // (switchFranceTab renvoyait déjà vers "Collectes" dans ce cas, d'où
+  // le bouton "qui ne fait rien") — il n'a donc plus sa place dans la
+  // barre à ce moment-là, et réapparaît dès qu'une collecte est ouverte
+  // (en même temps que "Dispatch", exactement comme ce dernier).
+  var ongletSuivi = document.getElementById('ftab-suivi');
+  if(ongletSuivi) ongletSuivi.style.display = ouverte ? '' : 'none';
 }
 
 /* v2.11.6 — Cobey : « le bouton inscrire client ne doit être que sur

@@ -1239,6 +1239,23 @@ Trois correctifs, pour que ça ne revienne pas sous une autre forme :
   chauffeur externe **Sénégal** aussi, qui avait exactement le même
   trou, jamais remarqué jusqu'ici.
 
+### ~~Suivi : l'onglet traînait même sans collecte ouverte~~
+**Fait le 02/10 (v2.20.11).** Cobey, trois captures d'écran à l'appui
+(l'écran « Clients inscrits », sans collecte ouverte ; puis une
+collecte ouverte sur Dispatch ; puis le vrai écran Suivi) : « sur cette
+page le bouton suivi ne sert à rien, il ne fonctionne même pas, il faut
+d'abord cliquer sur collecte et aller dans la dispatch pour après avoir
+la possibilité de cliquer sur suivi et voir le suivi. On le garde
+uniquement dans la collecte, sur la première photo le bouton suivi n'a
+pas à être là. »
+
+L'onglet **📍 Suivi** restait affiché dans la barre du bas même tant
+qu'aucune collecte n'était ouverte — où il n'y a justement rien à
+suivre, et où un tap dessus ne faisait que renvoyer silencieusement
+vers « Collectes ». Il disparaît maintenant tant qu'aucune collecte
+n'est ouverte, et réapparaît en même temps que « 🚛 Dispatch » (même
+emplacement, même logique) dès qu'on en ouvre une.
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage
