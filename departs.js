@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.14.0';
+var DEP_VERSION = 'v2.14.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10901,20 +10901,6 @@ function depRenderFicheLecture(colId, clientId, depot){
     +   kv('Nombre de colis', String(c.nbColis || c.nb || 1))
     +   kv('Prix', (c.prixADefinir ? '<span style="color:var(--text3);">&Agrave; d&eacute;finir sur place</span>' : ((c.prix||0) + '&nbsp;&euro;'))
           + (pastilleEncaisse ? ('<br><span style="font-size:10.5px;color:var(--text3);">Encaiss&eacute; par</span><br>'+pastilleEncaisse) : ''))
-    // v2.14.0 — Taxe prestataire (Mali) : DCT ne gère pas ce container,
-    // c'est un partenaire qui prélève sa part sur le prix facturé au
-    // client ; le champ vit sur la fiche (demande de Cobey du
-    // 02/10/2026), et régularise le bilan financier du container (voir
-    // depRapfinContainer).
-    +   (_depEstContainerMali(c.departId)
-          ? kv('Taxe prestataire <span style="font-weight:600;color:#999;">(Mali)</span>',
-              (c.taxePrestataire
-                ? ((c.taxePrestataire) + '&nbsp;&euro; pr&eacute;lev&eacute;s')
-                : '<span style="color:var(--text3);">Non renseign&eacute;e</span>')
-              + '<br><button type="button" class="btn-sm btn-gray-sm" style="margin-top:4px;padding:3px 10px;font-size:11px;" '
-              +   'onclick="depOuvrirTaxePrestataire({collecteId:\''+esc(colId)+'\',clientId:\''+esc(clientId)+'\',depot:'+(!!depot)+'})">'
-              +   '&#9999;&#65039; ' + (c.taxePrestataire ? 'Modifier' : 'Ajouter') + '</button>')
-          : '')
     // v1.19.53 : reste à payer, visible uniquement si le paiement est
     // incomplet (retour de Cobey du 28/08/2026) — € + FCFA arrondi.
     // v1.20.32 : "Déjà encaissé" ajouté juste au-dessus — un versement pris
@@ -10958,6 +10944,28 @@ function depRenderFicheLecture(colId, clientId, depot){
           +   'onclick="depOuvrirAcompte()">&#127991;&#65039; Acompte</button>'
           + '</div>')
     + '</div>'
+    // v2.14.0 — Taxe prestataire (Mali) : DCT ne gère pas ce container,
+    // c'est un partenaire qui prélève sa part sur le prix facturé au
+    // client ; le champ vit sur la fiche (demande de Cobey du
+    // 02/10/2026), et régularise le bilan financier du container (voir
+    // depRapfinContainer). Carte à part, bien visible — repéré trop
+    // discret quand c'était une simple ligne noyée parmi les autres
+    // (retour de Cobey du 02/10/2026 : "j'ai pas bien compris où est-ce
+    // que j'en rentre le montant").
+    +   (_depEstContainerMali(c.departId)
+          ? ('<div style="background:#FFF3E0;border:1.5px solid #F0C36D;border-radius:var(--radius);'
+              +   'padding:14px;margin-bottom:14px;">'
+              +   '<div style="font-size:11.5px;font-weight:800;color:#8A5200;letter-spacing:.03em;margin-bottom:6px;">'
+              +     '&#129309; TAXE PRESTATAIRE (MALI)</div>'
+              +   '<div style="font-size:13px;color:#333;">' + (c.taxePrestataire
+                    ? ('<b>' + c.taxePrestataire + '&nbsp;&euro;</b> pr&eacute;lev&eacute;s par le partenaire')
+                    : 'Non renseign&eacute;e &mdash; le client est factur&eacute; en totalit&eacute;, '
+                      + 'mais le partenaire qui envoie ce container en pr&eacute;l&egrave;ve une part.') + '</div>'
+              +   '<button type="button" class="btn btn-gray" style="margin-top:10px;background:#fff;border-color:#F0C36D;color:#8A5200;" '
+              +     'onclick="depOuvrirTaxePrestataire({collecteId:\''+esc(colId)+'\',clientId:\''+esc(clientId)+'\',depot:'+(!!depot)+'})">'
+              +     '&#9999;&#65039; ' + (c.taxePrestataire ? 'Modifier le montant' : 'Renseigner le montant') + '</button>'
+              + '</div>')
+          : '')
     + '<div class="dep-fiche-card">'
     +   (c.livraisonDakar
           ? (kv('Destinataire', esc(c.destinataireNom||'—')
@@ -15703,11 +15711,12 @@ function greffer(){
           blocTaxeFr.style.cssText = 'background:#FFF3E0;border:1.5px solid #F0C36D;border-radius:10px;padding:10px 12px;margin-bottom:14px;';
           blocTaxeFr.innerHTML = '<div style="font-size:11.5px;font-weight:800;color:#8A5200;margin-bottom:4px;">&#129309; TAXE PRESTATAIRE (MALI)</div>'
             + '<div style="font-size:13px;color:#333;">' + (cTaxeFr.taxePrestataire
-                ? (cTaxeFr.taxePrestataire + ' &euro; pr&eacute;lev&eacute;s par le partenaire')
-                : 'Non renseign&eacute;e') + '</div>'
-            + '<button type="button" class="btn-sm btn-gray-sm" style="margin-top:6px;" '
+                ? ('<b>' + cTaxeFr.taxePrestataire + '&nbsp;&euro;</b> pr&eacute;lev&eacute;s par le partenaire')
+                : 'Non renseign&eacute;e &mdash; le client est factur&eacute; en totalit&eacute;, mais le '
+                  + 'partenaire qui envoie ce container en pr&eacute;l&egrave;ve une part.') + '</div>'
+            + '<button type="button" class="btn btn-gray" style="margin-top:10px;background:#fff;border-color:#F0C36D;color:#8A5200;" '
             +   'onclick="depOuvrirTaxePrestataire({france:true,clientId:\''+esc(idTaxeFr)+'\'})">'
-            +   '&#9999;&#65039; ' + (cTaxeFr.taxePrestataire ? 'Modifier' : 'Ajouter') + '</button>';
+            +   '&#9999;&#65039; ' + (cTaxeFr.taxePrestataire ? 'Modifier le montant' : 'Renseigner le montant') + '</button>';
           if(box) box.insertBefore(blocTaxeFr, box.firstChild);
         }
       }catch(eTaxeFr){ console.error('departs: taxe prestataire fiche france', eTaxeFr); }

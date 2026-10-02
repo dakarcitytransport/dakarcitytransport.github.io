@@ -1422,7 +1422,7 @@ différent.
 ## 6 · Rapport financier
 
 ### ~~La taxe du partenaire, sur les conteneurs du Mali~~
-**Fait le 02/10 (v2.14.0).** Cobey : « pour les clients Mali, en fait,
+**Fait le 02/10 (v2.14.0 / v2.14.1).** Cobey : « pour les clients Mali, en fait,
 avec le partenaire avec lequel on envoie, il y a des taxes. [...] si on
 facture un baril à 150 euros à une cliente, comme ce n'est pas nous qui
 gérons le conteneur, c'est le prestataire [...] il va nous prendre 120
@@ -1439,7 +1439,15 @@ lui, règle bien la totalité facturée. Un nouveau champ « 🤝 Taxe
 prestataire (Mali) » apparaît maintenant **sur la fiche de chaque
 client** parti dans un container du Mali (Collecte, Dépôt direct ou
 France & Europe — confirmé par Cobey : sur la fiche, pas dans une liste
-à part), avec un bouton Ajouter/Modifier qui ouvre une petite modale.
+à part), dans un encart bien visible avec un bouton « Renseigner/
+Modifier le montant » qui ouvre une petite modale.
+
+**Ajusté le même jour (v2.14.1)** : Cobey ne retrouvait pas l'endroit
+où saisir le montant (« j'ai pas bien compris où est-ce que j'en rentre
+le montant pour chaque client »). Le champ était bien là, mais noyé
+comme une simple ligne parmi toutes les autres informations de la
+fiche — il est maintenant posé dans son propre encart orange, juste
+après le prix, avec un texte qui explique le mécanisme.
 
 Le bilan financier montre désormais **les deux chiffres** (confirmé par
 Cobey : les deux, pas l'un à la place de l'autre) :
