@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.19';
+var DEP_VERSION = 'v2.20.20';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5261,14 +5261,13 @@ function ecouterDeparts(){
     try{ if($('s-annonce') && $('s-annonce').classList.contains('active')) depRenderAnnonce(); }catch(e){}
   });
 
+  // v2.20.20 — extrait en fonction nommée (reste appelée uniquement
+  // d'ici) pour pouvoir être testée directement : simuler un écouteur
+  // Firebase réel (snap.val()) depuis un test est impossible une fois
+  // db forcé à null, alors qu'appeler cette fonction avec un objet "déjà
+  // lu" ne dépend d'aucune connexion.
   db.ref('departs').on('value', function(snap){
-    window.departsData = snap.val() || {};
-    // v1.19.44 : réinjecté à chaque mise à jour temps réel — voir DEP_ID_DEPOT.
-    window.departsData[DEP_ID_DEPOT] = { nom: 'Dépôt (en attente)', statut: 'preparation', special: 'depot' };
-    _depPret = true;
-    try{ if($('s-departs') && $('s-departs').classList.contains('active')) depRenderListe(); }catch(e){}
-    try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
-    try{ if($('s-add') && $('s-add').classList.contains('active')) depRemplirSelect(); }catch(e){}
+    _depAppliquerSnapshotDeparts(snap.val() || {});
   });
 
   // v1.61.0 : les dépenses de tournée, par collecte et par camion —
@@ -7550,6 +7549,28 @@ window.depSupprimer = function(){
    possibilité de retoucher sans faire exprès" en consultant juste la
    liste des clients.
    ───────────────────────────────────────────── */
+
+// v2.20.20 — appelée par l'écoute Firebase `departs` (voir plus haut) à
+// chaque mise à jour, d'où qu'elle vienne — y compris une validation
+// distante faite depuis mamadou.html (même chemin Firebase
+// departs/{id}/etapesTransport). Avant, seuls trois écrans se
+// redessinaient tout seuls sur cet événement (liste des départs,
+// Espaces, formulaire Nouvelle collecte) : l'écran Suivi transport
+// (s-dep-etapes), lui, restait figé sur l'état qu'il avait au moment de
+// son ouverture tant qu'on ne cliquait pas soi-même "Valider l'étape
+// suivante" — Cobey, après avoir testé la validation côté Mamadou :
+// « ça ne le mettait pas à jour sur le suivi transport de DCT. »
+function _depAppliquerSnapshotDeparts(valeur){
+  window.departsData = valeur || {};
+  // v1.19.44 : réinjecté à chaque mise à jour temps réel — voir DEP_ID_DEPOT.
+  window.departsData[DEP_ID_DEPOT] = { nom: 'Dépôt (en attente)', statut: 'preparation', special: 'depot' };
+  _depPret = true;
+  try{ if($('s-departs') && $('s-departs').classList.contains('active')) depRenderListe(); }catch(e){}
+  try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+  try{ if($('s-add') && $('s-add').classList.contains('active')) depRemplirSelect(); }catch(e){}
+  try{ if($('s-dep-etapes') && $('s-dep-etapes').classList.contains('active') && _depDetailId) depRenderEtapesTransportEcran(_depDetailId); }catch(e){}
+}
+window._depAppliquerSnapshotDeparts = _depAppliquerSnapshotDeparts;
 
 window.depOuvrirEtapesTransport = function(id){
   var d = (window.departsData||{})[id];

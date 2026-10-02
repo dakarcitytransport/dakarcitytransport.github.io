@@ -1665,6 +1665,20 @@ il est sur place avant tout le monde. Chacune de ses actions (mot de
 passe, encaissement, validation, arrivée au dépôt) est notifiée dans
 l'Activité DCT.
 
+**v2.20.20 (01/10) :** Cobey, après avoir cherché puis testé en
+conditions réelles : « je n'ai pas trouvé l'endroit où il valide
+l'arrivée du container » (répondu : Accueil > Containers > le container
+> le bouton apparaît quand « Arrivée au port de Dakar » a déjà été
+validée côté appli), puis : « j'ai vu aussi quand j'ai testé, quand je
+valide l'arrivée au dépôt de Dakar par Mamadou Niass, ça ne le mettait
+pas à jour sur le suivi transport de DCT. » L'écran Suivi transport
+(`s-dep-etapes`) ne se redessinait que sur un clic fait DEDANS — pas
+quand la mise à jour venait d'ailleurs (ici, mamadou.html, par le même
+chemin Firebase `departs/{id}/etapesTransport`) pendant que l'écran
+était déjà ouvert côté DCT. Corrigé : cet écran se met maintenant à
+jour tout seul, comme les autres déjà couverts (liste des départs,
+Espaces, Nouvelle collecte), dès que la donnée change — où que ce soit.
+
 **Non construit : les totaux de livraison chiffrés dans sa case
 container** (ce qu'il va toucher, ce qui a été encaissé par DCT, ce
 qu'il encaisse sur place, le total). **Question pour Cobey :** sur
