@@ -1145,8 +1145,32 @@ ouvre la fiche, comme avant.
   endommagé, manquant ou mal livré. 7 articles au lieu de 9,
   renumérotés automatiquement.
 
-- Pouvoir créer des **factures manuelles** rattachées à un container,
-  pour le suivi.
+- ~~Pouvoir créer des **factures manuelles** rattachées à un container,
+  pour le suivi.~~ **Fait le 02/10 (v2.13.0), Cobey :** « il faudrait
+  créer une case facture manuelle qui permette d'éditer des factures à
+  la main, on pourra les relier à des containers pour qu'ils aient un
+  suivi, mais ces factures ne seraient pas comptées dans le container
+  et dans les chiffres globaux, c'est des factures fictives pour des
+  partenaires, pour direction admin et moi » — puis « Bureau aussi
+  doit avoir cette case. »
+
+  Nouvelle case **🧾 Facture manuelle** sur l'écran Départ, à côté de
+  Devis — visible pour la Direction, l'admin et Aminata (Bureau), pas
+  pour les collaborateurs de terrain. Même éditeur de lignes et même
+  mise en page de document que Devis (export PDF compris), mais le
+  document dit « FACTURE » (ces factures sont destinées à être remises
+  telles quelles à un partenaire). Chaque facture peut être reliée à un
+  container (facultatif) pour le suivi ; le détail du container affiche
+  alors un petit encart « N facture(s) manuelle(s) liée(s) » avec leur
+  montant, marqué « ne compte pas dans ce container ni dans les
+  chiffres globaux ».
+
+  Ces factures sont rangées dans un nœud Firebase à part
+  (`dct_factures_manuelles`), jamais mêlées aux vrais clients (ni
+  `dct/clients`, ni `dct_depot`, ni `france/clients`) : aucun calcul
+  de total existant (bilan financier, bénéfice d'un container,
+  statistiques) ne lit ce nœud — l'isolement vient de là où c'est
+  rangé, pas d'un filtre ajouté à chaque endroit qui somme de l'argent.
 - ~~Les **devis** utilisaient encore l'ancienne saisie (texte libre +
   un seul montant), et leur présentation différait de la facture.~~
   **Fait le 30/09 (v2.10.32 / v3.94.33).** Cobey : « pour les devis,

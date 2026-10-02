@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.12.3';
+var DEP_VERSION = 'v2.13.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2188,6 +2188,7 @@ var DEP_CASES = [
   { cle:'france',   el:'dep-case-france'   },
   { cle:'depot',    el:'dep-case-depot'    },
   { cle:'devis',    el:'dep-case-devis'    },
+  { cle:'factureManuelle', el:'dep-case-fm' },
   { cle:'planning', el:'dep-case-planning' },
   { cle:'articles', el:'dep-case-pa'       },
   { cle:'qr',       el:'dep-case-qr'       },
@@ -2212,9 +2213,12 @@ var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles'
    v2.7.0 : « annonce » (case Notification) s'y ajoute — Cobey, le
    26/09/2026 : « une case notification pour les admin, moi et Aminata »,
    confirmé pour Issyaka et Abdoulaye aussi (déjà couverts par
-   IDS_DIRECTION un peu plus bas, qui leur donne toutes les cases). */
+   IDS_DIRECTION un peu plus bas, qui leur donne toutes les cases).
+   v1.19.96 : « facture manuelle » s'y ajoute aussi — Cobey, le
+   02/10/2026 : « c'est des factures fictives [...] pour direction admin
+   et moi », puis « Bureau aussi doit avoir cette case. » */
 var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot',
-                        'qr','archive','stats','planning','annonce'];
+                        'qr','archive','stats','planning','annonce','factureManuelle'];
 
 var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU };
 
@@ -2242,6 +2246,7 @@ var DEP_GARDES_CASES = {
   ouvrirFrance                     : 'france',
   depCarreDepotOuvrir              : 'depot',
   depOuvrirEspaceDevis             : 'devis',
+  depOuvrirEspaceFactureManuelle   : 'factureManuelle',
   depOuvrirEspacePlanning          : 'planning',
   depOuvrirEspaceAnnonce           : 'annonce',
   depOuvrirEspacePrixArticles      : 'articles',
@@ -2991,6 +2996,18 @@ function injecterEcrans(){
   +         '<div class="dep-case-ico">&#128203;</div>'
   +         '<div class="dep-case-tit" style="color:#00838F;">DEVIS</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-devis">—</div>'
+  +       '</div>'
+  // v1.19.96 : nouveau carré FACTURE MANUELLE, réservé à la Direction,
+  // l'admin et le Bureau (retour de Cobey du 02/10/2026) : « c'est des
+  // factures fictives pour des partenaires [...] pour direction admin et
+  // moi », puis « Bureau aussi doit avoir cette case. » — des factures
+  // éditées à la main, reliées ou non à un container pour le suivi,
+  // mais jamais comptées dans ses totaux ni dans les chiffres globaux
+  // (stockées à part, voir dct_factures_manuelles).
+  +       '<div class="dep-case" id="dep-case-fm" style="background:#EDE4F7;" onclick="depOuvrirEspaceFactureManuelle()">'
+  +         '<div class="dep-case-ico">&#129534;</div>'
+  +         '<div class="dep-case-tit" style="color:#5E35B1;">FACTURE MANUELLE</div>'
+  +         '<div class="dep-case-sub" id="dep-case-sub-fm">—</div>'
   +       '</div>'
   // v1.19.95 : nouveau carré PRIX ARTICLES, ouvert à tout le monde comme le
   // carré Devis (retour de Cobey du 30/08/2026) — grille tarifaire de
@@ -3821,6 +3838,67 @@ function injecterEcrans(){
   // (qui n'est pas encapsulée dans .content) en a 30 via .pub-wrap.
   +   '<div class="content">'
   +     '<div class="pub-wrap" style="padding:0 0 24px;" id="devis-doc-contenu"></div>'
+  +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRANS (v1.19.96) : FACTURE MANUELLE — factures fictives pour
+     des partenaires, réservées à la Direction/l'admin/le Bureau (voir
+     carré FACTURE MANUELLE). Même éditeur de lignes et même mise en
+     page que Devis, mais : pas de pays/livraison (hors sujet pour un
+     partenaire), un lien facultatif vers un container pour le suivi
+     (jamais compté dans ses totaux), et le document dit "FACTURE", pas
+     "DEVIS" — ces factures sont destinées à être remises telles
+     quelles. ---- */
+  + '<div class="screen" id="s-facture-manuelle">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-espaces\');depRenderEspaces();">&larr; Espaces</button>'
+  +     '<div class="h-title">Facture manuelle</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div style="font-size:11.5px;color:#666;background:#F5F3FA;border:1.5px solid #E4DEF2;border-radius:10px;padding:10px 12px;margin-bottom:14px;line-height:1.5;">'
+  +       '&#8505;&#65039; Factures fictives pour des partenaires &mdash; reliables &agrave; un container pour le suivi, mais jamais compt&eacute;es dans ses totaux ni dans les chiffres globaux.</div>'
+  +     '<button class="btn btn-green" style="margin-bottom:16px;" onclick="depFactureManuelleNouvelle()">+ Nouvelle facture manuelle</button>'
+  +     '<div id="dep-fm-liste"></div>'
+  +   '</div>'
+  + '</div>'
+
+  + '<div class="screen" id="s-facture-manuelle-form">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-facture-manuelle\');depRenderListeFacturesManuelles();">&larr; Factures manuelles</button>'
+  +     '<div class="h-title" id="fm-form-titre">Nouvelle facture manuelle</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div class="fg"><label class="fl">Partenaire</label>'
+  +       '<input class="fi" id="fm-f-nom" placeholder="Nom du partenaire / de la soci&eacute;t&eacute;"></div>'
+  +     '<div class="fg"><label class="fl">T&eacute;l&eacute;phone <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
+  +       '<input class="fi" id="fm-f-tel" type="tel" placeholder="77 000 00 00"></div>'
+  +     '<div class="fg"><label class="fl">Adresse <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
+  +       '<input class="fi" id="fm-f-adresse" placeholder="12 rue Pasteur"></div>'
+  +     '<div class="dep-sec">D&eacute;tail</div>'
+  +     '<div id="fm-lignes" style="margin-bottom:14px;"></div>'
+  +     '<div class="dep-sec">R&eacute;capitulatif</div>'
+  +     '<div class="fg"><label class="fl">Montant (&euro;)</label>'
+  +       '<input class="fi" id="fm-f-montant" type="number" min="0" placeholder="0"></div>'
+  +     '<div id="fm-montant-note" style="display:none;font-size:11.5px;color:var(--text3);margin:-10px 0 14px;line-height:1.5;">'
+  +       '&#8505;&#65039; Montant calcul&eacute; sur le d&eacute;tail. Pour le changer, modifiez le prix de l\'article concern&eacute; ci-dessus.</div>'
+  +     '<div class="dep-sec">Suivi <span style="font-weight:500;color:#999;text-transform:none;">&middot; facultatif</span></div>'
+  +     '<div class="fg"><label class="fl">Relier &agrave; un container</label>'
+  +       '<select class="fi" id="fm-f-container"></select></div>'
+  +     '<div style="font-size:11px;color:#999;margin:-10px 0 14px;line-height:1.5;">Ce lien sert uniquement au suivi &mdash; cette facture ne sera jamais compt&eacute;e dans le container ni dans les chiffres globaux.</div>'
+  +     '<button class="btn btn-green" style="margin-top:4px;" onclick="depFactureManuelleEnregistrer()">Enregistrer la facture</button>'
+  +   '</div>'
+  + '</div>'
+
+  + '<div class="screen" id="s-facture-manuelle-doc">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-facture-manuelle\');depRenderListeFacturesManuelles();">&larr; Factures manuelles</button>'
+  +     '<div class="h-title">Facture manuelle</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div class="pub-wrap" style="padding:0 0 24px;" id="fm-doc-contenu"></div>'
   +   '</div>'
   + '</div>'
 
@@ -5135,6 +5213,15 @@ function ecouterDeparts(){
     try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
   });
 
+  // v1.19.96 : factures manuelles — nœud à part (jamais dct/clients,
+  // dct_depot ou france/clients), voir carré FACTURE MANUELLE.
+  db.ref('dct_factures_manuelles').on('value', function(snap){
+    window.facturesManuellesData = snap.val() || {};
+    try{ if($('s-facture-manuelle') && $('s-facture-manuelle').classList.contains('active')) depRenderListeFacturesManuelles(); }catch(e){}
+    try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+    try{ if(typeof _depFmRafraichirDetailContainer === 'function') _depFmRafraichirDetailContainer(); }catch(e){}
+  });
+
   // v1.19.95 : grille tarifaire de référence — voir carré PRIX ARTICLES.
   db.ref('prixArticles').on('value', function(snap){
     window.prixArticlesData = snap.val() || {};
@@ -5330,6 +5417,13 @@ window.depRenderEspaces = function(){
   if(sdv){
     var nbDv = Object.keys(window.devisData||{}).length;
     sdv.innerHTML = nbDv === 0 ? 'Aucun devis' : '<b style="color:#00838F;">'+nbDv+'</b> en attente';
+  }
+
+  // Case FACTURE MANUELLE (v1.19.96)
+  var sfm = $('dep-case-sub-fm');
+  if(sfm){
+    var nbFm = Object.keys(window.facturesManuellesData||{}).length;
+    sfm.innerHTML = nbFm === 0 ? 'Aucune facture' : '<b style="color:#5E35B1;">'+nbFm+'</b> enregistr&eacute;e'+(nbFm > 1 ? 's' : '');
   }
 
   // Case ARCHIVAGE (v1.19.0)
@@ -16250,6 +16344,18 @@ function greffer(){
     };
     window.renderFrance._depPatchSuivi = true;
   }
+
+  // v1.19.96 — Facture manuelle : petite section de suivi (lue à part,
+  // jamais mêlée aux vrais totaux) injectée dans le détail d'un
+  // container, pour les factures manuelles qui lui sont reliées.
+  if(typeof window.depDetail === 'function' && !window.depDetail._depPatchFm){
+    var origDepDetailFm = window.depDetail;
+    window.depDetail = function(id){
+      origDepDetailFm.apply(this, arguments);
+      try{ _depFmInjecterSuiviContainer(id); }catch(e){ console.error('departs: suivi factures manuelles (container)', e); }
+    };
+    window.depDetail._depPatchFm = true;
+  }
 }
 
 function _depConnexionAnonyme(){
@@ -20160,6 +20266,308 @@ window.depRapfinContainersRetour = function(){
   goTo('s-rapfin-containers');
   depRenderRapfinContainers();
 };
+
+/* ─────────────────────────────────────────────
+   13ter. FACTURE MANUELLE — factures fictives pour des partenaires,
+   réservées à la Direction/l'admin/le Bureau (retour de Cobey du
+   02/10/2026) : « il faudrait créer une case facture manuelle qui
+   permette d'éditer des factures à la main, on pourra les relier à
+   des containers pour qu'ils aient un suivi, mais ces factures ne
+   seraient pas comptées dans le container et dans les chiffres
+   globaux, c'est des factures fictives pour des partenaires, pour
+   direction admin et moi » — puis « Bureau aussi doit avoir cette
+   case. »
+
+   Stockées dans un nœud Firebase à part (dct_factures_manuelles),
+   jamais dans dct/clients, dct_depot ou france/clients : aucun calcul
+   de total (container, bilan financier, stats) ne lit ce nœud, donc
+   rien à exclure ailleurs — l'isolement vient de l'endroit où c'est
+   rangé, pas d'un filtre ajouté à chaque calcul d'argent existant.
+
+   Même éditeur de lignes que Devis/Collecte/Dépôt/France
+   (window.depEditerLignes, déjà générique) et même mise en page de
+   document que Devis (depRenderDevisDoc), réutilisés tels quels.
+   ───────────────────────────────────────────── */
+
+window.depOuvrirEspaceFactureManuelle = function(){
+  goTo('s-facture-manuelle');
+  depRenderListeFacturesManuelles();
+};
+
+window.depRenderListeFacturesManuelles = function(){
+  var box = $('dep-fm-liste');
+  if(!box) return;
+  var data = window.facturesManuellesData || {};
+  var ids = Object.keys(data);
+  if(!ids.length){
+    box.innerHTML = '<div class="dep-vide" style="padding:28px 16px;">Aucune facture manuelle pour l\'instant.</div>';
+    return;
+  }
+  var deps = window.departsData || {};
+  var items = ids.map(function(k){ return Object.assign({_id:k}, data[k]); })
+    .sort(function(a,b){ return (b.creeLe||0) - (a.creeLe||0); });
+  var h = '';
+  items.forEach(function(f){
+    var container = f.departId ? deps[f.departId] : null;
+    h += '<div class="dep-card">'
+      +   '<div class="dep-card-top"><div class="dep-nom">'+esc(f.nom || 'Partenaire')+'</div>'
+      +     '<div class="dep-badge" style="background:#EDE4F7;color:#5E35B1;">'+(parseFloat(f.montant)||0)+' &euro;</div></div>'
+      +   (f.tel ? ('<div class="dep-meta"><span>'+_depLienTel(f.tel, f.tel)+'</span></div>') : '')
+      +   '<div class="dep-meta" style="margin-top:4px;color:#999;"><span>Par '+esc(f.creeParNom||'—')+'</span><span>Le '+dateHeureFr(f.creeLe)+'</span></div>'
+      +   (f.colis ? ('<div class="dep-meta" style="margin-top:4px;"><span>&#128230; '+esc(f.colis)+'</span></div>') : '')
+      +   (container ? ('<div class="dep-meta" style="margin-top:4px;"><span>&#128230; Reli&eacute;e &agrave; '+esc(container.nom||f.departId)+' <span style="color:#aaa;">&middot; hors totaux</span></span></div>') : '')
+      +   '<div class="dep-cli-btns">'
+      +     '<button class="dep-cli-btn" onclick="depOuvrirFactureManuelleDoc(\''+f._id+'\')">&#128196; PDF</button>'
+      +     '<button class="dep-cli-btn" onclick="depFactureManuelleModifier(\''+f._id+'\')">&#9999;&#65039; Modifier</button>'
+      +     '<button class="dep-cli-btn" style="background:#FDEDED;border-color:#F5C6C6;color:#992020;" onclick="depFactureManuelleSupprimer(\''+f._id+'\')">&#128465;&#65039; Supprimer</button>'
+      +   '</div>'
+      + '</div>';
+  });
+  box.innerHTML = h;
+};
+
+function _depOptionsContainersFM(selectionId){
+  var deps = window.departsData || {};
+  var ids = Object.keys(deps).filter(function(k){ return deps[k] && deps[k].special !== 'depot'; })
+    .sort(function(a,b){ return String((deps[a]||{}).dateDepart||'').localeCompare(String((deps[b]||{}).dateDepart||'')); });
+  var h = '<option value="">&mdash; Aucun &mdash;</option>';
+  ids.forEach(function(k){
+    var d = deps[k] || {};
+    var sel = (k === selectionId) ? ' selected' : '';
+    h += '<option value="'+k+'"'+sel+'>'+esc(d.nom||k)+(d.dateDepart ? (' &middot; '+esc(d.dateDepart)) : '')+'</option>';
+  });
+  return h;
+}
+
+window.depFactureManuelleNouvelle = function(){
+  window._depFmEditId = null;
+  ['fm-f-nom','fm-f-tel','fm-f-adresse','fm-f-montant'].forEach(function(id){ var e = $(id); if(e) e.value = ''; });
+  var sel = $('fm-f-container'); if(sel) sel.innerHTML = _depOptionsContainersFM('');
+  try{ window.depEditerLignes('fm-lignes', [], _depFmLignesMaj); }catch(e){}
+  var titre = $('fm-form-titre'); if(titre) titre.textContent = 'Nouvelle facture manuelle';
+  goTo('s-facture-manuelle-form');
+};
+
+window.depFactureManuelleModifier = function(id){
+  var f = (window.facturesManuellesData||{})[id];
+  if(!f){ toast('⚠️ Facture introuvable.'); return; }
+  window._depFmEditId = id;
+  var fn = $('fm-f-nom'); if(fn) fn.value = f.nom || '';
+  var ft = $('fm-f-tel'); if(ft) ft.value = f.tel || '';
+  var fad = $('fm-f-adresse'); if(fad) fad.value = f.adresse || '';
+  var fmo = $('fm-f-montant'); if(fmo) fmo.value = (f.montant != null ? f.montant : '');
+  var sel = $('fm-f-container'); if(sel) sel.innerHTML = _depOptionsContainersFM(f.departId || '');
+  try{
+    window.depEditerLignes('fm-lignes',
+      window._depLignesColis(Object.assign({}, f, { prix: f.montant })),
+      _depFmLignesMaj);
+  }catch(e){}
+  var titre = $('fm-form-titre'); if(titre) titre.textContent = 'Modifier la facture manuelle';
+  goTo('s-facture-manuelle-form');
+};
+
+function _depFmLignesMaj(total, nbColis, lignes){
+  if(!lignes || !lignes.length){
+    var note0 = $('fm-montant-note'); if(note0) note0.style.display = 'none';
+    var mE0 = $('fm-f-montant'); if(mE0){ mE0.readOnly = false; mE0.style.background = ''; }
+    return;
+  }
+  var mEl = $('fm-f-montant');
+  if(mEl){ mEl.value = total; mEl.readOnly = true; mEl.style.background = '#f5f5f5'; }
+  var note = $('fm-montant-note'); if(note) note.style.display = 'block';
+}
+
+window.depFactureManuelleEnregistrer = function(){
+  var nom = (($('fm-f-nom')||{}).value || '').trim();
+  var tel = (($('fm-f-tel')||{}).value || '').trim();
+  var adresse = (($('fm-f-adresse')||{}).value || '').trim();
+  var departId = (($('fm-f-container')||{}).value || '');
+  var lignesFm = (typeof window.depLignesValeur === 'function') ? window.depLignesValeur() : [];
+  var colis = lignesFm.length
+    ? lignesFm.map(function(l){ return (l.qte > 1 ? (l.qte + ' ') : '') + l.nom; }).join(', ')
+    : '';
+  var montant = lignesFm.length
+    ? depArrondi2(lignesFm.reduce(function(s,l){ return s + (l.total||0); }, 0))
+    : (parseFloat(($('fm-f-montant')||{}).value) || 0);
+  if(!nom){ toast('⚠️ Indiquez le nom du partenaire.'); return; }
+  if(!montant){ toast('⚠️ Indiquez le montant de la facture.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion Firebase indisponible.'); return; }
+
+  var editId = window._depFmEditId;
+  var existant = editId ? ((window.facturesManuellesData||{})[editId] || {}) : {};
+  var obj = { nom: nom, tel: tel, adresse: adresse, colis: colis, montant: montant, departId: departId || null };
+  if(lignesFm.length) obj.colisDetail = lignesFm;
+  else if(existant.colisDetail) obj.colisDetail = null;
+
+  if(editId){
+    obj.creeLe = existant.creeLe || Date.now();
+    obj.creePar = existant.creePar || ((window.currentUser||{}).id || '');
+    obj.creeParNom = existant.creeParNom || ((window.currentUser||{}).name || '');
+    obj.modifieLe = Date.now();
+    db.ref('dct_factures_manuelles/'+editId).set(obj).then(function(){
+      window._depFmEditId = null;
+      toast('✅ Facture mise à jour.');
+      try{ depActivite('🧾', '<strong>' + esc((window.currentUser||{}).name||'') + '</strong> a modifié une facture manuelle (' + esc(nom) + ')'); }catch(e){}
+      try{ depOuvrirFactureManuelleDoc(editId); }catch(e){ goTo('s-facture-manuelle'); depRenderListeFacturesManuelles(); }
+    }).catch(function(e){
+      console.error('departs: mise à jour facture manuelle', e);
+      toast('❌ Échec de la mise à jour, réessayez.');
+    });
+    return;
+  }
+
+  obj.creeLe = Date.now();
+  obj.creePar = (window.currentUser||{}).id || '';
+  obj.creeParNom = (window.currentUser||{}).name || '';
+  db.ref('dct_factures_manuelles').push(obj).then(function(ref){
+    toast('✅ Facture manuelle enregistrée.');
+    try{ depActivite('🧾', '<strong>' + esc((window.currentUser||{}).name||'') + '</strong> a créé une facture manuelle (' + esc(nom) + ')'); }catch(e){}
+    try{ depOuvrirFactureManuelleDoc(ref.key); }catch(e){ goTo('s-facture-manuelle'); depRenderListeFacturesManuelles(); }
+  }).catch(function(e){
+    console.error('departs: enregistrement facture manuelle', e);
+    toast('❌ Échec de l\'enregistrement, réessayez.');
+  });
+};
+
+window.depFactureManuelleSupprimer = function(id){
+  if(!confirm('Supprimer définitivement cette facture manuelle ?')) return;
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  db.ref('dct_factures_manuelles/'+id).remove().then(function(){
+    toast('🗑️ Facture manuelle supprimée.');
+  }).catch(function(e){
+    console.error('departs: suppression facture manuelle', e);
+    toast('❌ Échec, réessayez.');
+  });
+};
+
+window.depOuvrirFactureManuelleDoc = function(id){
+  var f = (window.facturesManuellesData||{})[id];
+  if(!f){ toast('⚠️ Facture introuvable.'); return; }
+  window._depFmDocId = id;
+  depRenderFactureManuelleDoc(f);
+  goTo('s-facture-manuelle-doc');
+};
+
+function depRenderFactureManuelleDoc(f){
+  var box = $('fm-doc-contenu');
+  if(!box) return;
+  var montant = parseFloat(f.montant) || 0;
+
+  var lignesDoc = window._depLignesColis(Object.assign({}, f, { prix: f.montant }));
+  if(!lignesDoc.length){
+    lignesDoc = [{ nom: f.colis || 'Prestation', qte:1, pu:montant, total:montant }];
+  }
+  var lignesDocHtml = lignesDoc.map(function(l, i){
+    var nomL = esc(l.nom) + (l.lot ? ' <span style="font-size:9.5px;">(lot de ' + l.qte + ')</span>' : '');
+    return '<tr><td>'+(i+1)+'</td><td>'+nomL+'</td><td>'+l.qte+'</td>'
+         + '<td>'+(l.lot ? 'lot' : 'colis')+'</td><td>'+l.pu+' &euro;</td><td>'+l.total+' &euro;</td></tr>';
+  }).join('');
+
+  var h = '<div class="fac-doc">'
+    +   '<div class="fac-topbar"></div>'
+    +   '<div class="fac-body">'
+
+    +     '<div class="fac-header">'
+    +       '<div class="fac-brand">'
+    +         '<img class="fac-brand-logo" src="'+DEP_LOGO_B64+'" alt="Dakar City Transport">'
+    +         '<div>'
+    +           '<div class="fac-brand-nom">DAKAR CITY TRANSPORT</div>'
+    +           '<div class="fac-brand-sub">Paris<br>T&eacute;l&nbsp;: +33 6 69 18 30 01 / +33 6 03 67 04 98<br>Email&nbsp;: contact@dakarcitytransport.com<br>Site web&nbsp;: dakarcitytransport.com<br>TikTok &amp; Instagram&nbsp;: @dakar_ct</div>'
+    +         '</div>'
+    +       '</div>'
+    +       '<div class="fac-info">'
+    +         '<div class="fac-info-box">'
+    +           '<div class="fac-info-titre">FACTURE</div>'
+    +           '<div class="fac-info-ligne"><span>Date</span><strong>'+esc(dateHeureFr(f.creeLe))+'</strong></div>'
+    +           '<div class="fac-info-ligne"><span>&Eacute;tabli par</span><strong>'+esc(f.creeParNom||'—')+'</strong></div>'
+    +         '</div>'
+    +       '</div>'
+    +     '</div>'
+
+    +     '<hr class="fac-sep">'
+
+    +     '<div class="fac-parties">'
+    +       '<div>'
+    +         '<div class="fac-partie-titre">PARTENAIRE</div>'
+    +         '<div class="fac-partie-nom">'+esc(f.nom||'—')+'</div>'
+    +         '<div class="fac-partie-detail">'+(f.tel ? _depLienTel(f.tel, f.tel) : '')
+    +           (f.adresse ? ('<br>'+esc(f.adresse)) : '')
+    +         '</div>'
+    +       '</div>'
+    +     '</div>'
+
+    +     '<div class="fac-tbl-wrap"><table class="fac-table">'
+    +       '<thead><tr><th>N&deg;</th><th>Description</th><th>Qt&eacute;</th><th>Unit&eacute;</th><th>Prix unitaire</th><th>Montant</th></tr></thead>'
+    +       '<tbody>' + lignesDocHtml + '</tbody>'
+    +     '</table></div>'
+
+    +     '<div class="fac-bas">'
+    +       '<div class="fac-lettres">Arr&ecirc;t&eacute;e la pr&eacute;sente facture &agrave; la somme de&nbsp;: '+esc(_depSommeEnLettres(montant))+'.</div>'
+    +       '<div class="fac-totaux">'
+    +         '<div class="fac-totaux-ligne fac-totaux-total"><span>TOTAL</span><span>'+montant+' &euro;</span></div>'
+    +       '</div>'
+    +     '</div>'
+
+    +   '</div>' // fac-body
+    +   '<div class="fac-footer">DAKAR CITY TRANSPORT &middot; Paris &middot; T&eacute;l&nbsp;: +33 6 69 18 30 01 / +33 6 03 67 04 98<br>Email&nbsp;: contact@dakarcitytransport.com &middot; Site web&nbsp;: dakarcitytransport.com &middot; TikTok &amp; Instagram&nbsp;: @dakar_ct</div>'
+    + '</div>' // fin .fac-doc
+
+    + '<div class="fac-actions">'
+    +   '<button type="button" class="fac-btn fac-btn-print" onclick="depExporterFactureManuellePDF()">&#128196; Exporter en PDF</button>'
+    +   '<button type="button" class="fac-btn" style="background:#EEF0FA;color:#252599;" onclick="depFactureManuelleModifier(window._depFmDocId)">&#9999;&#65039; Modifier cette facture</button>'
+    +   '<button type="button" class="fac-btn fac-btn-retour" onclick="goTo(\'s-facture-manuelle\');depRenderListeFacturesManuelles();">&larr; Retour aux factures manuelles</button>'
+    + '</div>';
+  box.innerHTML = h;
+}
+
+window.depExporterFactureManuellePDF = function(){
+  var id = window._depFmDocId;
+  var f = (window.facturesManuellesData||{})[id];
+  var box = $('fm-doc-contenu');
+  var el = box ? box.querySelector('.fac-doc') : null;
+  var nom = f ? (f.nom||'Partenaire') : 'Partenaire';
+  _depExporterFacturePDFViaCanvas(el, 'Facture manuelle - ' + nom + '.pdf');
+};
+
+/* Container lié : petite section de suivi dans le détail du container
+   (window.depDetail), ajoutée par un patch DOM dans greffer() — jamais
+   mêlée aux vrais totaux du container, juste listée à part pour qu'on
+   sache qu'il en existe. Voir aussi l'appel dans le listener
+   dct_factures_manuelles plus haut, pour rafraîchir si le détail est
+   déjà ouvert quand une facture change ailleurs. */
+function _depFmRafraichirDetailContainer(){
+  var ecran = $('s-depart-detail');
+  if(!ecran || !ecran.classList.contains('active')) return;
+  var id = (typeof window._depDetailIdPublic === 'function') ? window._depDetailIdPublic() : null;
+  if(!id) return;
+  _depFmInjecterSuiviContainer(id);
+}
+
+function _depFmInjecterSuiviContainer(departId){
+  var contenu = $('s-depart-detail');
+  if(!contenu) return;
+  var zone = contenu.querySelector('.content');
+  if(!zone) return;
+  var data = window.facturesManuellesData || {};
+  var liees = Object.keys(data).filter(function(k){ return data[k] && data[k].departId === departId; });
+  var bloc = document.getElementById('dep-fm-suivi-container');
+  if(!liees.length){
+    if(bloc) bloc.remove();
+    return;
+  }
+  var total = liees.reduce(function(s,k){ return s + (parseFloat(data[k].montant)||0); }, 0);
+  var h = '<div style="font-size:11.5px;font-weight:800;color:#5E35B1;letter-spacing:.03em;margin-bottom:6px;">'
+    + '&#129534; '+liees.length+' FACTURE'+(liees.length > 1 ? 'S' : '')+' MANUELLE'+(liees.length > 1 ? 'S' : '')+' LI&Eacute;E'+(liees.length > 1 ? 'S' : '')+'</div>'
+    + '<div style="font-size:12px;color:#666;line-height:1.6;">'+total+' &euro; au total &mdash; <b>ne compte pas</b> dans ce container ni dans les chiffres globaux.</div>'
+    + '<div onclick="depOuvrirEspaceFactureManuelle()" style="margin-top:8px;font-size:12px;font-weight:700;color:#5E35B1;cursor:pointer;">Voir les factures manuelles &rarr;</div>';
+  if(!bloc){
+    bloc = document.createElement('div');
+    bloc.id = 'dep-fm-suivi-container';
+    bloc.style.cssText = 'background:#F5F3FA;border:1.5px solid #E4DEF2;border-radius:10px;padding:12px 14px;margin-bottom:14px;';
+    zone.insertBefore(bloc, zone.firstChild);
+  }
+  bloc.innerHTML = h;
+}
 
 /* ─────────────────────────────────────────────
    13bis. PRIX ARTICLES — grille tarifaire de référence, carré ouvert à
