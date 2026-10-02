@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.9';
+var DEP_VERSION = 'v2.20.10';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -11862,12 +11862,19 @@ function _depPhotosCourantes(prefixe){
 // photo" sans même avoir interrogé Firebase — retour de Cobey du
 // 02/10/2026, chauffeur externe France : « il prend une photo [...] je
 // n'arrive pas à retrouver la photo qu'il a faite ».
+// v2.20.10 — même ces repères (c.nbPhotos / c.aPhotoColis) ne suffisent
+// pas : un chauffeur externe (Sénégal ou France) qui clôture sa tournée
+// depuis chauffeur.html (_executerCloture) écrit bien les photos au bon
+// endroit, mais ne touche jamais la fiche du client elle-même — ce
+// champ y reste donc à 0/absent même quand des photos existent
+// réellement. Plus de porte sur un champ qui peut mentir : on tente
+// directement la lecture Firebase dès qu'une connexion est disponible,
+// et c'est le résultat (vide ou pas) qui décide de l'affichage.
 function _depChargerPhotosFiche(clientId, c, boxId, estFrance){
   var idBox = boxId || 'e-photos-box';
   var box = $(idBox);
   if(!box) return;
-  var aDesPhotos = estFrance ? ((parseInt(c && c.nbPhotos, 10) || 0) > 0) : !!(c && c.aPhotoColis);
-  if(!c || !aDesPhotos || !window.db || !window.firebaseReady){
+  if(!c || !window.db || !window.firebaseReady){
     box.innerHTML = '<div style="text-align:center;color:#aaa;font-size:12.5px;padding:6px 0 10px;">Aucune photo pour ce colis.</div>';
     return;
   }
@@ -14094,6 +14101,15 @@ function _frInjecterStatutsChauffeurCamion(){
 // pouvoir l'ouvrir AVANT de décider Ramassé/Non ramassé, pas seulement
 // après. Le bouton apparaît donc dès qu'il y a au moins une photo, quel
 // que soit le statut du client.
+//
+// v2.20.10 — toujours rien, malgré la v2.20.9 : « Signalé récupéré par
+// le chauffeur » s'affichait bien sur la carte de Mamadou Loum, preuve
+// qu'il avait pris une photo, mais sans bouton. Cause : chauffeur.html
+// (_executerCloture) écrit le nombre de photos dans
+// tk.chauffeurStatuts[id].nbPhotos (ce que cette note lit déjà) mais ne
+// l'a JAMAIS recopié sur la fiche du client elle-même (c.nbPhotos) — le
+// seul champ que ce bouton regardait jusqu'ici. On vérifie désormais les
+// deux sources.
 function _frInjecterBoutonsPhotos(){
   if(typeof window._frCollecteActive !== 'function') return;
   var r = window._frCollecteActive();
@@ -14101,6 +14117,7 @@ function _frInjecterBoutonsPhotos(){
   var tk = (r.trucks || {})[window._frCamion];
   if(!tk) return;
   var cls = (window.franceData || {}).clients || {};
+  var statuts = tk.chauffeurStatuts || {};
   var route = document.getElementById('frc-route');
   if(!route) return;
   var hours = tk.hours || {};
@@ -14114,7 +14131,9 @@ function _frInjecterBoutonsPhotos(){
   var cartes = route.querySelectorAll('.route-card');
   sorted.forEach(function(id, i){
     var c = cls[id];
-    var nb = parseInt(c && c.nbPhotos, 10) || 0;
+    var nbFiche = parseInt(c && c.nbPhotos, 10) || 0;
+    var nbChauffeur = parseInt(statuts[id] && statuts[id].nbPhotos, 10) || 0;
+    var nb = Math.max(nbFiche, nbChauffeur);
     if(!nb) return;
     var carte = cartes[i];
     if(!carte || carte.querySelector('.fr-btn-photos')) return;

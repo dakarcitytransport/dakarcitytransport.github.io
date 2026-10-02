@@ -171,7 +171,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.6.0';
+var CHAUFFEUR_VERSION = 'v1.6.1';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -962,6 +962,19 @@ function _executerCloture(){
     return db.ref(_cheminTruck('chauffeurStatuts/' + id)).set({
       etat: 'recupere', ts: ts, nbPhotos: photosCourantes.length
     });
+  }).then(function(){
+    // v1.3.1 : le nombre de photos (ou aPhotoColis côté Sénégal) doit
+    // aussi être posé sur la fiche du client elle-même — chauffeurStatuts
+    // (ci-dessus) ne sert qu'à l'affichage "Signalé récupéré" côté
+    // Dispatch, l'application lit ce champ-ci partout ailleurs (bouton
+    // Photos du camion, fiche du client) pour savoir s'il y a quelque
+    // chose à montrer. Retour de Cobey du 02/10/2026 : une photo prise au
+    // ramassage restait invisible pour DCT, faute de ce champ posé.
+    var cheminClientPhoto = ctx.france ? ('france/clients/' + id) : ('dct/clients/' + ctx.collecteId + '/' + id);
+    return db.ref(cheminClientPhoto).update(
+      ctx.france ? { nbPhotos: (parseInt(c && c.nbPhotos, 10) || 0) + photosCourantes.length }
+                 : { aPhotoColis: true }
+    );
   }).then(function(){
     // finTs = heure de fin, comme côté DCT natif (confirmValider) — sert
     // au calcul de durée et à l'heure affichés dans Suivi live.

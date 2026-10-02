@@ -1214,6 +1214,31 @@ qu'il a fini de collecter, il doit venir se présenter à l'entrepôt
 qu'il y a une photo, pour pouvoir la consulter **avant** de décider
 Ramassé ou Non ramassé, pas seulement après.
 
+**Complété le 02/10 (v2.20.10), Cobey**, nouvelle capture d'écran
+(Mamadou Loum) : « toujours rien. » La carte affichait pourtant bien
+« 📡 Signalé récupéré par le chauffeur » — la preuve qu'une photo
+existait — mais toujours aucun bouton. Cause trouvée, plus profonde que
+les deux précédentes : `chauffeur.html` (la page que le chauffeur
+externe utilise), en clôturant un client, écrit bien le nombre de
+photos — mais seulement dans un coin technique propre au camion
+(`chauffeurStatuts`, qui sert juste à afficher cette note), **jamais**
+sur la fiche du client elle-même. Le bouton (et le chargement de la
+photo au clic) ne regardait que la fiche : pour un client passé par un
+chauffeur externe, elle n'a jamais le bon chiffre, photo ou pas.
+
+Trois correctifs, pour que ça ne revienne pas sous une autre forme :
+- le bouton du camion regarde maintenant les deux endroits (fiche *et*
+  `chauffeurStatuts`) ;
+- la fonction qui charge une photo n'exige plus ce chiffre avant
+  d'interroger Firebase — elle regarde directement s'il y a quelque
+  chose, pour ne plus jamais se fier à un champ qui peut mentir ;
+- `chauffeur.html` pose désormais ce chiffre sur la fiche du client en
+  clôturant (comme le fait déjà l'ajout de photo depuis l'entrepôt),
+  pour que tout le reste de l'application (dont le bouton « 📷 Photos
+  des colis » de la fiche client elle-même) le voie aussi — et pour un
+  chauffeur externe **Sénégal** aussi, qui avait exactement le même
+  trou, jamais remarqué jusqu'ici.
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage
