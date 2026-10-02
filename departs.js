@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.4';
+var DEP_VERSION = 'v2.20.5';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14164,7 +14164,7 @@ function _frRenderSuivi(){
   keys.forEach(function(k){
     var tk = trks[k], s = _suiviStatsCamion(tk);
     var coul = tk.color || '#1a1a2e';
-    h += '<div class="suivi-card" onclick="ouvrirCamionFrance(\'' + k + '\')">'
+    h += '<div class="suivi-card" onclick="_frSuiviOuvrirCamion(\'' + k + '\')">'
       +   '<div style="display:flex;align-items:center;gap:8px;">'
       +     '<span style="width:11px;height:11px;border-radius:3px;background:' + coul + ';flex-shrink:0;"></span>'
       +     '<span style="font-size:14px;font-weight:800;color:#14304f;flex:1;word-break:break-word;">&#128667; ' + esc(tk.name) + '</span>'
@@ -14209,7 +14209,95 @@ function _frRenderSuivi(){
 function _frRenderSuiviEcran(){
   try{ if(typeof window.majBoutonFrance === 'function') window.majBoutonFrance(); }catch(e){}
   var box = document.getElementById('france-content');
-  if(box) box.innerHTML = _frRenderSuivi();
+  if(!box) return;
+  box.innerHTML = _frSuiviCamionActuel ? _frRenderTimelineCamion(_frSuiviCamionActuel) : _frRenderSuivi();
+}
+
+// v2.20.5 — Cobey, après avoir testé le Suivi France & Europe : « quand
+// je clique sur le camion, au lieu de me faire un suivi, il me renvoie
+// sur la ramasse [...] je veux le même suivi que sur le parcours
+// collecte ». Le clic sur une carte camion ouvrait par erreur l'écran
+// Dispatch (ouvrirCamionFrance, fait pour COCHER les colis) au lieu du
+// détail "timeline" que la collecte Sénégal montre déjà (renderTimelineCamion,
+// dct-app.html) — chronologie de chaque client avec heure de départ, de
+// passage, durée du trajet. Les fonctions génériques qui dessinent cette
+// timeline (_suiviStatut, _suiviStatsCamion, _suiviAdresse, _suiviTraite,
+// SUIVI_C, _hhmm, _chrono, _dureeTxt) ne connaissent déjà que la forme
+// d'un camion (tk.clients/validated/refused/wazeTs/finTs) — exactement
+// celle des camions France (voir renderCamionFrance, dct-app.html) — donc
+// réutilisables telles quelles, sans rien dupliquer, comme _suiviStatsCamion
+// l'est déjà pour les cartes de la liste ci-dessus. Rendu dans le même
+// #france-content que la liste (pas un nouvel écran) : _frSuiviCamionActuel
+// bascule l'affichage entre liste et détail, _frRenderSuiviEcran choisit.
+var _frSuiviCamionActuel = null;
+
+window._frSuiviOuvrirCamion = function(k){
+  _frSuiviCamionActuel = k;
+  _frRenderSuiviEcran();
+};
+window._frSuiviRetourListe = function(){
+  _frSuiviCamionActuel = null;
+  _frRenderSuiviEcran();
+};
+
+function _frRenderTimelineCamion(k){
+  var col = (typeof window._frCollecteActive === 'function') ? window._frCollecteActive() : null;
+  var tk = col ? (col.trucks || {})[k] : null;
+  if(!col || !tk){
+    _frSuiviCamionActuel = null;
+    return _frRenderSuivi();
+  }
+  var cls = (window.franceData || {}).clients || {};
+  var s = _suiviStatsCamion(tk);
+
+  var b = '<div style="padding:14px 16px;">'
+    + '<div style="display:flex;align-items:center;gap:10px;">'
+    +   '<span onclick="_frSuiviRetourListe()" style="color:#fff;font-size:20px;font-weight:800;cursor:pointer;line-height:1;">&lsaquo;</span>'
+    +   '<span style="color:#fff;font-size:16px;font-weight:800;word-break:break-word;flex:1;">&#128667; ' + esc(tk.name || '') + '</span>'
+    + '</div>'
+    + '<div style="color:rgba(255,255,255,0.75);font-size:12.5px;font-weight:600;margin-top:4px;margin-left:30px;">'
+    +   (col.dateLib ? (esc(col.dateLib) + ' &middot; ') : '') + s.traites + '/' + s.total + ' clients trait&eacute;s</div>'
+    + '</div>';
+
+  var ids = tk.clients || [];
+  var h = '';
+  if(!ids.length){
+    h = '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:30px 14px;">Aucun client affect&eacute; &agrave; ce camion.</div>';
+  }
+  ids.forEach(function(id, i){
+    var c = cls[id] || {}, st = _suiviStatut(tk, id), P = SUIVI_C[st];
+    var w = tk.wazeTs && tk.wazeTs[id], f = tk.finTs && tk.finTs[id];
+    var last = (i === ids.length - 1);
+    var gris = (st === 'avenir');
+    h += '<div style="display:flex;gap:11px;">'
+      +   '<div style="display:flex;flex-direction:column;align-items:center;width:14px;flex-shrink:0;">'
+      +     '<span style="width:12px;height:12px;border-radius:50%;background:' + P.seg + ';flex-shrink:0;margin-top:3px;"></span>'
+      +     (!last ? '<span style="flex:1;width:2px;background:#e2e8f0;margin:3px 0;"></span>' : '')
+      +   '</div>'
+      +   '<div style="flex:1;padding-bottom:' + (last ? '4px' : '16px') + ';">'
+      +     '<div style="font-size:14px;font-weight:800;color:' + (gris ? '#94a3b8' : '#14304f') + ';">' + esc(_nomAffiche(c) || 'Client') + '</div>';
+    var adr = _suiviAdresse(c);
+    if(adr) h += '<div style="font-size:12px;color:' + (gris ? '#b3bcc7' : '#64748b') + ';margin-top:2px;">' + esc(adr) + '</div>';
+
+    if(st === 'route' && w){
+      h += '<div style="font-size:12px;color:#475569;margin-top:5px;">Parti &agrave; ' + _hhmm(w) + '</div>'
+        +  '<div style="display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:6px;background:' + P.bg + ';color:' + P.fg + ';">&#9201; En route depuis ' + _chrono(Date.now() - w) + '</div>';
+    } else if(_suiviTraite(st)){
+      if(w && f){
+        h += '<div style="font-size:12px;color:#475569;margin-top:5px;line-height:1.45;">Parti &agrave; ' + _hhmm(w) + ' &middot; ' + P.lib + ' &agrave; ' + _hhmm(f) + ' &middot; <span style="color:#94a3b8;">' + _dureeTxt(f - w) + ' (trajet + passage)</span></div>';
+      } else if(f){
+        h += '<div style="font-size:12px;color:#475569;margin-top:5px;">' + P.lib + ' &agrave; ' + _hhmm(f) + ' &mdash; <span style="color:#94a3b8;">sans d&eacute;placement</span></div>';
+      } else if(w){
+        h += '<div style="font-size:12px;color:#475569;margin-top:5px;">Parti &agrave; ' + _hhmm(w) + '</div>';
+      }
+      h += '<div style="display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:6px;background:' + P.bg + ';color:' + P.fg + ';">' + P.lib + '</div>';
+    } else {
+      h += '<div style="display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:6px;background:' + P.bg + ';color:' + P.fg + ';">&Agrave; venir</div>';
+    }
+    h += '</div></div>';
+  });
+
+  return b + '<div style="background:#f1f3f6;padding:14px;">' + h + '</div>';
 }
 
 // v2.20.4 — Cobey, collecte du jour même affichée "À venir" : « déjà dans
@@ -14263,6 +14351,11 @@ function _frMajOngletSuivi(t){
   if(t === 'suivi'){
     var so = document.getElementById('fr-sous');
     if(so) so.textContent = 'Suivi en direct';
+  } else {
+    // v2.20.5 — on quitte l'onglet Suivi : la prochaine fois qu'on y
+    // revient, on retombe sur la liste des camions, jamais sur le détail
+    // d'un camion qu'on regardait la dernière fois.
+    _frSuiviCamionActuel = null;
   }
 }
 

@@ -1051,9 +1051,25 @@ terminée ni une collecte vraiment à venir.
 droite de l'écran France & Europe) qui ne réagirait pas au clic — n'a
 pas pu être reproduit : testé en forçant le même chemin de code, la
 carte s'ouvre normalement. Pas corrigé en l'absence d'un cas qui
-reproduit le problème ; à reprendre avec plus de détail de Cobey
-(message réseau faible au moment du test ? écran resté blanc, ou
-vraiment aucune réaction au toucher ?).
+reproduit le problème.
+
+### ~~Suivi : le clic sur un camion renvoyait vers le Dispatch~~
+**Fait le 02/10 (v2.20.5).** Cobey, après clarification du point
+précédent : « l'interface du suivi live n'est pas du tout le même que
+sur France Collecte. Quand je clique sur le camion, au lieu de me faire
+un suivi, il me renvoie sur la ramasse. Enfin, sur le camion dispatch.
+Moi, je veux le même suivi que sur le parcours collecte. »
+
+Le clic sur une carte de camion, dans l'écran Suivi France & Europe,
+ouvrait par erreur l'écran Dispatch (fait pour cocher les colis un par
+un) au lieu du détail qu'affiche déjà la collecte Sénégal pour ce même
+geste : une chronologie de chaque client (heure de départ, heure de
+passage, durée du trajet, statut coloré). Corrigé en réutilisant
+telles quelles les fonctions génériques qui dessinent déjà cette
+chronologie côté Sénégal — elles ne connaissaient que la forme d'un
+camion (ses clients, qui est passé, qui a été refusé…), strictement la
+même côté France. Le clic ouvre maintenant ce même détail, avec un
+retour propre vers la liste des camions.
 
 ### ~~Chauffeur externe : pas de lien à envoyer~~
 **Fait le 01/10 (v2.11.3).** Cobey, capture d'écran à l'appui : « dans la
