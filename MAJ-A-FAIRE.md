@@ -1710,6 +1710,16 @@ Le badge était toujours orange, soldé ou pas. Reprend maintenant le
 même code couleur que le colis juste au-dessus : orange tant qu'il
 reste à payer, vert une fois soldée.
 
+**v1.6.2 :** Cobey : « est-ce qu'on peut avoir le détail de ce qui a
+été encaissé par DCT et le détail de ce qui sera encaissé par Mamadou
+Niass. Comme ça, il verra, lui, ce qu'il a récolté et il verra aussi ce
+que Dakar a récolté. » Chaque versement livraison porte déjà qui l'a
+encaissé (`par` — posé aussi bien côté DCT que depuis cette page) : pas
+de nouvelle donnée à ajouter, juste une addition supplémentaire. Le
+bandeau « Encaissé » du container se décompose maintenant en 2
+sous-lignes : « dont par DCT » et « dont par Mamadou », qui se
+partagent ce même total.
+
 Ce qui reste **non construit** : ce que Mamadou touche lui-même par
 livraison (commission/forfait) — **question toujours en suspens pour
 Cobey**, sur quelle base il est rémunéré ; sans cette règle, impossible

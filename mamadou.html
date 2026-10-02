@@ -279,11 +279,17 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
       <!-- v1.6.0 — Cobey : « Niass a besoin de savoir le total facturé
            en livraison du container, le total encaissé et le total
            restant [...] adapté à la livraison ! » Caisse livraison
-           uniquement (jamais le colis, voir la garde v1.0.0 plus bas). -->
+           uniquement (jamais le colis, voir la garde v1.0.0 plus bas).
+           v1.6.2 — « le détail de ce qui a été encaissé par DCT et [...]
+           par Mamadou Niass [...] il verra, lui, ce qu'il a récolté et
+           il verra aussi ce que Dakar a récolté » : 2 sous-lignes sous
+           Encaissé, en retrait, qui se partagent ce même total. -->
       <div id="cd-finance-liv" hidden style="background:#EAF2FB;border:1.5px solid #B9D4F0;border-radius:10px;padding:12px;margin-bottom:14px;">
         <div style="font-size:11px;color:#1a4971;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">&#128666; Livraison &mdash; ce container</div>
         <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:6px 0;"><span class="k">Factur&eacute;</span><span class="v" id="cd-liv-facture">&mdash;</span></div>
-        <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:6px 0;"><span class="k">Encaiss&eacute;</span><span class="v" id="cd-liv-encaisse" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="padding:6px 0 2px;"><span class="k">Encaiss&eacute;</span><span class="v" id="cd-liv-encaisse" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="padding:3px 0 3px 14px;font-size:12px;"><span class="k">dont par DCT</span><span class="v" id="cd-liv-par-dct" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:3px 0 6px 14px;font-size:12px;"><span class="k">dont par Mamadou</span><span class="v" id="cd-liv-par-mamadou" style="color:#006b2d;">&mdash;</span></div>
         <div class="kv" style="padding:6px 0;"><span class="k">Restant</span><span class="v" id="cd-liv-restant" style="color:#992020;">&mdash;</span></div>
       </div>
       <input class="recherche" id="cd-recherche" placeholder="Rechercher un client&hellip;" oninput="cdAppliquerFiltres()">
@@ -372,7 +378,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.6.1';
+var MAMADOU_VERSION = 'v1.6.2';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -873,20 +879,35 @@ function _cdMajBlocArrivee(){
 // clients du container — pas seulement ceux affichés après filtrage, le
 // bilan porte sur le container entier. N'affiche le bloc que s'il y a
 // au moins un client avec livraison : sinon rien à résumer.
+// v1.6.2 — Cobey : « est-ce qu'on peut avoir le détail de ce qui a été
+// encaissé par DCT et le détail de ce qui sera [a été] encaissé par
+// Mamadou Niass. Comme ça, il verra, lui, ce qu'il a récolté et il
+// verra aussi ce que Dakar a récolté. » Chaque versement livraison
+// porte déjà `par` (qui l'a encaissé — v.par, voir
+// _depAjouterVersementLivraisonExecuter côté DCT et l'encaissement
+// plus bas dans ce fichier, qui pose toujours par:ACTEUR_NOM) : pas
+// besoin d'un nouveau champ, juste additionner différemment selon
+// cette valeur plutôt que de prendre le total déjà calculé.
 function _cdMajFinanceLivraison(){
   var bloc = $('cd-finance-liv');
   if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT){ bloc.hidden = true; return; }
   var clients = clientsDuContainer(_cdDepartId).filter(function(x){ return x.c.livraisonDakar; });
   if(!clients.length){ bloc.hidden = true; return; }
-  var facture = 0, encaisse = 0, restant = 0;
+  var facture = 0, encaisse = 0, restant = 0, parMamadou = 0, parDCT = 0;
   clients.forEach(function(x){
     var payLiv = depCalculerPaiementLivraison(x.c);
     facture += payLiv.total; encaisse += payLiv.paye; restant += payLiv.reste;
+    (Array.isArray(x.c.versementsLivraison) ? x.c.versementsLivraison : []).forEach(function(v){
+      var m = parseFloat(v && v.montant) || 0;
+      if(v && v.par === 'Mamadou Niass') parMamadou += m; else parDCT += m;
+    });
   });
   bloc.hidden = false;
   $('cd-liv-facture').textContent = depArrondi2(facture) + ' €';
   $('cd-liv-encaisse').textContent = depArrondi2(encaisse) + ' €';
   $('cd-liv-restant').textContent = depArrondi2(restant) + ' €';
+  $('cd-liv-par-dct').textContent = depArrondi2(parDCT) + ' €';
+  $('cd-liv-par-mamadou').textContent = depArrondi2(parMamadou) + ' €';
 }
 
 function validerArriveeDepot(){
