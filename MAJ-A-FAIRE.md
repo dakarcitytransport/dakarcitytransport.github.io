@@ -1421,6 +1421,38 @@ différent.
 
 ## 6 · Rapport financier
 
+### ~~La taxe du partenaire, sur les conteneurs du Mali~~
+**Fait le 02/10 (v2.14.0).** Cobey : « pour les clients Mali, en fait,
+avec le partenaire avec lequel on envoie, il y a des taxes. [...] si on
+facture un baril à 150 euros à une cliente, comme ce n'est pas nous qui
+gérons le conteneur, c'est le prestataire [...] il va nous prendre 120
+euros, par exemple. Et le reste, ça sera pour nous. [...] le client,
+lui, sera facturé de la totalité. [...] on ne veut pas fausser les
+résultats. Donc, j'ai pensé que dans le bilan financier, dans les
+conteneurs du Mali [...] on pourrait plutôt marquer les taxes pour
+chaque client que le Mali nous prend et qui régulariserait les prix de
+la globalité. »
+
+DCT ne gère pas les conteneurs du Mali : c'est un partenaire qui prend
+en charge l'envoi, et il prélève sa part sur chaque client — le client,
+lui, règle bien la totalité facturée. Un nouveau champ « 🤝 Taxe
+prestataire (Mali) » apparaît maintenant **sur la fiche de chaque
+client** parti dans un container du Mali (Collecte, Dépôt direct ou
+France & Europe — confirmé par Cobey : sur la fiche, pas dans une liste
+à part), avec un bouton Ajouter/Modifier qui ouvre une petite modale.
+
+Le bilan financier montre désormais **les deux chiffres** (confirmé par
+Cobey : les deux, pas l'un à la place de l'autre) :
+- dans le détail d'un container du Mali, sous le « Résultat colis »
+  habituel (le facturé/encaissé brut), une ligne « 🤝 Taxe prestataire »
+  et un nouveau « Résultat réel après taxes » ;
+- dans le Bilan global (Rapport financier > Bilan), sous le
+  « Bénéfice » habituel, une ligne « Taxes prestataire » (tous
+  conteneurs Mali confondus) et un « Bénéfice réel » — n'apparaît que si
+  au moins une taxe a été renseignée.
+
+Rien ne change pour les conteneurs du Sénégal.
+
 ### ~~Le carburant, absent des dépenses fixes~~
 **Fait le 30/09 (v2.10.32 / v3.94.33).** Cobey : « rajoute le carburant
 dans les dépenses fixes, dans le bilan financier. »

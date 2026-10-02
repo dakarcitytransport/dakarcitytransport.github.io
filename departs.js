@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.13.0';
+var DEP_VERSION = 'v2.14.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2363,7 +2363,7 @@ function compteursDepart(departId){
   var r = { clients:0, euros:0, colis:0,
             colisTotal:0, colisPaye:0, colisDu:0, colisTrop:0, colisTropNb:0,
             livTotal:0,   livPaye:0,   livDu:0,   livTrop:0,   livTropNb:0,
-            livClients:0, sansPrix:0 };
+            livClients:0, sansPrix:0, taxePrestataire:0 };
 
   function ajouter(c){
     // v1.31.0 : ne compter qu'une fois une facture regroupée — ses colis,
@@ -2373,6 +2373,9 @@ function compteursDepart(departId){
     // v1.86.0 : le nombre de colis, pour la comparaison de périodes.
     r.colis += (parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 1);
     r.euros += (parseFloat(c.prix) || 0);
+    // v2.14.0 : ce que le partenaire Mali prélève sur ce client — voir
+    // depOuvrirTaxePrestataire et le bilan du container (depRapfinContainer).
+    r.taxePrestataire += (parseFloat(c.taxePrestataire) || 0);
     if(_depSansPrix(c)) r.sansPrix++;
     var pc = depCalculerPaiement(c);
     r.colisTotal += pc.total; r.colisPaye += pc.paye; r.colisDu += pc.reste;
@@ -2399,7 +2402,7 @@ function compteursDepart(departId){
 
   // Les additions d'euros traînent des restes binaires (surtout après une
   // conversion FCFA) — on arrondit une seule fois, à la fin.
-  ['euros','colisTotal','colisPaye','colisDu','colisTrop','livTotal','livPaye','livDu','livTrop']
+  ['euros','colisTotal','colisPaye','colisDu','colisTrop','livTotal','livPaye','livDu','livTrop','taxePrestataire']
     .forEach(function(k){ r[k] = depArrondi2(r[k]); });
   return r;
 }
@@ -4668,6 +4671,31 @@ function injecterEcrans(){
     +   '<button class="btn-sm" style="background:#FDEDED;color:#992020;border:1.5px solid #F5C6C6;" onclick="depPrixArticleThemeSupprimerConfirmer()">Supprimer</button>'
     + '</div></div></div>';
   document.body.appendChild(m19);
+
+  /* ---- Modale (v2.14.0) : taxe prestataire sur un client d'un container
+     du Mali — DCT ne gère pas le container, c'est un partenaire ; il
+     prélève sa part sur le prix facturé au client, le reste est le vrai
+     gain de DCT. Posée ici sur la fiche du client, elle régularise le
+     bilan financier du container (demande de Cobey du 02/10/2026 : « le
+     client sera facturé de la totalité [...] on pourrait marquer les
+     taxes pour chaque client que le Mali nous prend et qui régulariserait
+     les prix de la globalité »). Voir depOuvrirTaxePrestataire /
+     depEnregistrerTaxePrestataire. ---- */
+  var m20 = document.createElement('div');
+  m20.className = 'modal-overlay';
+  m20.id = 'modal-dep-taxe-prestataire';
+  m20.innerHTML = '<div class="modal-sheet">'
+    + '<div class="modal-title">&#129309; Taxe prestataire (Mali)</div>'
+    + '<div style="font-size:12.5px;color:var(--text3);background:#f7f7f7;border-radius:8px;padding:9px 11px;margin-bottom:14px;line-height:1.5;">'
+    +   'Ce que le partenaire qui envoie ce container pr&eacute;l&egrave;ve sur le prix factur&eacute; &agrave; ce client. '
+    +   'Le reste est le vrai gain de DCT &mdash; il vient corriger le bilan financier de ce container.</div>'
+    + '<div class="fg"><label class="fl">Montant pr&eacute;lev&eacute; (&euro;)</label>'
+    +   '<input class="fi" id="dep-taxe-prestataire-montant" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0"></div>'
+    + '<div class="modal-confirm-btns">'
+    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-taxe-prestataire\')">Annuler</button>'
+    +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerTaxePrestataire()">&#9989; Enregistrer</button>'
+    + '</div></div>';
+  document.body.appendChild(m20);
 }
 
 // v1.19.16 : choix du pays de destination à l'inscription collecte —
@@ -10873,6 +10901,20 @@ function depRenderFicheLecture(colId, clientId, depot){
     +   kv('Nombre de colis', String(c.nbColis || c.nb || 1))
     +   kv('Prix', (c.prixADefinir ? '<span style="color:var(--text3);">&Agrave; d&eacute;finir sur place</span>' : ((c.prix||0) + '&nbsp;&euro;'))
           + (pastilleEncaisse ? ('<br><span style="font-size:10.5px;color:var(--text3);">Encaiss&eacute; par</span><br>'+pastilleEncaisse) : ''))
+    // v2.14.0 — Taxe prestataire (Mali) : DCT ne gère pas ce container,
+    // c'est un partenaire qui prélève sa part sur le prix facturé au
+    // client ; le champ vit sur la fiche (demande de Cobey du
+    // 02/10/2026), et régularise le bilan financier du container (voir
+    // depRapfinContainer).
+    +   (_depEstContainerMali(c.departId)
+          ? kv('Taxe prestataire <span style="font-weight:600;color:#999;">(Mali)</span>',
+              (c.taxePrestataire
+                ? ((c.taxePrestataire) + '&nbsp;&euro; pr&eacute;lev&eacute;s')
+                : '<span style="color:var(--text3);">Non renseign&eacute;e</span>')
+              + '<br><button type="button" class="btn-sm btn-gray-sm" style="margin-top:4px;padding:3px 10px;font-size:11px;" '
+              +   'onclick="depOuvrirTaxePrestataire({collecteId:\''+esc(colId)+'\',clientId:\''+esc(clientId)+'\',depot:'+(!!depot)+'})">'
+              +   '&#9999;&#65039; ' + (c.taxePrestataire ? 'Modifier' : 'Ajouter') + '</button>')
+          : '')
     // v1.19.53 : reste à payer, visible uniquement si le paiement est
     // incomplet (retour de Cobey du 28/08/2026) — € + FCFA arrondi.
     // v1.20.32 : "Déjà encaissé" ajouté juste au-dessus — un versement pris
@@ -15647,6 +15689,28 @@ function greffer(){
       // France & Europe a le même droit qu'un autre de voir ses deux
       // factures d'un même container réunies.
       try{ _depBoutonsFusionFrance(); }catch(eFus){ console.error('departs: regroupement (fiche france)', eFus); }
+      // v2.14.0 : taxe prestataire (Mali) — même champ que sur la fiche
+      // Collecte/Dépôt (voir depOuvrirTaxePrestataire), posé ici pour les
+      // clients France & Europe partis dans un container du Mali.
+      try{
+        var idTaxeFr = window.franceClientId;
+        var cTaxeFr = ((window.franceData||{}).clients||{})[idTaxeFr];
+        var blocTaxeFr = document.getElementById('dep-fr-taxe-prestataire');
+        if(blocTaxeFr) blocTaxeFr.remove();
+        if(cTaxeFr && cTaxeFr.departId && _depEstContainerMali(cTaxeFr.departId)){
+          blocTaxeFr = document.createElement('div');
+          blocTaxeFr.id = 'dep-fr-taxe-prestataire';
+          blocTaxeFr.style.cssText = 'background:#FFF3E0;border:1.5px solid #F0C36D;border-radius:10px;padding:10px 12px;margin-bottom:14px;';
+          blocTaxeFr.innerHTML = '<div style="font-size:11.5px;font-weight:800;color:#8A5200;margin-bottom:4px;">&#129309; TAXE PRESTATAIRE (MALI)</div>'
+            + '<div style="font-size:13px;color:#333;">' + (cTaxeFr.taxePrestataire
+                ? (cTaxeFr.taxePrestataire + ' &euro; pr&eacute;lev&eacute;s par le partenaire')
+                : 'Non renseign&eacute;e') + '</div>'
+            + '<button type="button" class="btn-sm btn-gray-sm" style="margin-top:6px;" '
+            +   'onclick="depOuvrirTaxePrestataire({france:true,clientId:\''+esc(idTaxeFr)+'\'})">'
+            +   '&#9999;&#65039; ' + (cTaxeFr.taxePrestataire ? 'Modifier' : 'Ajouter') + '</button>';
+          if(box) box.insertBefore(blocTaxeFr, box.firstChild);
+        }
+      }catch(eTaxeFr){ console.error('departs: taxe prestataire fiche france', eTaxeFr); }
     };
     window._renderFicheFrance._depPatch = true;
   }
@@ -19099,15 +19163,18 @@ function _depRapfinTousLesContainers(){
 function _depRapfinTotaux(){
   var g = { nb:0, clients:0, sansPrix:0,
             colisTotal:0, colisPaye:0, colisDu:0,
-            livTotal:0,   livPaye:0,   livDu:0 };
+            livTotal:0,   livPaye:0,   livDu:0,
+            // v2.14.0 : cumul de ce que les partenaires Mali prélèvent,
+            // tous containers du Mali confondus — voir _depBilanFinancier.
+            taxePrestataire:0 };
   _depRapfinTousLesContainers().forEach(function(d){
     var cp = compteursDepart(d._id);
     if(!cp.clients) return;          // un container vide n'a rien à dire ici
     g.nb++;
-    ['clients','sansPrix','colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
+    ['clients','sansPrix','colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu','taxePrestataire']
       .forEach(function(k){ g[k] += cp[k]; });
   });
-  ['colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu']
+  ['colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu','taxePrestataire']
     .forEach(function(k){ g[k] = depArrondi2(g[k]); });
   return g;
 }
@@ -19257,6 +19324,14 @@ window.depRapfinContainer = function(id){
   var totFix = _depTotalFixesDe(id);
   var totDep = depArrondi2(totCam + totFix);
   var resultat = _depResultatColis(id, cp);
+  // v2.14.0 — Conteneurs du Mali : DCT ne gère pas le container, c'est un
+  // partenaire qui prélève sa part sur chaque client (voir
+  // depOuvrirTaxePrestataire, sur la fiche du client). "Résultat colis"
+  // ci-dessous reste le facturé/encaissé brut ; ce second chiffre est le
+  // vrai gain de DCT une fois la part du partenaire retirée — Cobey a
+  // demandé explicitement à voir les deux, pas seulement l'un ou l'autre.
+  var estMali = (depPaysDepart(d) === 'ML');
+  var resultatReel = depArrondi2(resultat - (cp.taxePrestataire || 0));
   // v1.94.12 : Cobey : « dans la case dépense de ce container, on doit
   // aussi voir le détail global » — même détail par poste que sur
   // l'écran "Dépenses du container", ici aussi.
@@ -19285,6 +19360,19 @@ window.depRapfinContainer = function(id){
     +   '<b style="font-size:18px;color:' + (resultat < 0 ? '#B3261E' : '#006b2d') + ';">'
     +     _depEuros(resultat) + ' &euro;</b>'
     + '</div>'
+    + (estMali
+      ? ('<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;margin-top:3px;">'
+          +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#129309; Taxe prestataire'
+          +     '<span style="font-weight:600;color:#999;"> (pr&eacute;lev&eacute;e par le partenaire)</span></span>'
+          +   '<b style="font-size:13.5px;color:#B3261E;">&minus;' + _depEuros(cp.taxePrestataire || 0) + ' &euro;</b>'
+          + '</div>'
+          + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
+          +   'margin-top:5px;border-top:2px dashed var(--border);">'
+          +   '<span style="font-size:13px;font-weight:800;color:var(--text);">R&eacute;sultat r&eacute;el apr&egrave;s taxes</span>'
+          +   '<b style="font-size:18px;color:' + (resultatReel < 0 ? '#B3261E' : '#006b2d') + ';">'
+          +     _depEuros(resultatReel) + ' &euro;</b>'
+          + '</div>')
+      : '')
     + (cp.livPaye
       ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.4;">'
         + '&#128666; La livraison a sa propre caisse : ' + _depEuros(cp.livPaye)
@@ -19564,12 +19652,23 @@ function _depBilanFinancier(){
   // v1.73.0 : plus aucun report de l'ancienne application 360 — les
   // comptes de DCT ne comptent que ce qui passe par ici (décision de
   // Cobey du 24/09/2026 : « retire ça, ça ne sert plus à rien »).
+  // v2.14.0 : les conteneurs du Mali sont facturés en totalité au client,
+  // mais le partenaire qui les gère en prélève une part (voir
+  // depOuvrirTaxePrestataire) — sans correction, "recettes"/"bénéfice"
+  // comptaient cette part comme un gain DCT. On garde le chiffre brut
+  // (recettes/benefice) ET on ajoute le chiffre réel une fois la part du
+  // partenaire retirée — Cobey a demandé explicitement à voir les deux.
+  var recettesReelles = depArrondi2(recettes - g.taxePrestataire);
+  var beneficeReel = depArrondi2(recettesReelles - depenses);
   return {
     g: g, fixes: fixes, totFixes: totFixes, camions: camions,
     aEncaisser: aEncaisser,
     recettes: recettes, depenses: depenses,
     livPaye: g.livPaye, livDu: g.livDu, livTotal: g.livTotal,
-    benefice: depArrondi2(recettes - depenses)
+    benefice: depArrondi2(recettes - depenses),
+    taxePrestataire: g.taxePrestataire,
+    recettesReelles: recettesReelles,
+    beneficeReel: beneficeReel
   };
 }
 
@@ -19679,6 +19778,26 @@ window.depRenderRapfinBilan = function(){
     +   '<b style="font-size:24px;color:' + (b.benefice < 0 ? '#B3261E' : '#006b2d') + ';">'
     +     _depEuros(b.benefice) + ' &euro;</b>'
     + '</div>'
+    // v2.14.0 — Conteneurs du Mali : le partenaire qui les gère prélève sa
+    // part sur chaque client facturé (voir depOuvrirTaxePrestataire, sur
+    // la fiche du client). Le bénéfice ci-dessus reste le brut/facturé ;
+    // ce bloc montre le chiffre réel une fois cette part retirée — Cobey
+    // a demandé explicitement à voir les deux, pas l'un à la place de
+    // l'autre. N'apparaît que si une taxe a été renseignée.
+    + (b.taxePrestataire > 0
+      ? ('<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;margin-top:8px;">'
+          +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">&#129309; Taxes prestataire'
+          +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">pr&eacute;lev&eacute;es par les partenaires Mali</span></span>'
+          +   '<b style="font-size:19px;color:#B3261E;">&minus; ' + _depEuros(b.taxePrestataire) + ' &euro;</b>'
+          + '</div>'
+          + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;'
+          +   'margin-top:6px;border-top:2px dashed var(--border);">'
+          +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice r&eacute;el'
+          +     '<br><span style="font-size:11px;font-weight:600;color:#999;">apr&egrave;s taxes des partenaires</span></span>'
+          +   '<b style="font-size:24px;color:' + (b.beneficeReel < 0 ? '#B3261E' : '#006b2d') + ';">'
+          +     _depEuros(b.beneficeReel) + ' &euro;</b>'
+          + '</div>')
+      : '')
     + (b.aEncaisser > 0
       ? '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border-radius:8px;'
         + 'padding:8px 10px;margin-top:12px;font-weight:600;line-height:1.4;">'
@@ -20568,6 +20687,61 @@ function _depFmInjecterSuiviContainer(departId){
   }
   bloc.innerHTML = h;
 }
+
+/* ─────────────────────────────────────────────
+   13quater (v2.14.0). TAXE PRESTATAIRE — conteneurs du Mali.
+
+   DCT ne gère pas ces conteneurs-là : c'est un partenaire qui envoie le
+   colis au Mali, et il prélève sa part sur le prix facturé au client (ex.
+   facturé 150 €, le partenaire en prend 120, DCT ne touche vraiment que
+   30). Le client, lui, règle la totalité — aucune nuance à lui faire
+   porter. Mais sans ce champ, le bilan financier comptait les 150 € comme
+   un encaissement DCT, faussant le résultat réel du container (demande de
+   Cobey du 02/10/2026, confirmée par deux choix explicites : le champ vit
+   SUR LA FICHE DU CLIENT, pas dans une liste à part ; et le bilan montre
+   LES DEUX chiffres, le facturé et le réel après taxes — voir
+   depRapfinContainer plus bas).
+
+   Un seul champ, `taxePrestataire`, sur le client — pas un nouveau nœud
+   Firebase : il vit avec le reste de sa fiche, quelle que soit sa source
+   (Collecte, Dépôt direct, France & Europe), via les mêmes
+   _depClientFacture/_depEcrireFacture déjà centralisés plus haut.
+   ───────────────────────────────────────────── */
+
+// true si ce départ est un container du Mali (voir depPaysDepart).
+function _depEstContainerMali(departId){
+  var d = (window.departsData||{})[departId];
+  return !!(d && depPaysDepart(d) === 'ML');
+}
+
+var _depTaxeCtx = null; // { collecteId, clientId, depot } ou { france:true, clientId }
+
+// Ouvre la modale, pré-remplie avec la valeur déjà enregistrée s'il y en
+// a une — ctx au même format que _depClientFacture/_depEcrireFacture.
+window.depOuvrirTaxePrestataire = function(ctx){
+  _depTaxeCtx = ctx;
+  var c = _depClientFacture(ctx);
+  var i = $('dep-taxe-prestataire-montant');
+  if(i) i.value = (c && c.taxePrestataire) ? String(c.taxePrestataire) : '';
+  openModal('modal-dep-taxe-prestataire');
+};
+
+window.depEnregistrerTaxePrestataire = function(){
+  var ctx = _depTaxeCtx;
+  if(!ctx) return;
+  var i = $('dep-taxe-prestataire-montant');
+  var montant = Math.max(0, parseFloat((i && i.value) || '0') || 0);
+  var c = _depClientFacture(ctx);
+  closeModal('modal-dep-taxe-prestataire');
+  if(!c) return;
+  c.taxePrestataire = montant;
+  _depEcrireFacture(ctx, { taxePrestataire: montant });
+  toast('🤝 Taxe prestataire enregistrée.');
+  try{
+    if(ctx.france){ if(typeof window._renderFicheFrance === 'function') window._renderFicheFrance(); }
+    else { depRenderFicheLecture(ctx.collecteId, ctx.clientId, ctx.depot); }
+  }catch(e){ console.error('departs: rafraîchir après taxe prestataire', e); }
+};
 
 /* ─────────────────────────────────────────────
    13bis. PRIX ARTICLES — grille tarifaire de référence, carré ouvert à
