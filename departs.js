@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.12';
+var DEP_VERSION = 'v2.20.13';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -21725,11 +21725,30 @@ window.depRenderFideliteContact = function(){
       if(!eligible) aDesExclus = true;
       var d = c.departId ? (window.departsData||{})[c.departId] : null;
       var origine = d ? esc(d.nom||'') : (x.depot ? 'D&eacute;p&ocirc;t direct' : (x.france ? 'France &amp; Europe' : 'Pas encore rattach&eacute;'));
+      // v2.20.13 — Cobey, après avoir vérifié qu'une ligne "—" (sans date)
+      // ouvrait bien la bonne facture au tap : « ça fonctionne, mais c'est
+      // pas compréhensible [...] mettre des dates, ou des anciennes
+      // collectes [...] pour que ce soit compréhensible. » Un envoi d'une
+      // collecte Sénégal déjà ancienne/clôturée n'a pas toujours de
+      // creeLe posé sur la fiche elle-même (lacune de données d'avant ce
+      // chantier) — le "—" ne disait donc rien de quand ni de quoi il
+      // s'agissait. À défaut de cette date précise, la date de LA
+      // COLLECTE elle-même (toujours connue, même pour une ancienne)
+      // identifie déjà l'envoi sans ambiguïté.
+      var dateLabel;
+      if(c.creeLe){
+        dateLabel = esc(dateHeureFr(c.creeLe));
+      } else if(!x.depot && !x.france && x.collecteId){
+        var colRef = (window.collectes || []).filter(function(cc){ return cc && cc.id === x.collecteId; })[0];
+        dateLabel = colRef && colRef.date ? ('Collecte du ' + esc(colRef.date)) : 'Date inconnue';
+      } else {
+        dateLabel = 'Date inconnue';
+      }
       var onclickFacture = x.france
         ? ('depOuvrirFactureFrance(\'' + x.clientId + '\',true)')
         : ('depOuvrirFacture(\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\',' + (x.depot?'true':'false') + ',false,false,false,\'\',true)');
       return '<div class="dep-cli" style="cursor:pointer;' + (eligible ? '' : 'opacity:.45;') + '" onclick="' + onclickFacture + '">'
-        + '<div class="dep-cli-n">' + esc(dateHeureFr(c.creeLe||0)) + '</div>'
+        + '<div class="dep-cli-n">' + dateLabel + '</div>'
         + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
         +   '<span>' + origine + '</span>'
         +   '<b style="color:#006b2d;">' + pay.paye + ' &euro; encaiss&eacute;s</b>'

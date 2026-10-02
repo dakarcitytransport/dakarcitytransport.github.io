@@ -510,6 +510,23 @@ plus dès que « Reste à payer » est à 0 € ; les remises restent
 visibles et disponibles (rien n'est perdu), juste plus applicables sur
 cette facture-là — un message le dit, à la place du bouton.
 
+**v2.20.13 :** Cobey, sur la fiche de Fallou FALL : un des envois de
+« Ses envois » s'affichait sans date, juste « — ». Le tap l'ouvrait
+bien (la bonne facture, confirmé par Cobey), mais Cobey : « c'est pas
+compréhensible [...] mettre des dates, ou des anciennes collectes [...]
+pour que ce soit compréhensible. » Un envoi d'une collecte Sénégal déjà
+ancienne/clôturée n'a pas toujours de date posée sur la fiche
+elle-même (lacune de données antérieure à ce chantier) ; la date de LA
+COLLECTE elle-même, elle, est toujours connue — affichée désormais à la
+place du « — » (« Collecte du dimanche 27 septembre 2026 », par
+exemple).
+
+Au passage, confirmé avec Cobey : cet envoi étant une facture à 0 €
+encaissé sur une collecte déjà clôturée n'a rien d'anormal — une
+collecte se clôture dès que chaque client a sa facture **faite**, pas
+forcément **payée** (le client peut régler jusqu'à l'arrivée à Dakar,
+règle déjà en place).
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :
