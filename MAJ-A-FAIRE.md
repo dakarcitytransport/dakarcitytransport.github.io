@@ -571,6 +571,40 @@ apparaît maintenant aux trois endroits qui en manquaient : le bandeau
 global Sénégal, le bandeau global France, et le détail d'un camion
 France.
 
+**v2.20.17 :** Cobey, correction du principe même du programme de
+fidélité (le premier jet du 02/10/2026 additionnait les encaissements à
+travers PLUSIEURS envois pour atteindre 200€) : « ce n'est pas au cumul
+que ça fonctionne, le client gagne une remise de 10€ à chaque facture
+qui dépasse 200€ ! ça fonctionne par facture, il peut pour les
+prochaines factures utiliser ou non la remise, si il garde il peut les
+utiliser jusqu'à 1 an à date de la première facture qui a était
+éligible en dépassant les 200€. si il solde ses remises il sera de
+nouveau éligible à de prochaines remises avec une facture minimum de
+200€ et sa date de 12 mois pour les cumuler recommence » — puis, sur la
+base du montant à considérer : « je parle du prix payé par le client
+sur sa facture sur les colis, pas sur la livraison à Dakar. »
+
+Le calcul ne regarde donc plus une somme d'encaissements à travers
+plusieurs envois d'un même client : chaque FACTURE est jugée seule, sur
+ce qui a été payé dessus pour les colis (jamais la livraison, caisse à
+part). Une facture dont le payé colis atteint 200€ fait gagner UNE
+remise de 10€ — même si elle fait 1000€, jamais plus d'une. Plusieurs
+petites factures qui ne dépassent pas 200€ chacune ne s'additionnent
+plus entre elles. Les remises de plusieurs factures qualifiantes
+partagent toujours la même échéance (1 an, fin de mois), ancrée sur la
+PREMIÈRE d'entre elles ; une fois toutes les remises utilisées, le
+compteur repart à zéro et une nouvelle facture qualifiante relance son
+propre cycle, avec sa propre échéance — ce mécanisme-là ne change pas.
+
+⚠️ À savoir : les remises déjà posées sur de vraies factures AVANT ce
+correctif l'ont été sous l'ancien calcul (par cumul), qui en accordait
+parfois plus que ce nouveau calcul (par facture) n'en aurait jamais
+accordé pour les mêmes envois. Rien n'a été touché sur les factures
+déjà émises — ces remises déjà appliquées restent annulables
+normalement — mais si on recalcule leur historique avec la nouvelle
+règle, le total de remises « gagnées » peut apparaître plus bas que le
+nombre réellement déjà utilisé par le passé pour ce client-là.
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :

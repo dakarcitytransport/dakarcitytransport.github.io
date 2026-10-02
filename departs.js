@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.16';
+var DEP_VERSION = 'v2.20.17';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -21446,7 +21446,7 @@ window.depEnregistrerTaxePrestataireDetail = function(){
    financier, par exemple, ne maintient lui non plus aucun total stocké).
    ───────────────────────────────────────────── */
 
-var DEP_FIDELITE_SEUIL = 200;      // € de colis encaissés pour gagner une remise
+var DEP_FIDELITE_SEUIL = 200;      // € payés sur UNE facture (colis) pour gagner une remise
 var DEP_FIDELITE_MONTANT = 10;     // € par remise
 // Le container du 13 septembre 2026 — demande explicite de Cobey, point
 // de départ du rétroactif. dateDepart est stocké au format ISO
@@ -21500,22 +21500,64 @@ function _depFideliteDateExpiration(ts){
 // `x` est le descripteur d'envoi de _depFideliteEnvoisContact (porte déjà
 // c/collecteId/depot/france), pas juste la fiche — pour pouvoir remonter
 // jusqu'à la collecte au point 3.
-function _depFideliteEnvoiEligible(x){
+// Priorité container → creeLe → date de la collecte : le container fait
+// foi en premier, car c'est lui le repère voulu par Cobey pour "ce qui
+// compte depuis le 13/09" — y compris pour une fiche dont le creeLe est
+// légèrement antérieur (déposée avant le départ du container qui l'emporte).
+function _depFideliteTsEligibilite(x){
   var c = x && x.c;
-  if(!c) return false;
+  if(!c) return 0;
   if(c.departId && c.departId !== DEP_ID_DEPOT){
     var d = (window.departsData || {})[c.departId];
-    if(d && d.dateDepart) return d.dateDepart >= DEP_FIDELITE_DATE_DEBUT;
+    if(d && d.dateDepart){
+      var tsDepart = new Date(d.dateDepart + 'T00:00:00').getTime();
+      if(!isNaN(tsDepart)) return tsDepart;
+    }
   }
-  if(c.creeLe) return c.creeLe >= DEP_FIDELITE_DATE_DEBUT_TS;
+  if(c.creeLe) return c.creeLe;
   if(x && !x.depot && !x.france && x.collecteId){
     var col = (window.collectes || []).filter(function(cc){ return cc && cc.id === x.collecteId; })[0];
     if(col && col.date){
       var dt = (typeof parseDate === 'function') ? parseDate(col.date) : null;
-      if(dt && !isNaN(dt.getTime())) return dt.getTime() >= DEP_FIDELITE_DATE_DEBUT_TS;
+      if(dt && !isNaN(dt.getTime())) return dt.getTime();
     }
   }
-  return false;
+  return 0;
+}
+
+function _depFideliteEnvoiEligible(x){
+  var ts = _depFideliteTsEligibilite(x);
+  return ts > 0 && ts >= DEP_FIDELITE_DATE_DEBUT_TS;
+}
+
+// v2.20.17 — date de LA FACTURE elle-même, pour l'ancrage du cycle d'un
+// an dans le moteur de calcul ci-dessous : PRIORITÉ INVERSE de celle
+// d'éligibilité ci-dessus. Un container regroupe plusieurs clients qui
+// n'ont pas tous fait leur facture le même jour — leur ancrer à TOUS la
+// même date de départ de container ferait expirer leurs remises toutes
+// ensemble, au lieu d'« 1 an à date de la première facture qui a était
+// éligible » PERSONNELLE à chaque client (demande de Cobey). On préfère
+// donc creeLe (le vrai moment où CETTE facture a été faite) ; le
+// container ne sert plus qu'à défaut, pour une vieille fiche sans creeLe.
+function _depFideliteDateEnvoiTs(x){
+  var c = x && x.c;
+  if(!c) return 0;
+  if(c.creeLe) return c.creeLe;
+  if(c.departId && c.departId !== DEP_ID_DEPOT){
+    var d = (window.departsData || {})[c.departId];
+    if(d && d.dateDepart){
+      var tsDepart = new Date(d.dateDepart + 'T00:00:00').getTime();
+      if(!isNaN(tsDepart)) return tsDepart;
+    }
+  }
+  if(x && !x.depot && !x.france && x.collecteId){
+    var col = (window.collectes || []).filter(function(cc){ return cc && cc.id === x.collecteId; })[0];
+    if(col && col.date){
+      var dt = (typeof parseDate === 'function') ? parseDate(col.date) : null;
+      if(dt && !isNaN(dt.getTime())) return dt.getTime();
+    }
+  }
+  return 0;
 }
 
 // Tous les envois d'un même contact (clé = _depCleContact), les TROIS
@@ -21553,16 +21595,27 @@ function _depFideliteEnvoisContact(contactKey){
   return resultats;
 }
 
-// Tous les versements colis (jamais la livraison, caisse à part) des
-// envois éligibles de ce contact, triés chronologiquement.
-function _depFideliteEncaissements(contactKey){
+// v2.20.17 — Cobey, correction du principe même du programme : « ce
+// n'est pas au cumul que ça fonctionne, le client gagne une remise de
+// 10€ à chaque facture qui dépasse 200€ ! ça fonctionne par facture
+// [...] si il solde ses remises il sera de nouveau éligible [...] et sa
+// date de 12 mois pour les cumuler recommence. » — puis, sur la base du
+// montant : « je parle du prix payé par le client sur sa facture sur
+// les colis, pas sur la livraison à Dakar. » Ce n'est donc plus un
+// cumul des encaissements à travers plusieurs envois (ancien moteur) :
+// chaque FACTURE est jugée seule, sur ce qui a été payé dessus pour les
+// colis (jamais la livraison, caisse à part — déjà le cas, c.versements
+// ne porte que sur le colis, voir depCalculerPaiementLivraison plus
+// haut). Une facture dont le payé colis atteint 200€ fait gagner UNE
+// remise de 10€, point — même si elle fait 1000€, jamais plus d'une.
+// Un envoi qui n'atteint pas 200€ à lui seul ne s'additionne plus à un
+// autre pour y arriver.
+function _depFideliteFactures(contactKey){
   var evts = [];
   _depFideliteEnvoisContact(contactKey).forEach(function(x){
     if(!_depFideliteEnvoiEligible(x)) return;
-    (Array.isArray(x.c.versements) ? x.c.versements : []).forEach(function(v){
-      var m = parseFloat(v && v.montant) || 0;
-      if(m > 0) evts.push({ type: 'encaissement', le: v.le || v.ts || x.c.creeLe || 0, montant: m });
-    });
+    var paye = (typeof depCalculerPaiement === 'function') ? (depCalculerPaiement(x.c).paye || 0) : 0;
+    evts.push({ type: 'facture', le: _depFideliteDateEnvoiTs(x), montant: depArrondi2(paye) });
   });
   return evts;
 }
@@ -21578,13 +21631,13 @@ function _depFideliteUsages(refClient){
 }
 
 // Le calcul complet pour un contact : rejoue tous les événements
-// (encaissements + remises utilisées) dans l'ordre chronologique.
+// (factures qualifiantes + remises utilisées) dans l'ordre chronologique.
 function _depFideliteCalculer(contactKey){
   var refClient = depRefClientPour(contactKey);
-  var evts = _depFideliteEncaissements(contactKey).concat(_depFideliteUsages(refClient));
+  var evts = _depFideliteFactures(contactKey).concat(_depFideliteUsages(refClient));
   evts.sort(function(a, b){ return (a.le || 0) - (b.le || 0); });
 
-  var cumul = 0, cycleDebut = null, dateExpiration = null;
+  var cycleDebut = null, dateExpiration = null;
   var disponibles = [], utilisees = [], expirees = [];
   var totalEnvoye = 0, totalGagne = 0;
 
@@ -21596,40 +21649,46 @@ function _depFideliteCalculer(contactKey){
     if(cycleDebut !== null && dateExpiration !== null && maintenant > dateExpiration && disponibles.length){
       disponibles.forEach(function(r){ r.statut = 'expiree'; r.dateExpirationEffective = dateExpiration; expirees.push(r); });
       disponibles = [];
-      cumul = 0; cycleDebut = null; dateExpiration = null;
+      cycleDebut = null; dateExpiration = null;
     }
   }
 
   evts.forEach(function(e){
     expirerSiDepasse(e.le);
-    if(e.type === 'encaissement'){
+    if(e.type === 'facture'){
       totalEnvoye += e.montant;
-      cumul += e.montant;
-      while(cumul >= DEP_FIDELITE_SEUIL){
-        cumul -= DEP_FIDELITE_SEUIL;
+      if(e.montant >= DEP_FIDELITE_SEUIL){
         totalGagne += DEP_FIDELITE_MONTANT;
         if(cycleDebut === null){ cycleDebut = e.le; dateExpiration = _depFideliteDateExpiration(e.le); }
         disponibles.push({ montant: DEP_FIDELITE_MONTANT, dateGagnee: e.le, dateExpiration: dateExpiration, statut: 'disponible' });
       }
-    } else {
+    } else if(disponibles.length){
       // Une remise utilisée — toutes partagent la même échéance dans un
       // cycle donné, l'ordre n'importe donc que pour l'affichage.
-      if(disponibles.length){
-        var r = disponibles.shift();
-        r.statut = 'utilisee'; r.dateUtilisation = e.le; r.usageId = e.usageId; r.cible = e.cible;
-        utilisees.push(r);
-        // Totalité utilisée : le compteur repart à zéro (demande de
-        // Cobey du 02/10/2026 : « le compteur se remet à zéro à chaque
-        // utilisation totale de la remise »).
-        if(!disponibles.length){ cumul = 0; cycleDebut = null; dateExpiration = null; }
-      }
+      var r = disponibles.shift();
+      r.statut = 'utilisee'; r.dateUtilisation = e.le; r.usageId = e.usageId; r.cible = e.cible;
+      utilisees.push(r);
+      // Totalité utilisée : le compteur repart à zéro (demande de
+      // Cobey du 02/10/2026 : « le compteur se remet à zéro à chaque
+      // utilisation totale de la remise »).
+      if(!disponibles.length){ cycleDebut = null; dateExpiration = null; }
+    } else {
+      // v2.20.17 — un usage réel (déjà écrit dans dct_fidelite_usages)
+      // qui ne correspond plus à aucune remise "disponible" recalculée
+      // ici (typique : des remises posées AVANT ce correctif, sous
+      // l'ancien calcul par cumul, qui en accordait souvent plus que le
+      // nouveau calcul par facture n'en aurait jamais accordé). On le
+      // garde quand même dans "utilisées" — sans ça, le bouton "Annuler"
+      // de cette ligne bien réelle sur la facture disparaîtrait, et le
+      // compteur "remises utilisées" sous-compterait un historique
+      // pourtant vrai.
+      utilisees.push({ montant: e.montant, dateGagnee: null, dateUtilisation: e.le, usageId: e.usageId, cible: e.cible, statut: 'utilisee', horsCycle: true });
     }
   });
   expirerSiDepasse(Date.now());
 
   return {
     refClient: refClient,
-    cumulEnCours: depArrondi2(cumul),
     cycleDebut: cycleDebut,
     dateExpiration: dateExpiration,
     disponibles: disponibles,
@@ -21789,7 +21848,6 @@ window.depRenderFideliteContact = function(){
 
   var h = '<div class="dep-fiche-card">'
     +   kv('Total envoy&eacute; <span style="font-weight:600;color:#999;">(encaiss&eacute;, depuis le 13/09)</span>', _depEuros(calc.totalEnvoye) + ' &euro;')
-    +   kv('Cumul en cours', _depEuros(calc.cumulEnCours) + ' &euro; <span style="color:var(--text3);">sur ' + DEP_FIDELITE_SEUIL + ' &euro;</span>')
     +   (calc.dateExpiration ? kv('Remises valables jusqu&rsquo;au', '<b style="color:#C25E00;">' + _depFideliteDateFr(calc.dateExpiration) + '</b>') : '')
     + '</div>';
 
