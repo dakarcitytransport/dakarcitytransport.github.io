@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.8';
+var DEP_VERSION = 'v2.20.9';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14075,15 +14075,25 @@ function _frInjecterStatutsChauffeurCamion(){
   });
 }
 
-// v2.20.8 — un bouton "📷 Photos" directement sur la carte de chaque
-// client du camion France (Dispatch), pour les vérifier AVANT de valider
-// la ramasse — comme le parcours Collecte, qui montre déjà les photos du
-// chauffeur sur l'écran de validation. Retour de Cobey du 02/10/2026,
-// chauffeur externe France : « il prend une photo [...] je n'arrive pas à
-// retrouver la photo qu'il a faite [...] je suis allé sur son camion
-// [...] je n'arrive pas à voir la photo ». Pas limité aux camions
-// "externe" : un client France peut aussi avoir une photo ajoutée
-// directement depuis l'entrepôt (ouvrirPhotos, natif).
+// v2.20.9 — Cobey, capture d'écran du camion externe côté Collecte à
+// l'appui : « voici l'écran du camion externe du parcours collecte, on a
+// un bouton pour vérifier la photo, sur parcours France Europe c'est pas
+// du tout pareil ». Le premier jet (v2.20.8) ajoutait bien un bouton,
+// mais écrasé dans la rangée Ramassé/Non ramassé existante — rien à voir
+// avec la vraie rangée dédiée que montre la Collecte (voir
+// _depAjouterBoutonsExtraCamionValide, qui insère sa PROPRE rangée
+// "route-actions" juste au-dessus de la rangée native, même couleur
+// #F5F6FC/#1a237e, pleine largeur). Reproduit ici à l'identique.
+//
+// Autre différence volontaire avec la Collecte : là-bas, cette rangée
+// n'apparaît qu'une fois le client validé (la photo y est prise par DCT
+// lui-même, au moment de valider). Côté France, la photo est prise PAR
+// LE CHAUFFEUR EXTERNE, avant même que DCT touche l'écran — Cobey : « une
+// fois qu'il a fini de collecter, il doit venir se présenter à
+// l'entrepôt [...] ils vérifient avec les photos » — DCT doit donc
+// pouvoir l'ouvrir AVANT de décider Ramassé/Non ramassé, pas seulement
+// après. Le bouton apparaît donc dès qu'il y a au moins une photo, quel
+// que soit le statut du client.
 function _frInjecterBoutonsPhotos(){
   if(typeof window._frCollecteActive !== 'function') return;
   var r = window._frCollecteActive();
@@ -14108,15 +14118,21 @@ function _frInjecterBoutonsPhotos(){
     if(!nb) return;
     var carte = cartes[i];
     if(!carte || carte.querySelector('.fr-btn-photos')) return;
-    var actions = carte.querySelector('.route-actions');
-    if(!actions) return;
+    var actionsNatives = carte.querySelector('.route-actions');
+    if(!actionsNatives) return;
+
+    var rangee = document.createElement('div');
+    rangee.className = 'route-actions fr-extra-camion';
+    rangee.style.cssText = 'padding-top:0;padding-bottom:0;margin-top:-2px;';
     var bouton = document.createElement('button');
     bouton.type = 'button';
-    bouton.className = 'route-action-btn fr-btn-photos';
-    bouton.style.cssText = 'flex:0 0 auto;background:#F3EFFF;color:#6d28d9;border:2px solid #D9C8F5;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);';
-    bouton.textContent = '📷 ' + nb;
+    bouton.className = 'fr-btn-photos';
+    bouton.style.cssText = 'flex:1;padding:8px;background:#F5F6FC;color:#1a237e;border:2px solid #1a237e;'
+      + 'border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--font);';
+    bouton.innerHTML = '&#128247; Photos (' + nb + ')';
     bouton.onclick = function(ev){ if(ev) ev.stopPropagation(); window.depOuvrirPhotosRapide('', id, false, true); };
-    actions.appendChild(bouton);
+    rangee.appendChild(bouton);
+    carte.insertBefore(rangee, actionsNatives);
   });
 }
 

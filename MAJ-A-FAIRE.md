@@ -1196,6 +1196,24 @@ les consulter : un bug de fond, plus une vraie case manquante.
   client qui a des photos, ouvrant la même visionneuse que partout
   ailleurs dans l'application.
 
+**Complété le 02/10 (v2.20.9), Cobey**, capture d'écran du camion
+externe côté Collecte à l'appui : « voici l'écran du camion externe du
+parcours collecte, on a un bouton pour vérifier la photo, sur parcours
+France Europe c'est pas du tout pareil. » Le bouton de la v2.20.8 était
+bien là, mais coincé dans la rangée Ramassé/Non ramassé existante —
+rien à voir avec la vraie rangée dédiée que montre la Collecte, en
+pleine largeur, juste au-dessus. Reproduit maintenant à l'identique
+(même rangée à part, même couleurs).
+
+Avec une différence assumée : côté Collecte, ce bouton n'apparaît
+qu'une fois le client validé (la photo y est prise par DCT lui-même,
+au moment de valider). Côté France, c'est le chauffeur externe qui
+prend la photo, avant même que DCT touche l'écran — Cobey : « une fois
+qu'il a fini de collecter, il doit venir se présenter à l'entrepôt
+[...] ils vérifient avec les photos. » Le bouton apparaît donc dès
+qu'il y a une photo, pour pouvoir la consulter **avant** de décider
+Ramassé ou Non ramassé, pas seulement après.
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage
