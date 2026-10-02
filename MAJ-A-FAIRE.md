@@ -469,6 +469,26 @@ directement du détail déjà enregistré sur la fiche plutôt que de le
 faire refabriquer par cette fonction, pour ne plus jamais perdre ce
 repère.
 
+**v2.20.2 :** Cobey, en re-testant le bouton Annuler de la v2.20.1 sur
+ses 4 remises de test, deux soucis :
+1. Le bouton répondait « cette remise ne se trouve plus sur cette
+   facture » et n'annulait rien. Cause : ses 4 remises avaient été
+   posées AVANT le correctif précédent — leur ligne n'a donc jamais reçu
+   le repère que l'annulation cherche. Ajout d'un repli : si aucune
+   ligne ne porte ce repère, la dernière ligne de remise trouvée est
+   retirée (elles valent toutes rigoureusement la même chose, 10 €,
+   peu importe laquelle). Les remises posées à partir de maintenant ne
+   passeront plus par ce repli, déjà bien taguées.
+2. « Quand j'appuie sur retour [...] ça revient sur la case des clients.
+   J'avais dit que chaque retour doit revenir à la case précédente [...]
+   Le bouton retour doit toujours revenir en arrière. » Une facture
+   ouverte depuis « Ses envois » (écran Fidélité d'un contact) empruntait
+   par erreur le même chemin de retour que l'écran Historique d'envoi
+   (un paramètre partagé entre les deux pour profiter du même libellé
+   « ← Retour »), qui ramenait donc au mauvais endroit. Un repère propre
+   à la Fidélité fait maintenant revenir bien sur cet écran-là, pour le
+   contact qu'on regardait.
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :

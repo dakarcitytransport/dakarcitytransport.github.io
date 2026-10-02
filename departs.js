@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.1';
+var DEP_VERSION = 'v2.20.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8188,7 +8188,7 @@ function _depTruckEtStatut(collecteId, clientId){
   return null;
 }
 
-window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, viaScan, viaHistorique, carreDepartId){
+window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, viaScan, viaHistorique, carreDepartId, viaFidelite){
   var c = depot
     ? (window.depotClients || {})[clientId]
     : (((window.clientsParCollecte || {})[collecteId]) || {})[clientId];
@@ -8237,6 +8237,16 @@ window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, vi
       // départ (qui n'a pas forcément été ouvert avant).
       btnRetour.textContent = '← Retour';
       btnRetour.onclick = function(){ goTo('s-dep-historique-contact'); };
+    } else if(viaFidelite){
+      // v2.20.2 — ouverte depuis "Ses envois" de l'écran Fidélité d'un
+      // contact (case Programme de fidélité) : même logique que
+      // viaHistorique ci-dessus, mais vers ce carré-ci (retour de Cobey
+      // du 02/10/2026 : « le bouton retour doit toujours revenir en
+      // arrière [...] à son interface précédente »). La fiche du contact
+      // reste déjà posée (_depFideliteContactKeyActuelle) — pas besoin de
+      // la retrouver.
+      btnRetour.textContent = '← Retour';
+      btnRetour.onclick = function(){ goTo('s-fidelite-contact'); try{ depRenderFideliteContact(); }catch(e){} };
     } else if(carreDepartId){
       // v1.20.11 : Facture ouverte depuis la liste du carré Dépôt (tout
       // client, pas seulement dépôt direct) — retour vers ce même carré,
@@ -8263,18 +8273,24 @@ window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, vi
 // Mitry-Mory. Pas de collecteId/dépôt ici : source distincte, voir
 // _depClientFacture (retour de Cobey du 29/08/2026 : "une édition de
 // facture similaire à la collecte").
-window.depOuvrirFactureFrance = function(clientId){
+window.depOuvrirFactureFrance = function(clientId, viaFidelite){
   var c = ((window.franceData||{}).clients||{})[clientId];
   if(!c){ toast('⚠️ Facture introuvable.'); return; }
   _depFactureCtx = { collecteId: '', clientId: clientId, depot: false, france: true };
   window._depDocVientDepart = false;
   var btnRetour = $('dep-fact-retour');
   if(btnRetour){
-    btnRetour.textContent = '← Fiche';
-    btnRetour.onclick = function(){
-      goTo('s-france-client');
-      try{ window.franceClientId = clientId; _renderFicheFrance(); }catch(e){}
-    };
+    if(viaFidelite){
+      // v2.20.2 — voir le même paramètre sur depOuvrirFacture ci-dessus.
+      btnRetour.textContent = '← Retour';
+      btnRetour.onclick = function(){ goTo('s-fidelite-contact'); try{ depRenderFideliteContact(); }catch(e){} };
+    } else {
+      btnRetour.textContent = '← Fiche';
+      btnRetour.onclick = function(){
+        goTo('s-france-client');
+        try{ window.franceClientId = clientId; _renderFicheFrance(); }catch(e){}
+      };
+    }
   }
   depRenderFacture(c);
   goTo('s-facture');
@@ -21445,8 +21461,8 @@ window.depRenderFideliteContact = function(){
       var d = c.departId ? (window.departsData||{})[c.departId] : null;
       var origine = d ? esc(d.nom||'') : (x.depot ? 'D&eacute;p&ocirc;t direct' : (x.france ? 'France &amp; Europe' : 'Pas encore rattach&eacute;'));
       var onclickFacture = x.france
-        ? ('depOuvrirFactureFrance(\'' + x.clientId + '\')')
-        : ('depOuvrirFacture(\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\',' + (x.depot?'true':'false') + ',false,false,true)');
+        ? ('depOuvrirFactureFrance(\'' + x.clientId + '\',true)')
+        : ('depOuvrirFacture(\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\',' + (x.depot?'true':'false') + ',false,false,false,\'\',true)');
       return '<div class="dep-cli" style="cursor:pointer;' + (eligible ? '' : 'opacity:.45;') + '" onclick="' + onclickFacture + '">'
         + '<div class="dep-cli-n">' + esc(dateHeureFr(c.creeLe||0)) + '</div>'
         + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
@@ -21570,6 +21586,17 @@ window.depFideliteAnnulerRemise = function(usageId){
   var idx = -1;
   for(var i = 0; i < lignes.length; i++){
     if(lignes[i].remiseUsageId === usageId){ idx = i; break; }
+  }
+  if(idx === -1){
+    // v2.20.2 — repli pour une remise posée avant ce correctif (sa ligne
+    // n'a jamais porté de remiseUsageId, voir le commentaire v2.20.1 sur
+    // _depFideliteLignesActuelles). Toutes les lignes de remise valent
+    // rigoureusement la même chose (10 €, même texte si même échéance) :
+    // en retirer n'importe laquelle a le même effet, on prend la
+    // dernière trouvée.
+    for(var j = lignes.length - 1; j >= 0; j--){
+      if((parseFloat(lignes[j].pu) || 0) < 0 && /^🎁 Remise fidélité/.test(lignes[j].nom || '')){ idx = j; break; }
+    }
   }
   if(idx === -1){ toast('⚠️ Cette remise ne se trouve plus sur cette facture.'); return; }
   lignes.splice(idx, 1);
