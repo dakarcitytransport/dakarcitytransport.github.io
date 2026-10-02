@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.6';
+var DEP_VERSION = 'v2.20.7';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14250,7 +14250,19 @@ function _frRenderTimelineCamion(k){
   var cls = (window.franceData || {}).clients || {};
   var s = _suiviStatsCamion(tk);
 
-  var b = '<div style="padding:14px 16px;">'
+  // v2.20.7 — Cobey, cet écran à peine construit : « pourquoi c'est écrit
+  // en blanc là, c'est illisible [...] le bouton retour revient à
+  // l'accueil [...] on devrait revenir à l'écran précédent ». Le texte
+  // blanc n'était lisible que sur le fond bleu marine du bandeau natif
+  // (voir #suivi-detail-band, dct-app.html, classe "suivi-band" posée
+  // dans son HTML statique) — ici le même texte blanc était posé à même
+  // le fond gris clair de #france-content, donc quasi invisible, flèche
+  // "‹" de retour comprise : faute de la voir, on tapait le seul bouton
+  // visible, "← Accueil" (natif, en haut), qui ramène toujours à
+  // l'accueil. Avec le fond marine posé ici, la vraie flèche de retour
+  // (vers la liste des camions, pas l'accueil) redevient visible et
+  // utilisable.
+  var b = '<div class="suivi-band" style="padding:14px 16px;">'
     + '<div style="display:flex;align-items:center;gap:10px;">'
     +   '<span onclick="_frSuiviRetourListe()" style="color:#fff;font-size:20px;font-weight:800;cursor:pointer;line-height:1;">&lsaquo;</span>'
     +   '<span style="color:#fff;font-size:16px;font-weight:800;word-break:break-word;flex:1;">&#128667; ' + esc(tk.name || '') + '</span>'

@@ -1071,6 +1071,20 @@ camion (ses clients, qui est passé, qui a été refusé…), strictement la
 même côté France. Le clic ouvre maintenant ce même détail, avec un
 retour propre vers la liste des camions.
 
+**v2.20.7 :** Cobey, capture d'écran de cet écran tout neuf à l'appui :
+« le bouton retour revient à l'accueil, on devrait revenir à l'écran
+précédent [...] pourquoi c'est écrit en blanc là, c'est illisible. »
+Le texte blanc de l'en-tête (nom du camion, flèche de retour) n'était
+lisible que sur le fond bleu marine du bandeau natif de la collecte
+Sénégal (posé dans son HTML à part) — recopié ici sans son fond, le même
+texte blanc se retrouvait sur le gris clair de l'écran, quasiment
+invisible, flèche de retour comprise. Faute de la voir, le seul bouton
+visible restant était « ← Accueil » (natif, tout en haut), qui ramène
+toujours à l'accueil — d'où l'impression que « le bouton retour » ne
+revenait jamais en arrière. Fond marine ajouté : le texte redevient
+lisible, et la vraie flèche de retour (vers la liste des camions)
+redevient visible et utilisable.
+
 ### ~~Chauffeur externe : pas de lien à envoyer~~
 **Fait le 01/10 (v2.11.3).** Cobey, capture d'écran à l'appui : « dans la
 version chauffeur externe de France Europe, on n'a pas le lien de
