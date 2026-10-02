@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.14';
+var DEP_VERSION = 'v2.20.15';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -21744,18 +21744,22 @@ window.depRenderFideliteContact = function(){
   // voir quand il a envoyé pour combien ». Liste propre au programme
   // (voir _depFideliteEnvoisContact), pas l'écran Historique d'envoi
   // existant — sinon les deux raconteraient des choses différentes.
-  var envois = _depFideliteEnvoisContact(key);
+  // v2.20.15 — les envois d'avant le 13/09/2026 (hors programme) étaient
+  // d'abord affichés grisés, avec une note explicative — Cobey, capture
+  // d'écran à l'appui : « on peut carrément supprimer au lieu de griser
+  // les dates avant le 13/09/26 ». Ils ne comptent de toute façon pour
+  // rien ici ; les retirer complètement évite la confusion de la fiche
+  // Fallou FALL (un envoi qui ne sert à rien à regarder, sans date
+  // compréhensible).
+  var envois = _depFideliteEnvoisContact(key).filter(function(x){ return _depFideliteEnvoiEligible(x); });
   h += '<div class="dep-fiche-card"><div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">'
     +   '&#128230; Ses envois (' + envois.length + ')</div>';
   if(!envois.length){
     h += '<div style="font-size:12.5px;color:var(--text3);padding:6px 0;">Aucun envoi enregistr&eacute;.</div>';
   } else {
-    var aDesExclus = false;
     h += envois.map(function(x){
       var c = x.c;
       var pay = depCalculerPaiement(c);
-      var eligible = _depFideliteEnvoiEligible(x);
-      if(!eligible) aDesExclus = true;
       var d = c.departId ? (window.departsData||{})[c.departId] : null;
       var origine = d ? esc(d.nom||'') : (x.depot ? 'D&eacute;p&ocirc;t direct' : (x.france ? 'France &amp; Europe' : 'Pas encore rattach&eacute;'));
       // v2.20.13 — Cobey, après avoir vérifié qu'une ligne "—" (sans date)
@@ -21780,7 +21784,7 @@ window.depRenderFideliteContact = function(){
       var onclickFacture = x.france
         ? ('depOuvrirFactureFrance(\'' + x.clientId + '\',true)')
         : ('depOuvrirFacture(\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\',' + (x.depot?'true':'false') + ',false,false,false,\'\',true)');
-      return '<div class="dep-cli" style="cursor:pointer;' + (eligible ? '' : 'opacity:.45;') + '" onclick="' + onclickFacture + '">'
+      return '<div class="dep-cli" style="cursor:pointer;" onclick="' + onclickFacture + '">'
         + '<div class="dep-cli-n">' + dateLabel + '</div>'
         + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
         +   '<span>' + origine + '</span>'
@@ -21788,10 +21792,6 @@ window.depRenderFideliteContact = function(){
         + '</div>'
         + '</div>';
     }).join('');
-    if(aDesExclus){
-      h += '<div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.4;">'
-        + 'Les envois gris&eacute;s sont ant&eacute;rieurs au 13/09/2026 et ne comptent pas pour le programme.</div>';
-    }
   }
   h += '</div>';
 

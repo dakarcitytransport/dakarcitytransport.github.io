@@ -547,6 +547,16 @@ la fiche ; et à défaut (vieille fiche Collecte sans date propre, voir
 v2.20.13) la date de la collecte elle-même. Sans aucune date fiable,
 l'envoi est exclu par prudence plutôt que compté à tort.
 
+**v2.20.15 :** Cobey, capture d'écran de « Ses envois » (Fallou FALL) à
+l'appui : « on peut carrément supprimer au lieu de griser les dates
+avant le 13/09/26. » Les envois antérieurs au 13/09/2026 (hors
+programme, voir v2.20.14) s'affichaient grisés avec une note en
+dessous — ils ne comptent de toute façon pour rien ici, et comme celui
+de Fallou FALL (sans date compréhensible), ça n'apportait que de la
+confusion. Ils n'apparaissent plus du tout dans « Ses envois » ; le
+compteur (« Ses envois (N) ») ne porte plus que sur ceux qui comptent
+réellement pour le programme.
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :
