@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.18';
+var DEP_VERSION = 'v2.20.19';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10404,8 +10404,15 @@ function depRenderFacture(c){
           + (pay.reste > 0
               ? ('<button type="button" class="btn btn-gray" style="margin-top:10px;background:#fff;border-color:#F0B37E;color:#C25E00;" '
                  +   'onclick="depFideliteAppliquerRemise()">&#9989; Appliquer une remise (&minus;' + DEP_FIDELITE_MONTANT + '&nbsp;&euro;)</button>')
-              : ('<div style="margin-top:10px;font-size:11.5px;color:#8A5200;font-style:italic;">Facture d&eacute;j&agrave; pay&eacute;e en totalit&eacute; &mdash; '
-                 + 'remise non applicable ici (&agrave; utiliser sur un prochain envoi).</div>'))
+              // v2.20.19 — Cobey, capture d'écran d'une facture à 0€ (prix
+              // non encore fixé à un vrai montant, 0€ payé, 0€ restant) qui
+              // affichait pourtant "déjà payée en totalité" : reste<=0 ne
+              // veut pas dire payée si rien n'a jamais été payé non plus.
+              : (pay.paye > 0
+                  ? ('<div style="margin-top:10px;font-size:11.5px;color:#8A5200;font-style:italic;">Facture d&eacute;j&agrave; pay&eacute;e en totalit&eacute; &mdash; '
+                     + 'remise non applicable ici (&agrave; utiliser sur un prochain envoi).</div>')
+                  : ('<div style="margin-top:10px;font-size:11.5px;color:#8A5200;font-style:italic;">Facture &agrave; 0&nbsp;&euro; &mdash; '
+                     + 'remise non applicable ici (&agrave; utiliser sur un prochain envoi).</div>')))
           + '</div>';
       }
       // v2.20.1 — les remises déjà appliquées SUR CETTE FACTURE précise
@@ -21971,8 +21978,11 @@ window.depFideliteAppliquerRemise = function(){
   // v2.20.12 — même garde que celle qui cache le bouton (voir
   // depRenderFacture) : une facture déjà soldée n'a plus rien sur quoi
   // appliquer une remise sans faire passer le prix sous l'encaissé.
-  if(depCalculerPaiement(c).reste <= 0){
-    toast('⚠️ Facture déjà payée en totalité — remise non applicable.');
+  var payGuard = depCalculerPaiement(c);
+  if(payGuard.reste <= 0){
+    // v2.20.19 — reste<=0 n'implique pas forcément "payée" : une facture
+    // à 0€ (rien payé non plus) tombe dans le même cas sans l'être.
+    toast(payGuard.paye > 0 ? '⚠️ Facture déjà payée en totalité — remise non applicable.' : '⚠️ Facture à 0 € — remise non applicable.');
     return;
   }
 

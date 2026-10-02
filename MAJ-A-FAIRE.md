@@ -606,6 +606,16 @@ reconnaît légitimement : un usage réel qui ne correspondrait à aucune
 remise recalculée ne serait pas conservé comme valable — il ne compte
 simplement pas, plutôt que d'être toléré par prudence.
 
+**v2.20.19 :** Cobey, capture d'écran de la facture d'Ibrahima Diouf
+("Une petite moto piwi Enfant", 0 € de colis, 0 € payé, 0 € restant,
+mais 1 remise fidélité disponible via un autre envoi) : « trouve-moi ce
+qui ne va pas. » La garde posée en v2.20.12 (pas de remise sur une
+facture déjà soldée) se basait sur « reste à payer = 0 » — vrai aussi
+pour une facture à 0 € où rien n'a jamais été payé, qui affichait donc
+à tort « Facture déjà payée en totalité ». Distingue maintenant les
+deux cas : une vraie facture soldée garde ce message ; une facture à
+0 € dit « Facture à 0 € — remise non applicable ici » à la place.
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :
