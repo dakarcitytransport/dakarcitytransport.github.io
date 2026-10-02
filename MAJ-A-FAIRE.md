@@ -1174,6 +1174,28 @@ toucher du doigt — sans toucher aux onglets identiques utilisés
 ailleurs dans l'appli (collecte Sénégal, Espace partenaire), qui
 gardent leur taille d'origine.
 
+**Complété le 02/10 (v2.20.8), Cobey :** « théoriquement, il prend une
+photo [...] je n'arrive pas à retrouver la photo qu'il a faite [...] je
+suis allé sur son camion [...] je n'arrive pas à voir la photo qu'il a
+faite. » Un chauffeur externe France photographie bien ses colis
+(chauffeur.html, déjà en place), mais DCT n'avait ensuite aucun moyen de
+les consulter : un bug de fond, plus une vraie case manquante.
+
+- Le bug : la fonction qui charge les photos d'un client (déjà câblée,
+  en apparence, pour la Collecte **et** la France & Europe) se fiait à
+  un repère (`c.aPhotoColis`) que seule la Collecte pose jamais — côté
+  France, c'est `c.nbPhotos` — et lisait toujours le nœud Firebase de la
+  Collecte (`dct_photos_colis`), jamais celui de la France
+  (`france_photos`). Pour un client France, la porte se refermait donc
+  avant même d'interroger Firebase : « Aucune photo » à coup sûr, photos
+  ou pas.
+- La case manquante : l'écran du camion France (Dispatch) — celui où
+  Cobey est allé chercher, comme pour un camion Sénégal — n'avait tout
+  simplement aucun bouton photo, contrairement au parcours Collecte. Un
+  bouton **📷 [nombre]** apparaît maintenant sur la carte de chaque
+  client qui a des photos, ouvrant la même visionneuse que partout
+  ailleurs dans l'application.
+
 ### ~~Chartres, retiré de l'application~~
 **Fait le 25/09 (v3.81.0 / v1.93.0).** « C'est fini Chartres, il n'y a
 plus rien qui concerne Chartres. » Cet entrepôt appartenait au montage

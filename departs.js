@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.7';
+var DEP_VERSION = 'v2.20.8';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -11640,7 +11640,7 @@ window.depOuvrirPhotosRapide = function(collecteId, clientId, depot, france){
   var titre = $('dep-photos-rapide-nom');
   if(titre) titre.textContent = '📷 Photos — ' + (c.name || 'Client');
   openModal('modal-dep-photos-rapide');
-  _depChargerPhotosFiche(clientId, c, 'dep-photos-rapide-box');
+  _depChargerPhotosFiche(clientId, c, 'dep-photos-rapide-box', !!france);
 };
 
 /* ─────────────────────────────────────────────
@@ -11851,11 +11851,23 @@ function _depPhotosCourantes(prefixe){
 // pour être réutilisée par l'accès rapide aux photos depuis la liste d'un
 // container (voir depOuvrirPhotosRapide), sans toucher à l'usage d'origine
 // sur la fiche elle-même.
-function _depChargerPhotosFiche(clientId, c, boxId){
+// v2.20.8 — `estFrance` : les photos d'un client France & Europe ne
+// vivent pas au même endroit (france_photos/<id>, voir chauffeur.html et
+// _enregistrerPhoto plus haut) ni sous le même repère (c.nbPhotos, pas
+// c.aPhotoColis, jamais posé côté France) que celles d'un client
+// Collecte/Dépôt (dct_photos_colis/<id>, c.aPhotoColis). Avant ce
+// correctif, cette fonction ignorait totalement cette différence :
+// pour un client France, la porte `!c.aPhotoColis` se refermait tout de
+// suite (ce champ n'existe jamais côté France) et affichait "Aucune
+// photo" sans même avoir interrogé Firebase — retour de Cobey du
+// 02/10/2026, chauffeur externe France : « il prend une photo [...] je
+// n'arrive pas à retrouver la photo qu'il a faite ».
+function _depChargerPhotosFiche(clientId, c, boxId, estFrance){
   var idBox = boxId || 'e-photos-box';
   var box = $(idBox);
   if(!box) return;
-  if(!c || !c.aPhotoColis || !window.db || !window.firebaseReady){
+  var aDesPhotos = estFrance ? ((parseInt(c && c.nbPhotos, 10) || 0) > 0) : !!(c && c.aPhotoColis);
+  if(!c || !aDesPhotos || !window.db || !window.firebaseReady){
     box.innerHTML = '<div style="text-align:center;color:#aaa;font-size:12.5px;padding:6px 0 10px;">Aucune photo pour ce colis.</div>';
     return;
   }
@@ -11864,8 +11876,9 @@ function _depChargerPhotosFiche(clientId, c, boxId){
   // absorbées — elles restent à leur place dans Firebase, on les lit
   // simplement toutes (voir _depIdsPhotosFacture).
   var ids = _depIdsPhotosFacture(clientId, c);
+  var chemin = estFrance ? 'france_photos/' : 'dct_photos_colis/';
   Promise.all(ids.map(function(pid){
-    return db.ref('dct_photos_colis/'+pid).once('value')
+    return db.ref(chemin+pid).once('value')
       .then(function(sn){ return sn.val() || {}; })
       .catch(function(){ return {}; });
   })).then(function(lots){
@@ -14059,6 +14072,51 @@ function _frInjecterStatutsChauffeurCamion(){
       ligne.textContent = '📡 Signalé non récupéré par le chauffeur' + (cs.motifLib ? (' : ' + cs.motifLib) : '');
     }
     zone.appendChild(ligne);
+  });
+}
+
+// v2.20.8 — un bouton "📷 Photos" directement sur la carte de chaque
+// client du camion France (Dispatch), pour les vérifier AVANT de valider
+// la ramasse — comme le parcours Collecte, qui montre déjà les photos du
+// chauffeur sur l'écran de validation. Retour de Cobey du 02/10/2026,
+// chauffeur externe France : « il prend une photo [...] je n'arrive pas à
+// retrouver la photo qu'il a faite [...] je suis allé sur son camion
+// [...] je n'arrive pas à voir la photo ». Pas limité aux camions
+// "externe" : un client France peut aussi avoir une photo ajoutée
+// directement depuis l'entrepôt (ouvrirPhotos, natif).
+function _frInjecterBoutonsPhotos(){
+  if(typeof window._frCollecteActive !== 'function') return;
+  var r = window._frCollecteActive();
+  if(!r) return;
+  var tk = (r.trucks || {})[window._frCamion];
+  if(!tk) return;
+  var cls = (window.franceData || {}).clients || {};
+  var route = document.getElementById('frc-route');
+  if(!route) return;
+  var hours = tk.hours || {};
+  var sorted = (tk.clients || []).slice().sort(function(a, b){
+    var ha = hours[a], hb = hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return tk.clients.indexOf(a) - tk.clients.indexOf(b);
+  });
+  var cartes = route.querySelectorAll('.route-card');
+  sorted.forEach(function(id, i){
+    var c = cls[id];
+    var nb = parseInt(c && c.nbPhotos, 10) || 0;
+    if(!nb) return;
+    var carte = cartes[i];
+    if(!carte || carte.querySelector('.fr-btn-photos')) return;
+    var actions = carte.querySelector('.route-actions');
+    if(!actions) return;
+    var bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'route-action-btn fr-btn-photos';
+    bouton.style.cssText = 'flex:0 0 auto;background:#F3EFFF;color:#6d28d9;border:2px solid #D9C8F5;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);';
+    bouton.textContent = '📷 ' + nb;
+    bouton.onclick = function(ev){ if(ev) ev.stopPropagation(); window.depOuvrirPhotosRapide('', id, false, true); };
+    actions.appendChild(bouton);
   });
 }
 
@@ -16656,6 +16714,7 @@ function greffer(){
     window.renderCamionFrance = function(){
       origRenderCamionFrance.apply(this, arguments);
       try{ _frInjecterStatutsChauffeurCamion(); }catch(e){ console.error('departs: statuts chauffeur externe (camion France)', e); }
+      try{ _frInjecterBoutonsPhotos(); }catch(e){ console.error('departs: bouton photos (camion France)', e); }
     };
     window.renderCamionFrance._depPatch = true;
   }
