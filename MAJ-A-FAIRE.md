@@ -1033,6 +1033,28 @@ jour où Issyaka la coche à son tour. Corrigé aux deux endroits
 
 ## 2 bis · France & Europe
 
+### ~~Suivi : une collecte du jour restait "À venir"~~
+**Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
+prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il
+est en cours, il est à venir. C'est bizarre. »
+
+Le statut d'une collecte France (En cours / À venir) est un choix fait
+une fois pour toutes à sa création (menu « Nouvelle collecte ») — rien
+ne le faisait jamais passer à « En cours » tout seul le jour venu. Toute
+collecte encore « À venir » dont la date est arrivée (aujourd'hui ou
+avant, pour rattraper celles jamais démarrées manuellement) passe
+maintenant automatiquement « En cours », vérifié à chaque fois que
+l'écran France se rafraîchit — sans jamais toucher une collecte déjà
+terminée ni une collecte vraiment à venir.
+
+**?** Le deuxième point du même message — le bouton carte (🗺️, en haut à
+droite de l'écran France & Europe) qui ne réagirait pas au clic — n'a
+pas pu être reproduit : testé en forçant le même chemin de code, la
+carte s'ouvre normalement. Pas corrigé en l'absence d'un cas qui
+reproduit le problème ; à reprendre avec plus de détail de Cobey
+(message réseau faible au moment du test ? écran resté blanc, ou
+vraiment aucune réaction au toucher ?).
+
 ### ~~Chauffeur externe : pas de lien à envoyer~~
 **Fait le 01/10 (v2.11.3).** Cobey, capture d'écran à l'appui : « dans la
 version chauffeur externe de France Europe, on n'a pas le lien de

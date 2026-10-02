@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.3';
+var DEP_VERSION = 'v2.20.4';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14212,6 +14212,37 @@ function _frRenderSuiviEcran(){
   if(box) box.innerHTML = _frRenderSuivi();
 }
 
+// v2.20.4 — Cobey, collecte du jour même affichée "À venir" : « déjà dans
+// le suivi, on ne voit pas qu'il est en cours [...] c'est bizarre ». Le
+// statut d'une collecte France (en_cours/à venir) est un choix FIGÉ à la
+// création (menu "Statut" de "Nouvelle collecte") — rien ne le faisait
+// jamais passer à "en_cours" tout seul le jour venu, contrairement à ce
+// qu'on attend d'une collecte "prévue pour aujourd'hui". Appelée à chaque
+// rendu de l'écran France (voir le greffe sur window.renderFrance,
+// déclenché par le listener Firebase à chaque mise à jour) : fait passer
+// à "en_cours" toute collecte encore "à venir" dont la date est arrivée —
+// sans jamais y toucher si elle est déjà en cours/terminée, et sans
+// jamais reculer une collecte déjà en cours. Idempotent (ne réécrit rien
+// une fois fait), comme le reste des écritures ciblées de ce fichier.
+function _frDateIsoAujourdhui(){
+  var d = new Date();
+  var p = function(n){ return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function _frAutoDemarrerCollectesDuJour(){
+  var cols = (window.franceData || {}).collectes || {};
+  var aujourdhui = _frDateIsoAujourdhui();
+  Object.keys(cols).forEach(function(id){
+    var c = cols[id];
+    if(!c || c.statut !== 'a_venir' || !c.dateIso || c.dateIso > aujourdhui) return;
+    c.statut = 'en_cours'; // mirroir local : l'écran reflète déjà le bon statut sans attendre Firebase.
+    if(window.db && window.firebaseReady && typeof window._frUpdate === 'function'){
+      var maj = {}; maj['collectes/' + id + '/statut'] = 'en_cours';
+      window._frUpdate(maj);
+    }
+  });
+}
+
 // Le 4e sous-onglet n'existe pas dans le HTML natif (Clients/Collectes/
 // Dispatch) — ajouté une seule fois, juste après "Dispatch".
 function _frAjouterOngletSuivi(){
@@ -16556,6 +16587,7 @@ function greffer(){
   if(typeof window.renderFrance === 'function' && !window.renderFrance._depPatchSuivi){
     var origRenderFranceSuivi = window.renderFrance;
     window.renderFrance = function(){
+      try{ _frAutoDemarrerCollectesDuJour(); }catch(e){ console.error('departs: démarrage auto collectes France', e); }
       if(window.franceTab === 'suivi'){
         try{ _frRenderSuiviEcran(); }catch(e){ console.error('departs: rendu Suivi France', e); }
         return;
