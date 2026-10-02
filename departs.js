@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.19.0';
+var DEP_VERSION = 'v2.20.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2189,6 +2189,7 @@ var DEP_CASES = [
   { cle:'depot',    el:'dep-case-depot'    },
   { cle:'devis',    el:'dep-case-devis'    },
   { cle:'factureManuelle', el:'dep-case-fm' },
+  { cle:'fidelite', el:'dep-case-fid' },
   { cle:'planning', el:'dep-case-planning' },
   { cle:'articles', el:'dep-case-pa'       },
   { cle:'qr',       el:'dep-case-qr'       },
@@ -2205,6 +2206,13 @@ var DEP_CASES_TOUTES = DEP_CASES.map(function(c){ return c.cle; });
 // de la direction. C'est le repli, donc personne ne perd un accès.
 var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles','qr','archive','planning'];
 
+// v2.20.0 : « programme de fidélité » — liste de TOUS les clients et leurs
+// remises, réservée à la direction et au Bureau (voir plus bas,
+// DEP_CASES_BUREAU) : « Aminata aussi doit y avoir accès » (Cobey,
+// 02/10/2026). Le terrain garde son propre accès au détail d'UN client
+// (bouton "Fidélité" sur sa fiche, non gardé par une case) ; seule cette
+// vue d'ensemble, qui réunit l'argent de tous les clients, est fermée.
+
 /* Le Bureau : les appels, les devis, les clients, les dispatchs.
    v1.99.1 : Cobey, le 26/09/2026 — « QR code on peut lui laisser,
    archivage aussi et statistiques ». Restent fermés les trois écrans qui
@@ -2218,7 +2226,7 @@ var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles'
    02/10/2026 : « c'est des factures fictives [...] pour direction admin
    et moi », puis « Bureau aussi doit avoir cette case. » */
 var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot',
-                        'qr','archive','stats','planning','annonce','factureManuelle'];
+                        'qr','archive','stats','planning','annonce','factureManuelle','fidelite'];
 
 var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU };
 
@@ -2247,6 +2255,7 @@ var DEP_GARDES_CASES = {
   depCarreDepotOuvrir              : 'depot',
   depOuvrirEspaceDevis             : 'devis',
   depOuvrirEspaceFactureManuelle   : 'factureManuelle',
+  depOuvrirEspaceFidelite          : 'fidelite',
   depOuvrirEspacePlanning          : 'planning',
   depOuvrirEspaceAnnonce           : 'annonce',
   depOuvrirEspacePrixArticles      : 'articles',
@@ -3011,6 +3020,16 @@ function injecterEcrans(){
   +         '<div class="dep-case-ico">&#129534;</div>'
   +         '<div class="dep-case-tit" style="color:#5E35B1;">FACTURE MANUELLE</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-fm">—</div>'
+  +       '</div>'
+  // v2.20.0 : nouveau carré PROGRAMME DE FIDÉLITÉ, direction + Bureau
+  // (demande de Cobey du 02/10/2026) — 10 € de remise tous les 200 € de
+  // colis encaissés, valables un an à partir du premier palier franchi.
+  // Cette case réunit TOUS les clients, triables par échéance ou par
+  // nombre de remises (voir window.depOuvrirEspaceFidelite plus bas).
+  +       '<div class="dep-case" id="dep-case-fid" style="background:#FCE8D6;" onclick="depOuvrirEspaceFidelite()">'
+  +         '<div class="dep-case-ico">&#127873;</div>'
+  +         '<div class="dep-case-tit" style="color:#C25E00;">FID&Eacute;LIT&Eacute;</div>'
+  +         '<div class="dep-case-sub" id="dep-case-sub-fid">—</div>'
   +       '</div>'
   // v1.19.95 : nouveau carré PRIX ARTICLES, ouvert à tout le monde comme le
   // carré Devis (retour de Cobey du 30/08/2026) — grille tarifaire de
@@ -3905,6 +3924,41 @@ function injecterEcrans(){
   +   '</div>'
   + '</div>'
 
+  /* ---- ÉCRAN (v2.20.0) : PROGRAMME DE FIDÉLITÉ — tous les clients ayant
+     déjà gagné au moins une remise, triables par échéance ou par nombre de
+     remises disponibles (voir window.depRenderFideliteListe). Réservé à la
+     direction et au Bureau (voir DEP_CASES_BUREAU). ---- */
+  + '<div class="screen" id="s-fidelite-liste">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-espaces\');depRenderEspaces();">&larr; Espaces</button>'
+  +     '<div><div class="h-title">Programme de fid&eacute;lit&eacute;</div>'
+  +     '<div class="h-sub" id="fid-liste-sous"></div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div style="display:flex;gap:8px;margin-bottom:14px;">'
+  +       '<button type="button" class="dep-st on" id="fid-tri-echeance" style="flex:1;" onclick="depFideliteTrier(\'echeance\')">&#8986; Par &eacute;ch&eacute;ance</button>'
+  +       '<button type="button" class="dep-st" id="fid-tri-nombre" style="flex:1;" onclick="depFideliteTrier(\'nombre\')">&#127873; Par nombre</button>'
+  +     '</div>'
+  +     '<div id="fid-liste-contenu"></div>'
+  +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v2.20.0) : le détail fidélité d'UN client — cumul en
+     cours, remises (disponibles / utilisées / expirées) avec leurs dates,
+     et ses envois pour la traçabilité. Ouvert soit depuis la liste
+     ci-dessus (direction/Bureau), soit depuis le bouton "Fidélité" sur la
+     fiche d'un contact (tout le monde, un seul client à la fois). ---- */
+  + '<div class="screen" id="s-fidelite-contact">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="depFideliteContactRetour()">&larr; Retour</button>'
+  +     '<div><div class="h-title" id="fid-contact-nom">Client</div>'
+  +     '<div class="h-sub" id="fid-contact-ref"></div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="fid-contact-contenu"></div></div>'
+  + '</div>'
+
   /* ---- ÉCRAN (v1.19.95) : PRIX ARTICLES — grille tarifaire de référence,
      carré ouvert à tout le monde, placé après Devis. Recherche + pastilles
      de thème (texte libre, pas une liste fermée) pour filtrer sans tout
@@ -4213,6 +4267,12 @@ function injecterEcrans(){
     // bouton "Voir le départ" et "Facture".
     + '<button type="button" class="dep-menu-item" onclick="depOuvrirHistoriqueContact()">'
     +   '<span class="dep-menu-ico">&#129534;</span><span class="dep-menu-txt">Historique d&rsquo;envoi / Factures</span></button>'
+    // v2.20.0 : « programme de fidélité » — 10 € tous les 200 € envoyés.
+    // Ouvert à tout le monde comme Historique d'envoi, un seul client à
+    // la fois : ce n'est que la liste d'ensemble (carré Fidélité) qui est
+    // réservée à la direction/Bureau.
+    + '<button type="button" class="dep-menu-item" onclick="depOuvrirFideliteContact()">'
+    +   '<span class="dep-menu-ico">&#127873;</span><span class="dep-menu-txt">Fid&eacute;lit&eacute;</span></button>'
     + '<button type="button" class="dep-menu-item dep-menu-avenir" onclick="depActionAVenir(\'Bordereau d&#39;envoi\')">'
     +   '<span class="dep-menu-ico">&#128203;</span><span class="dep-menu-txt">Bordereau d&rsquo;envoi'
     +   '<span class="dep-menu-tag">&Agrave; venir</span></span></button>'
@@ -5250,6 +5310,17 @@ function ecouterDeparts(){
     try{ if($('s-prix-articles') && $('s-prix-articles').classList.contains('active')) depRenderListePrixArticles(); }catch(e){}
   });
 
+  // v2.20.0 : le registre des remises fidélité utilisées — un nœud à part
+  // ({ <référence client>: { <id> : {montant, le, ...} } }), jamais dans
+  // dct/clients ni les autres — voir carré FIDÉLITÉ et
+  // window.depFideliteAppliquerRemise.
+  db.ref('dct_fidelite_usages').on('value', function(snap){
+    window.fideliteUsagesData = snap.val() || {};
+    try{ if($('s-fidelite-liste') && $('s-fidelite-liste').classList.contains('active')) depRenderFideliteListe(); }catch(e){}
+    try{ if($('s-fidelite-contact') && $('s-fidelite-contact').classList.contains('active') && typeof _depFideliteRafraichirEcranContact === 'function') _depFideliteRafraichirEcranContact(); }catch(e){}
+    try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+  });
+
   // Clients inscrits directement au dépôt, hors collecte
   db.ref('dct_depot').on('value', function(snap){
     window.depotClients = snap.val() || {};
@@ -5447,6 +5518,13 @@ window.depRenderEspaces = function(){
     var nbFm = Object.keys(window.facturesManuellesData||{}).length;
     sfm.innerHTML = nbFm === 0 ? 'Aucune facture' : '<b style="color:#5E35B1;">'+nbFm+'</b> enregistr&eacute;e'+(nbFm > 1 ? 's' : '');
   }
+
+  // Case PROGRAMME DE FIDÉLITÉ (v2.20.0) — pas de chiffre recalculé à
+  // chaque passage ici (ça reparcourrait tous les clients à chaque
+  // ouverture des Espaces) : le détail, lui, se calcule à l'ouverture de
+  // la case elle-même (voir window.depRenderFideliteListe).
+  var sfid = $('dep-case-sub-fid');
+  if(sfid) sfid.innerHTML = '10&nbsp;&euro; tous les<br>200&nbsp;&euro; envoy&eacute;s';
 
   // Case ARCHIVAGE (v1.19.0)
   var scarch = $('dep-case-sub-arch');
@@ -10281,6 +10359,26 @@ function depRenderFacture(c){
       + (pay.reste > 0 ? '<div style="font-size:11px;color:#992020;font-weight:700;">' + esc(depFormatCFA(pay.reste)) + '</div>' : '')
       + '<div style="font-size:10px;color:var(--text3);font-weight:700;">RESTE &Agrave; PAYER</div></div>'
     + '</div>';
+
+  // v2.20.0 — remises fidélité disponibles pour ce client, jamais
+  // appliquées automatiquement (demande de Cobey du 02/10/2026 :
+  // « applicable ou non selon le choix du client »). N'a de sens que si
+  // le prix est fixé (pas sur un prix "à définir").
+  if(!prixIndefini){
+    try{
+      var _calcFid = _depFideliteCalculer(_depCleContact(c));
+      if(_calcFid.disponibles.length){
+        h += '<div style="background:#FCE8D6;border:1.5px solid #F0B37E;border-radius:var(--radius);padding:14px;margin-bottom:16px;">'
+          + '<div style="font-size:11.5px;font-weight:800;color:#C25E00;letter-spacing:.03em;margin-bottom:6px;">'
+          +   '&#127873; ' + _calcFid.disponibles.length + ' REMISE' + (_calcFid.disponibles.length>1?'S':'') + ' FID&Eacute;LIT&Eacute; DISPONIBLE' + (_calcFid.disponibles.length>1?'S':'') + '</div>'
+          + '<div style="font-size:12.5px;color:#333;line-height:1.5;">' + (_calcFid.disponibles.length * DEP_FIDELITE_MONTANT) + ' &euro; au total &mdash; '
+          +   'expire le ' + _depFideliteDateFr(_calcFid.dateExpiration) + '.</div>'
+          + '<button type="button" class="btn btn-gray" style="margin-top:10px;background:#fff;border-color:#F0B37E;color:#C25E00;" '
+          +   'onclick="depFideliteAppliquerRemise()">&#9989; Appliquer une remise (&minus;' + DEP_FIDELITE_MONTANT + '&nbsp;&euro;)</button>'
+          + '</div>';
+      }
+    }catch(eFidFact){ console.error('departs: remise fidélité sur facture', eFidFact); }
+  }
 
   // v1.18.3 : résumé compact des versements directement sous PAYÉ/RESTE —
   // pour qu'on comprenne d'où vient un montant sans devoir aller jusqu'au
@@ -20922,6 +21020,485 @@ window.depEnregistrerTaxePrestataireDetail = function(){
   _depEcrireFacture(ctx, { taxePrestataire: montant });
   toast('🤝 Taxe prestataire enregistrée.');
   depRenderTaxePrestataireDetail();
+};
+
+/* ─────────────────────────────────────────────
+   14 (v2.20.0 — premier jet). PROGRAMME DE FIDÉLITÉ.
+
+   10 € de remise tous les 200 € de colis ENCAISSÉS (demande de Cobey du
+   02/10/2026) :
+   - seuls les envois dont le container est parti le 13/09/2026 ou après
+     comptent (« rétroactif sur le container du 13 septembre ») ;
+   - au premier palier de 200 € franchi, le client a UN AN, à partir de
+     cette date-là, pour utiliser ses remises ;
+   - chaque palier de 200 € suivant, tant que ce délai n'est pas passé,
+     ajoute une remise à la MÊME échéance (pas une nouvelle horloge) ;
+   - s'il utilise la TOTALITÉ de ses remises avant l'échéance, le cumul
+     repart à 0 € : le prochain palier de 200 € relance un nouveau cycle,
+     avec une nouvelle échéance ;
+   - si l'échéance passe sans qu'il ait tout utilisé : « il perd tout » —
+     les remises restantes expirent ET le cumul repart aussi à 0 € ;
+   - sur la facture, l'application d'une remise reste au choix du client
+     (« applicable ou non selon le choix du client »), jamais automatique.
+
+   Pas de compteur qui s'incrémente (fragile : un versement corrigé après
+   coup le désynchroniserait). Le calcul se rejoue à chaque consultation
+   à partir de deux historiques d'événements datés — tous les versements
+   encaissés du client (tous parcours confondus), et toutes les remises
+   déjà appliquées sur une facture (seul vrai nouveau nœud Firebase,
+   dct_fidelite_usages) — même principe que le reste de l'appli (le bilan
+   financier, par exemple, ne maintient lui non plus aucun total stocké).
+   ───────────────────────────────────────────── */
+
+var DEP_FIDELITE_SEUIL = 200;      // € de colis encaissés pour gagner une remise
+var DEP_FIDELITE_MONTANT = 10;     // € par remise
+// Le container du 13 septembre 2026 — demande explicite de Cobey, point
+// de départ du rétroactif. dateDepart est stocké au format ISO
+// (2026-09-13, voir window.depEnregistrer) : une comparaison de texte
+// suffit, l'ordre lexicographique suit l'ordre chronologique.
+var DEP_FIDELITE_DATE_DEBUT = '2026-09-13';
+
+// "JJ/MM/AAAA" à partir d'un horodatage (ms) — dateFr() n'accepte que
+// des dates ISO, pas des horodatages (ceux des versements/remises).
+function _depFideliteDateFr(ts){
+  if(!ts) return '—';
+  var d = new Date(ts);
+  var jj = String(d.getDate()).padStart(2, '0');
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  return jj + '/' + mm + '/' + d.getFullYear();
+}
+
+// Un an jour pour jour après `ts` (et non 365 jours fixes, pour tomber
+// juste même à cheval sur une année bissextile).
+function _depFideliteDateExpiration(ts){
+  var d = new Date(ts);
+  return new Date(d.getFullYear() + 1, d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds()).getTime();
+}
+
+// true si ce container compte pour le programme — pas encore affecté
+// (donc forcément récent) ou parti le 13/09/2026 ou après.
+function _depFideliteEnvoiEligible(c){
+  if(!c || !c.departId || c.departId === DEP_ID_DEPOT) return true;
+  var d = (window.departsData || {})[c.departId];
+  if(!d || !d.dateDepart) return true;
+  return d.dateDepart >= DEP_FIDELITE_DATE_DEBUT;
+}
+
+// Tous les envois d'un même contact (clé = _depCleContact), les TROIS
+// parcours confondus et collectes archivées comprises — contrairement à
+// _depTousEnvoisContact (Historique d'envoi, Collecte+Dépôt seulement,
+// collectes en cours uniquement), qui reste inchangée pour ne rien
+// changer à l'écran existant. Le programme de fidélité a besoin de la
+// liste complète pour que son cumul soit exact.
+function _depFideliteEnvoisContact(contactKey){
+  var contact = (window.dctContacts || {})[contactKey];
+  var telRef = contact ? (contact.tel || '').replace(/\s/g, '') : '';
+  function cleDe(c){ return c.tel ? c.tel.replace(/\s/g, '') : ((c.prenom||'') + '_' + (c.nom||'')).toLowerCase(); }
+  function correspond(c){ var k = cleDe(c); return k === contactKey || (telRef && k === telRef); }
+
+  var resultats = [];
+  Object.keys(window.clientsParCollecte || {}).forEach(function(collecteId){
+    var cls = window.clientsParCollecte[collecteId] || {};
+    Object.keys(cls).forEach(function(clientId){
+      var c = cls[clientId];
+      if(c && correspond(c)) resultats.push({ c: c, collecteId: collecteId, clientId: clientId, depot: false, france: false });
+    });
+  });
+  Object.keys(window.depotClients || {}).forEach(function(id){
+    var c = window.depotClients[id];
+    if(c && correspond(c)) resultats.push({ c: c, collecteId: '', clientId: id, depot: true, france: false });
+  });
+  var fr = (window.franceData || {}).clients || {};
+  Object.keys(fr).forEach(function(id){
+    var c = fr[id];
+    if(c && correspond(c)) resultats.push({ c: c, collecteId: '', clientId: id, depot: false, france: true });
+  });
+
+  resultats = resultats.filter(function(x){ return !_depEstFusionnee(x.c); });
+  resultats.sort(function(a, b){ return (a.c.creeLe || 0) - (b.c.creeLe || 0); });
+  return resultats;
+}
+
+// Tous les versements colis (jamais la livraison, caisse à part) des
+// envois éligibles de ce contact, triés chronologiquement.
+function _depFideliteEncaissements(contactKey){
+  var evts = [];
+  _depFideliteEnvoisContact(contactKey).forEach(function(x){
+    if(!_depFideliteEnvoiEligible(x.c)) return;
+    (Array.isArray(x.c.versements) ? x.c.versements : []).forEach(function(v){
+      var m = parseFloat(v && v.montant) || 0;
+      if(m > 0) evts.push({ type: 'encaissement', le: v.le || v.ts || x.c.creeLe || 0, montant: m });
+    });
+  });
+  return evts;
+}
+
+// Les remises déjà appliquées sur une facture — seul historique
+// réellement stocké (dct_fidelite_usages/<réf. client>/<id>).
+function _depFideliteUsages(refClient){
+  var data = ((window.fideliteUsagesData || {})[refClient]) || {};
+  return Object.keys(data).map(function(k){
+    var o = data[k] || {};
+    return { type: 'usage', le: o.le || 0, montant: parseFloat(o.montant) || DEP_FIDELITE_MONTANT, usageId: k, cible: o };
+  });
+}
+
+// Le calcul complet pour un contact : rejoue tous les événements
+// (encaissements + remises utilisées) dans l'ordre chronologique.
+function _depFideliteCalculer(contactKey){
+  var refClient = depRefClientPour(contactKey);
+  var evts = _depFideliteEncaissements(contactKey).concat(_depFideliteUsages(refClient));
+  evts.sort(function(a, b){ return (a.le || 0) - (b.le || 0); });
+
+  var cumul = 0, cycleDebut = null, dateExpiration = null;
+  var disponibles = [], utilisees = [], expirees = [];
+  var totalEnvoye = 0, totalGagne = 0;
+
+  // L'échéance peut être dépassée entre deux événements (ou depuis le
+  // dernier jusqu'à aujourd'hui) : on le vérifie au moment `maintenant`
+  // donné, pas seulement une fois à la fin — sinon un vieux cycle expiré
+  // resterait compté comme actif pour les événements qui le suivent.
+  function expirerSiDepasse(maintenant){
+    if(cycleDebut !== null && dateExpiration !== null && maintenant > dateExpiration && disponibles.length){
+      disponibles.forEach(function(r){ r.statut = 'expiree'; r.dateExpirationEffective = dateExpiration; expirees.push(r); });
+      disponibles = [];
+      cumul = 0; cycleDebut = null; dateExpiration = null;
+    }
+  }
+
+  evts.forEach(function(e){
+    expirerSiDepasse(e.le);
+    if(e.type === 'encaissement'){
+      totalEnvoye += e.montant;
+      cumul += e.montant;
+      while(cumul >= DEP_FIDELITE_SEUIL){
+        cumul -= DEP_FIDELITE_SEUIL;
+        totalGagne += DEP_FIDELITE_MONTANT;
+        if(cycleDebut === null){ cycleDebut = e.le; dateExpiration = _depFideliteDateExpiration(e.le); }
+        disponibles.push({ montant: DEP_FIDELITE_MONTANT, dateGagnee: e.le, dateExpiration: dateExpiration, statut: 'disponible' });
+      }
+    } else {
+      // Une remise utilisée — toutes partagent la même échéance dans un
+      // cycle donné, l'ordre n'importe donc que pour l'affichage.
+      if(disponibles.length){
+        var r = disponibles.shift();
+        r.statut = 'utilisee'; r.dateUtilisation = e.le; r.usageId = e.usageId; r.cible = e.cible;
+        utilisees.push(r);
+        // Totalité utilisée : le compteur repart à zéro (demande de
+        // Cobey du 02/10/2026 : « le compteur se remet à zéro à chaque
+        // utilisation totale de la remise »).
+        if(!disponibles.length){ cumul = 0; cycleDebut = null; dateExpiration = null; }
+      }
+    }
+  });
+  expirerSiDepasse(Date.now());
+
+  return {
+    refClient: refClient,
+    cumulEnCours: depArrondi2(cumul),
+    cycleDebut: cycleDebut,
+    dateExpiration: dateExpiration,
+    disponibles: disponibles,
+    utilisees: utilisees,
+    expirees: expirees,
+    totalEnvoye: depArrondi2(totalEnvoye),
+    totalGagne: totalGagne
+  };
+}
+// Exposé sur window comme _depCasesDe/_depPeutCase plus haut : le moteur
+// de calcul se prête à être appelé/inspecté directement (tests, debug),
+// sans passer par un écran.
+window._depFideliteCalculer = _depFideliteCalculer;
+
+// Tous les contacts connus (les trois parcours + le carnet), fusionnés
+// par la même clé que partout ailleurs (_depCleContact).
+function _depFideliteTousContacts(){
+  var out = {};
+  function ajouter(key, c){
+    if(!key || out[key]) return;
+    out[key] = { nom: (c && (c.name || ((c.prenom||'')+' '+(c.nom||'')).trim())) || key, tel: (c && c.tel) || '' };
+  }
+  Object.keys(window.dctContacts || {}).forEach(function(k){ ajouter(k, window.dctContacts[k]); });
+  Object.keys(window.clientsParCollecte || {}).forEach(function(colId){
+    Object.keys(window.clientsParCollecte[colId] || {}).forEach(function(cid){
+      var c = window.clientsParCollecte[colId][cid];
+      if(c) ajouter(_depCleContact(c), c);
+    });
+  });
+  Object.keys(window.depotClients || {}).forEach(function(id){
+    var c = window.depotClients[id];
+    if(c) ajouter(_depCleContact(c), c);
+  });
+  Object.keys((window.franceData||{}).clients || {}).forEach(function(id){
+    var c = window.franceData.clients[id];
+    if(c) ajouter(_depCleContact(c), c);
+  });
+  return out;
+}
+
+// Seulement les clients ayant déjà gagné au moins une remise un jour —
+// utilisé par la case FIDÉLITÉ (direction/Bureau), voir plus bas.
+function _depFideliteListe(){
+  var contacts = _depFideliteTousContacts();
+  var out = [];
+  Object.keys(contacts).forEach(function(key){
+    var calc = _depFideliteCalculer(key);
+    if(calc.totalGagne > 0) out.push({ key: key, nom: contacts[key].nom, tel: contacts[key].tel, calc: calc });
+  });
+  return out;
+}
+
+/* ───── La case FIDÉLITÉ (direction + Bureau) — liste de tous les
+   clients, triable par échéance ou par nombre de remises. ───── */
+
+var _depFideliteTri = 'echeance';
+
+window.depOuvrirEspaceFidelite = function(){
+  if(!_depPeutCase('fidelite')){ toast('⛔ Réservé à la direction / au Bureau.'); return; }
+  goTo('s-fidelite-liste');
+  depRenderFideliteListe();
+};
+
+window.depFideliteTrier = function(mode){
+  _depFideliteTri = mode;
+  var bE = $('fid-tri-echeance'), bN = $('fid-tri-nombre');
+  if(bE) bE.className = 'dep-st' + (mode === 'echeance' ? ' on' : '');
+  if(bN) bN.className = 'dep-st' + (mode === 'nombre' ? ' on' : '');
+  depRenderFideliteListe();
+};
+
+window.depRenderFideliteListe = function(){
+  var box = $('fid-liste-contenu');
+  if(!box) return;
+  var items = _depFideliteListe();
+
+  if(_depFideliteTri === 'nombre'){
+    items.sort(function(a, b){ return b.calc.disponibles.length - a.calc.disponibles.length; });
+  } else {
+    items.sort(function(a, b){
+      var ea = a.calc.dateExpiration, eb = b.calc.dateExpiration;
+      if(ea == null && eb == null) return 0;
+      if(ea == null) return 1;
+      if(eb == null) return -1;
+      return ea - eb;
+    });
+  }
+
+  var sous = $('fid-liste-sous');
+  if(sous) sous.textContent = items.length + ' client' + (items.length > 1 ? 's' : '') + ' avec des remises';
+
+  if(!items.length){
+    box.innerHTML = '<div class="dep-vide" style="padding:28px 16px;">Aucun client n\'a encore d&eacute;clench&eacute; de remise.</div>';
+    return;
+  }
+
+  box.innerHTML = items.map(function(x){
+    var c = x.calc;
+    var montantDispo = c.disponibles.length * DEP_FIDELITE_MONTANT;
+    return '<div class="dep-cli" style="cursor:pointer;" onclick="depOuvrirFideliteContactDe(\'' + esc(x.key) + '\')">'
+      + '<div class="dep-cli-n">' + esc(x.nom) + '</div>'
+      + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+      +   (c.disponibles.length
+            ? ('<b style="color:#C25E00;">' + montantDispo + ' &euro; disponibles</b>'
+               + '<span style="color:var(--text3);"> &middot; expire ' + _depFideliteDateFr(c.dateExpiration) + '</span>')
+            : '<span style="color:var(--text3);">Aucune remise disponible</span>')
+      + '</div>'
+      + '</div>';
+  }).join('');
+};
+
+/* ───── Le détail d'UN client — ouvert depuis la liste ci-dessus (ou
+   depuis le bouton "Fidélité" de sa fiche, ouvert à tout le monde). ───── */
+
+var _depFideliteContactKeyActuelle = null;
+var _depFideliteVientDeListe = false;
+
+window.depOuvrirFideliteContact = function(){
+  closeModal('modal-dep-client-actions');
+  var key = _depFicheContactKey;
+  if(!key){ toast('⚠️ Contact introuvable.'); return; }
+  _depFideliteVientDeListe = false;
+  _depFideliteContactKeyActuelle = key;
+  depRenderFideliteContact();
+  goTo('s-fidelite-contact');
+};
+
+window.depOuvrirFideliteContactDe = function(key){
+  _depFideliteVientDeListe = true;
+  _depFideliteContactKeyActuelle = key;
+  depRenderFideliteContact();
+  goTo('s-fidelite-contact');
+};
+
+window.depFideliteContactRetour = function(){
+  if(_depFideliteVientDeListe){ goTo('s-fidelite-liste'); depRenderFideliteListe(); }
+  else goTo('s-client-fiche');
+};
+
+function _depFideliteRafraichirEcranContact(){
+  if(_depFideliteContactKeyActuelle) depRenderFideliteContact();
+}
+
+window.depRenderFideliteContact = function(){
+  var key = _depFideliteContactKeyActuelle;
+  var box = $('fid-contact-contenu');
+  if(!key || !box) return;
+  var infos = _depFideliteTousContacts()[key] || {};
+  var calc = _depFideliteCalculer(key);
+
+  var titre = $('fid-contact-nom'); if(titre) titre.textContent = infos.nom || 'Client';
+  var refEl = $('fid-contact-ref'); if(refEl) refEl.textContent = 'Réf. ' + calc.refClient;
+
+  var kv = function(lab, val){
+    return '<div class="dep-kv"><span class="dep-kv-k">' + lab + '</span><span class="dep-kv-v">' + val + '</span></div>';
+  };
+
+  var h = '<div class="dep-fiche-card">'
+    +   kv('Total envoy&eacute; <span style="font-weight:600;color:#999;">(encaiss&eacute;, depuis le 13/09)</span>', _depEuros(calc.totalEnvoye) + ' &euro;')
+    +   kv('Cumul en cours', _depEuros(calc.cumulEnCours) + ' &euro; <span style="color:var(--text3);">sur ' + DEP_FIDELITE_SEUIL + ' &euro;</span>')
+    +   (calc.dateExpiration ? kv('Remises valables jusqu&rsquo;au', '<b style="color:#C25E00;">' + _depFideliteDateFr(calc.dateExpiration) + '</b>') : '')
+    + '</div>';
+
+  h += '<div class="dep-fiche-card"><div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">'
+    +   '&#127873; Remises disponibles (' + calc.disponibles.length + ')</div>';
+  h += calc.disponibles.length
+    ? calc.disponibles.map(function(r){
+        return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;">'
+          + '<span style="font-size:12.5px;color:var(--text3);">Gagn&eacute;e le ' + _depFideliteDateFr(r.dateGagnee) + '</span>'
+          + '<b style="color:#C25E00;">' + DEP_FIDELITE_MONTANT + ' &euro; &mdash; expire ' + _depFideliteDateFr(r.dateExpiration) + '</b>'
+          + '</div>';
+      }).join('')
+    : '<div style="font-size:12.5px;color:var(--text3);padding:6px 0;">Aucune pour l\'instant.</div>';
+  h += '</div>';
+
+  if(calc.utilisees.length){
+    h += '<div class="dep-fiche-card"><div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">'
+      +   '&#9989; Remises utilis&eacute;es (' + calc.utilisees.length + ')</div>'
+      + calc.utilisees.slice().reverse().map(function(r){
+          return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;">'
+            + '<span style="font-size:12.5px;color:var(--text3);">Utilis&eacute;e le ' + _depFideliteDateFr(r.dateUtilisation) + '</span>'
+            + '<b style="color:#006b2d;">' + DEP_FIDELITE_MONTANT + ' &euro;</b>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+  }
+
+  if(calc.expirees.length){
+    h += '<div class="dep-fiche-card"><div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">'
+      +   '&#8987; Remises expir&eacute;es (' + calc.expirees.length + ')</div>'
+      + calc.expirees.slice().reverse().map(function(r){
+          return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;">'
+            + '<span style="font-size:12.5px;color:var(--text3);">Gagn&eacute;e le ' + _depFideliteDateFr(r.dateGagnee) + '</span>'
+            + '<b style="color:#992020;">Perdue le ' + _depFideliteDateFr(r.dateExpirationEffective || r.dateExpiration) + '</b>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+  }
+
+  // Traçabilité : les envois qui alimentent ce calcul, chacun avec ce qui
+  // a été encaissé dessus — demande de Cobey du 02/10/2026 : « on pourrait
+  // voir quand il a envoyé pour combien ». Liste propre au programme
+  // (voir _depFideliteEnvoisContact), pas l'écran Historique d'envoi
+  // existant — sinon les deux raconteraient des choses différentes.
+  var envois = _depFideliteEnvoisContact(key);
+  h += '<div class="dep-fiche-card"><div class="dep-sec" style="margin-top:0;padding-top:0;border-top:none;">'
+    +   '&#128230; Ses envois (' + envois.length + ')</div>';
+  if(!envois.length){
+    h += '<div style="font-size:12.5px;color:var(--text3);padding:6px 0;">Aucun envoi enregistr&eacute;.</div>';
+  } else {
+    var aDesExclus = false;
+    h += envois.map(function(x){
+      var c = x.c;
+      var pay = depCalculerPaiement(c);
+      var eligible = _depFideliteEnvoiEligible(c);
+      if(!eligible) aDesExclus = true;
+      var d = c.departId ? (window.departsData||{})[c.departId] : null;
+      var origine = d ? esc(d.nom||'') : (x.depot ? 'D&eacute;p&ocirc;t direct' : (x.france ? 'France &amp; Europe' : 'Pas encore rattach&eacute;'));
+      var onclickFacture = x.france
+        ? ('depOuvrirFactureFrance(\'' + x.clientId + '\')')
+        : ('depOuvrirFacture(\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\',' + (x.depot?'true':'false') + ',false,false,true)');
+      return '<div class="dep-cli" style="cursor:pointer;' + (eligible ? '' : 'opacity:.45;') + '" onclick="' + onclickFacture + '">'
+        + '<div class="dep-cli-n">' + esc(dateHeureFr(c.creeLe||0)) + '</div>'
+        + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+        +   '<span>' + origine + '</span>'
+        +   '<b style="color:#006b2d;">' + pay.paye + ' &euro; encaiss&eacute;s</b>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+    if(aDesExclus){
+      h += '<div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.4;">'
+        + 'Les envois gris&eacute;s sont ant&eacute;rieurs au 13/09/2026 et ne comptent pas pour le programme.</div>';
+    }
+  }
+  h += '</div>';
+
+  box.innerHTML = h;
+};
+
+/* ───── Application d'une remise sur la facture en cours (depRenderFacture
+   ci-dessus) — toujours un choix explicite, jamais automatique (demande
+   de Cobey du 02/10/2026). Réutilise l'écriture ciblée _depEcrireFacture
+   et le détail ligne par ligne déjà en place : la remise s'ajoute comme
+   une ligne à prix négatif, visible et imprimée comme n'importe quel
+   autre article. ───── */
+
+window.depFideliteAppliquerRemise = function(){
+  var ctx = _depFactureCtx;
+  if(!ctx){ toast('⚠️ Facture introuvable.'); return; }
+  var c = _depClientFacture(ctx);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+
+  var cle = _depCleContact(c);
+  var calc = _depFideliteCalculer(cle);
+  if(!calc.disponibles.length){ toast('⚠️ Aucune remise fidélité disponible.'); return; }
+  var remise = calc.disponibles[0];
+  var refClient = calc.refClient;
+  var u = window.currentUser || {};
+
+  var lignes = _depLignesColis(c);
+  if(!lignes.length){
+    lignes = [{ nom: (c.colis || 'Colis'), qte: (parseInt(c.nbColis, 10) || 1), pu: 0, total: (parseFloat(c.prix) || 0) }];
+  }
+  lignes.push({
+    nom: '🎁 Remise fidélité (expirait le ' + _depFideliteDateFr(remise.dateExpiration) + ')',
+    qte: 1, pu: -DEP_FIDELITE_MONTANT, total: -DEP_FIDELITE_MONTANT
+  });
+  c.colisDetail = lignes;
+  // v2.20.0 — la description texte (c.colis) doit rester en phase avec le
+  // détail : _depLignesColis « recolle » le détail à partir de ce texte
+  // dès qu'ils ne racontent plus la même chose (voir _depDetailConcorde),
+  // et aurait sinon tranquillement effacé la ligne de remise au prochain
+  // calcul, puisqu'elle n'apparaît pas dans le texte d'origine.
+  c.colis = lignes.map(function(l){
+    if(l.lot) return (l.qte > 1 ? ('lot de ' + l.qte + ' ') : '') + l.nom;
+    var deja = /^\s*\d/.test(l.nom || '');
+    return (l.qte > 1 && !deja ? l.qte + ' ' : '') + l.nom;
+  }).join(', ');
+  c.prix = depArrondi2(lignes.reduce(function(s, l){ return s + (parseFloat(l.total) || 0); }, 0));
+  c.prixADefinir = false;
+
+  _depEcrireFacture(ctx, { colisDetail: lignes, colis: c.colis, prix: c.prix, prixADefinir: false });
+
+  // Écriture ciblée et immédiate, avec une clé posée localement d'abord
+  // (même clé envoyée à Firebase via .set()) — le calcul qui suit se
+  // recalcule donc juste, sans attendre le retour du serveur (même
+  // principe que _depEcrireClient/_depEcrireFacture plus haut).
+  var usageId = (typeof window._idUnique === 'function')
+    ? window._idUnique('U', (window.fideliteUsagesData||{})[refClient] || {})
+    : ('U' + Date.now().toString(36).toUpperCase());
+  var usageObj = {
+    montant: DEP_FIDELITE_MONTANT, le: Date.now(), par: u.name || u.id || '',
+    dateExpirationOrigine: remise.dateExpiration,
+    collecteId: ctx.collecteId || '', clientId: ctx.clientId, depot: !!ctx.depot, france: !!ctx.france
+  };
+  if(!window.fideliteUsagesData) window.fideliteUsagesData = {};
+  if(!window.fideliteUsagesData[refClient]) window.fideliteUsagesData[refClient] = {};
+  window.fideliteUsagesData[refClient][usageId] = usageObj;
+  if(window.db && window.firebaseReady) db.ref('dct_fidelite_usages/' + refClient + '/' + usageId).set(usageObj);
+
+  try{ depActivite('🎁', 'a appliqué une remise fidélité de ' + DEP_FIDELITE_MONTANT + ' € sur la facture de <strong>' + esc(c.name||'') + '</strong>'); }catch(eAct){}
+  toast('🎁 Remise de ' + DEP_FIDELITE_MONTANT + ' € appliquée.');
+  depRenderFacture(c);
 };
 
 /* ─────────────────────────────────────────────

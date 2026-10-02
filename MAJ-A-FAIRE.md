@@ -395,6 +395,58 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### Programme de fidélité — premier jet
+**Premier jet livré le 02/10 (v2.20.0).** Cobey, depuis la fiche client
+(« Actions ») : « on veut créer un programme de fidélité pour chaque
+client par rapport à l'envoi [...] le client bénéficie de 10 euros de
+réduction à chaque envoi de 200 euros [...] c'est à la date du premier
+déclenchement [de la première remise] qu'il a un an pour utiliser ses
+remises [...] le compteur se remet à zéro à chaque utilisation totale de
+la remise ». Puis, par échanges successifs, « Ne code rien pour
+l'instant » répété à plusieurs reprises pendant tout le réglage des
+règles, jusqu'au feu vert : « Ok on commence par ce premier jet, Aminata
+aussi doit y avoir accès. »
+
+Règle retenue, telle que confirmée point par point par Cobey :
+1. 10 € de remise à chaque cumul de 200 € de colis **encaissé** (l'argent
+   réellement reçu, pas juste facturé).
+2. Seuls les envois dont le container est parti **à partir du
+   13 septembre 2026** comptent — rétroactif, mais pas avant cette date.
+3. La première fois que 200 € est atteint déclenche un délai d'un an —
+   une seule échéance pour toutes les remises, même celles gagnées
+   ensuite dans l'année (pas une échéance par remise).
+4. S'il utilise **toutes** ses remises avant l'échéance, le compteur
+   repart à zéro et un nouveau cycle (avec sa propre nouvelle échéance)
+   démarre au prochain palier de 200 €.
+5. Si l'échéance passe sans que tout soit utilisé, il perd tout : les
+   remises non utilisées ET le cumul en cours repartent à zéro.
+6. Sur la facture, appliquer une remise n'est **jamais automatique** —
+   toujours un choix du client/collaborateur — et affiche la date
+   d'expiration de la remise appliquée.
+7. Une case dédiée **« Programme de fidélité »** liste les remises de
+   tous les clients, triable par date d'expiration ou par nombre de
+   remises, avec le détail par client (ses remises, leur échéance, et
+   la liste de ses envois pour vérifier quand et combien).
+
+Ce que ce premier jet construit :
+- Bouton **« 🎁 Fidélité »** dans les Actions de chaque fiche client,
+  ouvert à tout le monde (comme « Historique d'envoi »), qui montre le
+  cumul en cours, les remises disponibles/utilisées/expirées avec leurs
+  dates, et ses envois (tous parcours confondus) pour la traçabilité.
+- Nouvelle case **« Programme de fidélité »**, réservée à la direction et
+  à Aminata, qui liste tous les clients ayant au moins une remise, avec
+  le tri par échéance ou par nombre.
+- Sur la facture : un encart montre les remises disponibles, leur valeur
+  totale et leur échéance, avec un bouton « Appliquer une remise » —
+  rien ne s'applique tout seul.
+
+Rien n'est encore stocké en compteur : chaque calcul rejoue à chaque
+consultation les versements réels et l'historique des remises déjà
+utilisées, pour rester fiable même si une fiche est corrigée après coup.
+
+**Premier jet** — à affiner avec Cobey à l'usage, comme pour la taxe
+prestataire (Mali).
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :
