@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.5.1 · 28/09/2026
+   v1.6.0 · 02/10/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -330,6 +330,34 @@ const PL_LIBELLE_ETAPE = {
   rappelJeudi:    'jeudi 18h'
 };
 
+/* v1.6.0 — Cobey, capture d'écran du message « Résultat final envoyé
+   pour dimanche 4 octobre : 2 disponibles, 3 absents » à l'appui :
+   « il ne précise pas qui est là, qui n'est pas là et qui n'a pas
+   répondu [...] il faut que ce message confirme qui est là, qui est
+   présent à la collecte, qui n'est pas présent et qui n'a pas répondu. »
+   Un simple compte ne distinguait pas un "non" assumé d'un silence
+   auto-marqué absent à jeudi 22h (fiche.auto, posée plus haut) — les
+   deux tombaient dans "absents" sans qu'on sache qui est qui. On
+   construit ici le texte détaillé, nom par nom, dans les trois
+   catégories, réutilisé à la fois pour le message à Cobey
+   (plObserver) et pour la trace dans Notification (plJournaliser). */
+function plRecapTexte(ids, jour, participants){
+  var nomDe = function(id){ return (participants[id] || {}).nom || id; };
+  var presents = [], absents = [], sansReponse = [];
+  ids.forEach(function(id){
+    var r = jour[id] || {};
+    if(r.auto) sansReponse.push(nomDe(id));
+    else if(r.dispo) presents.push(nomDe(id));
+    else absents.push(nomDe(id));
+  });
+  var ligne = function(emoji, label, noms){
+    return noms.length ? (emoji + ' ' + label + ' (' + noms.length + ') : ' + noms.join(', ')) : (emoji + ' ' + label + ' : aucun');
+  };
+  return ligne('✅', 'Présents', presents) + '\n'
+    + ligne('❌', 'Absents', absents) + '\n'
+    + ligne('🔇', 'Sans réponse (absent d\'office)', sansReponse);
+}
+
 async function plRelancer(iso, libelle, ids, env){
   if(!ids.length) return;
   // v1.5.1 : Cobey : « je voulais m'inclure dans les personnes qui
@@ -439,19 +467,14 @@ async function traitePlanning(env){
           envoye : false
         }, env);
       }
-      const nbDispo = ids.filter(id => (jour[id] || {}).dispo).length;
-      const nbAbsent = ids.length - nbDispo;
+      const recap = plRecapTexte(ids, jour, participants);
       await plObserver(
         'planning-observateur-resultat-' + dim.iso,
-        'Planning clôturé pour dimanche ' + dim.libelle + ' : ' + nbDispo
-          + ' disponible' + (nbDispo > 1 ? 's' : '') + ', ' + nbAbsent
-          + ' absent' + (nbAbsent > 1 ? 's' : '') + '.',
+        'Planning clôturé pour dimanche ' + dim.libelle + ' :\n' + recap,
         env
       );
       await plJournaliser(
-        'Résultat final envoyé pour dimanche ' + dim.libelle + ' : ' + nbDispo
-          + ' disponible' + (nbDispo > 1 ? 's' : '') + ', ' + nbAbsent
-          + ' absent' + (nbAbsent > 1 ? 's' : '') + '.',
+        'Résultat final pour dimanche ' + dim.libelle + ' :\n' + recap,
         ids.map(id => (participants[id] || {}).nom || id),
         env
       );

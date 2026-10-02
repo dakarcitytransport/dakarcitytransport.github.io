@@ -926,6 +926,23 @@ sur son téléphone — sans jamais déclencher d'envoi quand il n'y a
 personne à relancer (pas de fausse alerte "à vérifier" quand tout le
 monde a déjà répondu).
 
+**v1.6.0 (cloudflare-worker.js) :** Cobey, capture d'écran du message
+« Résultat final envoyé pour dimanche 4 octobre : 2 disponibles, 3
+absents » à l'appui : « il ne précise pas qui est là, qui n'est pas là
+et qui n'a pas répondu [...] il faut que ce message confirme qui est
+là, qui est présent à la collecte, qui n'est pas présent et qui n'a pas
+répondu. » Un simple compte ne distinguait pas un "non" assumé d'un
+silence auto-marqué absent à jeudi 22h — les deux tombaient dans
+"absents" sans dire qui est qui. Le message final (et celui envoyé à
+Cobey en observateur) liste maintenant les noms dans trois catégories
+séparées : ✅ Présents, ❌ Absents (ont répondu non), 🔇 Sans réponse
+(absent d'office, délai dépassé).
+
+**Rappel : ce fichier fait partie de `cloudflare-worker.js`, pas de
+`departs.js` — ce correctif ne prend effet qu'après avoir recollé son
+contenu dans Cloudflare et cliqué Deploy (étape 2 de
+`CLOUDFLARE-A-FAIRE.md`), un git push seul ne suffit pas.**
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
