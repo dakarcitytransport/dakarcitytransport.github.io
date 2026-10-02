@@ -1056,6 +1056,36 @@ ouvre la fiche, comme avant.
 
 ## 3 · Bug
 
+- ~~Un prix confirmé à la validation d'une **collecte du dimanche**
+  pouvait s'enregistrer à 0 € malgré lui, et rester ensuite impossible
+  à corriger.~~ **Réglé le 02/10 (v2.19.0).** Cobey, après une première
+  piste écartée (voir l'entrée Dépôt direct ci-dessous) : « Boubacar est
+  parti faire une collecte d'un dimanche [...] ils sont allés chez les
+  clients [...] un client avait un prix à 0 euros. Mais du coup, il
+  n'avait pas mis... erreur, 100 euros. Après, il a validé, il a voulu
+  rectifier, remettre à 0 euros. Mais là, il était bloqué. Il ne pouvait
+  plus valider la facture s'il ne mettait pas un montant. Et c'était
+  bien dans le parcours collecte. »
+
+  Reproduit précisément : un client sans détail de colis (juste un texte
+  libre, prix 0 €) se voit reconstruire automatiquement une ligne
+  fantôme dès l'ouverture de l'écran « Valider » (ex. « Carton · 0 € »),
+  invisible pour le collaborateur qui ne touche que le prix simple. Deux
+  bugs en cascade :
+  1. le prix réellement enregistré se recalculait toujours à partir de
+     cette ligne fantôme restée à 0 € — la modale « Confirmer avant la
+     facture » affichait bien les 100 € tapés et confirmés, mais 0 €
+     étaient réellement sauvegardés, sans aucune erreur ;
+  2. pour corriger ensuite (en supprimant cette ligne), le champ Prix
+     restait bloqué en lecture seule sur l'ancien total — impossible à
+     ramener à 0 € depuis la fiche.
+
+  Le prix confirmé a maintenant toujours le dernier mot (il reflète déjà
+  le détail en temps réel dès qu'il y en a un) ; supprimer la dernière
+  ligne déverrouille désormais le prix au lieu de le laisser figé. Même
+  correctif appliqué à France & Europe, qui partage le même écran
+  Valider.
+
 - ~~Impossible de remettre un **prix à 0 €** sur une fiche du Dépôt
   direct — « il faut absolument mettre un prix ».~~ **Réglé le 02/10
   (v2.18.0).** Cobey : « la facture n'est pas forcément obligatoire

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.18.0';
+var DEP_VERSION = 'v2.19.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -12786,7 +12786,14 @@ function _depInjecterLignesFrance(){
 
 /* Les lignes commandent les trois champs, comme partout ailleurs. */
 function _depFranceLignesMaj(total, nbColis, lignes){
-  if(!lignes || !lignes.length) return;
+  if(!lignes || !lignes.length){
+    // v2.19.0 : même correctif que _depFicheLignesMaj — sans ça, la
+    // suppression du dernier article laissait le prix bloqué en lecture
+    // seule sur l'ancien total, impossible à corriger depuis cet écran.
+    var pE0 = $('fa-prix');
+    if(pE0){ pE0.readOnly = false; pE0.style.background = ''; pE0.title = ''; }
+    return;
+  }
   var nbEl = $('fa-nb');
   if(nbEl && nbColis > 0) nbEl.value = nbColis;
   var colisEl = $('fa-colis');
@@ -12808,7 +12815,23 @@ function _depFranceLignesMaj(total, nbColis, lignes){
 
 /* v1.25.2 — Sur la fiche, les lignes commandent le prix de la facture. */
 function _depFicheLignesMaj(total, nbColis, lignes){
-  if(!lignes || !lignes.length) return;
+  var prixEl = $('e-prix');
+  if(!lignes || !lignes.length){
+    // v2.19.0 : plus aucune ligne (dernier article supprimé) — on redonne
+    // la main sur le prix au lieu de le laisser bloqué en lecture seule
+    // sur l'ancien total. Avant ce correctif, rien ne remettait jamais
+    // cet état à zéro : supprimer le détail d'un client déjà facturé
+    // laissait sa fiche coincée sur l'ancien prix, impossible à corriger
+    // depuis cet écran (retour de Cobey du 02/10/2026, ramasse d'un
+    // dimanche par Boubacar : un prix tapé par erreur, puis impossible à
+    // ramener à 0 €).
+    if(prixEl){
+      prixEl.readOnly = false;
+      prixEl.style.background = '';
+      prixEl.title = '';
+    }
+    return;
+  }
   var colisEl = $('e-colis');
   if(colisEl){
     colisEl.value = lignes.map(function(l){
@@ -12819,7 +12842,6 @@ function _depFicheLignesMaj(total, nbColis, lignes){
   }
   // v1.25.4 : le prix decoule des lignes, on le met en lecture seule
   // plutot que de laisser saisir un montant qui serait ignore.
-  var prixEl = $('e-prix');
   if(prixEl){
     prixEl.value = total;
     prixEl.readOnly = true;
@@ -13518,18 +13540,43 @@ window.depValiderConfirmer = function(){
 
   // v1.25.0 : on garde le detail ligne par ligne sur la fiche — c'est lui
   // que la facture imprime ensuite, une ligne par article.
+  // v2.19.0 — mais seulement s'il correspond au prix confirmé. Un client
+  // sans détail se voit reconstruire une ligne fantôme à l'ouverture de
+  // l'écran (voir _depLignesColis, ex. "Carton · 0 €") pour que l'éditeur
+  // ait quelque chose à afficher ; si le collaborateur l'ignore et tape un
+  // prix à la main, cette ligne reste à 0 € alors que le prix confirmé est
+  // tout autre — la garder créerait une facture détaillée "0 €" sous un
+  // total différent. On ne la conserve donc que si son total rejoint
+  // effectivement le prix confirmé (ctx.prixModifie) ; sinon la fiche
+  // repart sans détail, comme si le collaborateur n'avait jamais ouvert
+  // l'éditeur de lignes.
   if(typeof window.depLignesValeur === 'function'){
     var lg = window.depLignesValeur();
-    if(lg && lg.length) fiche.colisDetail = lg;
+    if(lg && lg.length){
+      var totLg = window._depTotalColis({ colisDetail: lg });
+      var prixConfirme = (ctx.prixModifie !== null && ctx.prixModifie !== undefined) ? ctx.prixModifie : null;
+      if(prixConfirme === null || totLg === prixConfirme) fiche.colisDetail = lg;
+      else fiche.colisDetail = null;
+    }
   }
+  // v2.19.0 — ctx.prixModifie a toujours le dernier mot : il reflète déjà
+  // le détail ligne par ligne en temps réel (voir _depValiderLignesMaj,
+  // qui le met à jour à chaque modification d'une ligne), donc le
+  // recalculer ici une seconde fois à partir de colisDetail n'apportait
+  // rien — et pouvait écraser SILENCIEUSEMENT un prix tapé/confirmé à la
+  // main par le total d'une ligne restée à 0 €, reconstruite
+  // automatiquement à l'ouverture de l'écran pour tout client sans détail.
+  // Repéré par Cobey le 02/10/2026 (ramasse de Boubacar) : « il met 100
+  // euros et valide » confirmait bien 100 € dans la modale « Confirmer
+  // avant la facture », mais 0 € était réellement enregistré — la ligne
+  // fantôme "Carton · 0 €" gagnait toujours. L'ancien repli ("le detail
+  // passe en dernier et gagne", v1.25.4) ne sert plus qu'au cas où aucun
+  // prix n'a jamais été confirmé (fiche "à définir" jamais touchée, voir
+  // _depValiderLignesMaj) mais qu'un détail existe déjà.
   if(ctx.prixModifie !== null && ctx.prixModifie !== undefined){
     fiche.prix = ctx.prixModifie;
     fiche.prixADefinir = false;
-  }
-  // v1.25.4 : le detail passe en dernier et gagne. Un prix tape a la main
-  // par-dessus des lignes deja saisies laissait les deux en desaccord, et
-  // la facture ne savait plus lequel imprimer.
-  if(fiche.colisDetail && fiche.colisDetail.length){
+  } else if(fiche.colisDetail && fiche.colisDetail.length){
     fiche.prix = window._depTotalColis(fiche);
     fiche.prixADefinir = false;
   }
