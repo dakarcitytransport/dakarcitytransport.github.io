@@ -527,6 +527,26 @@ collecte se clôture dès que chaque client a sa facture **faite**, pas
 forcément **payée** (le client peut régler jusqu'à l'arrivée à Dakar,
 règle déjà en place).
 
+**v2.20.14 :** en creusant le cas de Fallou FALL, Cobey a remis la règle
+au clair : « il faut que les remises commencent à partir du conteneur
+du 13 septembre. Tout ce qui a été fait avant ne compte pas. Parce
+qu'avant, on n'avait pas de conteneur, l'appli ne gérait pas les
+conteneurs. » La règle existait bien depuis le premier jet — mais un
+envoi jamais rattaché à un container (comme celui de Fallou FALL, voir
+juste au-dessus) était jusqu'ici **toujours** compté éligible, sur
+l'hypothèse que « pas de container » voulait dire « forcément récent ».
+Vrai pour un client tout juste collecté cette semaine ; faux pour une
+vieille fiche Collecte d'avant que les containers n'existent dans
+l'application — elle n'a jamais eu de container pour une tout autre
+raison (le champ n'existait pas encore), et se faisait donc compter à
+tort dans le cumul.
+
+Le cumul distingue maintenant les deux cas par la date elle-même : un
+vrai container connu fait foi (inchangé) ; sinon la date de création de
+la fiche ; et à défaut (vieille fiche Collecte sans date propre, voir
+v2.20.13) la date de la collecte elle-même. Sans aucune date fiable,
+l'envoi est exclu par prudence plutôt que compté à tort.
+
 ### ~~Inscription au dépôt : numéro de place et ordre, comme Départ~~
 **Fait le 30/09 (v2.10.33 / v3.94.34).** Cobey, après une première
 tentative où j'avais mal compris (visuel des cartes de containers) :

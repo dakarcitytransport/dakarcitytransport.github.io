@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.13';
+var DEP_VERSION = 'v2.20.14';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -21363,6 +21363,9 @@ var DEP_FIDELITE_MONTANT = 10;     // € par remise
 // (2026-09-13, voir window.depEnregistrer) : une comparaison de texte
 // suffit, l'ordre lexicographique suit l'ordre chronologique.
 var DEP_FIDELITE_DATE_DEBUT = '2026-09-13';
+// Même date, en horodatage (ms) — nécessaire pour la comparer à c.creeLe
+// (un vrai horodatage, pas une date ISO texte). Voir _depFideliteEnvoiEligible.
+var DEP_FIDELITE_DATE_DEBUT_TS = new Date(DEP_FIDELITE_DATE_DEBUT + 'T00:00:00').getTime();
 
 // "JJ/MM/AAAA" à partir d'un horodatage (ms) — dateFr() n'accepte que
 // des dates ISO, pas des horodatages (ceux des versements/remises).
@@ -21386,13 +21389,43 @@ function _depFideliteDateExpiration(ts){
   return new Date(d.getFullYear() + 1, d.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
 }
 
-// true si ce container compte pour le programme — pas encore affecté
-// (donc forcément récent) ou parti le 13/09/2026 ou après.
-function _depFideliteEnvoiEligible(c){
-  if(!c || !c.departId || c.departId === DEP_ID_DEPOT) return true;
-  var d = (window.departsData || {})[c.departId];
-  if(!d || !d.dateDepart) return true;
-  return d.dateDepart >= DEP_FIDELITE_DATE_DEBUT;
+// v2.20.14 — Cobey : « il faut que les remises commencent à partir du
+// conteneur du 13 septembre. Tout ce qui a été fait avant ne compte pas
+// [...] avant, on n'avait pas de conteneur, l'appli ne gérait pas les
+// conteneurs. » Avant ce correctif, un envoi "pas encore affecté à un
+// container" était TOUJOURS compté éligible, sur l'hypothèse que ça
+// voulait dire "forcément récent" — vrai pour un client qui vient
+// d'être collecté cette semaine, FAUX pour un vieux client Collecte
+// d'avant l'existence même des containers dans l'appli : ces fiches-là
+// n'ont jamais eu de departId non plus, pour une tout autre raison (le
+// champ n'existait pas encore), et se faisaient donc compter à tort.
+// On distingue maintenant les deux cas par la date elle-même :
+// 1) un vrai container connu → sa date de départ fait foi (inchangé) ;
+// 2) pas encore dans un container (en attente, ou dépôt direct) → la
+//    date de création de la fiche (c.creeLe) fait foi ;
+// 3) ni l'un ni l'autre (vieille fiche Collecte sans creeLe, voir aussi
+//    le "—" de v2.20.13) → repli sur la date de LA COLLECTE elle-même ;
+// 4) toujours aucune date fiable → exclu par prudence, plutôt que compté
+//    à tort ("tout ce qui a été fait avant ne compte pas").
+// `x` est le descripteur d'envoi de _depFideliteEnvoisContact (porte déjà
+// c/collecteId/depot/france), pas juste la fiche — pour pouvoir remonter
+// jusqu'à la collecte au point 3.
+function _depFideliteEnvoiEligible(x){
+  var c = x && x.c;
+  if(!c) return false;
+  if(c.departId && c.departId !== DEP_ID_DEPOT){
+    var d = (window.departsData || {})[c.departId];
+    if(d && d.dateDepart) return d.dateDepart >= DEP_FIDELITE_DATE_DEBUT;
+  }
+  if(c.creeLe) return c.creeLe >= DEP_FIDELITE_DATE_DEBUT_TS;
+  if(x && !x.depot && !x.france && x.collecteId){
+    var col = (window.collectes || []).filter(function(cc){ return cc && cc.id === x.collecteId; })[0];
+    if(col && col.date){
+      var dt = (typeof parseDate === 'function') ? parseDate(col.date) : null;
+      if(dt && !isNaN(dt.getTime())) return dt.getTime() >= DEP_FIDELITE_DATE_DEBUT_TS;
+    }
+  }
+  return false;
 }
 
 // Tous les envois d'un même contact (clé = _depCleContact), les TROIS
@@ -21435,7 +21468,7 @@ function _depFideliteEnvoisContact(contactKey){
 function _depFideliteEncaissements(contactKey){
   var evts = [];
   _depFideliteEnvoisContact(contactKey).forEach(function(x){
-    if(!_depFideliteEnvoiEligible(x.c)) return;
+    if(!_depFideliteEnvoiEligible(x)) return;
     (Array.isArray(x.c.versements) ? x.c.versements : []).forEach(function(v){
       var m = parseFloat(v && v.montant) || 0;
       if(m > 0) evts.push({ type: 'encaissement', le: v.le || v.ts || x.c.creeLe || 0, montant: m });
@@ -21721,7 +21754,7 @@ window.depRenderFideliteContact = function(){
     h += envois.map(function(x){
       var c = x.c;
       var pay = depCalculerPaiement(c);
-      var eligible = _depFideliteEnvoiEligible(c);
+      var eligible = _depFideliteEnvoiEligible(x);
       if(!eligible) aDesExclus = true;
       var d = c.departId ? (window.departsData||{})[c.departId] : null;
       var origine = d ? esc(d.nom||'') : (x.depot ? 'D&eacute;p&ocirc;t direct' : (x.france ? 'France &amp; Europe' : 'Pas encore rattach&eacute;'));
