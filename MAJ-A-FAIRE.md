@@ -395,6 +395,23 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### Collecte : un bouton pour reporter un client à une autre date
+**Fait le 03/10 (v2.20.23).** Cobey, sur l'onglet « Clients » d'une
+collecte : « il faudrait un bouton pour chaque client ici pour pouvoir
+le changer de collecte. Il y arrive souvent que des clients annulent et
+disent "on reporte ça la semaine prochaine". Donc, il faudrait qu'on
+puisse déplacer directement le client sur une autre collecte. »
+
+Même principe que « Changer de départ » (le bouton qui change un client
+de container), mais sur la date de ramassage : un bouton 🔁 sur chaque
+carte client (direction seulement) ouvre une liste des autres collectes
+pas encore terminées ; le client change de collecte avec sa fiche
+intacte (nom, prix, paiements…), son éventuelle affectation à un camion
+de l'ancienne collecte est nettoyée, et un avertissement bloque le
+premier appui si un client au même nom ou au même téléphone existe
+déjà dans la collecte de destination (comme pour « Changer de
+départ »).
+
 ### Administration : ménage dans la grille, « Livreur » remontée à l'écran principal
 **Fait le 03/10 (v2.20.22).** Cobey, capture d'écran de la grille
 Administration à l'appui : « on va un peu changer les réglages, il y a

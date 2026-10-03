@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.22';
+var DEP_VERSION = 'v2.20.23';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -726,6 +726,7 @@ var _depFiltreLivraison = 'tous';  // 'tous' | 'avec' | 'sans'
 var _depFiltreDu = 'tous';         // 'tous' | 'colis' | 'livraison'
 var _depDetailRecherche = '';      // v1.19.57 : recherche expéditeur/destinataire du carré Départ
 var _depMoveClient = null;      // { collecteId, clientId, nom, departId }
+var _depMoveCollecteClient = null; // { collecteId, clientId, nom } — report à une autre collecte
 var _depPret = false;
 var _depDetachClient = null;    // { collecteId, clientId, nom, departId } — détachement d'UN client
 var _depFactureCtx = null;      // { collecteId, clientId, depot, france } — facture actuellement affichée
@@ -4273,6 +4274,22 @@ function injecterEcrans(){
     +   '<button class="btn-sm btn-green-sm" onclick="depConfirmerMove()">D&eacute;placer</button>'
     + '</div></div></div>';
   document.body.appendChild(m);
+
+  /* ---- Modale : changer un client de collecte (report à une autre date) ---- */
+  var mCol = document.createElement('div');
+  mCol.className = 'modal-overlay';
+  mCol.id = 'modal-dep-move-collecte';
+  mCol.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">&#128197;</div>'
+    + '<div class="modal-confirm-title">Changer de collecte</div>'
+    + '<div id="dep-move-collecte-info" style="font-size:13px;color:#555;margin:8px 0 12px;"></div>'
+    + '<select class="fi" id="dep-move-collecte-select" style="margin-bottom:12px;"></select>'
+    + '<div id="dep-move-collecte-warn" style="display:none;" class="dep-alert"></div>'
+    + '<div class="modal-confirm-btns">'
+    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-dep-move-collecte\')">Annuler</button>'
+    +   '<button class="btn-sm btn-green-sm" onclick="depConfirmerMoveCollecte()">D&eacute;placer</button>'
+    + '</div></div></div>';
+  document.body.appendChild(mCol);
 
   /* ---- Modale : détacher un client de ce départ ---- */
   var m2 = document.createElement('div');
@@ -12466,6 +12483,127 @@ window.depConfirmerMove = function(){
 };
 
 /* ─────────────────────────────────────────────
+   11 ter. CHANGER UN CLIENT DE COLLECTE (direction seulement)
+   Retour de Cobey du 03/10/2026, sur l'onglet "Clients" d'une collecte :
+   « il arrive souvent que des clients annulent et disent qu'on reporte
+   ça la semaine prochaine [...] il faudrait qu'on puisse déplacer
+   directement le client sur une autre collecte. » Même principe que
+   "Changer de départ" ci-dessus, mais sur la date de ramassage : le
+   client change de collecte, pas de container ni de facture — ses
+   paiements et sa fiche le suivent tels quels.
+   ───────────────────────────────────────────── */
+
+// Retire toute trace du client dans le dispatch (camion assigné, validé,
+// refusé, annulé, reporté, heure…) de SA collecte d'origine — sinon il
+// resterait affecté à un camion qui ne le ramassera jamais, dans une
+// collecte qu'il a quittée.
+function _depNettoyerDispatchCollecte(collecteId, clientId){
+  var d = (window.dispatchParCollecte || {})[collecteId];
+  if(!d) return;
+  if(d.assigned) delete d.assigned[clientId];
+  Object.keys(d.trucks || {}).forEach(function(k){
+    var tk = d.trucks[k];
+    if(!tk) return;
+    ['clients', 'validated', 'refused', 'cancelled', 'reported'].forEach(function(arr){
+      if(Array.isArray(tk[arr])){
+        var i = tk[arr].indexOf(clientId);
+        if(i >= 0) tk[arr].splice(i, 1);
+      }
+    });
+    if(tk.hours) delete tk.hours[clientId];
+  });
+}
+
+window.depOuvrirMoveCollecte = function(clientId){
+  if(!estDirection()){ toast('🔒 Seul Issyaka peut changer un client de collecte.'); return; }
+  var collecteId = window.currentCollecteId;
+  var c = ((window.clientsParCollecte || {})[collecteId] || {})[clientId];
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+
+  _depMoveCollecteClient = { collecteId: collecteId, clientId: clientId, nom: _depNomFiche(c) };
+
+  var colActuelle = (window.collectes || []).filter(function(k){ return k.id === collecteId; })[0];
+  var info = $('dep-move-collecte-info');
+  if(info) info.innerHTML = '<b>'+esc(_depNomFiche(c))+'</b><br>Actuellement dans la collecte du : '
+    + esc(colActuelle ? colActuelle.date : '—');
+
+  // Toute autre collecte pas encore terminée (à venir ou en cours — il
+  // peut y en avoir plusieurs d'actives à la fois), triée par date réelle.
+  var opts = (window.collectes || []).filter(function(k){
+    return k && k.id !== collecteId && k.statut !== 'terminee';
+  }).sort(function(a, b){
+    var ta = (typeof _parseDateCollecte === 'function' && _parseDateCollecte(a.date)) || 0;
+    var tb = (typeof _parseDateCollecte === 'function' && _parseDateCollecte(b.date)) || 0;
+    return (ta && tb) ? (ta - tb) : 0;
+  });
+  var sel = $('dep-move-collecte-select');
+  if(sel){
+    if(!opts.length){
+      sel.innerHTML = '<option value="">Aucune autre collecte disponible</option>';
+    } else {
+      sel.innerHTML = '<option value="">— Choisir la nouvelle collecte —</option>'
+        + opts.map(function(k){
+            return '<option value="'+k.id+'">'+esc(k.date)+'</option>';
+          }).join('');
+    }
+  }
+  var w = $('dep-move-collecte-warn'); if(w) w.style.display = 'none';
+  openModal('modal-dep-move-collecte');
+};
+
+window.depConfirmerMoveCollecte = function(){
+  if(!_depMoveCollecteClient) return;
+  var sel = $('dep-move-collecte-select');
+  var vers = sel ? sel.value : '';
+  if(!vers){ toast('⚠️ Choisissez une collecte.'); return; }
+
+  var mv = _depMoveCollecteClient;
+  var c = ((window.clientsParCollecte || {})[mv.collecteId] || {})[mv.clientId];
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+
+  // Le client existe-t-il déjà dans la collecte de destination ?
+  var telClean = String(c.tel || '').replace(/\s/g, '');
+  var doublon = tousLesClients().filter(function(x){
+    if(x.collecteId !== vers) return false;
+    if(x.clientId === mv.clientId) return false;
+    var t2 = String(x.c.tel || '').replace(/\s/g, '');
+    return (telClean && t2 && t2 === telClean)
+        || (String(x.c.name || '').toLowerCase() === String(c.name || '').toLowerCase());
+  })[0];
+
+  if(doublon){
+    var w = $('dep-move-collecte-warn');
+    if(w && w.style.display === 'none'){
+      w.style.display = 'block';
+      w.innerHTML = '&#9888;&#65039; <b>'+esc(c.name || '')+'</b> est d&eacute;j&agrave; pr&eacute;sent dans cette collecte. '
+        + 'Vous aurez deux fiches pour le m&ecirc;me client. Appuyez &agrave; nouveau sur "D&eacute;placer" pour confirmer quand m&ecirc;me.';
+      return;
+    }
+  }
+
+  var u = window.currentUser || {};
+  var colSrc = (window.collectes || []).filter(function(k){ return k.id === mv.collecteId; })[0];
+  var colVers = (window.collectes || []).filter(function(k){ return k.id === vers; })[0];
+  var hist = c.historiqueCollecte || [];
+  hist.push({ de: mv.collecteId, vers: vers, par: u.id || '', le: Date.now() });
+  c.historiqueCollecte = hist;
+
+  _depNettoyerDispatchCollecte(mv.collecteId, mv.clientId);
+  delete (window.clientsParCollecte[mv.collecteId] || {})[mv.clientId];
+  if(!window.clientsParCollecte[vers]) window.clientsParCollecte[vers] = {};
+  window.clientsParCollecte[vers][mv.clientId] = c;
+
+  try{ sauvegarder(); }catch(e){}
+  depActivite('&#128197;', 'a report&eacute; <strong>'+esc(_depNomFiche(c))+'</strong> de la collecte du '
+    +esc(colSrc ? colSrc.date : '?')+' &agrave; celle du <strong>'+esc(colVers ? colVers.date : '?')+'</strong>');
+
+  closeModal('modal-dep-move-collecte');
+  toast('✅ Client déplacé vers l\'autre collecte');
+  _depMoveCollecteClient = null;
+  try{ if(typeof window.renderClientsTab === 'function') window.renderClientsTab(); }catch(e){}
+};
+
+/* ─────────────────────────────────────────────
    11 bis. DÉTACHER UN CLIENT DE CE DÉPART (direction seulement)
    Le rattachement/détachement d'une collecte entière n'a plus de sens
    depuis que le container n'est plus choisi à la création du client :
@@ -14896,12 +15034,15 @@ function _depAjouterDrapeauxCollecte(){
     if(filtre && c.by !== filtre) return;
     var dept = c.dept || (c.cp ? c.cp.substring(0,2) : '??');
     if(!deptMap[dept]) deptMap[dept] = [];
-    deptMap[dept].push(c);
+    // v2.20.23 : l'id est désormais gardé (Object.assign), lui aussi
+    // requis par le bouton "Changer de collecte" ci-dessous.
+    deptMap[dept].push(Object.assign({ id:id }, c));
   });
   var ordre = [];
   Object.keys(deptMap).sort().forEach(function(dept){
     deptMap[dept].forEach(function(c){ ordre.push(c); });
   });
+  var peutDeplacer = estDirection();
   var rows = container.querySelectorAll('.client-row');
   for(var i = 0; i < rows.length && i < ordre.length; i++){
     var c = ordre[i];
@@ -14910,6 +15051,25 @@ function _depAjouterDrapeauxCollecte(){
     if(nameEl && !nameEl._depDrapeauAjoute){
       nameEl.textContent = (c.name || '') + drapeau;
       nameEl._depDrapeauAjoute = true;
+    }
+    // v2.20.23 — bouton "Changer de collecte" (report à une autre date),
+    // Direction seulement, retour de Cobey du 03/10/2026 (voir
+    // depOuvrirMoveCollecte).
+    if(peutDeplacer && !rows[i]._depBoutonMoveAjoute){
+      var colDroite = rows[i].lastElementChild;
+      if(colDroite){
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = 'Changer de collecte';
+        btn.style.cssText = 'background:#EEF1FF;color:#1a1a2e;border:1px solid #D7DCF5;'
+          + 'border-radius:8px;font-size:11px;font-weight:700;padding:3px 7px;cursor:pointer;';
+        btn.textContent = '🔁';
+        (function(cid){
+          btn.onclick = function(ev){ ev.stopPropagation(); window.depOuvrirMoveCollecte(cid); };
+        })(c.id);
+        colDroite.appendChild(btn);
+      }
+      rows[i]._depBoutonMoveAjoute = true;
     }
   }
 }
