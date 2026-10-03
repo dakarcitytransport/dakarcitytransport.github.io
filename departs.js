@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.21';
+var DEP_VERSION = 'v2.20.22';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2201,7 +2201,12 @@ var DEP_CASES = [
   { cle:'rapfin',   el:'dep-case-rapfin'   },
   { cle:'stats',    el:'dep-case-stats'    },
   { cle:'reglages', el:'dep-case-reglages' },
-  { cle:'annonce',  el:'dep-case-annonce'  }
+  { cle:'annonce',  el:'dep-case-annonce'  },
+  // v2.20.22 — déplacée hors de Réglages (Cobey : « on va la remettre
+  // dans l'écran principal »), voir DEP_REGLAGES_ITEMS plus bas. Ni dans
+  // DEP_CASES_BUREAU ni DEP_CASES_TERRAIN : reste donc réservée à la
+  // direction, exactement comme avant ce déplacement.
+  { cle:'mamadou',  el:'dep-case-mamadou'  }
 ];
 
 var DEP_CASES_TOUTES = DEP_CASES.map(function(c){ return c.cle; });
@@ -2267,7 +2272,8 @@ var DEP_GARDES_CASES = {
   depOuvrirEspaceArchive           : 'archive',
   depOuvrirEspaceRapportFinancier  : 'rapfin',
   depOuvrirEspaceStats             : 'stats',
-  depOuvrirEspaceReglages          : 'reglages'
+  depOuvrirEspaceReglages          : 'reglages',
+  depOuvrirEspaceMamadou           : 'mamadou'
 };
 
 function _depPoserGardesCases(){
@@ -3084,6 +3090,14 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#455A64;">R&Eacute;GLAGES</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-regl">—</div>'
   +       '</div>'
+  // v2.20.22 : remontée depuis Réglages (où elle s'appelait "Livreur"),
+  // sur l'écran principal — Cobey : « on va la remettre dans l'écran
+  // principal mais on va l'appeler Mamadou Niass. »
+  +       '<div class="dep-case" id="dep-case-mamadou" style="background:#FBE9D0;" onclick="depOuvrirEspaceMamadou()">'
+  +         '<div class="dep-case-ico">&#128666;</div>'
+  +         '<div class="dep-case-tit" style="color:#B8720C;">MAMADOU NIASS</div>'
+  +         '<div class="dep-case-sub">Espace livreur &agrave; Dakar</div>'
+  +       '</div>'
   // v2.7.0 : nouveau carré NOTIFICATION, réservé à la direction et à
   // Aminata — Cobey, le 26/09/2026 : « une case notification pour les
   // admin, moi et Aminata, qui va permettre d'envoyer une notification à
@@ -3234,6 +3248,27 @@ function injecterEcrans(){
   +   '</div>'
   +   '<div class="content">'
   +     '<div id="dep-etapes-content"></div>'
+  +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRAN 4ter (v2.20.22) : MAMADOU NIASS — anciennement enfoui
+     dans Réglages ("Livreur"), remonté sur l'écran principal. Cobey :
+     « on va la remettre dans l'écran principal mais on va l'appeler
+     Mamadou Niass. » Même contenu, même fonction de rendu
+     (window.renderAdminMamadou), juste son propre écran maintenant —
+     voir window.depOuvrirEspaceMamadou plus bas. v1.94.37 à l'origine :
+     « il faudra aussi mettre une case miroire pour la direction et moi,
+     pour qu'on puisse voir son interface » — le lien réel vers
+     mamadou.html, jamais une réimplémentation séparée à maintenir en
+     double. ---- */
+  + '<div class="screen" id="s-mamadou-niass">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-espaces\');depRenderEspaces();">&larr; Espaces</button>'
+  +     '<div class="h-title">Mamadou Niass</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div id="admin-section-mamadou"></div>'
   +   '</div>'
   + '</div>'
 
@@ -5346,11 +5381,14 @@ function ecouterDeparts(){
   });
 
   // v1.94.37 : le jeton d'accès permanent de l'espace Mamadou (livreur) —
-  // voir window.renderAdminMamadou, Réglages > Livreur.
+  // voir window.renderAdminMamadou. v2.20.22 : case déplacée sur son
+  // propre écran (s-mamadou-niass, plus de tabs partagés) — on se base
+  // donc sur l'écran actif plutôt que sur le style d'un div qui ne se
+  // cache plus lui-même.
   db.ref('dct_acces_mamadou').on('value', function(snap){
     window.mamadouAcces = snap.val() || {};
     try{
-      if($('admin-section-mamadou') && $('admin-section-mamadou').style.display !== 'none') window.renderAdminMamadou();
+      if($('s-mamadou-niass') && $('s-mamadou-niass').classList.contains('active')) window.renderAdminMamadou();
     }catch(e){}
   });
   db.ref('dct/contacts').on('value', function(snap){
@@ -5662,28 +5700,26 @@ window.depDepartsPaysRetour = function(){
 // de l'écran Collecte (désormais masquée en CSS, voir #btn-admin-panel),
 // sous forme de sous-carrés cliquables plutôt que d'onglets, pour rester
 // cohérent avec le reste du module (Archivage, Historique...).
+// v2.20.22 — Cobey, sur cette grille : « il y a des choses qui ne
+// servent plus à rien, comme Tournées par exemple [...] Codes espaces
+// ça sert plus à rien aussi. » Retirées : TOURNÉES (déjà un reliquat
+// documenté depuis la suppression de Global Logistique, v1.22.1 —
+// l'onglet natif correspondant, renderAdminPartenaires, n'est plus
+// appelé par rien, même principe que l'ancien onglet "acces" natif) et
+// CODES ESPACES (des codes par société, pensés pour un outil
+// multi-sociétés — "chez Dakar City, chacun garde ensuite son code
+// personnel" — jamais vraiment utile pour une seule société).
 var DEP_REGLAGES_ITEMS = [
   { tab:'equipe',       icone:'&#128101;',           titre:'&Eacute;QUIPE',        couleur:'#009A44', fond:'#DDF1E6' },
-  // v1.22.1 : ex-carré PARTENAIRE — l'espace Global Logistique supprimé,
-  // il ne reste derrière que la liste complète des tournées.
-  { tab:'partenaires',  icone:'&#128197;',           titre:'TOURN&Eacute;ES',      couleur:'#1a237e', fond:'#E1E2EE' },
   // v1.21.9 : l'ancien carré unique "Accès" (codes admin + codes espaces +
   // passe-partout + journal, 4 fonctions différentes empilées) éclate en 4
   // sous-carrés — retour de Cobey du 07/09/2026 : "je veux que chaque
   // fonction ait sa case, je veux pas de mélange, vérifie pour le reste".
   { tab:'codesadmin',   icone:'&#128273;',           titre:'CODES ADMIN',          couleur:'#1a1a2e', fond:'#E4E4E8' },
-  { tab:'codesespaces', icone:'&#128682;',           titre:'CODES ESPACES',        couleur:'#00897b', fond:'#D9F2ED' },
   // adminOnly : réservé au profil AD, comme _htmlPassePartout() natif —
   // filtré à la construction de la grille (voir _depReglagesPreparerEcran).
   { tab:'maintenance',  icone:'&#128477;&#65039;',   titre:'MAINTENANCE',          couleur:'#5d4037', fond:'#EFE6DF', adminOnly:true },
   { tab:'alertes',      icone:'&#128276;',           titre:'ALERTES',              couleur:'#c0392b', fond:'#F6E5E3' },
-  // v1.94.37 : Cobey, sur l'espace Mamadou (livreur) : « il faudra aussi
-  // mettre une case miroire pour la direction et moi, pour qu'on puisse
-  // voir son interface, faire des tests éventuellement aussi. » — pas une
-  // réimplémentation de son écran (ça aurait recréé le même genre de
-  // double maintenance que facture.html/departs.js), mais le lien réel
-  // vers mamadou.html : la Direction voit très exactement ce qu'il voit.
-  { tab:'mamadou',      icone:'&#128666;',           titre:'LIVREUR',              couleur:'#B8720C', fond:'#FBE9D0' },
   { tab:'donnees',      icone:'&#128190;',           titre:'DONN&Eacute;ES',       couleur:'#455A64', fond:'#E6E9EA' },
   // v1.21.8 : sous-carré séparé, retour de Cobey du 07/09/2026 — Civilités
   // et Diagnostic n'ont rien à voir avec le stockage (Données), chaque
@@ -5697,6 +5733,14 @@ window.depOuvrirEspaceReglages = function(){
   goTo('s-admin');
   _depReglagesPreparerEcran();
   _depReglagesAfficherGrille();
+};
+
+// v2.20.22 — déplacée hors de Réglages, sur son propre écran (voir
+// s-mamadou-niass, l'injection d'écrans plus haut) — Cobey : « on va la
+// remettre dans l'écran principal mais on va l'appeler Mamadou Niass. »
+window.depOuvrirEspaceMamadou = function(){
+  goTo('s-mamadou-niass');
+  window.renderAdminMamadou();
 };
 
 function _depReglagesPreparerEcran(){
@@ -5727,7 +5771,7 @@ function _depReglagesPreparerEcran(){
   // fois, ici même où vit déjà la création de la grille.
   // v1.21.9 : même chose pour les 4 cases qui remplacent l'ancien carré
   // unique "Accès" (codesadmin/codesespaces/maintenance/alertes).
-  ['outils','codesadmin','codesespaces','maintenance','alertes','mamadou'].forEach(function(id){
+  ['outils','codesadmin','maintenance','alertes'].forEach(function(id){
     if(contenu && !$('admin-section-'+id)){
       var sec = document.createElement('div');
       sec.id = 'admin-section-'+id;
@@ -5776,7 +5820,7 @@ window._depReglagesOuvrirItem = function(tab){
 
 function _depReglagesAfficherGrille(){
   _depReglagesTab = null;
-  ['equipe','partenaires','codesadmin','codesespaces','maintenance','alertes','donnees','outils','message','mamadou'].forEach(function(t){
+  ['equipe','codesadmin','maintenance','alertes','donnees','outils','message'].forEach(function(t){
     var sec = $('admin-section-'+t);
     if(sec) sec.style.display = 'none';
   });
@@ -16726,7 +16770,7 @@ function greffer(){
      plus, aucune case n'y mène. --- */
   if(typeof window.showAdminTab === 'function' && !window.showAdminTab._depPatch){
     window.showAdminTab = function(tab){
-      ['equipe','partenaires','codesadmin','codesespaces','maintenance','alertes','donnees','outils','message','mamadou'].forEach(function(t){
+      ['equipe','codesadmin','maintenance','alertes','donnees','outils','message'].forEach(function(t){
         var sec = document.getElementById('admin-section-'+t);
         var btn = document.getElementById('admin-tab-'+t);
         if(sec) sec.style.display = t === tab ? 'block' : 'none';
@@ -16736,15 +16780,12 @@ function greffer(){
         }
       });
       if(tab === 'equipe') renderAdminEquipe();
-      else if(tab === 'partenaires') renderAdminPartenaires();
       else if(tab === 'codesadmin') window.renderAdminCodesAdmin();
-      else if(tab === 'codesespaces') window.renderAdminCodesEspaces();
       else if(tab === 'maintenance') window.renderAdminMaintenance();
       else if(tab === 'alertes'){ window.renderAdminAlertes(); marquerAlertesVues(); }
       else if(tab === 'donnees') renderAdminDonnees();
       else if(tab === 'outils') window.renderAdminOutils();
       else if(tab === 'message') renderAdminMessage();
-      else if(tab === 'mamadou') window.renderAdminMamadou();
     };
     window.showAdminTab._depPatch = true;
   }
@@ -16771,8 +16812,8 @@ function greffer(){
         if(mt && mt.style.display !== 'none' && typeof window.renderAdminMaintenance === 'function') window.renderAdminMaintenance();
         var al = document.getElementById('admin-section-alertes');
         if(al && al.style.display !== 'none' && typeof window.renderAdminAlertes === 'function') window.renderAdminAlertes();
-        var mn = document.getElementById('admin-section-mamadou');
-        if(mn && mn.style.display !== 'none' && typeof window.renderAdminMamadou === 'function') window.renderAdminMamadou();
+        var smn = document.getElementById('s-mamadou-niass');
+        if(smn && smn.classList.contains('active') && typeof window.renderAdminMamadou === 'function') window.renderAdminMamadou();
       }catch(e){ console.error('departs: rafraîchissement sous-carrés Accès', e); }
     };
     window._rafraichirAdmin._depPatch = true;

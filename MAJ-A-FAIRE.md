@@ -395,6 +395,36 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### Administration : ménage dans la grille, « Livreur » remontée à l'écran principal
+**Fait le 03/10 (v2.20.22).** Cobey, capture d'écran de la grille
+Administration à l'appui : « on va un peu changer les réglages, il y a
+des choses qui ne servent plus à rien comme Tournées par exemple [...]
+vérifie ce qui fonctionne, ce qui fonctionne pas, vérifie les espaces.
+La case Livreur, on va la remettre dans l'écran principal mais on va
+l'appeler Mamadou Niass. » Puis, mi-turn : « Code espace sert plus à
+rien aussi. »
+
+- **MAMADOU NIASS** (ex-« Livreur ») a quitté Réglages pour devenir
+  une vraie case sur l'écran principal (Espaces), à côté de Réglages
+  et Notification — toujours réservée à la direction, même accès
+  qu'avant. Même contenu exact (lien à envoyer à Mamadou, accès de
+  test sans code, réinitialisation du mot de passe) : rien
+  réimplémenté, juste déménagé sur son propre écran.
+- **TOURNÉES** retirée : reliquat documenté depuis la suppression de
+  l'espace Global Logistique (v1.22.1) — ne restait plus derrière
+  qu'une liste en lecture seule, sans action réelle.
+- **CODES ESPACES** retirée : des codes d'accès par société, pensés
+  pour un outil multi-sociétés — jamais utile pour une seule société
+  (Dakar City Transport), où chacun a déjà son propre code personnel
+  (voir Codes Admin, conservée).
+
+Vérifié que le reste fonctionne : Équipe, Codes Admin, Maintenance,
+Alertes (alimentée en vrai par les tentatives de code erroné),
+Données et Outils (Civilités, Diagnostic) sont bien vivants. Message
+(bandeau affiché à la connexion) n'est pas un doublon de la case
+Notification de l'écran principal (qui envoie une vraie notification
+push) — les deux ont un rôle différent, aucune des deux touchée.
+
 ### Programme de fidélité — premier jet
 **Premier jet livré le 02/10 (v2.20.0).** Cobey, depuis la fiche client
 (« Actions ») : « on veut créer un programme de fidélité pour chaque
