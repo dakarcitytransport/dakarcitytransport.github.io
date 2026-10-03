@@ -378,7 +378,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.6.2';
+var MAMADOU_VERSION = 'v1.6.3';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -624,6 +624,15 @@ function apresChargement(){
   _accueilAffiche = true;
   $('ecran-chargement').hidden = true;
   goTo('ecran-accueil');
+  // v1.6.3 — Cobey : « on doit voir tout ce que fait Mamadou Niass quand
+  // il se connecte et quand il valide [...] tout ce qu'il fait sur
+  // l'application doit être sur activité. » Rien ne notifiait la
+  // connexion elle-même jusqu'ici (seulement un changement de mot de
+  // passe) — ici, et seulement ici (_accueilAffiche empêche tout
+  // doublon), une fois par vraie ouverture de l'app, quel que soit le
+  // chemin (mot de passe saisi, déjà connecté, mot de passe tout juste
+  // créé). Jamais pour le lien de test Direction (ce n'est pas Mamadou).
+  if(!_modeDirection) activiteExterne('🔓', '<strong>Mamadou Niass</strong> s’est connecté.');
 }
 
 function mnAccueilOuvrir(){
@@ -1233,6 +1242,10 @@ function mnPhotoLivraisonChoisie(input){
           _ficheNbPhotosLivraison = Object.keys(_photosLivraisonActuelles).length;
           _mnRenderPhotosLivraison();
           _mnMajBoutonValider();
+          // v1.6.3 — Cobey : « tout ce qu'il fait sur l'application doit
+          // être sur activité. »
+          var cPhoto = clientActuel(_ficheCtx);
+          activiteExterne('📷', '<strong>' + esc(ACTEUR_NOM) + '</strong> a ajouté une photo de remise pour <strong>' + esc((cPhoto && cPhoto.name) || '') + '</strong>');
         }).catch(function(e){
           console.error('mamadou: échec envoi photo livraison', e);
           alert('Échec de l’envoi de la photo, réessayez.');
@@ -1250,6 +1263,10 @@ function mnSupprimerPhotoLivraison(cle){
     _ficheNbPhotosLivraison = Object.keys(_photosLivraisonActuelles).length;
     _mnRenderPhotosLivraison();
     _mnMajBoutonValider();
+    // v1.6.3 — Cobey : « tout ce qu'il fait sur l'application doit être
+    // sur activité. »
+    var cPhoto = clientActuel(_ficheCtx);
+    activiteExterne('🗑️', '<strong>' + esc(ACTEUR_NOM) + '</strong> a supprimé une photo de remise pour <strong>' + esc((cPhoto && cPhoto.name) || '') + '</strong>');
   }).catch(function(e){ console.error('mamadou: échec suppression photo', e); });
 }
 

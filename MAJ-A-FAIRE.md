@@ -1730,6 +1730,20 @@ bandeau « Encaissé » du container se décompose maintenant en 2
 sous-lignes : « dont par DCT » et « dont par Mamadou », qui se
 partagent ce même total.
 
+**v1.6.3 :** Cobey : « dans activité, on doit voir tout ce que fait
+Mamadou Niass quand il se connecte et quand il valide. Et... Enfin,
+tout ce qu'il fait sur l'application doit être sur activité. » Trois
+trous dans la couverture déjà en place (encaissement, validation de
+livraison, arrivée au dépôt, mot de passe choisi/changé) :
+- **la connexion elle-même** n'était jamais notifiée (seul un
+  changement de mot de passe l'était) — ajoutée au point unique où
+  l'accueil s'affiche réellement (une fois par ouverture de l'app,
+  quel que soit le chemin : mot de passe saisi, déjà connecté,
+  mot de passe tout juste créé) ; jamais pour le lien de test
+  Direction, qui n'est pas Mamadou ;
+- **l'ajout** d'une photo de remise n'était pas notifié ;
+- **la suppression** d'une photo de remise non plus.
+
 Ce qui reste **non construit** : ce que Mamadou touche lui-même par
 livraison (commission/forfait) — **question toujours en suspens pour
 Cobey**, sur quelle base il est rémunéré ; sans cette règle, impossible
