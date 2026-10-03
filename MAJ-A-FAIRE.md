@@ -396,18 +396,24 @@ un prestataire.
 ## 2 · Améliorations
 
 ### Collecte : un bouton pour reporter un client à une autre date
-**Fait le 03/10 (v2.20.23).** Cobey, sur l'onglet « Clients » d'une
-collecte : « il faudrait un bouton pour chaque client ici pour pouvoir
-le changer de collecte. Il y arrive souvent que des clients annulent et
-disent "on reporte ça la semaine prochaine". Donc, il faudrait qu'on
-puisse déplacer directement le client sur une autre collecte. »
+**Fait le 03/10 (v2.20.23, ouverte à tout le monde en v2.20.24).** Cobey,
+sur l'onglet « Clients » d'une collecte : « il faudrait un bouton pour
+chaque client ici pour pouvoir le changer de collecte. Il y arrive
+souvent que des clients annulent et disent "on reporte ça la semaine
+prochaine". Donc, il faudrait qu'on puisse déplacer directement le
+client sur une autre collecte. » La première version (v2.20.23)
+réservait le bouton à la direction, comme « Changer de départ » ; Cobey,
+juste après : « le bouton changer de collecte peut être appliqué à tout
+le monde » — ouvert à tous en v2.20.24.
 
 Même principe que « Changer de départ » (le bouton qui change un client
-de container), mais sur la date de ramassage : un bouton 🔁 sur chaque
-carte client (direction seulement) ouvre une liste des autres collectes
-pas encore terminées ; le client change de collecte avec sa fiche
-intacte (nom, prix, paiements…), son éventuelle affectation à un camion
-de l'ancienne collecte est nettoyée, et un avertissement bloque le
+de container), mais sur la date de ramassage, et accessible à tous
+(pas réservé à la direction, à la différence de « Changer de départ »,
+qui touche le container et la facture) : un bouton 🔁 sur chaque carte
+client ouvre une liste des autres collectes pas encore terminées ; le
+client change de collecte avec sa fiche intacte (nom, prix,
+paiements…), son éventuelle affectation à un camion de l'ancienne
+collecte est nettoyée, et un avertissement bloque le
 premier appui si un client au même nom ou au même téléphone existe
 déjà dans la collecte de destination (comme pour « Changer de
 départ »).

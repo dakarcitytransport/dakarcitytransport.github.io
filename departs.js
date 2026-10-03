@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.23';
+var DEP_VERSION = 'v2.20.24';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -12483,7 +12483,7 @@ window.depConfirmerMove = function(){
 };
 
 /* ─────────────────────────────────────────────
-   11 ter. CHANGER UN CLIENT DE COLLECTE (direction seulement)
+   11 ter. CHANGER UN CLIENT DE COLLECTE (ouvert à tout le monde)
    Retour de Cobey du 03/10/2026, sur l'onglet "Clients" d'une collecte :
    « il arrive souvent que des clients annulent et disent qu'on reporte
    ça la semaine prochaine [...] il faudrait qu'on puisse déplacer
@@ -12491,6 +12491,12 @@ window.depConfirmerMove = function(){
    "Changer de départ" ci-dessus, mais sur la date de ramassage : le
    client change de collecte, pas de container ni de facture — ses
    paiements et sa fiche le suivent tels quels.
+   v2.20.24 — à la différence de "Changer de départ" (réservé à la
+   direction, car ça touche le container et la facture), reporter un
+   client à une autre collecte est une action courante de la collecte
+   elle-même : Cobey, le 03/10/2026, après la première version
+   direction-only : « le bouton changer de collecte peut être appliqué
+   à tout le monde. » Ouvert à tous ceux qui ont accès à la collecte.
    ───────────────────────────────────────────── */
 
 // Retire toute trace du client dans le dispatch (camion assigné, validé,
@@ -12515,7 +12521,6 @@ function _depNettoyerDispatchCollecte(collecteId, clientId){
 }
 
 window.depOuvrirMoveCollecte = function(clientId){
-  if(!estDirection()){ toast('🔒 Seul Issyaka peut changer un client de collecte.'); return; }
   var collecteId = window.currentCollecteId;
   var c = ((window.clientsParCollecte || {})[collecteId] || {})[clientId];
   if(!c){ toast('⚠️ Client introuvable.'); return; }
@@ -15042,7 +15047,6 @@ function _depAjouterDrapeauxCollecte(){
   Object.keys(deptMap).sort().forEach(function(dept){
     deptMap[dept].forEach(function(c){ ordre.push(c); });
   });
-  var peutDeplacer = estDirection();
   var rows = container.querySelectorAll('.client-row');
   for(var i = 0; i < rows.length && i < ordre.length; i++){
     var c = ordre[i];
@@ -15053,9 +15057,10 @@ function _depAjouterDrapeauxCollecte(){
       nameEl._depDrapeauAjoute = true;
     }
     // v2.20.23 — bouton "Changer de collecte" (report à une autre date),
-    // Direction seulement, retour de Cobey du 03/10/2026 (voir
-    // depOuvrirMoveCollecte).
-    if(peutDeplacer && !rows[i]._depBoutonMoveAjoute){
+    // retour de Cobey du 03/10/2026 (voir depOuvrirMoveCollecte). v2.20.24 :
+    // ouvert à tout le monde, pas réservé à la direction ("le bouton
+    // changer de collecte peut être appliqué à tout le monde").
+    if(!rows[i]._depBoutonMoveAjoute){
       var colDroite = rows[i].lastElementChild;
       if(colDroite){
         var btn = document.createElement('button');
