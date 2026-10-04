@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.7.0 · 04/10/2026
+   v1.7.1 · 04/10/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -156,7 +156,12 @@ async function jetonAuth(env){
   const entete = { alg:'RS256', typ:'JWT' };
   const corps  = {
     iss  : env.FIREBASE_CLIENT_EMAIL,
-    scope: 'https://www.googleapis.com/auth/firebase.database',
+    // v1.7.1 — le jeton s'obtenait bien, mais Firebase répondait 401 à la
+    // lecture : le périmètre (scope) demandé était trop étroit. Le SDK
+    // officiel Firebase Admin, pour ce même usage, demande toujours ces
+    // deux portées ensemble — jamais la base de données seule.
+    scope: 'https://www.googleapis.com/auth/firebase.database '
+         + 'https://www.googleapis.com/auth/userinfo.email',
     aud  : 'https://oauth2.googleapis.com/token',
     iat  : maintenant,
     exp  : maintenant + 3600
