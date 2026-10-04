@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.25';
+var DEP_VERSION = 'v2.20.26';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -24282,6 +24282,106 @@ window.depOuvrirEspaceAnnonce = function(){
   depRenderAnnonce();
 };
 
+/* v2.20.26 — Eric : « j'ai envoyé une notif mais j'ai rien reçu ». Il
+   avait bien installé l'application à l'écran d'accueil et déjà activé
+   les notifications auparavant — exactement le cas que ni le bandeau
+   (qui ne vérifie que la permission du navigateur, jamais si Firebase a
+   toujours un abonnement valide pour CE téléphone) ni la file d'envoi
+   ne savaient signaler : un abonnement local que le téléphone croit
+   encore bon, mais qui ne correspond plus à rien de réellement
+   joignable (ou jamais enregistré côté Firebase). Un petit diagnostic
+   sur l'écran Notification, visible par celui qui regarde son propre
+   téléphone, pour voir — et corriger en un geste, sans ticket de
+   support — avant même de renvoyer un message test. */
+function _depDiagnosticAbonnement(){
+  var etat = _depEtatNotifs();
+  var out = { etat: etat, fiche: null };
+  if(etat !== 'ok' || !('serviceWorker' in navigator)) return Promise.resolve(out);
+  return _depEnregistrerSW().then(function(reg){
+    return reg.pushManager.getSubscription();
+  }).then(function(ab){
+    if(!ab || !window.db) return out;
+    return window.db.ref('dct_push/' + _depEmpreinte(ab.endpoint)).once('value').then(function(snap){
+      out.fiche = snap.val();
+      return out;
+    });
+  }).catch(function(){ return out; });
+}
+
+function _depAfficherDiagNotifs(){
+  var bloc = $('an-diag-notifs');
+  if(!bloc) return;
+  _depDiagnosticAbonnement().then(function(d){
+    bloc = $('an-diag-notifs'); // l'écran a pu changer pendant l'attente
+    if(!bloc) return;
+    var html = '<div style="font-size:10.5px;font-weight:800;color:#8a8a8a;letter-spacing:.04em;'
+      + 'margin-bottom:5px;">MES NOTIFICATIONS, SUR CE T&Eacute;L&Eacute;PHONE</div>';
+    if(d.etat !== 'ok'){
+      var msg = d.etat === 'a-activer' ? 'Pas encore activ&eacute;es sur ce t&eacute;l&eacute;phone.'
+        : d.etat === 'refuse' ? 'Refus&eacute;es &mdash; r&eacute;glages du t&eacute;l&eacute;phone, puis Notifications.'
+        : d.etat === 'ajouter-ecran-accueil' ? 'Ajoutez d\'abord l\'application &agrave; l\'&eacute;cran d\'accueil.'
+        : 'Ce t&eacute;l&eacute;phone ne g&egrave;re pas les notifications.';
+      html += '<div style="color:#992020;font-weight:700;">&#128277; ' + msg + '</div>';
+    } else if(!d.fiche){
+      html += '<div style="color:#992020;font-weight:700;">&#9888;&#65039; Autoris&eacute;es, mais aucun '
+        + 'abonnement valide enregistr&eacute; &mdash; vous ne recevrez rien tant que ce n\'est pas corrig&eacute;.</div>'
+        + '<div onclick="depReabonnerNotifs()" style="margin-top:7px;display:inline-block;background:#009A44;'
+        + 'color:#fff;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer;">'
+        + '&#128260; R&eacute;abonner cet appareil</div>';
+    } else {
+      html += '<div style="color:#006b2d;font-weight:700;">&#9989; Abonn&eacute; &mdash; derni&egrave;re '
+        + 'confirmation ' + _depDepuisTxt(d.fiche.majLe) + '.</div>'
+        + '<div onclick="depReabonnerNotifs()" style="margin-top:6px;display:inline-block;color:#555;'
+        + 'text-decoration:underline;font-size:11.5px;cursor:pointer;">Toujours rien re&ccedil;u '
+        + '? R&eacute;abonner cet appareil</div>';
+    }
+    bloc.innerHTML = html;
+  });
+}
+
+// Contrairement à "Activer" (qui réutilise sans vérifier l'abonnement
+// déjà présent sur le téléphone s'il y en a un), ceci recommence à zéro
+// : on désabonne d'abord l'ancien — même s'il semble valide, c'est
+// justement le cas d'un abonnement que le téléphone croit bon mais qui
+// ne l'est plus — puis on en crée un tout neuf, réenregistré dans
+// Firebase. C'est le seul moyen de guérir un abonnement mort sans
+// attendre que quelqu'un désinstalle puis réinstalle l'application.
+window.depReabonnerNotifs = function(){
+  if(!('serviceWorker' in navigator)){ toast('⛔ Ce téléphone ne gère pas les notifications.'); return; }
+  var bloc = $('an-diag-notifs');
+  if(bloc) bloc.innerHTML = '<div style="font-size:12px;color:#888;">Réabonnement en cours…</div>';
+  var regOuverte;
+  _depEnregistrerSW().then(function(reg){
+    regOuverte = reg;
+    return reg.pushManager.getSubscription();
+  }).then(function(ancien){
+    return ancien ? ancien.unsubscribe().catch(function(){}) : null;
+  }).then(function(){
+    return Notification.requestPermission();
+  }).then(function(rep){
+    if(rep !== 'granted'){
+      toast('🔕 Notifications refusées.');
+      _depMajBandeauNotifs();
+      _depAfficherDiagNotifs();
+      return;
+    }
+    return regOuverte.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _depCleEnOctets(DEP_VAPID_PUBLIQUE)
+    }).then(function(ab){
+      return _depRangerAbonnement(ab);
+    }).then(function(){
+      toast('🔔 Nouvel abonnement enregistré sur ce téléphone.');
+      _depMajBandeauNotifs();
+      _depAfficherDiagNotifs();
+    });
+  }).catch(function(e){
+    console.error('departs: réabonnement notifications', e);
+    toast('❌ Échec du réabonnement, réessayez.');
+    _depAfficherDiagNotifs();
+  });
+};
+
 function _depAnnoncesListe(){
   var a = window.annoncesData || {};
   return Object.keys(a).map(function(k){
@@ -24378,7 +24478,13 @@ function _depAnnonceCarte(a){
 window.depRenderAnnonce = function(){
   var box = document.getElementById('an-contenu');
   if(!box) return;
-  var h = '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:11px;'
+  // v2.20.26 — diagnostic de l'abonnement de CE téléphone, rempli en
+  // différé (voir _depAfficherDiagNotifs) : vérifier côté Firebase prend
+  // un aller-retour, jamais bloquant pour le reste de l'écran.
+  var h = '<div id="an-diag-notifs" style="font-size:11.5px;color:#888;background:#F5F5F5;'
+    + 'border:1px solid #E5E5E5;border-radius:9px;padding:9px 11px;margin-bottom:14px;">'
+    + 'V&eacute;rification de vos notifications&hellip;</div>'
+    + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:11px;'
     + 'line-height:1.45;">Ce message part imm&eacute;diatement &agrave; toute l\'&eacute;quipe, '
     + 'vous y compris.</div>'
     + '<textarea class="fi" id="an-texte" rows="4" maxlength="500" '
@@ -24396,6 +24502,7 @@ window.depRenderAnnonce = function(){
     h += liste.map(_depAnnonceCarte).join('');
   }
   box.innerHTML = h;
+  try{ _depAfficherDiagNotifs(); }catch(e){}
 };
 
 /* ═══════════════════════════════════════════════════════════

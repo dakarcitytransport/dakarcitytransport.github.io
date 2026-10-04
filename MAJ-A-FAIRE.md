@@ -395,6 +395,33 @@ un prestataire.
 
 ## 2 · Améliorations
 
+### Notification : diagnostiquer soi-même « j'ai envoyé mais rien reçu »
+**Fait le 04/10 (v2.20.26).** Eric, capture d'écran de l'écran
+Notification à l'appui : « j'ai envoyé une notif mais j'ai rien reçu ».
+Vérifié avec lui : application bien installée sur l'écran d'accueil,
+notifications déjà activées une fois par le passé — exactement le cas
+que rien, dans l'application, ne savait distinguer d'un abonnement qui
+marche : le bandeau de l'écran principal ne regarde que la permission
+donnée au navigateur, jamais si Firebase a encore, en face, un
+abonnement exploitable pour CE téléphone précis. Un abonnement peut
+devenir inutilisable sans que le téléphone s'en rende compte (et sans
+jamais repasser par "Activer", puisque cet état-là ressemble en tout
+point à "déjà activé").
+
+Un petit bloc apparaît maintenant en haut de l'écran Notification, pour
+celui qui regarde son propre téléphone : « Abonné, dernière
+confirmation il y a X » quand tout va bien, ou un avertissement avec un
+bouton « 🔁 Réabonner cet appareil » quand l'abonnement local ne
+correspond plus à rien de valide côté Firebase. Le bouton désabonne
+l'ancien (même s'il semblait valide) et recrée un abonnement neuf,
+réenregistré dans Firebase — sans attendre un git push ni un passage
+par le support, pour que chacun puisse se dépanner seul en un geste.
+
+⚠️ Le fil d'envoi (`dct_file_push`) et le chiffrement des notifications
+eux-mêmes vivent dans `cloudflare-worker.js`, hors de ce dépôt — ce
+correctif-ci est entièrement côté application (departs.js) et n'avait
+donc besoin d'aucun déploiement Cloudflare.
+
 ### Collecte : un bouton pour reporter un client à une autre date
 **Fait le 03/10 (v2.20.23, ouverte à tout le monde en v2.20.24).** Cobey,
 sur l'onglet « Clients » d'une collecte : « il faudrait un bouton pour
