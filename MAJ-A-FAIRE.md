@@ -1367,13 +1367,12 @@ me dit qu'il reste dans la collecte, mais après, il reste sur
 planifier. »
 
 "Non ramassé" reste inchangé — volontaire : le client reste dans CE
-camion, pour retenter plus tard le même jour. Un nouveau lien discret,
-« 🚫 Le client a annulé — le remettre à planifier », apparaît sous les
-deux boutons habituels pour un client encore en attente : il retire le
-client de cette collecte entièrement (camion, affectation) et remet son
-statut à "attente" — le même état qu'un client jamais encore planifié,
-qui le fait réapparaître dans "Clients disponibles à ajouter" de
-n'importe quelle tournée future.
+camion, pour retenter plus tard le même jour. Un nouveau bouton (voir
+v3.95.3 ci-dessous pour sa forme définitive) retire le client de cette
+collecte entièrement (camion, affectation) et remet son statut à
+"attente" — le même état qu'un client jamais encore planifié, qui le
+fait réapparaître dans "Clients disponibles à ajouter" de n'importe
+quelle tournée future.
 
 Jamais le statut `annule` : ce nom est déjà pris, côté "poste" interne
 (l'autre écran chauffeur, avec ses motifs "Non ramassé"), par un état
@@ -1383,6 +1382,25 @@ page du vrai chauffeur externe, par code) : Cobey a montré l'écran de
 Dispatch, réservé au bureau/direction — reporter un client à une
 future tournée reste une décision du bureau, pas du chauffeur sur le
 terrain.
+
+**v3.95.3, même semaine — même interface que la Collecte.** Cobey : « le
+parcours France-Europe [...] il faut que ça soit pareil que le parcours
+de la collecte. Pareil en termes de photos, en termes de prise de
+photos, en termes de prise de ramasse ou non annulée. Il faut que ce
+soit exactement pareil parce que là aussi, je ne peux pas modifier
+certaines choses, je n'ai pas les mêmes accès au même endroit. » Puis,
+précisé : chaque parcours garde sa propre logique, seule l'interface
+doit s'aligner sur le modèle de `renderCamion` (Dakar).
+
+La rangée de boutons d'un client en attente reprend exactement la
+disposition de Dakar : « 📦 Valider — X € » en large, « ❌ » et « ⋯ » en
+icônes (mêmes classes CSS `.route-action-validate/-refuse/-more`, déjà
+utilisées côté Dakar). Le lien discret « Le client a annulé » devient
+un vrai bouton « ⋯ », avec le même enchaînement en deux temps que
+Dakar (menu, puis confirmation) — seule l'exécution reste propre à
+France (retour au vivier "attente"), pas celle de Dakar (simple
+marqueur réversible dans le camion, voir plus haut) : les deux
+parcours gardent chacun leur approche, seule l'interface est commune.
 
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est

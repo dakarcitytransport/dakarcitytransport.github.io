@@ -1677,7 +1677,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.95.2';
+var APP_VERSION = 'v3.95.3';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5594,6 +5594,7 @@ function _frValiderPickCam(){
 // heure de rendez-vous, adresse vers Waze, telephone, et les deux
 // boutons qui closent chaque arret.
 var _frCamion='';
+var _frPlusClientId=null; // menu "⋯" (Annulé) du camion Chauffeur externe — v3.95.3
 
 function ouvrirCamionFrance(k){ _frCamion=k; renderCamionFrance(); goTo('s-fr-camion'); }
 function retourDispatchFrance(){ goTo('s-france'); renderFrance(); }
@@ -5676,26 +5677,21 @@ function renderCamionFrance(){
       h+='<div class="route-action-btn route-action-done-r" style="flex:1;">❌ Non ramassé</div>'
         +'<button class="route-action-btn" style="background:#fff3cd;color:#856404;border:2px solid #856404;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);" onclick="annulerArretFrance(\''+id+'\')">↩️</button>';
     } else {
-      h+='<button class="route-action-btn" style="flex:1;background:#d4f0e0;color:#006b2d;border:2px solid #009A44;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);" onclick="validerArretFrance(\''+id+'\')">✅ Ramassé</button>'
-        +'<button class="route-action-btn" style="flex:1;background:#fde0e0;color:#992020;border:2px solid #c0392b;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);" onclick="refuserArretFrance(\''+id+'\')">❌ Non ramassé</button>';
+      // v3.95.3 — Cobey : « il faut que ce soit exactement pareil [que le
+      // parcours Collecte] [...] même interface et même bouton, modèle
+      // celui de la collecte. » Même disposition que renderCamion
+      // (Dakar) : "Valider" en large, "❌" et "⋯" en icônes, les mêmes
+      // classes CSS (.route-action-validate/-refuse/-more). "⋯" ouvre le
+      // même genre de petit menu (modal-fr-plus), avec "Annulé" dedans —
+      // qui garde le comportement propre à France (retour au vivier
+      // "attente", voir annulerClientChauffeurExterne), pas celui de
+      // Dakar (simple marqueur réversible dans le camion) : les deux
+      // parcours gardent chacun leur logique, seule l'interface s'aligne.
+      h+='<button class="route-action-btn route-action-validate" onclick="validerArretFrance(\''+id+'\')">📦 Valider — '+(c.prix||0)+' €</button>'
+        +'<button class="route-action-btn route-action-refuse" onclick="refuserArretFrance(\''+id+'\')">❌</button>'
+        +'<button class="route-action-btn route-action-more" onclick="ouvrirMenuPlusFrance(\''+id+'\')">⋯</button>';
     }
-    h+='</div>';
-    // v3.95.2 — Cobey : « quand un client annule, on ne peut appuyer que
-    // sur Non ramassé [...] il faudrait un bouton Annulé, et que le
-    // client revienne dans la liste des clients à planifier pour les
-    // tourner [...] si je mets Non ramassé, il reste sur planifier. »
-    // "Non ramassé" garde le client dans CE camion pour retenter plus
-    // tard le même jour (volontaire) ; "Annulé" le retire entièrement de
-    // cette collecte et le repose dans le vivier (statut "attente"),
-    // prêt pour une toute nouvelle tournée — jamais le statut "annule"
-    // (poste interne, Non ramassé ▸ Le client a annulé), qui lui sort
-    // définitivement du circuit et ne reviendrait plus jamais planifiable.
-    if(!fige && !isVal && !isRef){
-      h+='<div style="text-align:center;padding:0 14px 12px;">'
-        +'<span onclick="annulerClientChauffeurExterne(\''+id+'\')" style="font-size:12px;font-weight:700;color:#856404;opacity:.8;cursor:pointer;text-decoration:underline;">'
-        +'🚫 Le client a annulé — le remettre à planifier</span></div>';
-    }
-    h+='</div>';
+    h+='</div></div>';
   });
   if(!fige){
     h+='<button class="btn" style="margin-top:6px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" '
@@ -5784,6 +5780,60 @@ function refuserArretFrance(id){
   if(p) p.then(function(){ showToastNew('❌ Non ramassé'); renderCamionFrance(); });
 }
 
+// v3.95.3 — Cobey : « même interface et même bouton, modèle celui de la
+// collecte » : le menu "⋯" (ouvrirMenuPlusFrance) puis la confirmation
+// (demanderAnnulationFrance) reprennent la disposition en deux temps de
+// modal-plus/modal-annulation côté Dakar (renderCamion) — seule
+// l'exécution reste propre à France (confirmerAnnulationFrance appelle
+// celle-ci, qui ne redemande plus confirmation elle-même).
+function ouvrirMenuPlusFrance(id){
+  var c=(franceData.clients||{})[id]; if(!c) return;
+  _frPlusClientId=id;
+  var modal=document.getElementById('modal-fr-plus');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-fr-plus';
+    modal.className='modal-overlay';
+    modal.innerHTML='<div class="modal-sheet"><div class="modal-confirm">'
+      + '<div class="modal-emoji">⋯</div>'
+      + '<div class="modal-confirm-title" id="fr-plus-title"></div>'
+      + '<div style="display:grid;gap:10px;margin-top:16px;">'
+      + '<button style="padding:14px;background:#ede0ff;color:#4a0080;border:2px solid #6b21a8;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);" onclick="demanderAnnulationFrance()">🚫 Le client a annulé</button>'
+      + '<button style="padding:12px;background:#f0f0f0;color:#333;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);" onclick="closeModal(\'modal-fr-plus\')">Annuler</button>'
+      + '</div></div></div>';
+    document.body.appendChild(modal);
+  }
+  var t=document.getElementById('fr-plus-title'); if(t) t.textContent=_nomAffiche(c);
+  openModal('modal-fr-plus');
+}
+
+function demanderAnnulationFrance(){
+  closeModal('modal-fr-plus');
+  var c=(franceData.clients||{})[_frPlusClientId]; if(!c) return;
+  var modal=document.getElementById('modal-fr-annulation');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-fr-annulation';
+    modal.className='modal-overlay';
+    modal.innerHTML='<div class="modal-sheet"><div class="modal-confirm">'
+      + '<div class="modal-emoji">🚫</div>'
+      + '<div class="modal-confirm-title" id="fr-ann-title"></div>'
+      + '<div class="modal-confirm-text">Il sera retiré de cette collecte et remis dans la liste des clients à planifier.</div>'
+      + '<div class="modal-confirm-btns">'
+      + '<button class="btn-modal-cancel" onclick="closeModal(\'modal-fr-annulation\');ouvrirMenuPlusFrance(_frPlusClientId)">← Retour</button>'
+      + '<button class="btn-modal-confirm" style="background:#6b21a8;border-color:#4a0080;" onclick="confirmerAnnulationFrance()">🚫 Confirmer</button>'
+      + '</div></div></div>';
+    document.body.appendChild(modal);
+  }
+  var t=document.getElementById('fr-ann-title'); if(t) t.textContent='Annuler — '+_nomAffiche(c);
+  openModal('modal-fr-annulation');
+}
+
+function confirmerAnnulationFrance(){
+  closeModal('modal-fr-annulation');
+  annulerClientChauffeurExterne(_frPlusClientId);
+}
+
 // v3.95.2 — Cobey : « quand un client annule, on ne peut appuyer que sur
 // Non ramassé [...] il faudrait un bouton Annulé, et que le client
 // revienne dans la liste des clients à planifier pour les tourner ».
@@ -5794,10 +5844,11 @@ function refuserArretFrance(id){
 // quelle future tournée. Jamais le statut "annule" (déjà utilisé côté
 // poste interne pour "Non ramassé ▸ Le client a annulé") : celui-là
 // sort définitivement du circuit, l'inverse de ce qui est demandé ici.
+// v3.95.3 : n'ouvre plus son propre confirm() natif — la confirmation se
+// fait désormais en amont, dans le menu "⋯" ▸ "Annulé" (voir ci-dessus).
 function annulerClientChauffeurExterne(id){
   var r=_frCollecteActive(); if(!r) return;
   var c=(franceData.clients||{})[id]||{};
-  if(!confirm('Le client '+_nomAffiche(c)+' a annulé ?\n\nIl sera retiré de cette collecte et remis dans la liste des clients à planifier.')) return;
   Object.keys(r.trucks||{}).forEach(function(k){
     var tk=r.trucks[k];
     var i=(tk.clients||[]).indexOf(id);   if(i>=0) tk.clients.splice(i,1);
