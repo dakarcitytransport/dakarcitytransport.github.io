@@ -1033,6 +1033,25 @@ séparées : ✅ Présents, ❌ Absents (ont répondu non), 🔇 Sans réponse
 contenu dans Cloudflare et cliqué Deploy (étape 2 de
 `CLOUDFLARE-A-FAIRE.md`), un git push seul ne suffit pas.**
 
+**v1.6.1 (cloudflare-worker.js), 04/10 :** Eric : « j'ai envoyé une
+notif mais j'ai rien reçu » — et Cobey, en vérifiant : « les autres non
+plus ». Plus personne ne recevait rien, du jour au lendemain : ouvrir
+l'adresse du Worker (voir `CLOUDFLARE-A-FAIRE.md`, étape 5) montrait
+`Erreur : connexion Firebase anonyme : 400` — le Worker n'arrivait même
+plus à s'identifier auprès de Firebase, donc rien ne pouvait partir
+pour personne. Cause la plus probable (restant à confirmer avec
+Cobey) : l'authentification anonyme, activée exprès dans la console
+Firebase pour que ce mécanisme marche (voir plus haut), s'est
+retrouvée désactivée. L'erreur elle-même ne disait que le code HTTP
+(« 400 »), jamais pourquoi — elle fait maintenant remonter la vraie
+raison donnée par Google entre parenthèses, pour ne plus avoir à
+deviner la prochaine fois.
+
+**Rappel : ce fichier fait partie de `cloudflare-worker.js`, pas de
+`departs.js` — ce correctif ne prend effet qu'après avoir recollé son
+contenu dans Cloudflare et cliqué Deploy (étape 2 de
+`CLOUDFLARE-A-FAIRE.md`), un git push seul ne suffit pas.**
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va

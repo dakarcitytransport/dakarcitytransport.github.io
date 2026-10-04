@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.6.0 · 02/10/2026
+   v1.6.1 · 04/10/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -122,7 +122,16 @@ async function jetonAuth(){
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ returnSecureToken: true })
   });
-  if(!r.ok) throw new Error('connexion Firebase anonyme : ' + r.status);
+  if(!r.ok){
+    // v1.6.1 — l'erreur ne disait que le code (« 400 »), jamais pourquoi.
+    // Google renvoie une raison précise dans le corps (OPERATION_NOT_ALLOWED
+    // si l'authentification anonyme est désactivée côté console Firebase,
+    // API key invalide, quota dépassé...) — on la fait remonter telle
+    // quelle pour ne plus avoir à deviner.
+    let raison = '';
+    try{ raison = (await r.json()).error?.message || ''; }catch(e){}
+    throw new Error('connexion Firebase anonyme : ' + r.status + (raison ? ' (' + raison + ')' : ''));
+  }
   const j = await r.json();
   _jeton = { valeur: j.idToken, expire: Date.now() + Number(j.expiresIn || 3600) * 1000 };
   return _jeton.valeur;

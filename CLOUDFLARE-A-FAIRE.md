@@ -92,6 +92,7 @@ Ouvrez l'adresse du Worker : les chiffres disent où ça coince.
 
 | Ce que vous voyez | Ce que ça veut dire |
 |---|---|
+| `Erreur : connexion Firebase anonyme : 400 (...)` | la connexion du Worker vers Firebase lui-même est refusée — **rien n'est envoyé à personne**. La cause la plus fréquente : l'authentification anonyme a été désactivée dans la console Firebase (Build → Authentication → Sign-in method → Anonymous doit être **Enabled**). Depuis v1.6.1, la parenthèse donne la vraie raison renvoyée par Google. |
 | `traites: 0` | la relance n'est pas arrivée dans Firebase |
 | `envois: 0` et `echecs` > 0 | les clés VAPID sont mal recopiées |
 | `oublies` > 0 | le téléphone avait refusé — refaites l'étape 6 |
