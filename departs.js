@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.24';
+var DEP_VERSION = 'v2.20.25';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9258,7 +9258,7 @@ function depTexteCGVPublic(){
   var arts = [
     ['Objet', 'Les pr&eacute;sentes conditions g&eacute;n&eacute;rales r&eacute;gissent le transport de colis entre le S&eacute;n&eacute;gal, la France et l\'Europe assur&eacute; par Dakar City Transport. Le client reconna&icirc;t les avoir lues et accept&eacute;es au moment de l\'inscription de son colis.'],
     ['D&eacute;lais de livraison', 'Les d&eacute;lais annonc&eacute;s sont indicatifs et ne constituent pas un engagement contractuel. Dakar City Transport ne pourra &ecirc;tre tenu responsable des retards dus &agrave; des causes ind&eacute;pendantes de sa volont&eacute; (douane, conditions m&eacute;t&eacute;orologiques, gr&egrave;ves, force majeure).'],
-    ['Retrait des colis', 'Le client s\'engage &agrave; r&eacute;cup&eacute;rer son colis dans un d&eacute;lai de 60 jours &agrave; compter de la notification de disponibilit&eacute;. Pass&eacute; ce d&eacute;lai, un rappel sera envoy&eacute; au client par le moyen de contact fourni (t&eacute;l&eacute;phone/SMS). &Agrave; d&eacute;faut de retrait dans un d&eacute;lai de 15 jours suppl&eacute;mentaires apr&egrave;s ce rappel, Dakar City Transport se r&eacute;serve le droit de consid&eacute;rer le colis comme abandonn&eacute; et de proc&eacute;der &agrave; sa destruction, don ou mise en vente, sans d&eacute;dommagement ni recours possible du client, et sans que cela n\'engage la responsabilit&eacute; de Dakar City Transport.'],
+    ['Retrait des colis', 'Le client dispose d\'un d&eacute;lai de 48 heures ouvr&eacute;es &agrave; compter de l\'arriv&eacute;e de son colis &agrave; Dakar (notification de disponibilit&eacute;) pour venir le r&eacute;cup&eacute;rer. Pass&eacute; ce d&eacute;lai, Dakar City Transport se r&eacute;serve le droit de facturer des frais de gardiennage de 5 &euro; par jour de retard. &Agrave; d&eacute;faut de retrait dans un d&eacute;lai de 60 jours &agrave; compter de cette m&ecirc;me notification, Dakar City Transport se r&eacute;serve le droit de retirer le colis de son d&eacute;p&ocirc;t, sans d&eacute;dommagement ni recours possible du client, et sans que cela n\'engage la responsabilit&eacute; de Dakar City Transport.'],
     ['Contenu et emballage', 'Le client garantit que le colis ne contient aucun objet interdit, dangereux, p&eacute;rissable sans emballage adapt&eacute;, ou prohib&eacute; par la r&eacute;glementation douani&egrave;re du pays de destination. Dakar City Transport se r&eacute;serve le droit de refuser ou d\'ouvrir tout colis suspect, avec ou sans la pr&eacute;sence du client.'],
     ['R&eacute;clamations', 'Toute r&eacute;clamation (colis endommag&eacute;, manquant, erreur de livraison) doit &ecirc;tre signal&eacute;e &agrave; Dakar City Transport dans un d&eacute;lai de 24 heures suivant la remise ou la mise &agrave; disposition du colis, accompagn&eacute;e de photos si n&eacute;cessaire. Pass&eacute; ce d&eacute;lai, le colis est r&eacute;put&eacute; conforme et complet.'],
     ['Paiement', 'Le prix du transport est d&ucirc; au moment de l\'inscription du colis ou &agrave; la livraison, selon les modalit&eacute;s convenues. Tout colis non r&eacute;gl&eacute; pourra &ecirc;tre retenu par Dakar City Transport jusqu\'&agrave; r&egrave;glement complet.'],

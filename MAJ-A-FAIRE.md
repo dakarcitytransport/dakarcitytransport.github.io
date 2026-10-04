@@ -1580,16 +1580,26 @@ ouvre la fiche, comme avant.
   anticiper les problèmes à venir. »
 
   La facture a maintenant une 3e page, « Conditions générales de
-  transport » (9 articles : objet, délais de livraison, retrait des
-  colis, contenu/emballage, responsabilité et valeur déclarée,
-  réclamations, paiement, données personnelles, litiges) — toujours
-  présente, après la page 1 (prix) et la page 2 (suivi des colis,
-  quand il y en a un). L'article sur le retrait prévoit un délai de 60
-  jours, puis un rappel, puis 15 jours supplémentaires avant qu'un
-  colis non réclamé soit considéré abandonné (destruction, don ou
-  mise en vente) — pas de frais de gardiennage, sur demande de Cobey.
-  Cette page est capturée comme une page A4 à part à l'impression comme
-  à l'export PDF, exactement comme la page 2.
+  transport » (7 articles : objet, délais de livraison, retrait des
+  colis, contenu/emballage, réclamations, paiement, données
+  personnelles) — toujours présente, après la page 1 (prix) et la
+  page 2 (suivi des colis, quand il y en a un). Cette page est
+  capturée comme une page A4 à part à l'impression comme à l'export
+  PDF, exactement comme la page 2.
+
+  **Article 3 (retrait des colis) révisé le 04/10 (v2.20.25).** Cobey,
+  capture d'écran de l'article à l'appui : « il faut changer. Alors, à
+  l'arrivée du colis à Dakar, les personnes ont 48 heures ouvrées pour
+  venir chercher leur colis. Au-delà de ça, Dakar City Transport se
+  donne le droit de facturer 5 euros par jour de gardiennage. Et c'est
+  au bout de 60 jours qu'ils se gardent le droit aussi d'enlever le
+  colis de leur dépôt. » Remplace l'ancienne clause (60 jours puis
+  rappel puis 15 jours avant destruction/don/mise en vente, sans frais
+  de gardiennage — décision inversée depuis par Cobey) : désormais
+  48h ouvrées pour venir chercher le colis, puis 5 €/jour de
+  gardiennage, et à 60 jours DCT peut retirer le colis de son dépôt.
+  Texte uniquement (mention légale) : aucun calcul de frais n'est
+  automatisé dans l'application.
 
   ⚠️ Ce texte n'a pas été relu par un juriste — à faire valider avant
   diffusion à grande échelle, en particulier pour la partie France/UE
