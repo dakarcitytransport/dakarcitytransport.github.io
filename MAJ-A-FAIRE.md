@@ -1068,6 +1068,36 @@ pour les navigateurs, l'autre pour tourner sans navigateur.
 contenu dans Cloudflare et cliqué Deploy (étape 2 de
 `CLOUDFLARE-A-FAIRE.md`), un git push seul ne suffit pas.**
 
+**v1.7.0, même jour — la clé dédiée n'a pas suffi.** Après avoir recollé
+la nouvelle clé (deux fois, en vérifiant caractère par caractère), même
+erreur. Testée en direct depuis l'extérieur de Cloudflare (requête brute
+vers Google) : la clé était en fait parfaitement valide et fonctionnelle
+— la cause de la v1.6.2 ne tenait donc pas. La vraie explication :
+Google refuse la connexion « anonyme » à Firebase Authentication quand
+elle vient d'une infrastructure serveur comme Cloudflare plutôt que d'un
+vrai navigateur, quelle que soit la clé utilisée — un garde-fou anti-abus
+non documenté clairement, qu'aucun réglage de clé API ne pouvait
+contourner.
+
+Correctif définitif : ce fichier n'utilise plus la connexion « anonyme »
+(prévue pour un utilisateur humain) mais un **compte de service**
+(Service Account) — la méthode que Google prévoit précisément pour un
+serveur. Deux nouvelles variables Cloudflare, `FIREBASE_CLIENT_EMAIL` et
+`FIREBASE_PRIVATE_KEY`, obtenues depuis Firebase (Paramètres du projet →
+Comptes de service → Générer une nouvelle clé privée — voir
+`CLOUDFLARE-A-FAIRE.md`). Le fichier signe lui-même un jeton (JWT, en
+RS256, avec `crypto.subtle`, sans bibliothèque) échangé contre un vrai
+jeton d'accès Google — vérifié avant livraison par un test direct
+(signature + échange réel auprès de Google, avec une fausse identité :
+la réponse `invalid_grant` confirme que la construction du jeton est
+correcte, seule l'identité elle-même n'existait pas).
+
+**Rappel : ce fichier fait partie de `cloudflare-worker.js`, pas de
+`departs.js` — ce correctif ne prend effet qu'après avoir recollé son
+contenu dans Cloudflare, réglé les deux nouvelles variables et cliqué
+Deploy (étapes 2 et 3 de `CLOUDFLARE-A-FAIRE.md`), un git push seul ne
+suffit pas.**
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va

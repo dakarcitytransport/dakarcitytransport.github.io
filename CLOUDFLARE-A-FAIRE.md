@@ -26,7 +26,7 @@ Puis **Deploy**.
 
 ---
 
-## 3 · Mettre les trois clés
+## 3 · Mettre les cinq clés
 
 **Settings** → **Variables and Secrets** → **Add**.
 
@@ -35,11 +35,28 @@ Puis **Deploy**.
 | `VAPID_PUBLIC` | Text | `BA_ZoZeRbLL6oY8upT2gfESS3SbaqgHY-s1OafuI2ZuuiJeLV2_63zFpiEDO6uVq3qZgThDe6m-9sdykectvJEw` |
 | `VAPID_PRIVATE` | **Secret** | *donnée à part — voir le message du 26/09* |
 | `CONTACT` | Text | `mailto:` suivi de votre adresse mail |
+| `FIREBASE_CLIENT_EMAIL` | Text | le `client_email` du compte de service (voir ci-dessous) |
+| `FIREBASE_PRIVATE_KEY` | **Secret** | le `private_key` du compte de service, en entier (voir ci-dessous) |
 
-> **`VAPID_PRIVATE` doit être de type « Secret », pas « Text ».**
-> C'est la clé qui permet d'envoyer en votre nom. Elle ne doit jamais
-> apparaître dans le code du site, ni être envoyée par message une
-> deuxième fois.
+> **`VAPID_PRIVATE` et `FIREBASE_PRIVATE_KEY` doivent être de type
+> « Secret », pas « Text ».** Ce sont des clés qui permettent d'agir en
+> votre nom. Elles ne doivent jamais apparaître dans le code du site, ni
+> être envoyées par message une deuxième fois.
+
+**Pour obtenir `FIREBASE_CLIENT_EMAIL` et `FIREBASE_PRIVATE_KEY`** (depuis
+v1.7.0, 04/10/2026 — remplace l'ancienne connexion « anonyme », que
+Google bloquait pour les appels venant d'un serveur comme Cloudflare) :
+
+1. Console Firebase → **⚙️ Paramètres du projet** → onglet **Comptes de
+   service**
+2. **Générer une nouvelle clé privée** → un fichier `.json` se télécharge
+3. Ouvrez ce fichier : il contient un champ `client_email` (une adresse
+   du genre `firebase-adminsdk-xxxxx@dakar-collecte.iam.gserviceaccount.com`)
+   et un champ `private_key` (un long texte commençant par
+   `-----BEGIN PRIVATE KEY-----`)
+4. Copiez `client_email` tel quel dans la variable `FIREBASE_CLIENT_EMAIL`
+5. Copiez `private_key` **en entier** (avec les `-----BEGIN...-----` et
+   `-----END...-----`) dans la variable `FIREBASE_PRIVATE_KEY`
 
 Puis **Deploy** à nouveau.
 
@@ -92,7 +109,8 @@ Ouvrez l'adresse du Worker : les chiffres disent où ça coince.
 
 | Ce que vous voyez | Ce que ça veut dire |
 |---|---|
-| `Erreur : connexion Firebase anonyme : 400 (...)` | la connexion du Worker vers Firebase lui-même est refusée — **rien n'est envoyé à personne**. Depuis v1.6.1, la parenthèse donne la vraie raison renvoyée par Google, par exemple : `OPERATION_NOT_ALLOWED` → l'authentification anonyme a été désactivée dans la console Firebase (Build → Authentication → Sign-in method → Anonymous doit être **Enabled**) ; `API key not valid` → la clé API est restreinte aux navigateurs (cas vécu le 04/10/2026, corrigé en v1.6.2 : ce fichier a désormais sa propre clé, créée sans restriction de site, séparée de celle de l'application). |
+| `Erreur : connexion Firebase (compte de service) : ...` | la connexion du Worker vers Firebase lui-même est refusée — **rien n'est envoyé à personne**. La parenthèse donne la raison exacte renvoyée par Google (depuis v1.7.0, 04/10/2026) : le plus souvent `invalid_grant` avec un détail du genre « account not found » (le `client_email` ne correspond à aucun compte de service de ce projet — à revérifier dans le fichier `.json` téléchargé) ou une clé signée qui ne vérifie pas (le `private_key` a été mal recopié — recopiez-le en entier, avec `-----BEGIN...-----` et `-----END...-----`). Voir étape 3 pour (re)générer ces deux variables. |
+| *(historique)* `Erreur : connexion Firebase anonyme : 400 (...)` | ancien message, avant v1.7.0 — ce fichier essayait de se connecter en « anonyme » (comme un visiteur du site), que Google a fini par refuser systématiquement pour les appels venant d'un serveur (quelle que soit la clé API utilisée, vérifié). Remplacé par le compte de service ci-dessus, qui ne dépend plus de cette connexion anonyme du tout. |
 | `traites: 0` | la relance n'est pas arrivée dans Firebase |
 | `envois: 0` et `echecs` > 0 | les clés VAPID sont mal recopiées |
 | `oublies` > 0 | le téléphone avait refusé — refaites l'étape 6 |

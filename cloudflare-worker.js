@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.6.2 · 04/10/2026
+   v1.7.0 · 04/10/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -45,12 +45,14 @@
    dépend donc de rien.
 
    ── CE QU'IL FAUT RÉGLER CHEZ CLOUDFLARE ──
-   Trois variables, dans Settings → Variables and Secrets :
-     VAPID_PUBLIC   la clé publique (la même que dans departs.js)
-     VAPID_PRIVATE  la clé privée — À GARDER SECRÈTE, type « Secret »
-     CONTACT        une adresse mail, exigée par les services d'envoi
-   Rien à régler pour Firebase : ce fichier se connecte tout seul, en
-   anonyme (voir jetonAuth ci-dessous), la même façon que l'application.
+   Cinq variables, dans Settings → Variables and Secrets :
+     VAPID_PUBLIC          la clé publique (la même que dans departs.js)
+     VAPID_PRIVATE         la clé privée — À GARDER SECRÈTE, type « Secret »
+     CONTACT               une adresse mail, exigée par les services d'envoi
+     FIREBASE_CLIENT_EMAIL le « client_email » du compte de service (Text)
+     FIREBASE_PRIVATE_KEY  le « private_key » du compte de service — À
+                            GARDER SECRÈTE, type « Secret » (voir v1.7.0
+                            ci-dessous pour comment l'obtenir)
    ═══════════════════════════════════════════════════════════ */
 
 const BASE = 'https://dakar-collecte-default-rtdb.europe-west1.firebasedatabase.app';
@@ -88,89 +90,123 @@ async function hmac(cle, donnees){
   return new Uint8Array(await crypto.subtle.sign('HMAC', k, donnees));
 }
 
-/* ─── Connexion anonyme à Firebase (v1.3.0) ───
+/* ─── Connexion à Firebase, par compte de service (v1.7.0) ───
 
    Cobey, le 26/09/2026, juste après avoir resserré les règles de la
    base (« auth != null » en lecture et en écriture, voir
-   MAJ-A-FAIRE.md) : une notification envoyée n'arrivait plus. Cause :
-   ce fichier parlait à Firebase sans jamais s'identifier — l'ancienne
-   variable FIREBASE_SECRET (un « secret de base de données », une
-   fonctionnalité que Google retire des projets Firebase depuis
-   plusieurs années) n'a jamais été réglée, et de toute façon rien ne
-   garantit qu'elle existe encore sur ce projet.
+   MAJ-A-FAIRE.md) : une notification envoyée n'arrivait plus. Ce
+   fichier a d'abord fait, pour s'identifier, exactement ce que fait
+   l'application elle-même (_depConnexionAnonyme, departs.js) : une
+   connexion « anonyme » à Firebase Authentication.
 
-   Le vrai correctif : la même connexion anonyme que fait déjà
-   l'application elle-même (_depConnexionAnonyme, departs.js), mais
-   réécrite ici en simples requêtes — ce fichier n'a pas le SDK
-   Firebase, seulement fetch(). Le jeton obtenu est gardé en mémoire et
-   réutilisé tant qu'il reste valable (une heure), pour ne pas créer un
-   nouvel utilisateur anonyme à chaque réveil du minuteur.
+   v1.6.1/v1.6.2 (04/10/2026) — Eric puis Cobey : plus personne ne
+   recevait rien ; l'adresse du Worker montrait « connexion Firebase
+   anonyme : 400 (API key not valid. Please pass a valid API key.) ».
+   Diagnostiqué en direct avec Cobey, en épuisant les causes une par
+   une (authentification anonyme bien activée, clé API dédiée créée
+   sans restriction de site, Identity Toolkit API bien autorisée) —
+   et la clé elle-même vérifiée VALIDE par un appel direct à Google
+   (curl), hors de Cloudflare. Donc pas la clé : Google refuse
+   spécifiquement les connexions « anonymes » de ce type quand elles
+   viennent d'une infrastructure serveur comme Cloudflare plutôt que
+   d'un vrai navigateur — un garde-fou anti-abus, pas documenté
+   clairement, contre lequel il n'y avait rien à régler côté clé API.
 
-   v1.6.2 (04/10/2026) — Eric puis Cobey : plus personne ne recevait
-   rien ; l'adresse du Worker montrait « connexion Firebase anonyme :
-   400 (API key not valid. Please pass a valid API key.) ». La clé
-   utilisée jusqu'ici était la clé « Browser key », partagée avec
-   dct-app.html/departs.js — et restreinte par Google à des appels
-   venant d'un navigateur (un Cloudflare Worker n'en est pas un, et
-   n'envoie jamais l'en-tête de site d'origine attendu). Ce fichier a
-   maintenant sa PROPRE clé, créée exprès dans Google Cloud Console
-   sans restriction de site — ni celle-ci ni l'ancienne ne sont des
-   secrets (une clé API Firebase ne fait qu'identifier le projet, elle
-   n'autorise rien à elle seule : tout le contrôle se fait par les
-   règles Firebase), mais elles ne jouent plus le même rôle : celle de
-   l'application doit rester limitée aux navigateurs, celle-ci doit au
-   contraire fonctionner SANS navigateur. */
+   Le vrai correctif : abandonner la connexion « anonyme » (pensée pour
+   un utilisateur humain dans un navigateur) pour la méthode prévue
+   PRÉCISÉMENT pour un serveur comme celui-ci — un compte de service
+   (Service Account), avec sa propre clé privée RSA, qui signe lui-même
+   un jeton (JWT) échangé ensuite contre un vrai jeton d'accès Google.
+   Comme pour la signature VAPID plus bas, tout est fait à la main avec
+   l'API de chiffrement du navigateur (crypto.subtle), sans bibliothèque
+   à installer — ce fichier doit toujours pouvoir se coller tel quel
+   dans Cloudflare. */
 
-const API_KEY = 'AIzaSyAyOtHe9gEV1b8pMFPtzOH0U-NKTGtjQiw';
+// Une clé privée PEM (texte, séparée par des retours à la ligne) décodée
+// en octets, pour crypto.subtle.importKey — base64 standard, pas « url ».
+function b64VersOctets(b64){
+  const brut = atob(b64.replace(/\s/g, ''));
+  const out = new Uint8Array(brut.length);
+  for(let i = 0; i < brut.length; i++) out[i] = brut.charCodeAt(i);
+  return out;
+}
+
+async function _cleServiceCompte(pem){
+  // Le fichier .json téléchargé par Firebase écrit les retours à la
+  // ligne en toutes lettres (\n, deux caractères) à l'intérieur de la
+  // valeur JSON — un copier-coller depuis ce fichier les reprend souvent
+  // tels quels plutôt qu'en vrais sauts de ligne. Les deux formes sont
+  // acceptées : b64VersOctets retire déjà les vrais espaces/retours,
+  // ceci retire en plus le \n littéral s'il est resté.
+  const corps = String(pem || '')
+    .replace(/-----BEGIN PRIVATE KEY-----/, '')
+    .replace(/-----END PRIVATE KEY-----/, '')
+    .replace(/\\n/g, '');
+  return crypto.subtle.importKey('pkcs8', b64VersOctets(corps),
+    { name:'RSASSA-PKCS1-v1_5', hash:'SHA-256' }, false, ['sign']);
+}
 
 let _jeton = { valeur: '', expire: 0 };
 
-async function jetonAuth(){
+async function jetonAuth(env){
   // 60s de marge, pour ne jamais partir avec un jeton sur le point d'expirer.
   if(_jeton.valeur && Date.now() < _jeton.expire - 60000) return _jeton.valeur;
-  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + API_KEY, {
+
+  const maintenant = Math.floor(Date.now() / 1000);
+  const entete = { alg:'RS256', typ:'JWT' };
+  const corps  = {
+    iss  : env.FIREBASE_CLIENT_EMAIL,
+    scope: 'https://www.googleapis.com/auth/firebase.database',
+    aud  : 'https://oauth2.googleapis.com/token',
+    iat  : maintenant,
+    exp  : maintenant + 3600
+  };
+  const aSigner = octetsVersB64url(enc.encode(JSON.stringify(entete)))
+    + '.' + octetsVersB64url(enc.encode(JSON.stringify(corps)));
+
+  const cle = await _cleServiceCompte(env.FIREBASE_PRIVATE_KEY);
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cle, enc.encode(aSigner));
+  const assertion = aSigner + '.' + octetsVersB64url(sig);
+
+  const r = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ returnSecureToken: true })
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer')
+        + '&assertion=' + assertion
   });
   if(!r.ok){
-    // v1.6.1 — l'erreur ne disait que le code (« 400 »), jamais pourquoi.
-    // Google renvoie une raison précise dans le corps (OPERATION_NOT_ALLOWED
-    // si l'authentification anonyme est désactivée côté console Firebase,
-    // API key invalide, quota dépassé...) — on la fait remonter telle
-    // quelle pour ne plus avoir à deviner.
+    // La raison précise (clé privée mal recopiée, client_email erroné...)
+    // au lieu d'un simple code, pour ne pas avoir à deviner.
     let raison = '';
-    try{ raison = (await r.json()).error?.message || ''; }catch(e){}
-    throw new Error('connexion Firebase anonyme : ' + r.status + (raison ? ' (' + raison + ')' : ''));
+    try{ raison = (await r.json()).error_description || ''; }catch(e){}
+    throw new Error('connexion Firebase (compte de service) : ' + r.status + (raison ? ' (' + raison + ')' : ''));
   }
   const j = await r.json();
-  _jeton = { valeur: j.idToken, expire: Date.now() + Number(j.expiresIn || 3600) * 1000 };
+  _jeton = { valeur: j.access_token, expire: Date.now() + Number(j.expires_in || 3600) * 1000 };
   return _jeton.valeur;
 }
 
 /* ─── Firebase, par son interface web ─── */
 
-async function url(chemin){
-  const jeton = await jetonAuth();
-  return BASE + '/' + chemin + '.json?auth=' + encodeURIComponent(jeton);
-}
-
 async function lire(chemin, env){
-  const r = await fetch(await url(chemin));
+  const jeton = await jetonAuth(env);
+  const r = await fetch(BASE + '/' + chemin + '.json', { headers: { 'Authorization': 'Bearer ' + jeton } });
   if(!r.ok) throw new Error('lecture ' + chemin + ' : ' + r.status);
   return (await r.json()) || {};
 }
 
 async function ecrire(chemin, valeur, env){
-  await fetch(await url(chemin), {
+  const jeton = await jetonAuth(env);
+  await fetch(BASE + '/' + chemin + '.json', {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jeton },
     body: JSON.stringify(valeur)
   });
 }
 
 async function effacer(chemin, env){
-  await fetch(await url(chemin), { method: 'DELETE' });
+  const jeton = await jetonAuth(env);
+  await fetch(BASE + '/' + chemin + '.json', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + jeton } });
 }
 
 /* ─── La signature VAPID ───
