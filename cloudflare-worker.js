@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.6.1 · 04/10/2026
+   v1.6.2 · 04/10/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -102,15 +102,26 @@ async function hmac(cle, donnees){
    Le vrai correctif : la même connexion anonyme que fait déjà
    l'application elle-même (_depConnexionAnonyme, departs.js), mais
    réécrite ici en simples requêtes — ce fichier n'a pas le SDK
-   Firebase, seulement fetch(). API_KEY n'est pas un secret : c'est la
-   même clé déjà visible dans le code de l'application
-   (dct-app.html, firebaseConfig.apiKey) — elle identifie le projet,
-   elle n'autorise rien à elle seule, tout le contrôle se fait par les
-   règles Firebase. Le jeton obtenu est gardé en mémoire et réutilisé
-   tant qu'il reste valable (une heure), pour ne pas créer un nouvel
-   utilisateur anonyme à chaque réveil du minuteur. */
+   Firebase, seulement fetch(). Le jeton obtenu est gardé en mémoire et
+   réutilisé tant qu'il reste valable (une heure), pour ne pas créer un
+   nouvel utilisateur anonyme à chaque réveil du minuteur.
 
-const API_KEY = 'AIzaSyCs7oTZAG8vzhqY3rSEqCnwSnQY8hm_f2A';
+   v1.6.2 (04/10/2026) — Eric puis Cobey : plus personne ne recevait
+   rien ; l'adresse du Worker montrait « connexion Firebase anonyme :
+   400 (API key not valid. Please pass a valid API key.) ». La clé
+   utilisée jusqu'ici était la clé « Browser key », partagée avec
+   dct-app.html/departs.js — et restreinte par Google à des appels
+   venant d'un navigateur (un Cloudflare Worker n'en est pas un, et
+   n'envoie jamais l'en-tête de site d'origine attendu). Ce fichier a
+   maintenant sa PROPRE clé, créée exprès dans Google Cloud Console
+   sans restriction de site — ni celle-ci ni l'ancienne ne sont des
+   secrets (une clé API Firebase ne fait qu'identifier le projet, elle
+   n'autorise rien à elle seule : tout le contrôle se fait par les
+   règles Firebase), mais elles ne jouent plus le même rôle : celle de
+   l'application doit rester limitée aux navigateurs, celle-ci doit au
+   contraire fonctionner SANS navigateur. */
+
+const API_KEY = 'AIzaSyAyOtHe9gEV1b8pMFPtzOH0U-NKTGtjQiw';
 
 let _jeton = { valeur: '', expire: 0 };
 

@@ -1039,13 +1039,29 @@ plus ». Plus personne ne recevait rien, du jour au lendemain : ouvrir
 l'adresse du Worker (voir `CLOUDFLARE-A-FAIRE.md`, étape 5) montrait
 `Erreur : connexion Firebase anonyme : 400` — le Worker n'arrivait même
 plus à s'identifier auprès de Firebase, donc rien ne pouvait partir
-pour personne. Cause la plus probable (restant à confirmer avec
-Cobey) : l'authentification anonyme, activée exprès dans la console
-Firebase pour que ce mécanisme marche (voir plus haut), s'est
-retrouvée désactivée. L'erreur elle-même ne disait que le code HTTP
-(« 400 »), jamais pourquoi — elle fait maintenant remonter la vraie
-raison donnée par Google entre parenthèses, pour ne plus avoir à
-deviner la prochaine fois.
+pour personne. L'erreur elle-même ne disait que le code HTTP (« 400 »),
+jamais pourquoi — elle fait maintenant remonter la vraie raison donnée
+par Google entre parenthèses, pour ne plus avoir à deviner.
+
+**v1.6.2, même jour :** la parenthèse a donné la vraie raison : `API
+key not valid. Please pass a valid API key.` Diagnostiqué en direct
+avec Cobey, dans la console Google Cloud (pas évidente à trouver : la
+clé vit dans le projet Google Cloud **dakar-collecte**, associé au
+compte Google de Firebase — pas dans un projet au nom proche
+(« dct-collecte ») qui n'a rien à voir, piège dans lequel on est
+d'abord tombé). Cause réelle : la clé API utilisée par ce fichier était
+la même que celle de l'application (`dct-app.html`/`departs.js`) — une
+« Browser key » que Google restreint par défaut aux appels venant d'un
+navigateur. Un Worker Cloudflare n'en est pas un (il n'envoie jamais
+l'en-tête de site d'origine attendu), donc Google refusait net. Ce
+fichier a maintenant sa propre clé, créée exprès dans Google Cloud
+Console sans aucune restriction de site (Identity Toolkit API
+autorisée, "Restrictions relatives aux applications" sur "Aucun") —
+l'application, elle, garde sa clé d'origine, restreinte, inchangée.
+Aucune des deux clés n'est un secret (une clé API Firebase identifie
+seulement le projet ; toute la sécurité réelle vient des règles
+Firebase), mais elles ne jouent plus le même rôle désormais : l'une
+pour les navigateurs, l'autre pour tourner sans navigateur.
 
 **Rappel : ce fichier fait partie de `cloudflare-worker.js`, pas de
 `departs.js` — ce correctif ne prend effet qu'après avoir recollé son
