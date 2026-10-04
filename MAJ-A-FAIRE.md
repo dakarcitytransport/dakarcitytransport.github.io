@@ -1338,6 +1338,33 @@ jour où Issyaka la coche à son tour. Corrigé aux deux endroits
 
 ## 2 bis · France & Europe
 
+### ~~Chauffeur externe : "Non ramassé" ne libérait jamais le client~~
+**Fait le 04/10 (v3.95.2).** Cobey, capture d'écran de l'écran
+"Chauffeur externe" (Dispatch → camion) à l'appui : « quand un client
+annule, on peut appuyer que sur non ramassé. Et du coup, il faudrait
+qu'on ait un bouton annulé et que le client revienne dans la liste des
+clients à planifier pour les tourner [...] si je mets non ramassé, il
+me dit qu'il reste dans la collecte, mais après, il reste sur
+planifier. »
+
+"Non ramassé" reste inchangé — volontaire : le client reste dans CE
+camion, pour retenter plus tard le même jour. Un nouveau lien discret,
+« 🚫 Le client a annulé — le remettre à planifier », apparaît sous les
+deux boutons habituels pour un client encore en attente : il retire le
+client de cette collecte entièrement (camion, affectation) et remet son
+statut à "attente" — le même état qu'un client jamais encore planifié,
+qui le fait réapparaître dans "Clients disponibles à ajouter" de
+n'importe quelle tournée future.
+
+Jamais le statut `annule` : ce nom est déjà pris, côté "poste" interne
+(l'autre écran chauffeur, avec ses motifs "Non ramassé"), par un état
+qui sort définitivement le client du circuit — l'inverse de ce qui est
+demandé ici. Pas touché à ce deuxième écran ni à `chauffeur.html` (la
+page du vrai chauffeur externe, par code) : Cobey a montré l'écran de
+Dispatch, réservé au bureau/direction — reporter un client à une
+future tournée reste une décision du bureau, pas du chauffeur sur le
+terrain.
+
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
 prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il

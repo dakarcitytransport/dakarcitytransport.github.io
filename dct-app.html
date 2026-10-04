@@ -1677,7 +1677,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.95.1';
+var APP_VERSION = 'v3.95.2';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5679,7 +5679,23 @@ function renderCamionFrance(){
       h+='<button class="route-action-btn" style="flex:1;background:#d4f0e0;color:#006b2d;border:2px solid #009A44;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);" onclick="validerArretFrance(\''+id+'\')">✅ Ramassé</button>'
         +'<button class="route-action-btn" style="flex:1;background:#fde0e0;color:#992020;border:2px solid #c0392b;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);" onclick="refuserArretFrance(\''+id+'\')">❌ Non ramassé</button>';
     }
-    h+='</div></div>';
+    h+='</div>';
+    // v3.95.2 — Cobey : « quand un client annule, on ne peut appuyer que
+    // sur Non ramassé [...] il faudrait un bouton Annulé, et que le
+    // client revienne dans la liste des clients à planifier pour les
+    // tourner [...] si je mets Non ramassé, il reste sur planifier. »
+    // "Non ramassé" garde le client dans CE camion pour retenter plus
+    // tard le même jour (volontaire) ; "Annulé" le retire entièrement de
+    // cette collecte et le repose dans le vivier (statut "attente"),
+    // prêt pour une toute nouvelle tournée — jamais le statut "annule"
+    // (poste interne, Non ramassé ▸ Le client a annulé), qui lui sort
+    // définitivement du circuit et ne reviendrait plus jamais planifiable.
+    if(!fige && !isVal && !isRef){
+      h+='<div style="text-align:center;padding:0 14px 12px;">'
+        +'<span onclick="annulerClientChauffeurExterne(\''+id+'\')" style="font-size:12px;font-weight:700;color:#856404;opacity:.8;cursor:pointer;text-decoration:underline;">'
+        +'🚫 Le client a annulé — le remettre à planifier</span></div>';
+    }
+    h+='</div>';
   });
   if(!fige){
     h+='<button class="btn" style="margin-top:6px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" '
@@ -5766,6 +5782,43 @@ function refuserArretFrance(id){
   maj['clients/'+id+'/hist']=hist;
   var p=_frSauverCollecte(r, maj);
   if(p) p.then(function(){ showToastNew('❌ Non ramassé'); renderCamionFrance(); });
+}
+
+// v3.95.2 — Cobey : « quand un client annule, on ne peut appuyer que sur
+// Non ramassé [...] il faudrait un bouton Annulé, et que le client
+// revienne dans la liste des clients à planifier pour les tourner ».
+// À la différence de "Non ramassé" (le client reste dans CE camion,
+// pour retenter plus tard le même jour), ceci le retire de toute la
+// collecte et le repose dans le vivier (statut "attente", le même
+// qu'un client jamais encore planifié) — prêt à rejoindre n'importe
+// quelle future tournée. Jamais le statut "annule" (déjà utilisé côté
+// poste interne pour "Non ramassé ▸ Le client a annulé") : celui-là
+// sort définitivement du circuit, l'inverse de ce qui est demandé ici.
+function annulerClientChauffeurExterne(id){
+  var r=_frCollecteActive(); if(!r) return;
+  var c=(franceData.clients||{})[id]||{};
+  if(!confirm('Le client '+_nomAffiche(c)+' a annulé ?\n\nIl sera retiré de cette collecte et remis dans la liste des clients à planifier.')) return;
+  Object.keys(r.trucks||{}).forEach(function(k){
+    var tk=r.trucks[k];
+    var i=(tk.clients||[]).indexOf(id);   if(i>=0) tk.clients.splice(i,1);
+    var j=(tk.validated||[]).indexOf(id); if(j>=0) tk.validated.splice(j,1);
+    var l=(tk.refused||[]).indexOf(id);   if(l>=0) tk.refused.splice(l,1);
+  });
+  if(r.assigned) delete r.assigned[id];
+  var hist=(c.hist||[]).slice();
+  hist.push({q:(currentUser||{}).name||'', a:'a annulé — remis dans les clients à planifier', ts:Date.now()});
+  var maj={};
+  maj['clients/'+id+'/statut']='attente';
+  maj['clients/'+id+'/camionId']='';
+  maj['clients/'+id+'/collecteId']='';
+  maj['clients/'+id+'/dateLib']='';
+  maj['clients/'+id+'/hist']=hist;
+  var p=_frSauverCollecte(r, maj);
+  if(p) p.then(function(){
+    showToastNew('🚫 Client annulé — remis à planifier');
+    _activiteFrance('🚫','a annulé <strong>'+_nomAffiche(c)+'</strong> — remis dans les clients à planifier');
+    renderCamionFrance();
+  });
 }
 
 function annulerArretFrance(id){
