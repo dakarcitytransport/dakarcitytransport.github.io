@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.26';
+var DEP_VERSION = 'v2.20.27';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13670,7 +13670,12 @@ window.depOuvrirValidation = function(id, tk, name, prix, opts){
   // bien pris. v1.20.23 : le bouton "🧾 Facture" dédié (section Chauffeurs
   // externes), devenu redondant avec le "Valider" du camion, a été retiré.
   if(window.db && window.firebaseReady){
-    db.ref('dct_photos_colis/'+id).once('value', function(snap){
+    // v3.95.3 — un client France & Europe range ses photos sous
+    // france_photos/, pas dct_photos_colis/ (voir _depChargerPhotos) :
+    // ce rechargement les cherchait au mauvais endroit et ne trouvait
+    // jamais rien pour ces clients-là.
+    var cheminPhotosOuverture = estFrance ? 'france_photos/' : 'dct_photos_colis/';
+    db.ref(cheminPhotosOuverture+id).once('value', function(snap){
       var v = snap.val(); if(!v) return;
       var arr = Object.keys(v).map(function(kk){ return v[kk]; }).filter(function(p){ return p && p.d; });
       arr.sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
@@ -14008,7 +14013,14 @@ window.depValiderConfirmer = function(){
   if(photosCtx.length && window.db && window.firebaseReady){
     var mapPhotosCtx = {};
     photosCtx.forEach(function(p, i){ mapPhotosCtx['p'+i] = p; });
-    db.ref('dct_photos_colis/'+ctx.clientId).set(mapPhotosCtx);
+    // v3.95.3 — Cobey : « cette photo [...] ne s'ajoute pas [...] à la
+    // fiche du client » (chauffeur externe, écran Valider). Un client
+    // France & Europe range ses photos sous france_photos/, jamais
+    // dct_photos_colis/ (voir _depChargerPhotos, et chauffeur.html qui
+    // fait déjà cette distinction) — elles partaient toujours au mauvais
+    // endroit pour ces clients-là, invisibles ensuite sur leur fiche.
+    var cheminPhotosCtx = ctx.france ? 'france_photos/' : 'dct_photos_colis/';
+    db.ref(cheminPhotosCtx+ctx.clientId).set(mapPhotosCtx);
   }
 
   // v1.18.0 : écriture Firebase immédiate et ciblée, même logique que pour

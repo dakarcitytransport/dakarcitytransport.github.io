@@ -1338,6 +1338,25 @@ jour où Issyaka la coche à son tour. Corrigé aux deux endroits
 
 ## 2 bis · France & Europe
 
+### ~~Chauffeur externe : la photo du colis ne s'enregistrait pas~~
+**Fait le 04/10 (v3.95.3 / departs.js).** Cobey : « quand je vais sur le
+camion du chauffeur externe et que je veux valider le colis [...]
+j'appuie sur ramasser. Après, il me demande de faire une photo [...] et
+quand j'enregistre, elle ne s'ajoute pas [...] à la fiche du client. »
+
+Cause : l'écran "Valider" (`depOuvrirValidation`/`depValiderConfirmer`,
+commun à la Collecte Paris et à France & Europe depuis le 19/09) écrivait
+toujours la photo du colis sous `dct_photos_colis/<id>` — le nœud Dakar
+— quel que soit le client. Or la fiche d'un client France lit ses photos
+sous `france_photos/<id>` (voir `_depChargerPhotos`, et `chauffeur.html`
+qui fait déjà bien la distinction) : la photo partait donc à chaque fois
+au mauvais endroit, invisible ensuite sur la fiche. Même bug sur le
+rechargement automatique (une photo déjà prise par le chauffeur externe
+via `chauffeur.html` avant que le bureau ouvre "Valider" — v1.20.22 —
+cherchait elle aussi au mauvais endroit). Les deux écritures distinguent
+maintenant le nœud selon le client, exactement comme le fait déjà
+`chauffeur.html` de son côté.
+
 ### ~~Chauffeur externe : "Non ramassé" ne libérait jamais le client~~
 **Fait le 04/10 (v3.95.2).** Cobey, capture d'écran de l'écran
 "Chauffeur externe" (Dispatch → camion) à l'appui : « quand un client
