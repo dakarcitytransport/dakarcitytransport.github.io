@@ -1098,6 +1098,22 @@ contenu dans Cloudflare, réglé les deux nouvelles variables et cliqué
 Deploy (étapes 2 et 3 de `CLOUDFLARE-A-FAIRE.md`), un git push seul ne
 suffit pas.**
 
+**v1.7.1, même jour — dernier réglage.** Après avoir mis les deux
+nouvelles variables et redéployé : le Worker arrivait enfin à
+s'authentifier (plus d'erreur de connexion), mais la lecture dans
+Firebase échouait avec `401`. Cause : le périmètre (scope) demandé pour
+le jeton (`firebase.database` seul) était trop étroit — ajouté
+`userinfo.email`, comme le fait toujours le SDK Firebase Admin officiel
+pour ce même usage. **Confirmé résolu par Eric** : le message envoyé le
+matin même (resté coincé dans la file d'attente tout ce temps) est
+arrivé dès que ce correctif a été déployé — notifications de nouveau
+fonctionnelles pour toute l'équipe.
+
+**Rappel : ce fichier fait partie de `cloudflare-worker.js`, pas de
+`departs.js` — tout correctif ici ne prend effet qu'après l'avoir
+recollé dans Cloudflare et cliqué Deploy (`CLOUDFLARE-A-FAIRE.md`), un
+git push seul ne suffit pas.**
+
 ### ~~Statistiques : par conteneur, en plus de par année~~
 **Fait le 27/09 (v2.10.0).** Cobey, capture d'écran des Statistiques à
 l'appui : « je trouve ça pas trop lisible et pas trop parlant. On va
