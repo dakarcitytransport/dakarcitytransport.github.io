@@ -1486,6 +1486,29 @@ cartes clients des listes (vivier, récapitulatif de tournée), utilisable
 ce soit « vraiment pareil » — il ne reste que les 3 moments communs aux
 deux parcours.
 
+### ~~L'écran d'une collecte France & Europe sans récap par collaborateur~~
+**Fait le 07/10 (v3.95.6).** Suite de la même revue. Côté Collecte,
+l'onglet « Clients » d'une collecte ouverte montre d'abord qui a inscrit
+combien de clients et pour quel montant (cartes `collab-grid`, une par
+collaborateur). France & Europe n'avait rien d'équivalent sur l'écran
+d'une collecte ouverte — juste le suivi financier global et les camions.
+
+Cobey a précisé en cours de route que Danny Diop (partenaire ramassage)
+n'intervient plus — les ramasses se font désormais par DCT ou par des
+chauffeurs externes directement, ce qui simplifie la comparaison : le
+système des « tournées » préparées par Danny (écrans à part, pas revus
+ici) n'est plus la préoccupation principale.
+
+Plutôt qu'une reconstruction complète de l'écran France en 4 onglets
+séparés comme la Collecte (Clients/Dispatch/Finance/Carte) — plus gros
+chantier, plus risqué sur un écran qui marche déjà bien — Cobey a choisi
+l'option plus ciblée : le même récap par collaborateur (mêmes cartes
+`collab-grid`/`collab-card`) ajouté sur l'écran actuel d'une collecte
+France & Europe, juste après le suivi financier global. Compte les
+clients de CETTE collecte uniquement (pas tout le vivier), groupés par
+`creePar` (qui a inscrit la fiche) — l'équivalent du champ `by` côté
+Collecte.
+
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
 prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il
