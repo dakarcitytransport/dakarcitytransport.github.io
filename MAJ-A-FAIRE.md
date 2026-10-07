@@ -1402,6 +1402,42 @@ France (retour au vivier "attente"), pas celle de Dakar (simple
 marqueur réversible dans le camion, voir plus haut) : les deux
 parcours gardent chacun leur approche, seule l'interface est commune.
 
+### ~~La fiche du client, différente entre France & Europe et la Collecte~~
+**Fait le 07/10 (v2.20.28 / departs.js).** Cobey, deux captures à
+l'appui (fiche « Mme Hauck » côté France & Europe, fiche « Masamba
+Mbaye » côté Collecte) : « quand je vais dans le conteneur, en cliquant
+sur un client que je collecte et un client quand je départ, c'est pas
+du tout la même interface. Il faut tout remettre comme [...] le
+parcours collecte. » Puis, pour fixer l'ampleur du chantier : « j'ai
+besoin qu'elle soit exactement à l'identique que la collecte, le même
+parcours, les mêmes interfaces, la même logique, jusqu'à l'arrivée du
+client dans le conteneur [...] chacun a son côté [...] la seule chose
+qui va changer, c'est que France on inscrit les clients avant la
+collecte, et que pour la collecte on inscrit la collecte avant les
+clients. »
+
+La fiche d'un client France & Europe vivait sur son propre écran natif
+(`s-france-client` / `_renderFicheFrance`) : pas de Versement/Acompte/
+Reste à payer, photos et notes seulement accessibles via un bouton qui
+changeait d'écran — alors que la fiche Collecte/Dépôt direct
+(`depRenderFicheLecture`) a déjà les deux, en cartes directement sur la
+fiche. `ouvrirFicheFrance()` ouvre maintenant ce même écran partagé
+(déjà commun à la Collecte et au Dépôt direct) avec les données France
+& Europe, au lieu de l'écran natif — qui reste en place mais n'est plus
+utilisé pour la consultation. Même principe que l'écran « Valider »
+(déjà partagé) : chaque parcours garde ses propres données derrière
+(`franceData.clients` pour l'un, les collectes Dakar pour l'autre),
+seul l'écran et son comportement sont désormais communs — y compris
+l'écriture d'une note, l'ajout d'une photo (sous `france_photos/`,
+jamais `dct_photos_colis/`) ou d'un versement/acompte depuis cette
+fiche, qui vont bien sous `france/clients/<id>`.
+
+Premier chantier d'une revue complète du parcours France & Europe,
+écran par écran, pour l'aligner sur celui de la Collecte jusqu'à
+l'arrivée du client dans le conteneur — la seule différence qui reste
+volontaire étant l'ordre d'inscription (client avant la collecte côté
+France, collecte avant le client côté Collecte).
+
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
 prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il

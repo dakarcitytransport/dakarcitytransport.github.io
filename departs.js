@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.27';
+var DEP_VERSION = 'v2.20.28';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2306,7 +2306,7 @@ function _depPoserGardesCases(){
 window._depRafraichirEcranOuvert = function(ecranId){
   if(ecranId === 's-dep-fiche-lecture'){
     var f = _depFicheLectureCtx;
-    if(f && f.clientId) depRenderFicheLecture(f.colId, f.clientId, f.depot);
+    if(f && f.clientId) depRenderFicheLecture(f.colId, f.clientId, f.depot, f.france);
     return;
   }
   if(ecranId === 's-facture'){
@@ -8368,10 +8368,9 @@ window.depOuvrirFactureFrance = function(clientId, viaFidelite){
       btnRetour.onclick = function(){ goTo('s-fidelite-contact'); try{ depRenderFideliteContact(); }catch(e){} };
     } else {
       btnRetour.textContent = '← Fiche';
-      btnRetour.onclick = function(){
-        goTo('s-france-client');
-        try{ window.franceClientId = clientId; _renderFicheFrance(); }catch(e){}
-      };
+      // v2.20.28 : vers l'écran de lecture partagé (voir le patch de
+      // ouvrirFicheFrance), plus l'écran natif s-france-client.
+      btnRetour.onclick = function(){ ouvrirFicheFrance(clientId); };
     }
   }
   depRenderFacture(c);
@@ -10011,7 +10010,7 @@ window.depAjouterVersementAvance = function(){
   if(!ctxL){ toast('⚠️ Fiche introuvable.'); return; }
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
 
-  var ctx = { collecteId: ctxL.colId, clientId: ctxL.clientId, depot: !!ctxL.depot };
+  var ctx = { collecteId: ctxL.colId, clientId: ctxL.clientId, depot: !!ctxL.depot, france: !!ctxL.france };
   var c = _depClientFacture(ctx);
   if(!c){ toast('⚠️ Client introuvable.'); return; }
 
@@ -10144,7 +10143,7 @@ function _depAjouterVersementExecuter(p){
   // forcément ouverte du tout dans ce cas).
   var ecranFicheL = $('s-dep-fiche-lecture');
   if(ecranFicheL && ecranFicheL.classList.contains('active') && _depFicheLectureCtx){
-    depRenderFicheLecture(_depFicheLectureCtx.colId, _depFicheLectureCtx.clientId, _depFicheLectureCtx.depot);
+    depRenderFicheLecture(_depFicheLectureCtx.colId, _depFicheLectureCtx.clientId, _depFicheLectureCtx.depot, _depFicheLectureCtx.france);
   } else {
     depRenderFacture(c);
   }
@@ -11066,9 +11065,11 @@ function _depTrouverClient(colId, clientId){
   return null;
 }
 
-function depRenderFicheLecture(colId, clientId, depot){
+function depRenderFicheLecture(colId, clientId, depot, france){
   var c;
-  if(depot){
+  if(france){
+    c = ((window.franceData||{}).clients||{})[clientId];
+  } else if(depot){
     c = (window.depotClients||{})[clientId];
   } else {
     var trouve = _depTrouverClient(colId, clientId);
@@ -11087,19 +11088,25 @@ function depRenderFicheLecture(colId, clientId, depot){
   if(!box) return false;
   // v1.20.13 : mémorisé pour les boutons d'action plus bas (Modifier/
   // Photo/Note) — voir _depFicheLectureCtx.
-  _depFicheLectureCtx = { colId: colId, clientId: clientId, depot: !!depot,
-    departId: depot ? c.departId : null, viaCarre: !!_depDepotViaCarre };
+  _depFicheLectureCtx = { colId: colId, clientId: clientId, depot: !!depot, france: !!france,
+    departId: (depot||france) ? c.departId : null, viaCarre: !!_depDepotViaCarre };
+  // v2.20.28 : un client France & Europe n'a pas de champ "name" tout fait
+  // (civilit&eacute;+pr&eacute;nom+nom séparés) — même repli que
+  // depRenderFacture, sinon le titre et l'avatar restaient vides pour ce
+  // parcours (retour de Cobey du 04/10/2026 : "il faut tout remettre
+  // comme la collecte").
+  var nomAff = c.name || ((c.prenom||'') + ' ' + (c.nom||'')).trim() || 'Client';
   // v1.19.45 : drapeau pays sur la fiche aussi (voir dep-cli-n, même
   // demande de Cobey).
   var drapeauTitre = '';
   try{ drapeauTitre = (DEP_PAYS_DEST[depPaysFiche(c)] || {}).drapeau ? ' ' + (DEP_PAYS_DEST[depPaysFiche(c)] || {}).drapeau : ''; }catch(e){}
-  if(titre) titre.innerHTML = esc(c.name || 'Client') + drapeauTitre;
+  if(titre) titre.innerHTML = esc(nomAff) + drapeauTitre;
 
   var kv = function(k, v){
     return '<div class="dep-kv"><span class="dep-kv-k">'+k+'</span><span class="dep-kv-v">'+v+'</span></div>';
   };
   var init = '';
-  try{ init = initiales(c.prenom, c.nom); }catch(e){ init = (c.name||'?').charAt(0).toUpperCase(); }
+  try{ init = initiales(c.prenom, c.nom); }catch(e){ init = nomAff.charAt(0).toUpperCase(); }
 
   var adresseTxt = esc(c.adresse || '');
   var vilTxt = esc([c.cp, c.ville].filter(Boolean).join(' '));
@@ -11108,10 +11115,13 @@ function depRenderFicheLecture(colId, clientId, depot){
   // v1.19.41 : pastille du collaborateur qui a inscrit le client, à sa
   // couleur de profil (retour de Cobey du 24/08/2026) — même principe que
   // le « Ajouté par » du carré France & Europe (voir _pastilleAuteur).
-  var inscritTxt = esc(dateHeureFr(c.creeLe||0));
+  // v2.20.28 : France & Europe garde ces mêmes informations sous
+  // creeTs/creePar (voir saveClientFrance) au lieu de creeLe/by.
+  var inscritTxt = esc(dateHeureFr(c.creeLe||c.creeTs||0));
+  var auteurInscrit = c.by || c.creePar;
   var pastilleInscrit = '';
-  try{ pastilleInscrit = c.by ? _pastilleAuteur(c.by) : ''; }catch(e1){}
-  if(!pastilleInscrit && c.by) pastilleInscrit = '<b>'+esc(c.by)+'</b>';
+  try{ pastilleInscrit = auteurInscrit ? _pastilleAuteur(auteurInscrit) : ''; }catch(e1){}
+  if(!pastilleInscrit && auteurInscrit) pastilleInscrit = '<b>'+esc(auteurInscrit)+'</b>';
 
   // v1.19.41 : collaborateur qui a encaissé le premier versement de ce
   // client, à côté du prix (retour de Cobey du 24/08/2026 : "ce sont les
@@ -11127,7 +11137,7 @@ function depRenderFicheLecture(colId, clientId, depot){
   var html = '<div style="text-align:center;margin-bottom:14px;">'
     +   '<div class="av" style="width:56px;height:56px;font-size:19px;margin:0 auto 10px;'
     +     'background:'+esc(c.bg||'#eee')+';color:'+esc(c.color||'#333')+';border:2px solid '+esc(c.color||'#333')+';">'+esc(init)+'</div>'
-    +   '<div style="font-size:17px;font-weight:800;color:var(--text);">'+esc(c.name||'')+'</div>'
+    +   '<div style="font-size:17px;font-weight:800;color:var(--text);">'+esc(nomAff)+'</div>'
     + '</div>'
     + '<div class="dep-fiche-card">'
     +   kv('Inscrit le', inscritTxt + (pastilleInscrit ? ('<br>'+pastilleInscrit) : ''))
@@ -11206,15 +11216,16 @@ function depRenderFicheLecture(colId, clientId, depot){
     + '<div id="dep-ficheL-actions"></div>';
 
   box.innerHTML = html;
-  _depChargerPhotosFiche(clientId, c, 'dep-ficheL-photos-box');
+  _depChargerPhotosFiche(clientId, c, 'dep-ficheL-photos-box', !!france);
   depRenderSuivi(c, colId, 'dep-ficheL-suivi');
 
   // v1.20.13 : le Dépôt direct n'a pas de collecte à clôturer — pas de
-  // verrou pour ces fiches-là.
+  // verrou pour ces fiches-là. v2.20.28 : pareil pour France & Europe, qui
+  // n'a pas non plus cette notion.
   // v1.78.0 : la direction n'est plus gardée par une collecte clôturée
   // (voir isLockedClient dans dct-app.html).
   var loc = false;
-  try{ loc = !depot && (typeof isLockedClient === 'function' ? isLockedClient() : isLocked()); }catch(e2){}
+  try{ loc = !depot && !france && (typeof isLockedClient === 'function' ? isLockedClient() : isLocked()); }catch(e2){}
   var act = $('dep-ficheL-actions');
   if(act){
     // v1.26.1 : une collecte terminée n'enferme plus la facture. Le
@@ -11261,6 +11272,14 @@ window.depModifierFicheActuelle = function(force){
   var ctx = _depFicheLectureCtx;
   if(ctx && ctx.depot){
     depOuvrirDepotForm(ctx.departId, ctx.clientId, ctx.viaCarre);
+    return;
+  }
+  // v2.20.28 : France & Europe garde son propre formulaire d'édition
+  // (s-france-add, voir modifierClientFrance) — pas de garde native ici
+  // non plus, même logique que le Dépôt direct ci-dessus.
+  if(ctx && ctx.france){
+    window.franceClientId = ctx.clientId;
+    if(typeof modifierClientFrance === 'function') modifierClientFrance();
     return;
   }
   var loc = false;
@@ -11658,7 +11677,9 @@ window.depEnregistrerNoteFiche = function(){
   var texte = (t && t.value || '').trim();
   if(!texte){ toast('⚠️ Écrivez une note avant d\'enregistrer.'); return; }
 
-  var fiche = ctx.depot ? (window.depotClients||{})[ctx.clientId] : ((window.clientsParCollecte||{})[ctx.colId]||{})[ctx.clientId];
+  var fiche = ctx.france ? ((window.franceData||{}).clients||{})[ctx.clientId]
+    : ctx.depot ? (window.depotClients||{})[ctx.clientId]
+    : ((window.clientsParCollecte||{})[ctx.colId]||{})[ctx.clientId];
   if(!fiche){ closeModal('modal-dep-note-fiche'); return; }
 
   if(!Array.isArray(fiche.hist)) fiche.hist = [];
@@ -11671,8 +11692,9 @@ window.depEnregistrerNoteFiche = function(){
 
   closeModal('modal-dep-note-fiche');
   if(ctx.depot) _depEcrireClient({ depot: true, clientId: ctx.clientId }, { hist: fiche.hist });
+  else if(ctx.france) _depEcrireFacture({ france: true, clientId: ctx.clientId }, { hist: fiche.hist });
   else try{ sauvegarder(); }catch(e){ console.error('departs: sauvegarder note fiche', e); }
-  try{ depRenderFicheLecture(ctx.colId, ctx.clientId, ctx.depot); }catch(e2){ console.error('departs: rafraîchir fiche après note', e2); }
+  try{ depRenderFicheLecture(ctx.colId, ctx.clientId, ctx.depot, ctx.france); }catch(e2){ console.error('departs: rafraîchir fiche après note', e2); }
   toast('📝 Note ajoutée.');
 };
 
@@ -11710,17 +11732,24 @@ window.depFicheLPhotoChoisie = function(input){
     _compresserPhoto(f, function(data){
       if(!data){ toast('❌ Photo illisible.'); return; }
       var u = window.currentUser || {};
-      db.ref('dct_photos_colis/'+ctx.clientId).push({ d: data, ts: Date.now(), q: (u.name||''), uid: (u.id||'') });
+      // v2.20.28 : une fiche France & Europe lit/écrit ses photos sous
+      // france_photos/, jamais dct_photos_colis/ (même bug déjà réglé
+      // sur l'écran "Valider", voir depValiderConfirmer).
+      var chemin = ctx.france ? 'france_photos/' : 'dct_photos_colis/';
+      db.ref(chemin+ctx.clientId).push({ d: data, ts: Date.now(), q: (u.name||''), uid: (u.id||'') });
 
-      var fiche = ctx.depot ? (window.depotClients||{})[ctx.clientId] : ((window.clientsParCollecte||{})[ctx.colId]||{})[ctx.clientId];
+      var fiche = ctx.france ? ((window.franceData||{}).clients||{})[ctx.clientId]
+        : ctx.depot ? (window.depotClients||{})[ctx.clientId]
+        : ((window.clientsParCollecte||{})[ctx.colId]||{})[ctx.clientId];
       if(fiche){
         fiche.aPhotoColis = true;
         if(!Array.isArray(fiche.hist)) fiche.hist = [];
         fiche.hist.push({ q: (u.name||u.id||''), a: 'a ajout&eacute; une nouvelle photo du colis', ts: Date.now(), type: 'photo' });
         if(ctx.depot) _depEcrireClient({ depot: true, clientId: ctx.clientId }, { aPhotoColis: true, hist: fiche.hist });
+        else if(ctx.france) _depEcrireFacture({ france: true, clientId: ctx.clientId }, { aPhotoColis: true, hist: fiche.hist });
         else try{ sauvegarder(); }catch(e){ console.error('departs: sauvegarder photo fiche', e); }
       }
-      try{ depRenderFicheLecture(ctx.colId, ctx.clientId, ctx.depot); }catch(e2){ console.error('departs: rafraîchir fiche après photo', e2); }
+      try{ depRenderFicheLecture(ctx.colId, ctx.clientId, ctx.depot, ctx.france); }catch(e2){ console.error('departs: rafraîchir fiche après photo', e2); }
       toast('📷 Photo ajoutée.');
     });
   }catch(e3){ toast('❌ Photo illisible.'); }
@@ -16372,49 +16401,48 @@ function greffer(){
     };
     window._renderFicheFrance._depPatch = true;
   }
-  /* --- N ter bis (v1.19.68). Bouton "← Suivi" de la fiche client France &
-     Europe : codé en dur en natif vers l'écran France & Europe — ouvert
-     depuis un container (Départ ou carré Dépôt, voir
-     depOuvrirFicheFranceDepuisDepart/Carre ci-dessus), "retour" doit
-     plutôt ramener à ce container (retour de Cobey du 29/08/2026 : "au
-     lieu de revenir sur le container [...] il revient sur les clients de
-     la case France Europe"). _depFicheFranceRetour est consommé une
-     seule fois ici, sinon la fiche retombe sur son comportement natif. --- */
+  /* --- N ter bis (v1.19.68, remplacé en v2.20.28). La fiche d'un client
+     France & Europe vivait sur son propre écran natif (s-france-client,
+     voir _renderFicheFrance) — présentation complètement différente de
+     la fiche Collecte/Dépôt direct (depRenderFicheLecture), alors que
+     c'est le même parcours vu de deux endroits (retour de Cobey du
+     04/10/2026, captures à l'appui : "en cliquant sur un client que je
+     collecte et un client quand je départ, c'est pas du tout la même
+     interface [...] il faut tout remettre comme [...] le parcours
+     collecte"). ouvrirFicheFrance() est donc réécrit pour ouvrir
+     l'écran de lecture PARTAGÉ (déjà commun à la Collecte et au Dépôt
+     direct) plutôt que l'écran natif, qui reste en place mais n'est
+     plus utilisé pour la consultation (voir _depRouvrirFicheSelonSource,
+     dejà basé sur ouvrirFicheFrance pour cette source).
+     Le bouton "Retour" de cet écran délègue à #client-back (même
+     mécanisme que pour un client Dépôt direct, voir depOuvrirFicheDepot)
+     — _depFicheFranceRetour fixe sa cible selon l'endroit d'où on est
+     venu (Départ/Dépôt/rapport financier/liste France & Europe). --- */
   if(typeof window.ouvrirFicheFrance === 'function' && !window.ouvrirFicheFrance._depPatch){
-    var origOuvrirFicheFrance = window.ouvrirFicheFrance;
-    window.ouvrirFicheFrance = function(){
-      origOuvrirFicheFrance.apply(this, arguments);
+    window.ouvrirFicheFrance = function(id){
+      window.franceClientId = id;
+      depRenderFicheLecture('', id, false, true);
       try{
-        // v1.19.74 : NE PLUS consommer _depFicheFranceRetour ici (avant :
-        // remis à null immédiatement) — sinon le contexte était perdu dès
-        // que la fiche s'affichait, et "Modifier la fiche" juste après
-        // retombait sur le retour natif (retour de Cobey du 29/08/2026,
-        // même bug que celui déjà réglé sur cette fiche). Il reste donc
-        // valable tant qu'on ne revient pas sur l'écran France & Europe
-        // (voir la remise à zéro dans le patch de renderFrance plus bas).
         var retour = _depFicheFranceRetour;
-        var btn = document.querySelector('#s-france-client .header .btn-back');
+        var btn = $('client-back');
         if(btn){
           if(retour && retour.type === 'depart'){
             var depId1 = retour.id;
-            btn.textContent = '← Départ';
             btn.onclick = function(){ depDetail(depId1); };
           } else if(retour && retour.type === 'carre'){
             var depId2 = retour.id;
-            btn.textContent = '← Dépôt';
             btn.onclick = function(){ depCarreDepotContainer(depId2); };
           } else if(retour && retour.type === 'rapfin'){
             // v1.74.0 : on vient de la liste des impayés du rapport
             // financier — on y retourne, pas dans le carré Départ.
             var depId3 = retour.id;
-            btn.textContent = '← Container';
             btn.onclick = function(){ depRapfinContainer(depId3); };
           } else {
-            btn.textContent = '← Suivi';
             btn.onclick = function(){ goTo('s-france'); };
           }
         }
       }catch(e){ console.error('departs: retour fiche france', e); }
+      goTo('s-dep-fiche-lecture');
     };
     window.ouvrirFicheFrance._depPatch = true;
   }
