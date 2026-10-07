@@ -1438,6 +1438,28 @@ l'arrivée du client dans le conteneur — la seule différence qui reste
 volontaire étant l'ordre d'inscription (client avant la collecte côté
 France, collecte avant le client côté Collecte).
 
+### ~~"Nouvelle collecte" France & Europe, différente de celle de la Collecte~~
+**Fait le 07/10 (v3.95.4).** Suite de la revue écran par écran demandée
+par Cobey ci-dessus. Confirmé explicitement : « on touche rien à
+parcours collecte, on met France Europe comme parcours collecte » —
+l'écran natif `s-new`/`creerCollecte` de la Collecte Dakar n'est pas
+modifié d'un seul caractère.
+
+« Nouvelle collecte » côté France & Europe n'était qu'une petite
+fenêtre avec une date brute à taper et un statut (En cours/À venir) à
+choisir soi-même — alors que la Collecte a un vrai écran guidé : les
+prochains dimanches en un clic, une case « Jour exceptionnel » avec sa
+propre date, et le statut calculé tout seul selon la semaine en cours.
+France & Europe a maintenant son propre écran (`s-new-france`), construit
+sur le même gabarit (mêmes classes `sunday-grid`/`toggle-wrap`,
+`buildSundaysFrance`/`toggleExcepFrance` recopiant exactement la logique
+de `buildSundays`/`toggleExcep`), avec la même garde contre les doublons
+de date et le même calcul automatique du statut — plus de menu à choisir
+à la main. La seule suite propre à France & Europe, gardée telle
+qu'avant : une fois la collecte créée, on enchaîne directement sur le
+choix des clients à y mettre (le vivier existe déjà, contrairement à la
+Collecte où les clients sont inscrits après coup).
+
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
 prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il

@@ -459,6 +459,36 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   </div>
 </div>
 
+<!-- NOUVELLE COLLECTE FRANCE & EUROPE — même écran que "Nouvelle collecte"
+     (s-new, Collecte Dakar) : même choix du dimanche, même case "jour
+     exceptionnel" + raison, même calcul automatique du statut. Seule
+     différence volontaire avec la Collecte : ici les clients existent
+     déjà dans le vivier "attente" avant la collecte (pas l'inverse), donc
+     on enchaîne sur le choix des clients juste après la création. -->
+<div class="screen" id="s-new-france">
+  <div class="header">
+    <button class="btn-back" onclick="goTo('s-france')">← Retour</button>
+    <div class="h-title">Nouvelle collecte</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="content">
+    <div class="slabel">Choisir le dimanche</div>
+    <div class="sunday-grid" id="sunday-grid-fr"></div>
+    <div class="toggle-wrap">
+      <span class="toggle-label">Jour exceptionnel</span>
+      <button class="toggle-btn" id="excep-toggle-fr" onclick="toggleExcepFrance()"></button>
+    </div>
+    <div id="excep-fields-fr" style="display:none;">
+      <div class="fg" style="margin-top:12px;"><label class="fl">Date</label><input class="fi" type="date" id="excep-date-fr"></div>
+      <div class="fg"><label class="fl">Raison (optionnel)</label><input class="fi" id="excep-raison-fr" placeholder="ex: départ anticipé client"></div>
+    </div>
+    <div style="margin-top:20px;">
+      <button class="btn btn-green" onclick="creerCollecteFrance()">✅ Créer cette collecte</button>
+      <button class="btn btn-gray" onclick="goTo('s-france')">✕ Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- NOUVEAU CLIENT FRANCE -->
 <div class="screen" id="s-france-add">
   <div class="header">
@@ -1677,7 +1707,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.95.3';
+var APP_VERSION = 'v3.95.4';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -1814,6 +1844,7 @@ var curAnnulerId = null, curAnnulerTk = null, curAnnulerType = null;
 var curSupprimerCamion = null;
 var _pendingAffect = null;
 var excepOn = false;
+var excepOnFrance = false; // même principe que excepOn, pour s-new-france
 var activeFilter = '';
 var truckCount = 0;
 var collectes = [];
@@ -4595,60 +4626,100 @@ function _frSauverCollecte(r, maj){
   return _frUpdate(m);
 }
 
-// ── Créer une collecte ──
+// ── Créer une collecte — même écran et même logique que "Nouvelle
+//    collecte" côté Collecte (s-new/creerCollecte, jamais touché ici) :
+//    choix du dimanche ou jour exceptionnel, statut calculé tout seul
+//    selon la semaine en cours, pas choisi à la main. Retour de Cobey du
+//    07/10 : « on touche rien à parcours collecte, on met France Europe
+//    comme parcours collecte. » ──
 function nouvelleCollecteFrance(){
   if(!_peutGererFrance()) return;
   if(!firebaseReady){ showToastNew('⏳ Chargement en cours, réessaie dans quelques secondes…'); return; }
-  var modal=document.getElementById('modal-fc-nouveau');
-  if(!modal){
-    modal=document.createElement('div');
-    modal.id='modal-fc-nouveau';
-    modal.className='modal-overlay';
-    modal.style.cssText='align-items:center;';
-    modal.innerHTML='<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
-      + '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🚛 Nouvelle collecte</div>'
-      + '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:16px;">Choisissez le jour du passage en France et en Europe.</div>'
-      + '<div class="fg"><label class="fl">Date</label><input class="fi" type="date" id="fc-new-date"></div>'
-      + '<div class="fg"><label class="fl">Statut</label>'
-      +   '<select class="fi" id="fc-new-statut"><option value="en_cours">🟢 En cours</option><option value="a_venir">🔵 À venir</option></select></div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">'
-      + '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-fc-nouveau\')">Annuler</button>'
-      + '<button class="btn-sm btn-green-sm" onclick="creerCollecteFrance()">✅ Créer</button>'
-      + '</div></div>';
-    document.body.appendChild(modal);
-  }
-  var d=new Date();
-  var v=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
-  var i=document.getElementById('fc-new-date'); if(i) i.value=v;
-  var st=document.getElementById('fc-new-statut'); if(st) st.value='en_cours';
-  openModal('modal-fc-nouveau');
+  excepOnFrance=false;
+  var et=document.getElementById('excep-toggle-fr'); if(et) et.classList.remove('on');
+  var ef=document.getElementById('excep-fields-fr'); if(ef) ef.style.display='none';
+  var sg=document.getElementById('sunday-grid-fr'); if(sg){ sg.style.opacity='1'; sg.style.pointerEvents='auto'; }
+  buildSundaysFrance();
+  goTo('s-new-france');
+}
+
+function buildSundaysFrance(){
+  try{
+    var grid=document.getElementById('sunday-grid-fr'); if(!grid) return;
+    var m=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+    var d=new Date(); var diff=(7-d.getDay())%7||7; d.setDate(d.getDate()+diff);
+    grid.innerHTML='';
+    for(var i=0;i<6;i++){
+      var nd=new Date(d); nd.setDate(d.getDate()+i*7);
+      var chip=document.createElement('div'); chip.className='sunday-chip'+(i===0?' sel':'');
+      chip.textContent='Dim. '+nd.getDate()+' '+m[nd.getMonth()];
+      (function(ch){ ch.onclick=function(){ grid.querySelectorAll('.sunday-chip').forEach(function(c){ c.classList.remove('sel'); }); ch.classList.add('sel'); }; })(chip);
+      grid.appendChild(chip);
+    }
+  }catch(e){}
+}
+function toggleExcepFrance(){
+  excepOnFrance=!excepOnFrance;
+  var et=document.getElementById('excep-toggle-fr'); if(et) et.classList.toggle('on',excepOnFrance);
+  var ef=document.getElementById('excep-fields-fr'); if(ef) ef.style.display=excepOnFrance?'block':'none';
+  var sg=document.getElementById('sunday-grid-fr');
+  if(sg){ sg.style.opacity=excepOnFrance?'0.3':'1'; sg.style.pointerEvents=excepOnFrance?'none':'auto'; }
 }
 
 function creerCollecteFrance(){
-  var v=((document.getElementById('fc-new-date')||{}).value)||'';
-  if(!v){ showToastNew('⚠️ Choisissez une date.'); return; }
-  var statut=((document.getElementById('fc-new-statut')||{}).value)||'en_cours';
+  if(!firebaseReady){ showToastNew('⏳ Chargement en cours, réessaie dans quelques secondes…'); return; }
   var J=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
   var M=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  var dt=new Date(v+'T12:00:00');
-  var lib=J[dt.getDay()]+' '+dt.getDate()+' '+M[dt.getMonth()]+' '+dt.getFullYear();
+  var v, dt, lib;
+  if(excepOnFrance){
+    v=((document.getElementById('excep-date-fr')||{}).value)||'';
+    if(!v){ showToastNew('⚠️ Veuillez sélectionner une date.'); return; }
+    dt=new Date(v+'T12:00:00');
+    lib=J[dt.getDay()]+' '+dt.getDate()+' '+M[dt.getMonth()]+' '+dt.getFullYear();
+  } else {
+    var sel=document.querySelector('#sunday-grid-fr .sunday-chip.sel');
+    var chips=document.querySelectorAll('#sunday-grid-fr .sunday-chip');
+    var chipIdx=0;
+    chips.forEach(function(c,i){ if(c.classList.contains('sel')) chipIdx=i; });
+    var now=new Date();
+    now.setDate(now.getDate() + ((7-now.getDay())%7||7) + chipIdx*7);
+    dt=now;
+    v=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
+    lib=J[dt.getDay()]+' '+dt.getDate()+' '+M[dt.getMonth()]+' '+dt.getFullYear();
+  }
 
   var rs=_frCollectes();
   var doublon=Object.keys(rs).some(function(k){ return rs[k] && rs[k].dateIso===v; });
   if(doublon){ showToastNew('⚠️ Une collecte existe déjà pour le '+lib+'.'); return; }
 
+  // Statut calculé selon la semaine en cours — jamais choisi à la main,
+  // même règle que creerCollecte() côté Collecte.
+  var now2=new Date();
+  var dayOfWeek=now2.getDay();
+  var debutSemaine=new Date(now2);
+  var diffLundi=dayOfWeek===0?-6:1-dayOfWeek;
+  debutSemaine.setDate(now2.getDate()+diffLundi); debutSemaine.setHours(0,0,0,0);
+  var finSemaine=new Date(debutSemaine);
+  finSemaine.setDate(debutSemaine.getDate()+6); finSemaine.setHours(23,59,59,999);
+  var dateCollecte=new Date(v+'T12:00:00');
+  var statut=(dateCollecte>=debutSemaine && dateCollecte<=finSemaine) ? 'en_cours' : 'a_venir';
+
   var rid='fr_'+Date.now();
   var maj={};
   maj['collectes/'+rid]={
-    id:rid, dateIso:v, dateLib:lib, statut:statut,
+    id:rid, dateIso:v, dateLib:lib, statut:statut, type:excepOnFrance?'exceptionnel':'normal',
     creePar:(currentUser||{}).name||'', creeTs:Date.now(),
     clients:[], trucks:{}, assigned:{}
   };
-  closeModal('modal-fc-nouveau');
+  excepOnFrance=false;
   _frUpdate(maj).then(function(){
     showToastNew('✅ Collecte du '+lib+' créé');
     _activiteFrance('🚛','a créé la collecte <strong>'+lib+'</strong>');
     currentCollecteFrId=rid;
+    // v3.95.4 : "Nouvelle collecte" est désormais un écran à part
+    // (s-new-france), pas une fenêtre par-dessus s-france — il faut donc
+    // explicitement y revenir avant de la redessiner.
+    goTo('s-france');
     renderFrance();
     // Enchaîner sur le choix des clients : c'est le geste attendu ici,
     // le vivier existe déjà.
