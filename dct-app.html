@@ -1146,6 +1146,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 <div class="modal-overlay" id="modal-waze"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">📍</div><div class="modal-confirm-title">Ouvrir Waze ?</div><div class="modal-confirm-sub" id="waze-adresse"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-waze')">Annuler</button><button class="btn-sm btn-green-sm" id="waze-btn">🗺️ Ouvrir Waze</button></div></div></div></div>
 <div class="modal-overlay" id="modal-dispatch-invalid"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">⚠️</div><div class="modal-confirm-title">Dispatch incomplet</div><div class="modal-confirm-sub" id="dispatch-errors" style="text-align:left;white-space:pre-line;"></div><div style="margin-top:16px;"><button class="btn-sm btn-green-sm" style="width:100%;" onclick="closeModal('modal-dispatch-invalid')">OK, je corrige</button></div></div></div></div>
 <div class="modal-overlay" id="modal-dispatch-confirm"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">✅</div><div class="modal-confirm-title">Valider le dispatch ?</div><div class="modal-confirm-sub">Tous les clients sont affectés et ont une heure.</div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-dispatch-confirm')">Annuler</button><button class="btn-sm btn-green-sm" onclick="confirmerValiderDispatch()">✅ Valider</button></div></div></div></div>
+<!-- France & Europe : mêmes fenêtres habillées que la Collecte, à la
+     place des confirm()/alert() natifs du navigateur (retour de Cobey
+     du 07/10 : « on met France Europe comme parcours collecte »). -->
+<div class="modal-overlay" id="modal-del-collecte-fr"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">📅</div><div class="modal-confirm-title">Supprimer cette collecte ?</div><div class="modal-confirm-sub" id="del-collecte-fr-sub"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-del-collecte-fr')">Annuler</button><button class="btn-sm btn-red-sm" onclick="confirmerSupprimerCollecteFrance()">🗑️ Supprimer</button></div></div></div></div>
+<div class="modal-overlay" id="modal-dispatch-invalid-fr"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">⚠️</div><div class="modal-confirm-title">Dispatch incomplet</div><div class="modal-confirm-sub" id="dispatch-errors-fr" style="text-align:left;white-space:pre-line;"></div><div style="margin-top:16px;"><button class="btn-sm btn-green-sm" style="width:100%;" onclick="closeModal('modal-dispatch-invalid-fr')">OK, je corrige</button></div></div></div></div>
+<div class="modal-overlay" id="modal-dispatch-confirm-fr"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">✅</div><div class="modal-confirm-title">Valider le dispatch ?</div><div class="modal-confirm-sub" id="dispatch-confirm-fr-sub"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-dispatch-confirm-fr')">Annuler</button><button class="btn-sm btn-green-sm" onclick="confirmerValiderDispatchFrance()">✅ Valider</button></div></div></div></div>
 <div class="modal-overlay" id="modal-doublon"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">⚠️</div><div class="modal-confirm-title">Client déjà existant</div><div class="modal-confirm-sub"><strong id="doublon-nom"></strong> est déjà dans cette collecte.<br><span id="doublon-info" style="color:#888;font-size:12px;"></span></div><div style="font-size:13px;color:#555;margin:10px 0;">Voulez-vous l'ajouter quand même ?</div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-doublon')">Annuler</button><button class="btn-sm" style="background:#c0392b;color:#fff;border:2px solid #922b21;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);" onclick="closeModal('modal-doublon');ouvrirConfirmClient();">Ajouter quand même</button></div></div></div></div>
 <div class="modal-overlay" id="modal-confirm-client"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">✅</div><div class="modal-confirm-title">Confirmer l'ajout ?</div><div id="confirm-client-recap" style="background:#f9f9f9;border-radius:10px;padding:12px;margin:10px 0;text-align:left;border:1.5px solid #e0e0e0;"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-confirm-client')">Annuler</button><button class="btn-sm btn-green-sm" onclick="closeModal('modal-confirm-client');saveClientConfirme();">✅ Confirmer</button></div></div></div></div>
 
@@ -1707,7 +1713,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.95.4';
+var APP_VERSION = 'v3.95.5';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3414,11 +3420,14 @@ function _lienAppel(c){
   return _rangee(h);
 }
 
-// Le bloc complet : numéros, puis Notes et Photos côte à côte.
+// Le bloc complet : numéros, puis Notes. v3.95.5 : plus de bouton
+// "Photos" ici — la Collecte n'a pas de bouton photo sur ses cartes
+// clients, seulement au ramassage et sur la fiche (retour de Cobey du
+// 07/10 : « vraiment pareil » que la Collecte).
 function _actionsClient(id){
   var c=(franceData.clients||{})[id]||{};
   return _lienAppel(c)
-       + _rangee(_boutonNotes(id, _ACT_BLEU) + _boutonPhotos(id, _ACT_VIOLET));
+       + _rangee(_boutonNotes(id, _ACT_BLEU));
 }
 
 function _chipD(lib,on,action,col){
@@ -4427,7 +4436,7 @@ function _renderDetailTournee(){
      +'<div style="font-size:12px;color:var(--text3);margin-top:3px;line-height:1.45;">'+(c.adresse||'')+'<br>'+(c.cp||'')+' '+(c.ville||'')+'</div>'
      +'<div style="font-size:11.5px;color:#555;margin-top:4px;">📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')+'</div>'
      +(ou?('<div style="font-size:11.5px;color:#006b2d;margin-top:3px;">📍 Déposé à Mitry-Mory</div>'):'')
-     + _rangee(_boutonNotes(id, _ACT_BLEU) + _boutonPhotos(id, _ACT_VIOLET))
+     + _rangee(_boutonNotes(id, _ACT_BLEU))
      +'</div>';
   });
   if(!(to.clients||[]).length) h+=_frVide('Aucun client sur cette tournée.');
@@ -4789,12 +4798,24 @@ function changerStatutCollecteFr(nouveau){
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
 }
 
+// v3.95.5 : fenêtre habillée (modal-del-collecte-fr), comme
+// modal-del-collecte côté Collecte, à la place du confirm() natif.
+var _frCollecteASupprimer=null;
 function supprimerCollecteFrance(id){
   var r=_frCollectes()[id]; if(!r) return;
+  _frCollecteASupprimer=id;
   var t=_frTotauxCollecte(r);
-  if(!confirm('Supprimer la collecte du '+r.dateLib+' ?'
-      +(t.clients?('\n\n'+t.clients+' client(s) repartiront en attente.'):'')
-      +'\n\nCette action est définitive.')) return;
+  var el=document.getElementById('del-collecte-fr-sub');
+  if(el) el.textContent='Supprimer la collecte du '+r.dateLib+' ?'
+    +(t.clients?(' '+t.clients+' client(s) repartiront en attente.'):'')
+    +' Irréversible.';
+  openModal('modal-del-collecte-fr');
+}
+function confirmerSupprimerCollecteFrance(){
+  var id=_frCollecteASupprimer; if(!id) return;
+  _frCollecteASupprimer=null;
+  closeModal('modal-del-collecte-fr');
+  var r=_frCollectes()[id]; if(!r) return;
   var maj={};
   _frClientsDeCollecte(r).forEach(function(cid){
     maj['clients/'+cid+'/statut']='attente';
@@ -5470,6 +5491,9 @@ function _frConfirmRename(k){
 }
 
 // ── Valider le dispatch ──
+// v3.95.5 : fenêtres habillées (modal-dispatch-invalid-fr/-confirm-fr),
+// comme modal-dispatch-invalid/-confirm côté Collecte, à la place de
+// alert()/confirm() natifs.
 function validerDispatchFrance(){
   var r=_frCollecteActive(); if(!r) return;
   var ids=_frClientsDeCollecte(r), asgn=r.assigned||{}, trks=r.trucks||{};
@@ -5486,10 +5510,17 @@ function validerDispatchFrance(){
     var msg='';
     if(sansCamion.length) msg+='Sans camion :\n• '+sansCamion.join('\n• ');
     if(sansHeure.length){ if(msg) msg+='\n\n'; msg+='Sans heure :\n• '+sansHeure.join('\n• '); }
-    alert('Dispatch incomplet\n\n'+msg);
+    var elErr=document.getElementById('dispatch-errors-fr'); if(elErr) elErr.textContent=msg;
+    openModal('modal-dispatch-invalid-fr');
     return;
   }
-  if(!confirm('Valider le dispatch de la collecte du '+r.dateLib+' ?\n\n'+ids.length+' client(s) répartis dans '+Object.keys(trks).length+' camion(s).')) return;
+  var elSub=document.getElementById('dispatch-confirm-fr-sub');
+  if(elSub) elSub.textContent=ids.length+' client(s) répartis dans '+Object.keys(trks).length+' camion(s).';
+  openModal('modal-dispatch-confirm-fr');
+}
+function confirmerValiderDispatchFrance(){
+  var r=_frCollecteActive(); if(!r) return;
+  closeModal('modal-dispatch-confirm-fr');
   var maj={}; maj['collectes/'+r._id+'/dispatchValide']=true;
   _frUpdate(maj).then(function(){
     showToastNew('✅ Dispatch validé');
@@ -5498,9 +5529,10 @@ function validerDispatchFrance(){
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
 }
 
+// v3.95.5 : plus de confirm() ici — annulerValidationDispatch côté
+// Collecte agit directement, sans confirmation, même chose ici.
 function annulerValidationDispatchFrance(){
   var r=_frCollecteActive(); if(!r) return;
-  if(!confirm('Annuler la validation du dispatch ?')) return;
   var maj={}; maj['collectes/'+r._id+'/dispatchValide']=false;
   _frUpdate(maj).then(function(){
     showToastNew('↩️ Validation annulée');

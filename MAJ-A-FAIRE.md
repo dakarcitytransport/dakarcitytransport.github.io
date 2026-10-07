@@ -1460,6 +1460,32 @@ qu'avant : une fois la collecte créée, on enchaîne directement sur le
 choix des clients à y mettre (le vivier existe déjà, contrairement à la
 Collecte où les clients sont inscrits après coup).
 
+### ~~Confirmations France & Europe : popups natifs au lieu des fenêtres habillées~~
+**Fait le 07/10 (v3.95.5).** Suite de la même revue. Pour supprimer une
+collecte ou valider un dispatch, la Collecte utilise ses fenêtres
+habillées (`modal-del-collecte`, `modal-dispatch-invalid`/`-confirm`) —
+France & Europe utilisait à la place les popups basiques du navigateur
+(`confirm()`/`alert()`) aux mêmes endroits. France & Europe a maintenant
+ses propres fenêtres, construites sur le même gabarit
+(`modal-del-collecte-fr`, `modal-dispatch-invalid-fr`/`-confirm-fr`) :
+même emoji, même titre, mêmes boutons. « Annuler la validation du
+dispatch » n'a plus de confirmation du tout, comme côté Collecte
+(`annulerValidationDispatch` n'en a jamais eu). Les écrans natifs de la
+Collecte n'ont pas été touchés.
+
+### ~~Bouton "📷 Photos" en trop sur les cartes clients France & Europe~~
+**Fait le 07/10 (v3.95.5).** Cobey : « la gestion de photo doit être la
+même, possibilité de mettre des photos au même moment que dans le
+parcours collecte, à l'inscription, à la ramasse, avec les chauffeurs
+externe, vraiment pareil. » Vérifié : les 3 moments où une photo se
+prend (ramassage, fiche du client, chauffeur externe) sont déjà
+identiques des deux côtés. Mais France & Europe avait un 4ᵉ moyen que la
+Collecte n'a pas du tout : un bouton « 📷 Photos » directement sur les
+cartes clients des listes (vivier, récapitulatif de tournée), utilisable
+à tout moment. Confirmé par Cobey : retiré de ces deux listes pour que
+ce soit « vraiment pareil » — il ne reste que les 3 moments communs aux
+deux parcours.
+
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
 prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il
