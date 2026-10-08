@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.34';
+var DEP_VERSION = 'v2.20.35';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9049,7 +9049,23 @@ function _depScanBoucle(){
           // le QR code, on est obligé d'aller rechercher [...] c'est plus
           // long [...] en scannant le colis, on tombe sur sa fiche et on
           // puisse modifier les informations [ou ajouter des photos]. »
-          if(dl.france) ouvrirFicheFrance(dl.clientId);
+          if(dl.france){
+            // v2.20.35 — Cobey, le 09/10/2026, après test : « quand j'appuie
+            // en retour, je me retrouve dans la case France-Europe [...] il
+            // faudrait plutôt [...] la case départ, comme ça je peux
+            // retrouver le client facilement. Et ainsi modifier également
+            // la facture, parce que là je ne peux pas modifier la facture. »
+            // ouvrirFicheFrance() lit _depFicheFranceRetour (voir
+            // depOuvrirFicheFranceDepuisDepart) pour savoir où renvoyer le
+            // bouton "Retour" — jamais posé ici jusqu'à présent, d'où le
+            // repli par défaut vers s-france. Même repère que pour un
+            // client Dépôt direct juste en dessous (cible.departId) : si le
+            // colis est déjà placé dans un départ (ou le Dépôt), "Retour"
+            // y ramène directement — le bouton "🥡 Facture" de ce départ y
+            // est accessible, contrairement à cette fiche.
+            _depFicheFranceRetour = cible.departId ? { type: 'depart', id: cible.departId } : null;
+            ouvrirFicheFrance(dl.clientId);
+          }
           else if(dl.depot) depOuvrirFicheDepot(cible.departId || '', dl.clientId);
           else depOuvrirFicheClient(dl.collecteId, dl.clientId);
           return;

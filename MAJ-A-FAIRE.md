@@ -1632,6 +1632,26 @@ du partenaire, avec son propre scanner et son propre décodage du même
 format de jeton) n'a pas été touchée, comme demandé : c'est un fichier
 entièrement séparé, pas affecté par ce changement.
 
+**Suite, le 09/10 (v2.20.35), après test sur un client France & Europe.**
+Cobey : « je tombe bien sur sa modification de fiche. Par contre, quand
+j'appuie en retour, je me retrouve dans la case France-Europe. Il
+faudrait plutôt que je me retrouve [...] dans la case départ, comme ça
+je peux retrouver le client facilement. Et ainsi modifier également la
+facture parce que là en fait je peux pas modifier la facture. »
+
+La fiche partagée (`ouvrirFicheFrance`) lit `_depFicheFranceRetour` pour
+savoir où renvoyer le bouton « Retour » — jamais posé par le scanner
+avant ce correctif, d'où le repli par défaut vers le hub France &
+Europe (`s-france`), qui n'a pas de bouton « Facture ». Le scanner pose
+désormais `_depFicheFranceRetour` vers le départ (ou le Dépôt) où le
+colis est déjà placé, exactement comme un clic normal depuis l'écran
+Départ (`depOuvrirFicheFranceDepuisDepart`) — « Retour » y ramène donc
+directement, où le bouton « 🥡 Facture » de chaque client est
+accessible. Un client encore « en attente » (jamais placé dans un
+départ) retombe sur le hub France & Europe comme avant, faute de départ
+à montrer. Le même scan pour un client Collecte/Dépôt direct n'était
+pas concerné : `depOuvrirFicheDepot` ramenait déjà au bon départ.
+
 ### ~~Photos : accès à la pellicule réservé à l'admin~~
 **Fait le 09/10 (v2.20.34 / v3.95.8).** Cobey : « uniquement pour moi,
 admin, il faut que tu me laisses la possibilité de pouvoir mettre des
