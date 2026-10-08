@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.36';
+var DEP_VERSION = 'v2.20.37';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -454,7 +454,7 @@ var DEP_VERSION = 'v2.20.36';
           appId: "1:910296510414:web:de6b814b3420adcd68859f"
         });
         // v1.22.1 : il n'y a plus de société partenaire à interroger ici,
-        // mais Firebase doit rester initialisé tôt (voir _depConnexionAnonyme).
+        // mais Firebase doit rester initialisé tôt (voir _depConnexionStaff).
         // v1.22.2 : surtout, on ne lève plus le voile d'ici — c'est le rendu
         // du module qui s'en charge, sinon l'ancien écran apparaît avant lui.
 
@@ -506,7 +506,7 @@ var DEP_VERSION = 'v2.20.36';
 
 // v1.20.4 : précharge le SDK Firebase Auth dès le chargement de ce fichier,
 // en parallèle du reste — pour que la connexion anonyme (voir
-// _depConnexionAnonyme, section T des greffes plus bas) soit prête le plus
+// _depConnexionStaff, section T des greffes plus bas) soit prête le plus
 // tôt possible une fois Firebase initialisé, sans ajouter de délai de
 // chargement de script au moment crucial. index.html ne charge que
 // firebase-app-compat.js et firebase-database-compat.js (fichier natif,
@@ -16958,21 +16958,24 @@ function greffer(){
     window.renderFrance._depPatch = true;
   }
 
-  /* --- T (v1.20.4). Connexion anonyme Firebase — protège la base contre
-     les accès directs depuis l'extérieur de l'appli (robots/scanners qui
-     trouvent l'adresse de la base sans jamais l'ouvrir), une fois les
-     règles resserrées côté Firebase (alerte "Realtime Database ... règles
-     non sécurisées", retour de Cobey du 31/08/2026). Un badge invisible et
-     automatique — ne remplace PAS les codes PIN (toujours nécessaires pour
-     utiliser l'appli), juste une preuve qu'on est bien passé par elle. Le
-     SDK firebase-auth-compat.js est préchargé plus haut dans ce fichier
-     (voir _depPrechargerFirebaseAuth), en parallèle du reste, pour être
-     prêt le plus tôt possible ici. --- */
+  /* --- T (v1.20.4, puis v2.20.37). Connexion Firebase de l'appli —
+     protège la base contre les accès directs depuis l'extérieur de
+     l'appli (robots/scanners qui trouvent l'adresse de la base sans
+     jamais l'ouvrir), une fois les règles resserrées côté Firebase
+     (alerte "Realtime Database ... règles non sécurisées", retour de
+     Cobey du 31/08/2026, puis à nouveau du 09/10/2026 — la connexion
+     ANONYME d'origine ne suffisait pas, voir _depConnexionStaff).
+     Automatique, invisible pour le collaborateur — ne remplace PAS les
+     codes PIN (toujours nécessaires pour utiliser l'appli), c'est juste
+     ce qui prouve aux règles Firebase qu'on est bien passé par l'appli.
+     Le SDK firebase-auth-compat.js est préchargé plus haut dans ce
+     fichier (voir _depPrechargerFirebaseAuth), en parallèle du reste,
+     pour être prêt le plus tôt possible ici. --- */
   if(typeof window.initFirebase === 'function' && !window.initFirebase._depPatch){
     var origInitFirebase = window.initFirebase;
     window.initFirebase = function(){
       origInitFirebase.apply(this, arguments);
-      try{ _depConnexionAnonyme(); }catch(e){ console.error('departs: connexion anonyme', e); }
+      try{ _depConnexionStaff(); }catch(e){ console.error('departs: connexion staff', e); }
     };
     window.initFirebase._depPatch = true;
   }
@@ -17296,12 +17299,33 @@ function greffer(){
   }
 }
 
-function _depConnexionAnonyme(){
+// v2.20.37 — Cobey, le 09/10/2026 : l'alerte Firebase ("règles non
+// sécurisées") revenait malgré le resserrement du 26/09, parce qu'une
+// connexion ANONYME ne prouve rien — n'importe qui connaissant la clé
+// publique Firebase (visible dans le code, ça fait partie du
+// fonctionnement normal) peut s'authentifier anonymement lui-même,
+// sans jamais ouvrir l'application. Remplacée ici par une vraie
+// connexion (compte "service" dédié, email/mot de passe), qui permet
+// aux règles de distinguer l'appli (auth.provider == 'password') des
+// pages publiques restées en connexion anonyme (facture.html,
+// chauffeur.html, mamadou.html — inchangées, chacune a sa propre copie
+// de ce mécanisme). Ne remplace toujours PAS les codes PIN des
+// collaborateurs (aucun rapport) — un seul compte sert pour toute
+// l'appli, comme avant pour la connexion anonyme.
+// ⚠️ Avant de resserrer les règles Firebase, ce compte DOIT déjà
+// exister dans la console (Authentication → Users → Add user), avec
+// exactement cet email et ce mot de passe — sinon l'appli entière
+// perd l'accès à la base dès que les règles changent.
+var DEP_STAFF_EMAIL = 'staff@dakarcitytransport.app';
+var DEP_STAFF_PASSWORD = 's46AU54ODQWmLfKEOEg3edm5';
+
+function _depConnexionStaff(){
   var tentatives = 0;
   var essayer = function(){
     tentatives++;
     if(typeof firebase !== 'undefined' && firebase.auth){
-      firebase.auth().signInAnonymously().catch(function(e){ console.error('departs: signInAnonymously', e); });
+      firebase.auth().signInWithEmailAndPassword(DEP_STAFF_EMAIL, DEP_STAFF_PASSWORD)
+        .catch(function(e){ console.error('departs: connexion staff', e); });
     } else if(tentatives < 30){
       // Le SDK firebase-auth-compat.js (préchargé) n'a pas encore fini de
       // charger — on réessaie brièvement plutôt que d'abandonner.
