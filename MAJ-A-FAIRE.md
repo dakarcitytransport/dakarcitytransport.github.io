@@ -1587,6 +1587,51 @@ cette garde ne s'applique plus qu'à une vraie nouvelle inscription ; en
 modification, le pays déjà enregistré est conservé tel quel (jamais
 écrasé par du vide) même s'il n'est pas re-choisi.
 
+**Fait le 09/10 (v2.20.32) — toujours absent sur la facture PUBLIQUE.**
+Cobey, capture à l'appui, sur la facture ouverte depuis le lien/QR
+public (`facture.html`, pas l'écran interne de l'appli) : « ça marche
+toujours pas [...] j'ai bien 15 euros qui reste à facturer, mais je
+n'ai pas de ligne qui stipule le frais de ramassage pour France Europe. »
+
+`facture.html` est une page à part, **sans dépendance à departs.js** —
+elle duplique volontairement `depRenderFacturePublique()` et
+`depCalculerPaiement()` (le fichier le dit lui-même : « tout futur
+changement visuel de la facture doit être répercuté aux DEUX
+endroits »). Le premier correctif n'avait touché que departs.js (l'écran
+interne) ; cette page-ci, elle, continuait d'ignorer `prixRamassage`
+dans son propre calcul ET son propre affichage, d'où l'écart entre le
+« Reste à payer » (parfois juste) et un « TOTAL »/« Sous-total colis »
+resté bloqué sur le seul colis — 0 € sur la capture de Cobey, alors que
+15 € étaient dus. Même correctif appliqué aux deux endroits cette fois :
+`depCalculerPaiement` (dans `facture.html`) inclut désormais
+`prixRamassage`, et `depRenderFacturePublique` (dans `departs.js` ET
+`facture.html`) ajoute la ligne « Frais de ramassage » au tableau et au
+total — jamais à part comme la livraison, puisque payés par le même
+client au même moment que le colis.
+
+### ~~Scanner un QR code de colis ouvrait la facture, pas la fiche~~
+**Fait le 09/10 (v2.20.32).** Cobey : « on avait fait un QR code pour
+Mamadou Niass, pour qu'il puisse scanner et faire de la facturation
+[...] on laisse le QR code de Mamadou Niass comme tel, on ne le touche
+pas. Mais le QR code dans la partie des CT, en scannant aujourd'hui, on
+ne tombe que sur la facture. Il faudrait plutôt qu'on puisse atterrir
+sur la modification du client pour ajouter des photos ou modifier les
+informations [...] pour retrouver un client alors qu'on a le colis
+devant nous avec le QR code, on est obligé d'aller rechercher [...]
+c'est plus long. »
+
+Le scanner interne de l'appli (icône « QR CODE » de l'accueil →
+`depOuvrirScanQR`, écran `s-dep-scan`, caméra + décodage `jsQR`) décode
+le même jeton opaque que l'étiquette imprime (`DCTQR1:...`, voir
+`_depTokenQR`/`_depDecoderTokenQR`) mais ouvrait ensuite
+`depOuvrirFacture`/`depOuvrirFactureFrance`. Ouvre désormais la FICHE du
+client (`depOuvrirFicheClient`/`depOuvrirFicheDepot`/`ouvrirFicheFrance`
+selon la source) — avec « Modifier la fiche » et « Ajouter une photo »
+directement accessibles — exactement ce qui était recherché. `mamadou.html` (la page dédiée
+du partenaire, avec son propre scanner et son propre décodage du même
+format de jeton) n'a pas été touchée, comme demandé : c'est un fichier
+entièrement séparé, pas affecté par ce changement.
+
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
 prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il

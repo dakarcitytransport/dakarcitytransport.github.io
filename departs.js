@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.31';
+var DEP_VERSION = 'v2.20.32';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9014,7 +9014,7 @@ window.depOuvrirScanQR = function(){
       if(!video){ stream.getTracks().forEach(function(t){ t.stop(); }); return; }
       video.srcObject = stream;
       video.play().catch(function(){});
-      if(msg) msg.textContent = 'Visez le QR code de la facture';
+      if(msg) msg.textContent = 'Visez le QR code du colis';
       _depScanEnCours = true;
       _depScanBoucle();
     }).catch(function(e){
@@ -9041,9 +9041,17 @@ function _depScanBoucle(){
           _depArreterCamera();
           _depScanEnCours = false;
           var cible = _depClientFacture(dl);
-          if(!cible){ toast('⚠️ Facture introuvable pour ce QR.'); goTo('s-espaces'); return; }
-          if(dl.france) depOuvrirFactureFrance(dl.clientId);
-          else depOuvrirFacture(dl.collecteId, dl.clientId, dl.depot, false, true);
+          if(!cible){ toast('⚠️ Client introuvable pour ce QR.'); goTo('s-espaces'); return; }
+          // v2.20.32 : ce scanner interne (côté CT — le QR de Mamadou
+          // Niass, sur sa propre page mamadou.html, n'est pas concerné)
+          // ouvrait la facture — retour de Cobey du 09/10/2026 : « pour
+          // retrouver un client alors qu'on a le colis devant nous avec
+          // le QR code, on est obligé d'aller rechercher [...] c'est plus
+          // long [...] en scannant le colis, on tombe sur sa fiche et on
+          // puisse modifier les informations [ou ajouter des photos]. »
+          if(dl.france) ouvrirFicheFrance(dl.clientId);
+          else if(dl.depot) depOuvrirFicheDepot(cible.departId || '', dl.clientId);
+          else depOuvrirFicheClient(dl.collecteId, dl.clientId);
           return;
         }
       }
@@ -9332,7 +9340,16 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
   var st = prixIndefiniPub ? { bg:'#FFF3CD', color:'#856404', label:'Prix à définir sur place' } : (STATUTS_PAIEMENT[payCombinePub.statut] || {});
   var nom = c.name || ((c.prenom||'') + ' ' + (c.nom||'')).trim() || 'Client';
   var totalColis = _depTotalColis(c);
-  var totalColisTxt = prixIndefiniPub ? 'à définir' : (totalColis + ' €');
+  // v2.20.32 : frais de ramassage France & Europe — ajoutés au total
+  // affiché, jamais à part comme la livraison (payés par le même client,
+  // au même moment que le colis). Sans ça, le total affiché restait
+  // celui du seul colis alors que "Reste à payer" (depCalculerPaiement,
+  // déjà corrigé) les comptait déjà — retour de Cobey du 09/10/2026,
+  // capture à l'appui : "15 € qui reste à facturer, mais je n'ai pas de
+  // ligne qui stipule le frais de ramassage".
+  var totalRamassagePub = (ctx && ctx.france) ? (parseFloat(c.prixRamassage) || 0) : 0;
+  var totalColisEtRamassage = totalColis + totalRamassagePub;
+  var totalColisTxt = prixIndefiniPub ? 'à définir' : (totalColisEtRamassage + ' €');
   // Une ligne de tableau par article, numerotees a la suite.
   function _depLignesFacture(cl, indefini){
     var lg = _depLignesColis(cl);
@@ -9351,7 +9368,7 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     }).join('');
   }
   var totalLivraison = c.livraisonDakar ? (parseFloat(c.prixLivraison) || 0) : 0;
-  var totalGeneral = totalColis + totalLivraison;
+  var totalGeneral = totalColisEtRamassage + totalLivraison;
   var totalGeneralTxt = prixIndefiniPub ? 'à définir' : (totalGeneral + ' €');
   var numero = depNumeroFacture(c, ctx);
   // v1.19.21 : réf. client, permanente pour cette personne (voir
@@ -9420,7 +9437,8 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     +       '<thead><tr><th>N&deg;</th><th>Description</th><th>Qt&eacute;</th><th>Unit&eacute;</th><th>Prix unitaire</th><th>Montant</th></tr></thead>'
     +       '<tbody>'
     +         _depLignesFacture(c, prixIndefiniPub)
-    +         (c.livraisonDakar ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Livraison'+((c.livraisonVille||c.livraisonVilleAutre||c.livraisonAdresse) ? (' &mdash; '+_depLivraisonLibelle(c)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
+    +         (totalRamassagePub > 0 ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Frais de ramassage</td><td>1</td><td>service</td><td>'+totalRamassagePub+' &euro;</td><td>'+totalRamassagePub+' &euro;</td></tr>') : '')
+    +         (c.livraisonDakar ? ('<tr><td>'+(_depLignesColis(c).length+1+(totalRamassagePub>0?1:0))+'</td><td>Livraison'+((c.livraisonVille||c.livraisonVilleAutre||c.livraisonAdresse) ? (' &mdash; '+_depLivraisonLibelle(c)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
     +       '</tbody>'
     +     '</table></div>'
 
@@ -9430,9 +9448,11 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     // est encaissée à part par Issyaka, dans une caisse différente, et
     // n'est donc plus mélangée dans ce total-là (retour de Cobey du
     // 21/08/2026). Elle reste visible, mais en plus petit, en dessous.
-    +       '<div class="fac-lettres">Arr&ecirc;t&eacute;e la pr&eacute;sente facture &agrave; la somme de&nbsp;: '+(prixIndefiniPub ? 'prix &agrave; d&eacute;finir sur place' : esc(_depSommeEnLettres(totalColis)))+'.</div>'
+    // v2.20.32 : les frais de ramassage France & Europe, eux, rejoignent
+    // bien ce total (voir plus haut, totalColisEtRamassage).
+    +       '<div class="fac-lettres">Arr&ecirc;t&eacute;e la pr&eacute;sente facture &agrave; la somme de&nbsp;: '+(prixIndefiniPub ? 'prix &agrave; d&eacute;finir sur place' : esc(_depSommeEnLettres(totalColisEtRamassage)))+'.</div>'
     +       '<div class="fac-totaux">'
-    +         '<div class="fac-totaux-ligne"><span>Sous-total colis</span><span>'+esc(totalColisTxt)+'</span></div>'
+    +         '<div class="fac-totaux-ligne"><span>'+(totalRamassagePub>0?'Sous-total colis + ramassage':'Sous-total colis')+'</span><span>'+esc(totalColisTxt)+'</span></div>'
     +         '<div class="fac-totaux-ligne"><span>TVA</span><span>0 &euro;</span></div>'
     +         '<div class="fac-totaux-ligne fac-totaux-total"><span>TOTAL</span><span>'+esc(totalColisTxt)+'</span></div>'
     +         '<div class="fac-totaux-ligne"><span>Montant pay&eacute;</span><span style="'+(pay.paye > 0 ? 'color:#006b2d;font-weight:700;' : '')+'">'+pay.paye+' &euro;</span></div>'
