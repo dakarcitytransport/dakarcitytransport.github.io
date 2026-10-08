@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.35';
+var DEP_VERSION = 'v2.20.36';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3869,6 +3869,14 @@ function injecterEcrans(){
   +       '<input class="fi" id="devis-f-montant" type="number" min="0" placeholder="0"></div>'
   +     '<div id="devis-montant-note" style="display:none;font-size:11.5px;color:var(--text3);margin:-10px 0 14px;line-height:1.5;">'
   +       '&#8505;&#65039; Montant calcul&eacute; sur le d&eacute;tail des colis. Pour le changer, modifiez le prix de l\'article concern&eacute; ci-dessus.</div>'
+  // v2.20.36 — Cobey, le 09/10/2026 : « il y a des clients où on peut
+  // faire des devis qui habitent [en France]. Pour ceux qui habitent en
+  // Île-de-France, on mettra 0. Pour ceux qui habitent hors Île-de-France,
+  // on pourra mettre un prix. » Même champ que fa-ramassage (inscription
+  // France & Europe) — suit le devis s'il est validé vers ce parcours
+  // (voir depDevisValiderVers), ignoré sinon (Collecte/Dépôt direct).
+  +     '<div class="fg"><label class="fl">Frais de ramassage (&euro;) <span style="color:#aaa;font-weight:500;">&middot; gratuit en &Icirc;le-de-France, payant ailleurs</span></label>'
+  +       '<input class="fi" id="devis-f-ramassage" type="number" min="0" placeholder="0"></div>'
 
   +     '<div class="dep-sec">Livraison</div>'
   +     '<div class="fg"><label class="fl">Le colis doit-il &ecirc;tre livr&eacute; ?</label>'
@@ -19490,6 +19498,9 @@ window.depRenderListeDevis = function(){
       +     '<div class="dep-badge" style="background:#E0F2F1;color:#00695C;border-radius:10px;white-space:normal;text-align:right;line-height:1.3;padding:5px 9px;">'
       +       '<div>'+(parseFloat(d.montant)||0)+' &euro;</div>'
       +       (d.livraison ? ('<div style="font-size:9.5px;font-weight:700;color:#00838F;margin-top:2px;">+ '+(parseFloat(d.livraisonPrix)||0)+' &euro; livraison</div>') : '')
+      // v2.20.36 : frais de ramassage (voir devis-f-ramassage) — même
+      // badge que la livraison juste au-dessus, jamais mélangé au montant.
+      +       ((parseFloat(d.prixRamassage)||0) > 0 ? ('<div style="font-size:9.5px;font-weight:700;color:#00838F;margin-top:2px;">+ '+(parseFloat(d.prixRamassage)||0)+' &euro; ramassage</div>') : '')
       +     '</div></div>'
       +   '<div class="dep-meta"><span>'+_depLienTel(d.tel, d.tel||'—')+'</span><span>'+pays.nom+'</span></div>'
       +   '<div class="dep-meta" style="margin-top:4px;color:#999;"><span>Par '+esc(d.creeParNom||'—')+'</span><span>Le '+dateHeureFr(d.creeLe)+'</span></div>'
@@ -19559,7 +19570,7 @@ window.depDevisNouveau = function(){
   window._depDevisEditId = null;
   window._depDevisPaysChoisi = null;
   window._depDevisCivilite = '';
-  ['devis-f-prenom','devis-f-nom','devis-f-tel','devis-f-adresse','devis-f-liv-adresse','devis-f-liv-prix','devis-f-montant'].forEach(function(id){
+  ['devis-f-prenom','devis-f-nom','devis-f-tel','devis-f-adresse','devis-f-liv-adresse','devis-f-liv-prix','devis-f-montant','devis-f-ramassage'].forEach(function(id){
     var e = $(id); if(e) e.value = '';
   });
   try{ window.depEditerLignes('devis-lignes', [], _depDevisLignesMaj); }catch(eLg){}
@@ -19584,6 +19595,7 @@ window.depDevisModifier = function(id){
   var ft = $('devis-f-tel'); if(ft) ft.value = d.tel || '';
   var fad = $('devis-f-adresse'); if(fad) fad.value = d.adresse || '';
   var fm = $('devis-f-montant'); if(fm) fm.value = (d.montant != null ? d.montant : '');
+  var fram = $('devis-f-ramassage'); if(fram) fram.value = (d.prixRamassage ? String(d.prixRamassage) : '');
   // v1.94.34 : _depLignesColis lit `c.prix` — le devis, lui, porte son
   // montant dans `montant` (pas de livraison mélangée dedans, comme
   // partout ailleurs). Sans ce pont, un devis ancien (texte libre sans
@@ -19667,7 +19679,9 @@ window.depDevisEnregistrer = function(){
     livraison: liv,
     livraisonAdresse: liv ? (($('devis-f-liv-adresse')||{}).value || '').trim() : '',
     livraisonPrix: liv ? (parseFloat(($('devis-f-liv-prix')||{}).value) || 0) : 0,
-    montant: montant
+    montant: montant,
+    // v2.20.36 : frais de ramassage (voir devis-f-ramassage ci-dessus).
+    prixRamassage: parseInt(($('devis-f-ramassage')||{}).value || '0', 10) || 0
   };
   if(lignesDevis.length) obj.colisDetail = lignesDevis;
   else if(existantAvant.colisDetail) obj.colisDetail = null;
@@ -19723,6 +19737,10 @@ function depRenderDevisDoc(d){
   var pays = DEP_PAYS_DEST[d.pays] || DEP_PAYS_DEST[DEP_PAYS_DEFAUT];
   var totalLivraison = d.livraison ? (parseFloat(d.livraisonPrix) || 0) : 0;
   var montantTransport = parseFloat(d.montant) || 0;
+  // v2.20.36 : frais de ramassage (voir devis-f-ramassage) — même logique
+  // que la livraison juste au-dessus : jamais mélangé au montant colis
+  // lui-même, ajouté à part dans le total affiché au client.
+  var totalRamassage = parseFloat(d.prixRamassage) || 0;
   var nomAffiche = _composeNom(d.civilite, d.prenom, d.nom) || '—';
 
   // v1.94.34 : détail ligne par ligne, même tableau que la facture (voir
@@ -19804,11 +19822,12 @@ function depRenderDevisDoc(d){
     +     '<div class="fac-bas">'
     +       '<div class="fac-lettres">Devis &agrave; titre indicatif, sans engagement &mdash; valable 15 jours.</div>'
     +       '<div class="fac-totaux">'
-    +         (d.livraison
-                ? (  '<div class="fac-totaux-ligne fac-totaux-total"><span>TOTAL &Agrave; PAYER</span><span>'+(montantTransport+totalLivraison)+' &euro;</span></div>'
+    +         ((d.livraison || totalRamassage > 0)
+                ? (  '<div class="fac-totaux-ligne fac-totaux-total"><span>TOTAL &Agrave; PAYER</span><span>'+(montantTransport+totalLivraison+totalRamassage)+' &euro;</span></div>'
                    + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">'
                    + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Montant colis / transport</span><span>'+montantTransport+' &euro;</span></div>'
-                   + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison'+((d.livraisonVille||d.livraisonVilleAutre||d.livraisonAdresse) ? (' — '+_depLivraisonLibelle(d)) : '')+'</span><span>'+totalLivraison+' &euro;</span></div>'
+                   + (d.livraison ? ('<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison'+((d.livraisonVille||d.livraisonVilleAutre||d.livraisonAdresse) ? (' — '+_depLivraisonLibelle(d)) : '')+'</span><span>'+totalLivraison+' &euro;</span></div>') : '')
+                   + (totalRamassage > 0 ? ('<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Frais de ramassage</span><span>'+totalRamassage+' &euro;</span></div>') : '')
                    + '</div>')
                 : ('<div class="fac-totaux-ligne fac-totaux-total"><span>MONTANT</span><span>'+montantTransport+' &euro;</span></div>')
               )
@@ -19953,6 +19972,10 @@ window.depDevisValiderVers = function(parcours, collecteId){
     var fadr = $('fa-adresse'); if(fadr) fadr.value = snap.adresse || '';
     var fcolis = $('fa-colis'); if(fcolis) fcolis.value = snap.colis || '';
     var fprix = $('fa-prix'); if(fprix) fprix.value = snap.montant || '';
+    // v2.20.36 : frais de ramassage saisis sur le devis (voir
+    // devis-f-ramassage) — suit vers France & Europe, seul parcours où
+    // ce champ existe (fa-ramassage).
+    var fram2 = $('fa-ramassage'); if(fram2) fram2.value = snap.prixRamassage ? String(snap.prixRamassage) : '';
     // v1.94.34 : le détail ligne par ligne du devis suit vers France &
     // Europe — sinon il se perdrait à la transformation (ouvrirAjoutFrance
     // vient de remettre l'éditeur à vide, on le recharge par-dessus).

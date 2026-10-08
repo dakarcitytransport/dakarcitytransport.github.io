@@ -1567,6 +1567,24 @@ comme demandé :
 exclus de France & Europe à l'inscription (`zoneDepuisCP`, « à créer dans
 une collecte Paris ») — c'est déjà là que le ramassage est gratuit.
 
+**Suite, le 09/10 (v2.20.36) — même champ, pour les devis.** Cobey :
+« il faudrait rajouter la case frais de ramassage pour les devis. Car il
+y a des clients où on peut faire des devis qui habitent [en France].
+Pour ceux qui habitent en Île-de-France, on mettra 0. Et pour ceux qui
+habitent hors Île-de-France, on pourra mettre un prix. »
+
+Un devis n'a pas encore de parcours fixé (Collecte, Dépôt direct ou
+France & Europe — ce choix ne se fait qu'à la validation, voir
+`depDevisValiderVers`) : le nouveau champ « Frais de ramassage (€) »
+(`devis-f-ramassage`) est donc toujours disponible sur le formulaire du
+devis, stocké à part (`prixRamassage`, jamais mélangé au montant colis)
+comme pour une fiche France & Europe. Affiché sur le document du devis
+(ligne dédiée + inclus dans le « TOTAL À PAYER », même principe que la
+livraison) et sur sa carte dans la liste (« + 25 € ramassage »). S'il est
+rempli puis que le devis est validé vers **France & Europe**, le montant
+suit automatiquement dans `fa-ramassage` ; ignoré sans dégât si validé
+vers Collecte ou Dépôt direct (ces parcours n'ont pas ce champ).
+
 **Fait le 09/10 (v2.20.31) — la ligne n'apparaissait pas sur une fiche
 déjà engagée.** Cobey : « je crois que le ramassage France-Europe ne
 s'inscrit pas sur la facture. Je viens de faire un test avec un client
