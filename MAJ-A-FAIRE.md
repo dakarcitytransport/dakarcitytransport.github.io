@@ -2003,6 +2003,25 @@ ouvre la fiche, comme avant.
   Texte uniquement (mention légale) : aucun calcul de frais n'est
   automatisé dans l'application.
 
+  **Article 5 (« Emballage et casse ») ajouté le 09/10 (v2.20.33).**
+  Cobey : « il y a beaucoup de clients qui donnent des colis non
+  emballés, non filmés, non protégés. Donc on veut se décharger de
+  toute responsabilité, car la société de transport, eux, des fois,
+  filment, mais il y a de la casse, parce qu'il y a des objets
+  fragiles. La dernière fois, il y a un [objet] qui s'est cassé, et le
+  client n'a même pas emballé. Donc on veut se décharger de ça. »
+
+  Nouvel article, inséré juste après « Contenu et emballage » (devenu
+  l'article 8 au total) : l'emballage/la protection du colis — en
+  particulier tout objet fragile ou cassable — reste la responsabilité
+  du client avant la prise en charge. Si Dakar City Transport emballe
+  ou filme ponctuellement un colis, c'est un geste commercial sans
+  obligation de résultat, qui ne crée aucune responsabilité
+  supplémentaire. Dakar City Transport décline toute responsabilité en
+  cas de casse ou de détérioration d'un colis remis non emballé, non
+  filmé ou insuffisamment protégé — même si Dakar City Transport est
+  intervenu sur son emballage.
+
   ⚠️ Ce texte n'a pas été relu par un juriste — à faire valider avant
   diffusion à grande échelle, en particulier pour la partie France/UE
   (droit de la consommation, RGPD).
