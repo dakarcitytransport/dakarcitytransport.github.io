@@ -690,7 +690,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <input type="hidden" id="ph-id">
   <div id="ph-liste" style="max-height:42vh;overflow-y:auto;margin-bottom:12px;"></div>
   <input type="file" id="ph-input" accept="image/*" capture="environment" style="display:none;" onchange="_photoChoisie(this)">
-  <button id="ph-btn" onclick="document.getElementById('ph-input').click()" style="width:100%;padding:13px;background:#009A44;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);">&#128247; Prendre une photo</button>
+  <button id="ph-btn" onclick="_ouvrirPhotoInput()" style="width:100%;padding:13px;background:#009A44;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);">&#128247; Prendre une photo</button>
   <button onclick="closeModal('modal-photos')" style="width:100%;padding:11px;margin-top:8px;background:#f0f0f0;color:#555;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">Fermer</button>
 </div>
 </div>
@@ -1714,7 +1714,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.95.7';
+var APP_VERSION = 'v3.95.8';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3107,6 +3107,20 @@ function _compresserPhoto(file, cb){
     r.onerror=function(){ cb(null); };
     r.readAsDataURL(file);
   }catch(e){ cb(null); }
+}
+
+// v3.95.8 — Cobey, le 09/10/2026 : « uniquement pour moi, admin [...] me
+// mettre la possibilité juste à moi de mettre des photos qui viennent de
+// ma pellicule. » Tout le monde garde la prise en temps réel
+// (capture="environment", qui force l'appareil photo) ; pour l'admin
+// seul, on retire cet attribut juste avant d'ouvrir le sélecteur, ce qui
+// laisse le téléphone proposer aussi la pellicule.
+function _ouvrirPhotoInput(){
+  var i = document.getElementById('ph-input');
+  if(!i) return;
+  if(_estAdmin()) i.removeAttribute('capture');
+  else i.setAttribute('capture', 'environment');
+  i.click();
 }
 
 function _photoChoisie(input){

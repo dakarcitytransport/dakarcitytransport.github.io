@@ -1632,6 +1632,28 @@ du partenaire, avec son propre scanner et son propre décodage du même
 format de jeton) n'a pas été touchée, comme demandé : c'est un fichier
 entièrement séparé, pas affecté par ce changement.
 
+### ~~Photos : accès à la pellicule réservé à l'admin~~
+**Fait le 09/10 (v2.20.34 / v3.95.8).** Cobey : « uniquement pour moi,
+admin, il faut que tu me laisses la possibilité de pouvoir mettre des
+photos via ma pellicule. J'ai programmé uniquement la prise de photos
+en temps réel avec l'appareil photo, mais uniquement pour moi, dans
+tous les parcours et dans tous les endroits où on peut prendre des
+photos, me mettre la possibilité juste à moi de mettre des photos qui
+viennent de ma pellicule de mon téléphone. »
+
+Chaque bouton photo utilisait `<input type="file" capture="environment">`,
+qui force le téléphone à ouvrir directement l'appareil photo sans
+proposer la pellicule. Pour l'admin (`currentUser.admin`) seul, cet
+attribut est désormais retiré juste avant d'ouvrir le sélecteur — le
+téléphone propose alors aussi "Choisir depuis la pellicule" ; tout le
+monde garde l'appareil photo imposé, inchangé. Les quatre endroits où
+l'appli principale prend des photos sont concernés : la fiche partagée
+Collecte/Dépôt/France (« Ajouter une photo »), le dépôt direct, l'écran
+Valider, et le bouton rapide « Prendre une photo » des cartes client
+France & Europe. Les pages externes sans notion d'admin pour Cobey
+(`chauffeur.html`, et `mamadou.html` qui garde son propre système
+intact comme demandé le 09/10) ne sont pas concernées.
+
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
 prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.33';
+var DEP_VERSION = 'v2.20.34';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -11830,10 +11830,24 @@ window.depEnregistrerNoteFiche = function(){
 
 var _depFichePhotoPending = null;
 
+// v2.20.34 — Cobey, le 09/10/2026 : « uniquement pour moi, admin [...] me
+// mettre la possibilité juste à moi de mettre des photos qui viennent de
+// ma pellicule. » Tout le monde garde la prise en temps réel
+// (capture="environment", qui force l'appareil photo sans détour) ; pour
+// l'admin, on retire cet attribut juste avant d'ouvrir le sélecteur, ce
+// qui laisse le téléphone proposer aussi la pellicule.
+function _depPreparerInputPhoto(input){
+  if(!input) return;
+  var u = window.currentUser || {};
+  if(u.admin) input.removeAttribute('capture');
+  else input.setAttribute('capture', 'environment');
+}
+
 window.depAjouterPhotoFiche = function(){
   var deja = (window._depPhotosFicheCourantes || []).length;
   if(deja >= PHOTO_MAX){ toast('⚠️ ' + PHOTO_MAX + ' photos maximum.'); return; }
   var i = $('dep-ficheL-photo-input');
+  _depPreparerInputPhoto(i);
   if(i) i.click();
 };
 
@@ -12217,6 +12231,7 @@ window._depAjouterPhoto = function(prefixe){
   var photos = _depPhotosCourantes(prefixe);
   if(photos.length >= PHOTO_MAX){ toast('⚠️ ' + PHOTO_MAX + ' photos maximum.'); return; }
   var i = $(prefixe + '-photo-input');
+  _depPreparerInputPhoto(i);
   if(i) i.click();
 };
 
