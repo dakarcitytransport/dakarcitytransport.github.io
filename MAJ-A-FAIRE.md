@@ -1532,7 +1532,7 @@ Deux causes, les deux réglées :
    pareil ; la suppression retire aussi le client du camion/de la
    collecte où il se trouvait, comme le fait `confirmDelete`.
 
-### Frais de ramassage, pour les clients France & Europe hors Île-de-France
+### ~~Frais de ramassage, pour les clients France & Europe hors Île-de-France~~
 **Fait le 08/10 (v2.20.30 / v3.95.7).** Cobey : « pour les clients
 France-Europe, on voudrait [...] un endroit pour mettre le prix du
 ramassage. Parce qu'en fait, le ramassage en Île-de-France est gratuit,
@@ -1566,6 +1566,26 @@ comme demandé :
 Île-de-France n'entre jamais dans ce calcul : ces codes postaux sont déjà
 exclus de France & Europe à l'inscription (`zoneDepuisCP`, « à créer dans
 une collecte Paris ») — c'est déjà là que le ramassage est gratuit.
+
+**Fait le 09/10 (v2.20.31) — la ligne n'apparaissait pas sur une fiche
+déjà engagée.** Cobey : « je crois que le ramassage France-Europe ne
+s'inscrit pas sur la facture. Je viens de faire un test avec un client
+France-Europe dans le conteneur, dans la case départ. Et en regardant la
+facture, je vois un reste à payer à 10 euros que j'ai mis, mais je ne
+vois pas la ligne [...] qui détaille le ramassage. »
+
+Cause plus large que le seul ramassage : **modifier** une fiche France &
+Europe plus ancienne, jamais passée par le choix du pays de destination
+(`_frClientPaysChoisi`), échouait intégralement et silencieusement —
+pas seulement les frais de ramassage, tout l'enregistrement restait sans
+effet, sans message clair. `modifierClientFrance` dit pourtant lui-même
+dans son propre commentaire « pas de modale forcée en modification,
+juste le badge » — mais la garde posée sur `saveClientFrance` (« le pays
+de destination doit être choisi avant d'enregistrer ») bloquait quand
+même, sans distinguer une inscription d'une modification. Désormais
+cette garde ne s'applique plus qu'à une vraie nouvelle inscription ; en
+modification, le pays déjà enregistré est conservé tel quel (jamais
+écrasé par du vide) même s'il n'est pas re-choisi.
 
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.30';
+var DEP_VERSION = 'v2.20.31';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16613,12 +16613,21 @@ function greffer(){
   if(typeof window.saveClientFrance === 'function' && !window.saveClientFrance._depPatch){
     var origSaveFrance = window.saveClientFrance;
     window.saveClientFrance = function(){
-      if(!window._frClientPaysChoisi){
+      var editId = window._faEditId || null;
+      // v2.20.31 : la modale du pays de destination ne se force qu'à
+      // l'inscription — modifierClientFrance le dit déjà lui-même
+      // ("pas de modale forcée en modification"), mais cette garde
+      // bloquait quand même tout enregistrement dès qu'une fiche plus
+      // ancienne n'avait jamais eu de pays choisi (_frClientPaysChoisi
+      // valait alors null), même pour une simple modification sans
+      // rapport (ex. ajouter des frais de ramassage) — retour de Cobey
+      // du 09/10/2026 : un ajout de frais de ramassage sur une fiche
+      // déjà "partie" ne s'enregistrait pas du tout.
+      if(!editId && !window._frClientPaysChoisi){
         toast('⚠️ Choisissez d\'abord le pays de destination.');
         openModal('modal-fr-pays-client');
         return;
       }
-      var editId = window._faEditId || null;
       var avant = Object.keys((window.franceData||{}).clients || {});
       origSaveFrance.apply(this, arguments);
       try{
@@ -16629,7 +16638,10 @@ function greffer(){
         }
         if(id && window.db && window.firebaseReady){
           var maj = {};
-          maj['clients/'+id+'/paysDestination']  = window._frClientPaysChoisi;
+          // v2.20.31 : en modification sans pays re-choisi, on garde celui
+          // déjà enregistré plutôt que d'écrire null par-dessus.
+          var paysActuel = (((window.franceData||{}).clients||{})[id]||{}).paysDestination || null;
+          maj['clients/'+id+'/paysDestination']  = window._frClientPaysChoisi || paysActuel;
           maj['clients/'+id+'/destinataireNom']   = (($('fa-dest-nom')||{}).value || '').trim();
           maj['clients/'+id+'/destinataireTel']   = (($('fa-dest-tel')||{}).value || '').trim();
           maj['clients/'+id+'/destinataireTel2']  = (($('fa-dest-tel2')||{}).value || '').trim();
