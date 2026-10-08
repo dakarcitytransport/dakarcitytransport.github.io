@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.28';
+var DEP_VERSION = 'v2.20.29';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4583,6 +4583,23 @@ function injecterEcrans(){
     +   '<button class="btn-sm btn-green-sm" onclick="depEnregistrerNoteFiche()">&#9989; Enregistrer</button>'
     + '</div></div>';
   document.body.appendChild(m9);
+
+  /* ---- Modale (v2.20.29) : "Supprimer cette fiche" pour un client
+     France & Europe depuis l'écran de lecture partagé — même fenêtre
+     habillée que modal-delete côté Collecte, voir
+     depOuvrirSuppressionFrance/depConfirmerSuppressionFrance. ---- */
+  var m10 = document.createElement('div');
+  m10.className = 'modal-overlay';
+  m10.id = 'modal-delete-fr';
+  m10.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">&#128465;&#65039;</div>'
+    + '<div class="modal-confirm-title">Supprimer ce client ?</div>'
+    + '<div class="modal-confirm-sub" id="del-fiche-fr-sub"></div>'
+    + '<div class="modal-confirm-btns">'
+    +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-delete-fr\')">Annuler</button>'
+    +   '<button class="btn-sm btn-red-sm" onclick="depConfirmerSuppressionFrance()">&#128465;&#65039; Supprimer</button>'
+    + '</div></div></div>';
+  document.body.appendChild(m10);
 
   /* ---- Modale (v1.19.41) : accès rapide aux photos du colis depuis la
      liste des clients d'un container — remplace le bouton "Suivi", jugé
@@ -11257,9 +11274,63 @@ function depRenderFicheLecture(colId, clientId, depot, france){
           + 'onclick="depOuvrirFusionFacture()">&#128279; Regrouper avec une autre facture</button>';
       }
     }
+    // v2.20.29 : "Supprimer cette fiche" — vivait sur l'ancien écran natif
+    // France (_renderFicheFrance), disparu avec lui quand la fiche est
+    // devenue cet écran partagé (voir ouvrirFicheFrance). Retour de Cobey
+    // du 08/10 : « ce client-là, je ne peux pas le supprimer » une fois
+    // placé dans un conteneur ou détaché — contrairement à un client de
+    // la Collecte, qui se supprime sans condition (confirmDelete, aucune
+    // garde sur son statut). Même chose ici désormais : plus de blocage
+    // "colis déjà engagé", juste une confirmation.
+    if(france){
+      act.innerHTML += '<button class="btn btn-gray" style="margin-top:8px;background:#FDE0E0;border-color:#C0392B;color:#992020;" '
+        + 'onclick="depOuvrirSuppressionFrance()">&#128465;&#65039; Supprimer cette fiche</button>';
+    }
   }
   return true;
 }
+
+// v2.20.29 — voir le commentaire ci-dessus. Même fenêtre habillée que
+// modal-delete côté Collecte (confirmDelete), pas de confirm() natif.
+window.depOuvrirSuppressionFrance = function(){
+  var ctx = _depFicheLectureCtx;
+  if(!ctx || !ctx.france) return;
+  var c = ((window.franceData||{}).clients||{})[ctx.clientId];
+  if(!c) return;
+  var el = $('del-fiche-fr-sub');
+  if(el) el.textContent = 'Supprimer la fiche de ' + (c.name || ((c.prenom||'')+' '+(c.nom||'')).trim() || 'ce client') + ' ?';
+  openModal('modal-delete-fr');
+};
+window.depConfirmerSuppressionFrance = function(){
+  closeModal('modal-delete-fr');
+  var ctx = _depFicheLectureCtx;
+  if(!ctx || !ctx.france) return;
+  var id = ctx.clientId;
+  var c = ((window.franceData||{}).clients||{})[id];
+  if(!c || !window.db || !window.firebaseReady) return;
+  var nom = c.name || ((c.prenom||'')+' '+(c.nom||'')).trim() || 'ce client';
+  // Comme confirmDelete côté Collecte : on retire le client de son
+  // camion/collecte actuel avant d'effacer la fiche elle-même.
+  Object.keys((window.franceData||{}).collectes || {}).forEach(function(rid){
+    var r = window.franceData.collectes[rid];
+    Object.keys(r.trucks||{}).forEach(function(k){
+      var tk = r.trucks[k];
+      ['clients','validated','refused'].forEach(function(f){
+        if(Array.isArray(tk[f])){ var i = tk[f].indexOf(id); if(i>=0) tk[f].splice(i,1); }
+      });
+      if(tk.hours) delete tk.hours[id];
+    });
+    if(r.assigned) delete r.assigned[id];
+    var ic = (r.clients||[]).indexOf(id); if(ic>=0) r.clients.splice(ic,1);
+  });
+  try{ db.ref('france_photos/'+id).remove(); }catch(e){}
+  db.ref('france/clients/'+id).remove().then(function(){
+    toast('🗑️ Fiche supprimée');
+    depActivite('&#128465;&#65039;', 'a supprim&eacute; la fiche de <strong>'+esc(nom)+'</strong>');
+    var btn = $('client-back');
+    if(btn && btn.onclick) btn.onclick(); else goTo('s-france');
+  }).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'suppression refusée')); });
+};
 
 // Bouton "✏️ Modifier la fiche" de l'écran de lecture — lève la garde et
 // ouvre le vrai formulaire. Sécurité : ne fait rien si la collecte est

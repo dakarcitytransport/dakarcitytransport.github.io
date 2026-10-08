@@ -1509,6 +1509,29 @@ clients de CETTE collecte uniquement (pas tout le vivier), groupés par
 `creePar` (qui a inscrit la fiche) — l'équivalent du champ `by` côté
 Collecte.
 
+### ~~Impossible de supprimer une fiche France & Europe déjà engagée~~
+**Fait le 08/10 (v2.20.29 / departs.js).** Cobey : « un client France &
+Europe, quand il est placé dans un conteneur, dans la case départ, ou
+quand je le détache même après que je le mets dans le dépôt,
+contrairement au parcours client, ce client-là je ne peux pas le
+supprimer. Par exemple, j'ai fait un client test, je vais le supprimer,
+je ne peux pas. »
+
+Deux causes, les deux réglées :
+1. Le bouton « 🗑️ Supprimer cette fiche » vivait sur l'ancien écran natif
+   France (`_renderFicheFrance`), devenu inaccessible le 07/10 quand la
+   fiche s'est mise à partager l'écran de la Collecte
+   (`depRenderFicheLecture`, voir plus haut) — le bouton a disparu avec
+   lui. Revenu sur ce nouvel écran partagé, avec sa propre fenêtre
+   habillée (`modal-delete-fr`) au lieu d'un `confirm()` natif.
+2. La fiche France refusait la suppression dès que le colis n'était
+   plus « en attente » (« Impossible : le colis est déjà engagé ») —
+   un garde-fou qui n'a pas d'équivalent côté Collecte : `confirmDelete`
+   y supprime un client sans aucune condition sur son statut, même déjà
+   affecté à un camion. Retiré côté France pour que ce soit vraiment
+   pareil ; la suppression retire aussi le client du camion/de la
+   collecte où il se trouvait, comme le fait `confirmDelete`.
+
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
 prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il
