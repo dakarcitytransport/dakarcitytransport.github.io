@@ -518,6 +518,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <div class="fg"><label class="fl">Nombre de colis</label><input class="fi" id="fa-nb" type="number" min="1" value="1"></div>
       <div class="fg"><label class="fl">Prix (€)</label><input class="fi" id="fa-prix" type="number" min="0" placeholder="0"></div>
     </div>
+    <div class="fg"><label class="fl">Frais de ramassage (€) <span style="color:#aaa;font-weight:500;">· gratuit en Île-de-France, payant ailleurs</span></label><input class="fi" id="fa-ramassage" type="number" min="0" placeholder="0"></div>
     <div class="fg"><label class="fl">Description du colis</label><textarea class="fi" id="fa-colis" rows="3" placeholder="ex : 1 valise + 2 cartons" style="resize:none;"></textarea></div>
     <div style="margin-top:10px;">
       <button class="btn btn-green" id="fa-btn" onclick="saveClientFrance()">✅ Enregistrer</button>
@@ -1713,7 +1714,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.95.6';
+var APP_VERSION = 'v3.95.7';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4255,12 +4256,13 @@ function corrigerCivilites(){
   } else { _fin(); }
 }
 
-// Somme des montants d'une liste de clients
+// Somme des montants d'une liste de clients. v3.95.7 : inclut les frais
+// de ramassage (voir fa-ramassage) en plus du prix du colis.
 function _totalPrix(ids){
   var t=0;
   (ids||[]).forEach(function(id){
     var c=(franceData.clients||{})[id];
-    if(c) t+=(c.prix||0);
+    if(c) t+=(c.prix||0)+(c.prixRamassage||0);
   });
   return t;
 }
@@ -5287,7 +5289,9 @@ function _frNomDept(code){
   }
   return _FR_DEPT_NOMS[code]||'';
 }
-function _frPrixClient(id){ var c=(franceData.clients||{})[id]; return c?(c.prix||0):0; }
+// v3.95.7 : inclut les frais de ramassage en plus du prix du colis —
+// retour de Cobey du 08/10/2026, même principe que window.depCalculerPaiement.
+function _frPrixClient(id){ var c=(franceData.clients||{})[id]; return c?((c.prix||0)+(c.prixRamassage||0)):0; }
 function _frTotalCamion(tk){ return ((tk&&tk.clients)||[]).reduce(function(s,id){ return s+_frPrixClient(id); },0); }
 function _frCollecteCamion(tk){ return ((tk&&tk.validated)||[]).reduce(function(s,id){ return s+_frPrixClient(id); },0); }
 
@@ -5334,7 +5338,7 @@ function _frDispatchDetail(r){
       if(co.admin) return;
       var myC=ids.map(function(id){ return (franceData.clients||{})[id]; }).filter(function(c){ return c && c.creePar===co.name; });
       if(co.desactive && !myC.length) return;
-      var tot=myC.reduce(function(s,c){ return s+(parseFloat(c.prix)||0); },0);
+      var tot=myC.reduce(function(s,c){ return s+(parseFloat(c.prix)||0)+(parseFloat(c.prixRamassage)||0); },0);
       h+='<div class="collab-card" style="border-left:3px solid '+co.color+';">'
         +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
         +'<div class="av" style="background:'+co.bg+';color:'+co.color+';width:24px;height:24px;font-size:9px;">'+co.id+'</div>'
@@ -5786,13 +5790,14 @@ function renderCamionFrance(){
       +   '<div class="route-detail-row" onclick="window.open(\''+waze+'\',\'_blank\')" style="cursor:pointer;">📍 <strong style="color:#009A44;text-decoration:underline;">'+adresse+'</strong></div>'
       +   '<div class="route-detail-row">'+(tel?('<a href="tel:'+tel+'" style="color:#1a237e;font-weight:700;text-decoration:none;">📞 '+(c.tel||'')+'</a>'):'📞 —')+'</div>'
       +   '<div class="route-detail-row">📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')+'</div>'
-      +   '<div class="route-detail-row">💰 <strong style="color:#006b2d;font-size:15px;">'+(c.prix||0)+' €</strong></div>'
+      +   '<div class="route-detail-row">💰 <strong style="color:#006b2d;font-size:15px;">'+_frPrixClient(id)+' €</strong>'
+      +     ((parseFloat(c.prixRamassage)||0)>0 ? ('<span style="font-size:11px;color:var(--text3);font-weight:500;"> (dont '+c.prixRamassage+' € de ramassage)</span>') : '')+'</div>'
       + '</div>'
       + '<div class="route-actions">';
     if(fige){
       h+='<div class="route-action-btn" style="background:#f5f5f5;color:#999;border:2px solid #ddd;flex:1;">🔒 Collecte terminée</div>';
     } else if(isVal){
-      h+='<div class="route-action-btn route-action-done-g" style="flex:1;">✅ Ramassé — '+(c.prix||0)+' €</div>'
+      h+='<div class="route-action-btn route-action-done-g" style="flex:1;">✅ Ramassé — '+_frPrixClient(id)+' €</div>'
         +'<button class="route-action-btn" style="background:#fff3cd;color:#856404;border:2px solid #856404;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);" onclick="annulerArretFrance(\''+id+'\')">↩️</button>';
     } else if(isRef){
       h+='<div class="route-action-btn route-action-done-r" style="flex:1;">❌ Non ramassé</div>'
@@ -5808,7 +5813,7 @@ function renderCamionFrance(){
       // "attente", voir annulerClientChauffeurExterne), pas celui de
       // Dakar (simple marqueur réversible dans le camion) : les deux
       // parcours gardent chacun leur logique, seule l'interface s'aligne.
-      h+='<button class="route-action-btn route-action-validate" onclick="validerArretFrance(\''+id+'\')">📦 Valider — '+(c.prix||0)+' €</button>'
+      h+='<button class="route-action-btn route-action-validate" onclick="validerArretFrance(\''+id+'\')">📦 Valider — '+_frPrixClient(id)+' €</button>'
         +'<button class="route-action-btn route-action-refuse" onclick="refuserArretFrance(\''+id+'\')">❌</button>'
         +'<button class="route-action-btn route-action-more" onclick="ouvrirMenuPlusFrance(\''+id+'\')">⋯</button>';
     }
@@ -6042,6 +6047,7 @@ function modifierClientFrance(){
   g('fa-ville', c.ville);
   g('fa-colis', c.colis);
   g('fa-prix', c.prix?String(c.prix):'');
+  g('fa-ramassage', c.prixRamassage?String(c.prixRamassage):'');
   var nb=document.getElementById('fa-nb'); if(nb) nb.value=String(c.nb||1);
   _faPays=c.pays||'FR'; _renderPaysChoix();
   majZoneFrance();
@@ -6055,7 +6061,7 @@ function ouvrirAjoutFrance(){
   _faEditId='';
   var t=document.getElementById('fadd-titre'); if(t) t.textContent='Inscrire un client';
   var b=document.getElementById('fa-btn'); if(b) b.textContent='✅ Enregistrer';
-  ['fa-prenom','fa-nom','fa-tel','fa-tel2','fa-adresse','fa-infos','fa-cp','fa-ville','fa-colis','fa-prix'].forEach(function(id){
+  ['fa-prenom','fa-nom','fa-tel','fa-tel2','fa-adresse','fa-infos','fa-cp','fa-ville','fa-colis','fa-prix','fa-ramassage'].forEach(function(id){
     var e=document.getElementById(id); if(e) e.value='';
   });
   var nb=document.getElementById('fa-nb'); if(nb) nb.value='1';
@@ -6129,6 +6135,7 @@ function saveClientFrance(){
     nb:parseInt(g('fa-nb')||'1',10)||1,
     colis:g('fa-colis'),
     prix:parseInt(g('fa-prix')||'0',10)||0,
+    prixRamassage:parseInt(g('fa-ramassage')||'0',10)||0,
     statut:'attente', lieu:'',
     creePar:(currentUser||{}).name||'', creeTs:Date.now(),
     hist:[{q:(currentUser||{}).name||'', a:'a créé la fiche', ts:Date.now()}]
@@ -6155,7 +6162,8 @@ function _enregistrerModifFrance(z){
     pays:z.pays, region:z.region, dept:z.dept||'',
     nb:parseInt(g('fa-nb')||'1',10)||1,
     colis:g('fa-colis'),
-    prix:parseInt(g('fa-prix')||'0',10)||0
+    prix:parseInt(g('fa-prix')||'0',10)||0,
+    prixRamassage:parseInt(g('fa-ramassage')||'0',10)||0
   };
   // On note ce qui change vraiment, pour l'historique
   var change=[];

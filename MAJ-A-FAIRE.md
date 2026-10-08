@@ -1532,6 +1532,41 @@ Deux causes, les deux réglées :
    pareil ; la suppression retire aussi le client du camion/de la
    collecte où il se trouvait, comme le fait `confirmDelete`.
 
+### Frais de ramassage, pour les clients France & Europe hors Île-de-France
+**Fait le 08/10 (v2.20.30 / v3.95.7).** Cobey : « pour les clients
+France-Europe, on voudrait [...] un endroit pour mettre le prix du
+ramassage. Parce qu'en fait, le ramassage en Île-de-France est gratuit,
+mais le ramassage pour les autres villes en France, c'est payant. » Puis :
+« et du coup le mettre additionnellement dans les factures avec tout ce
+qui s'ensuit, logique. »
+
+Nouveau champ « Frais de ramassage (€) » sur le formulaire d'inscription
+France & Europe (`fa-ramassage`), stocké à part (`c.prixRamassage`) —
+jamais fondu dans le prix du colis (`c.prix`), pour ne rien perdre si le
+détail des colis est recalculé plus tard. Ajouté partout où ça compte,
+comme demandé :
+- **Fiche** et **facture** : ligne « Frais de ramassage » dédiée, en plus
+  du prix du colis — le libellé du total passe à « Total (colis +
+  ramassage) » sur la facture quand il y en a.
+- **Reste à payer / déjà encaissé** (`depCalculerPaiement`, utilisé par
+  la fiche et la facture) : inclut désormais les frais de ramassage —
+  payés en même temps que le colis, par le même client, contrairement à
+  la livraison à Dakar qui garde sa propre caisse séparée.
+- **Totaux de la collecte** (suivi financier global, récap par
+  collaborateur, sélections du vivier) : `_frPrixClient`/`_totalPrix`
+  les comptent aussi.
+- **Écran "Valider" (ramassage)** : attention particulière ici — le prix
+  affiché/modifiable reste volontairement celui du COLIS SEUL ; les
+  frais de ramassage ne sont qu'indiqués à côté, à titre d'info. Les
+  fondre dans le champ modifiable aurait risqué de les écrire dans
+  `c.prix` dès qu'un collaborateur rouvre ce prix sans le changer — et de
+  les doubler au calcul suivant. La modale « Confirmer avant la facture »
+  montre quand même le vrai total (colis + ramassage).
+
+Île-de-France n'entre jamais dans ce calcul : ces codes postaux sont déjà
+exclus de France & Europe à l'inscription (`zoneDepuisCP`, « à créer dans
+une collecte Paris ») — c'est déjà là que le ramassage est gratuit.
+
 ### ~~Suivi : une collecte du jour restait "À venir"~~
 **Fait le 02/10 (v2.20.4).** Cobey : « la collecte France Europe est
 prévue pour aujourd'hui. Alors déjà dans le suivi, on ne voit pas qu'il

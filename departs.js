@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.29';
+var DEP_VERSION = 'v2.20.30';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3769,6 +3769,10 @@ function injecterEcrans(){
   +     '</div>'
   +     '<div id="dv-prix-note" style="display:none;font-size:11.5px;color:var(--text3);margin:-8px 0 14px;line-height:1.5;">'
   +       '&#8505;&#65039; Total calcul&eacute; sur le d&eacute;tail des colis. Pour le changer, modifiez le prix de l\'article concern&eacute; ci-dessus.</div>'
+  // v2.20.30 : frais de ramassage France & Europe (fixés à l'inscription,
+  // voir fa-ramassage) — juste indiqués ici, jamais inclus dans le champ
+  // modifiable au-dessus (voir depOuvrirValidation).
+  +     '<div id="dv-prix-ramassage" style="display:none;font-size:12.5px;color:#8A5200;font-weight:700;margin:-8px 0 14px;"></div>'
 
   +     '<div class="dep-sec">Photo du colis <span style="color:#992020;">*</span></div>'
   +     '<div style="font-size:11.5px;color:var(--text3);margin:-6px 0 8px;">Obligatoire pour valider &mdash; le paiement se fait ensuite sur la facture.</div>'
@@ -8183,8 +8187,18 @@ function depCalculerPaiementGenerique(total, versementsArr){
   return { total: total, paye: paye, reste: reste, statut: statut };
 }
 
+// v2.20.30 : pour un client France & Europe, le total du colis inclut
+// désormais les frais de ramassage (payés en même temps, par le même
+// client — contrairement à la livraison à Dakar, encaissée séparément,
+// voir depCalculerPaiementLivraison) — retour de Cobey du 08/10/2026 :
+// « le ramassage en Île-de-France est gratuit, mais [...] pour les
+// autres villes en France, c'est payant [...] le mettre
+// additionnellement dans les factures avec tout ce qui s'ensuit. »
+// c.prixRamassage n'existe jamais côté Collecte/Dépôt direct (0 par
+// défaut) : sans effet pour ces deux parcours.
 window.depCalculerPaiement = function(c){
-  return depCalculerPaiementGenerique(parseFloat(c.prix) || 0, c.versements);
+  var total = (parseFloat(c.prix) || 0) + (parseFloat(c.prixRamassage) || 0);
+  return depCalculerPaiementGenerique(total, c.versements);
 }
 
 // v1.19.22 : caisse livraison, séparée de celle du colis — le toggle
@@ -10423,6 +10437,12 @@ function depRenderFacture(c){
   h += kv('T&eacute;l&eacute;phone', _depLienTel(c.tel, c.tel || '—'));
   h += kv('Colis', esc(c.colis || '—'));
   h += kv('Nombre de colis', String(c.nbColis || c.nb || 1));
+  // v2.20.30 : frais de ramassage France & Europe (voir
+  // window.depCalculerPaiement) — gratuit en Île-de-France, payant
+  // ailleurs, affiché en plus du prix du colis.
+  if(ctxFact.france && (parseFloat(c.prixRamassage) || 0) > 0){
+    h += kv('Frais de ramassage', (parseFloat(c.prixRamassage) || 0) + '&nbsp;&euro;');
+  }
   // v1.37.0 : dire sur la facture elle-même qu'elle réunit plusieurs
   // collectes, et lesquelles — sinon rien ne distingue une facture
   // regroupée d'une facture ordinaire (retour de Cobey du 18/09/2026).
@@ -10453,7 +10473,8 @@ function depRenderFacture(c){
   // fixé de prix (le prix se modifie désormais uniquement en amont —
   // #s-dep-valider côté collecte, "Modifier la fiche" sinon).
   h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin:16px 0;text-align:center;">'
-    + '<div style="font-size:11px;color:var(--text3);font-weight:800;text-transform:uppercase;letter-spacing:0.05em;">Total colis</div>'
+    + '<div style="font-size:11px;color:var(--text3);font-weight:800;text-transform:uppercase;letter-spacing:0.05em;">'
+    +   ((ctxFact.france && (parseFloat(c.prixRamassage) || 0) > 0) ? 'Total (colis + ramassage)' : 'Total colis') + '</div>'
     + (prixIndefini
         ? ('<div style="font-size:19px;font-weight:800;color:#856404;margin:6px 0;">&#128337; &Agrave; d&eacute;finir '+(ctxFact.france?'&agrave; la collecte':'sur place')+'</div>'
            // v1.19.64 : côté France & Europe, aucun écran "Valider" en amont
@@ -11166,6 +11187,12 @@ function depRenderFicheLecture(colId, clientId, depot, france){
     +   kv('Nombre de colis', String(c.nbColis || c.nb || 1))
     +   kv('Prix', (c.prixADefinir ? '<span style="color:var(--text3);">&Agrave; d&eacute;finir sur place</span>' : ((c.prix||0) + '&nbsp;&euro;'))
           + (pastilleEncaisse ? ('<br><span style="font-size:10.5px;color:var(--text3);">Encaiss&eacute; par</span><br>'+pastilleEncaisse) : ''))
+    // v2.20.30 : frais de ramassage France & Europe, en plus du prix du
+    // colis — déjà inclus dans "Reste à payer" juste en dessous (voir
+    // window.depCalculerPaiement).
+    +   (france && (parseFloat(c.prixRamassage) || 0) > 0
+          ? kv('Frais de ramassage', (parseFloat(c.prixRamassage) || 0) + '&nbsp;&euro;')
+          : '')
     // v1.19.53 : reste à payer, visible uniquement si le paiement est
     // incomplet (retour de Cobey du 28/08/2026) — € + FCFA arrondi.
     // v1.20.32 : "Déjà encaissé" ajouté juste au-dessus — un versement pris
@@ -13745,12 +13772,23 @@ window.depOuvrirValidation = function(id, tk, name, prix, opts){
   // France & Europe nomme ce champ `nb` (voir _depLignesColis).
   var nbEl = $('dv-nb'); if(nbEl) nbEl.value = fiche.nbColis || fiche.nb || 1;
 
-  var pay = depCalculerPaiement(fiche);
+  // v2.20.30 : le prix affiché/modifiable ici reste celui du COLIS
+  // seul (fiche.prix), jamais le total combiné de depCalculerPaiement —
+  // sinon resaisir ce total (même sans le changer) l'écrirait dans
+  // fiche.prix et doublerait les frais de ramassage au calcul suivant.
+  // Ces frais (fixés à l'inscription, voir fa-ramassage) restent juste
+  // indiqués à côté, à titre d'information.
   var pAff = $('dv-prix-affiche');
-  if(pAff){ pAff.textContent = fiche.prixADefinir ? '🕗 À définir sur place' : (pay.total + ' €'); pAff.style.display = 'block'; }
-  var pInp = $('dv-prix-input'); if(pInp){ pInp.value = fiche.prixADefinir ? '' : pay.total; pInp.style.display = 'none'; }
+  if(pAff){ pAff.textContent = fiche.prixADefinir ? '🕗 À définir sur place' : ((fiche.prix||0) + ' €'); pAff.style.display = 'block'; }
+  var pInp = $('dv-prix-input'); if(pInp){ pInp.value = fiche.prixADefinir ? '' : (fiche.prix||0); pInp.style.display = 'none'; }
   var pBtn = $('dv-prix-btn'); if(pBtn) pBtn.style.display = 'inline-block';
   var pConf = $('dv-prix-confirm-btn'); if(pConf) pConf.style.display = 'none'; // v1.19.46
+  var pRam = $('dv-prix-ramassage');
+  if(pRam){
+    var fraisRam = estFrance ? (parseFloat(fiche.prixRamassage) || 0) : 0;
+    pRam.textContent = fraisRam > 0 ? ('+ ' + fraisRam + ' € de ramassage · total ' + ((parseFloat(fiche.prix)||0) + fraisRam) + ' €') : '';
+    pRam.style.display = fraisRam > 0 ? 'block' : 'none';
+  }
 
   // v1.25.0 : l'editeur de lignes pilote le nombre de colis et le prix.
   // On part des lignes deja enregistrees, ou d'une ligne reconstituee a
@@ -14009,13 +14047,18 @@ window.depValiderConfirmer = function(){
   // Elle vient apres toutes les autres verifications : inutile de faire
   // confirmer un prix pour ensuite reclamer une adresse de livraison.
   if(!ctx._prixConfirme){
+    // v2.20.30 : repli sur fiche.prix (le colis seul), jamais sur
+    // depCalculerPaiement(fiche).total — celui-ci inclut désormais les
+    // frais de ramassage France & Europe, ajoutés séparément juste en
+    // dessous pour que la modale montre le vrai total sans jamais faire
+    // entrer ces frais dans le prix confirmé lui-même (voir le commentaire
+    // plus bas sur ctx.prixModifie).
     var prixColis = (ctx.prixModifie !== null && ctx.prixModifie !== undefined)
       ? ctx.prixModifie
-      : ((typeof depCalculerPaiement === 'function')
-          ? ((depCalculerPaiement(fiche) || {}).total || 0)
-          : (fiche.prix || 0));
+      : (fiche.prix || 0);
+    var fraisRamConfirm = ctx.france ? (parseFloat(fiche.prixRamassage) || 0) : 0;
     var nbEl0 = $('dv-nb');
-    _depOuvrirConfirmPrix(prixColis, livPrix, nbEl0 ? nbEl0.value : (fiche.nbColis || 1));
+    _depOuvrirConfirmPrix(prixColis + fraisRamConfirm, livPrix, nbEl0 ? nbEl0.value : (fiche.nbColis || 1));
     return;
   }
   // Toute nouvelle tentative repassera par la confirmation.
