@@ -86,11 +86,12 @@ un prestataire.
   Comme pour le reste de l'app, un admin (Eric) reste invisible dans ce
   fil — règle déjà en place, pas quelque chose d'ajouté ici.
 
-- ~~**Sécurité de la base Firebase.**~~ *Bouclé le 26/09.* Cobey : « il
-  manquerait une étape qu'on n'avait pas faite » côté sécurité. Vrai
-  trou : la base Firebase était ouverte à qui connaissait son adresse
-  (visible dans le code de l'application), sans rien qui prouve que la
-  demande vient bien de l'application elle-même.
+- **Sécurité de la base Firebase.** *Rouvert le 09/10 — voir Étape 3
+  plus bas, en cours.* Cobey : « il manquerait une étape qu'on n'avait
+  pas faite » côté sécurité. Vrai trou : la base Firebase était ouverte
+  à qui connaissait son adresse (visible dans le code de l'application),
+  sans rien qui prouve que la demande vient bien de l'application
+  elle-même.
 
   **Étape 1, déjà faite depuis le 31/08** — la connexion anonyme à
   Firebase (« badge invisible », aucun écran, aucun mot de passe) :
@@ -130,6 +131,50 @@ un prestataire.
   utilisateur anonyme à chaque réveil du minuteur. **À recoller chez
   Cloudflare** (Overview → Edit code → coller le fichier à jour →
   Deploy), sinon les notifications restent bloquées.
+
+  **Étape 3, en cours (v2.20.37), le 09/10 — la connexion anonyme ne
+  suffisait pas.** Cobey a reçu une nouvelle alerte Firebase malgré
+  l'Étape 2. Raison : une connexion ANONYME ne prouve rien — n'importe
+  qui connaissant la clé publique Firebase (visible dans le code, ça
+  fait partie du fonctionnement normal) peut s'authentifier anonymement
+  lui-même, directement, sans jamais ouvrir l'application. La règle
+  `auth != null` de l'Étape 2 était donc vraie pour N'IMPORTE QUI, pas
+  seulement pour l'appli.
+
+  `_depConnexionAnonyme` (departs.js) devient `_depConnexionStaff` :
+  l'appli des collaborateurs se connecte désormais avec un vrai compte
+  (email/mot de passe dédié), ce qui permet aux règles de distinguer
+  l'appli (`auth.provider == 'password'`) des pages publiques, qui
+  restent en connexion anonyme inchangée (`facture.html`,
+  `chauffeur.html`, `mamadou.html` — chacune garde sa propre copie du
+  mécanisme, non touchée).
+
+  Nouvelles règles écrites par section, plutôt qu'une seule règle
+  globale : accès complet réservé au compte staff ; les 3 pages
+  publiques n'ont accès qu'aux chemins précis dont chacune a
+  effectivement besoin (établi en lisant entièrement leur code),
+  jamais à la base entière, et jamais en écriture libre (champs
+  autorisés listés un par un pour les pages qui modifient des fiches
+  client).
+
+  **Limite assumée, pas encore résolue :** `chauffeur.html` (l'écran
+  Chartres) et surtout `mamadou.html` sont codés aujourd'hui pour
+  télécharger des noeuds ENTIERS plutôt qu'un client précis à la fois
+  (ex. `mamadou.html` charge tous les clients Collecte, tous les
+  clients Dépôt, tous les clients France, à chaque connexion — pas
+  seulement ceux de ses propres livraisons). Fermer ça pour de vrai
+  demande de réécrire la façon dont ces deux pages chargent leurs
+  données, pas seulement les règles — laissé en lecture ouverte pour
+  l'instant (jamais en écriture) pour ne rien casser en production.
+  À reprendre dans un prochain passage si Cobey le souhaite.
+
+  Reste à faire pour boucler cette étape : Cobey crée le compte
+  `staff@dakarcitytransport.app` dans la console (Authentication →
+  Sign-in method → activer Email/Password, puis Users → Add user),
+  vérifie que l'appli se connecte bien avec ce compte une fois le code
+  déployé, PUIS seulement colle les nouvelles règles dans Realtime
+  Database → Rules — jamais l'inverse, sinon l'appli entière perd
+  l'accès à la base le temps que le compte existe.
 
 - ~~**Ablaye** passe administrateur, comme Issyaka.~~
   **Fait le 24/09 (v1.55.0).** Abdoulaye (AB) rejoint la direction, aux
