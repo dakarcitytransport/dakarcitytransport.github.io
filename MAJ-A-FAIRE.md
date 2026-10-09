@@ -2585,6 +2585,22 @@ tous) : un écran de choix (Mitry / Dépôt Dakar), chacun menant à son
 ce choix plutôt qu'à l'ancien emplacement. L'écran Départs > choix du
 pays ne montre plus que Sénégal et Mali.
 
+**Suite, le 09/10 (v2.20.41 / v3.95.11) — compteurs des cases d'accueil
+corrigés.** Cobey, sur la nouvelle case STOCKAGE : « C'est quoi 14
+Mitry ? Sa sort d'où ? » puis, en comparant : « Même inscription au
+dépôt il dise ça ». Les deux sous-titres (case STOCKAGE → "X Mitry" et
+case INSCRIPTION AU DÉPÔT → "X clients au dépôt") recopiaient
+`Object.keys(depotClients).length` : le nombre TOTAL de clients jamais
+inscrits en "Dépôt direct", toutes périodes et tous départs confondus
+(y compris des containers archivés depuis longtemps) — un nombre qui ne
+correspond à rien de ce que montrent les écrans une fois ouverts.
+Corrigé : la case STOCKAGE annonce maintenant le vrai compte de clients
+en attente à Mitry (`compteursDepart(DEP_ID_DEPOT).clients`, déjà
+utilisé correctement dans l'écran de choix lui-même) ; la case
+INSCRIPTION AU DÉPÔT annonce la somme des clients des départs
+actuellement ouverts à l'inscription — le même total que l'écran
+affiche une fois ouvert.
+
 ---
 
 ## 6 · Rapport financier

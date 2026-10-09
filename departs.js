@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.40';
+var DEP_VERSION = 'v2.20.41';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5645,17 +5645,30 @@ window.depRenderEspaces = function(){
   }
 
   // Case DÉPÔT (v1.19.50)
+  // v2.20.41 : comptait Object.keys(depotClients).length — TOUTES les
+  // inscriptions "Dépôt direct" jamais faites, même sur des départs
+  // archivés depuis longtemps — un nombre qui ne correspondait à rien de
+  // ce que montre l'écran une fois ouvert (Cobey, 09/10/2026 : "14 Mitry
+  // ? Sa sort d'où ?" puis "Même inscription au dépôt il dise ça"). On
+  // annonce maintenant le même total que l'écran lui-même : la somme des
+  // clients des départs actuellement ouverts à l'inscription.
   var sdp = $('dep-case-sub-depot');
   if(sdp){
-    var nbDp = Object.keys(window.depotClients||{}).length;
+    var nbDp = departsDisponibles().reduce(function(somme, d){
+      return somme + compteursDepart(d._id).clients;
+    }, 0);
     sdp.innerHTML = nbDp === 0 ? 'Aucun client' : '<b style="color:#B8720C;">'+nbDp+'</b> client'+(nbDp>1?'s':'')+'<br>au d&eacute;p&ocirc;t';
   }
 
   // Case STOCKAGE (v2.20.40) — Mitry (dépôt pré-départ) + Dépôt Dakar
   // (post-arrivée, pas encore livré), réunis sous la même case.
+  // v2.20.41 : nbMitry reprenait par erreur le même calcul que la case
+  // DÉPÔT ci-dessus (Object.keys(depotClients).length) au lieu du compte
+  // réel des clients en attente à Mitry (DEP_ID_DEPOT) — déjà utilisé
+  // correctement dans depRenderStockageChoix().
   var sdd = $('dep-case-sub-stockage');
   if(sdd){
-    var nbMitry = Object.keys(window.depotClients||{}).length;
+    var nbMitry = compteursDepart(DEP_ID_DEPOT).clients;
     var nbDd = (typeof _depListeDepotDakar === 'function') ? _depListeDepotDakar().filter(function(x){
       return !(x.c.livraisonValidee && x.c.livraisonValidee.fait);
     }).length : 0;
