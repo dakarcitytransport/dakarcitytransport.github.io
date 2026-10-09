@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.38';
+var DEP_VERSION = 'v2.20.39';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -17550,13 +17550,26 @@ function greffer(){
 var DEP_STAFF_EMAIL = 'staff@dakarcitytransport.app';
 var DEP_STAFF_PASSWORD = 's46AU54ODQWmLfKEOEg3edm5';
 
+// v2.20.39 — filet de sécurité : ce commit a été mis en ligne avant la
+// confirmation de Cobey que le compte staff@dakarcitytransport.app
+// existe bien dans la console Firebase (Authentication → Users). Tant
+// que les anciennes règles (auth != null) sont en place, un échec de
+// connexion ne coupait l'accès à personne (signInAnonymously ne
+// pouvait pas échouer) — avec le compte email/mot de passe, un échec
+// (compte pas encore créé) aurait laissé TOUTE l'appli sans accès à la
+// base. Repli automatique sur la connexion anonyme si la connexion
+// staff échoue, pour ne jamais perdre l'accès entre-temps — à retirer
+// une fois le compte confirmé créé et les nouvelles règles en place.
 function _depConnexionStaff(){
   var tentatives = 0;
   var essayer = function(){
     tentatives++;
     if(typeof firebase !== 'undefined' && firebase.auth){
       firebase.auth().signInWithEmailAndPassword(DEP_STAFF_EMAIL, DEP_STAFF_PASSWORD)
-        .catch(function(e){ console.error('departs: connexion staff', e); });
+        .catch(function(e){
+          console.error('departs: connexion staff — repli sur la connexion anonyme', e);
+          firebase.auth().signInAnonymously().catch(function(e2){ console.error('departs: signInAnonymously (repli)', e2); });
+        });
     } else if(tentatives < 30){
       // Le SDK firebase-auth-compat.js (préchargé) n'a pas encore fini de
       // charger — on réessaie brièvement plutôt que d'abandonner.
