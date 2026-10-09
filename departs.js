@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.37';
+var DEP_VERSION = 'v2.20.38';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2192,6 +2192,7 @@ var DEP_CASES = [
   { cle:'collecte', el:'dep-case-collecte' },
   { cle:'france',   el:'dep-case-france'   },
   { cle:'depot',    el:'dep-case-depot'    },
+  { cle:'depotdakar', el:'dep-case-depotdakar' },
   { cle:'devis',    el:'dep-case-devis'    },
   { cle:'factureManuelle', el:'dep-case-fm' },
   { cle:'fidelite', el:'dep-case-fid' },
@@ -2214,7 +2215,7 @@ var DEP_CASES_TOUTES = DEP_CASES.map(function(c){ return c.cle; });
 
 // Ce que les collaborateurs voyaient déjà : tout sauf les quatre cases
 // de la direction. C'est le repli, donc personne ne perd un accès.
-var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles','qr','archive','planning'];
+var DEP_CASES_TERRAIN = ['client','collecte','france','depot','depotdakar','devis','articles','qr','archive','planning'];
 
 // v2.20.0 : « programme de fidélité » — liste de TOUS les clients et leurs
 // remises, réservée à la direction et au Bureau (voir plus bas,
@@ -2235,7 +2236,7 @@ var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles'
    v1.19.96 : « facture manuelle » s'y ajoute aussi — Cobey, le
    02/10/2026 : « c'est des factures fictives [...] pour direction admin
    et moi », puis « Bureau aussi doit avoir cette case. » */
-var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot',
+var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot','depotdakar',
                         'qr','archive','stats','planning','annonce','factureManuelle','fidelite'];
 
 var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU };
@@ -2263,6 +2264,7 @@ var DEP_GARDES_CASES = {
   depOuvrirEspaceCollecte          : 'collecte',
   ouvrirFrance                     : 'france',
   depCarreDepotOuvrir              : 'depot',
+  depOuvrirEspaceDepotDakar        : 'depotdakar',
   depOuvrirEspaceDevis             : 'devis',
   depOuvrirEspaceFactureManuelle   : 'factureManuelle',
   depOuvrirEspaceFidelite          : 'fidelite',
@@ -3012,6 +3014,14 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#B8720C;">INSCRIPTION AU D&Eacute;P&Ocirc;T</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-depot">—</div>'
   +       '</div>'
+  // v2.20.38 : nouveau carré DÉPÔT DAKAR, ouvert à tout le monde — tous
+  // les colis des départs déjà arrivés, pas encore délivrés au client
+  // par Mamadou Niass (voir depRenderDepotDakar plus bas).
+  +       '<div class="dep-case" id="dep-case-depotdakar" style="background:#F0EAFB;" onclick="depOuvrirEspaceDepotDakar()">'
+  +         '<div class="dep-case-ico">&#127970;</div>'
+  +         '<div class="dep-case-tit" style="color:#4A2E8A;">D&Eacute;P&Ocirc;T DAKAR</div>'
+  +         '<div class="dep-case-sub" id="dep-case-sub-depotdakar">—</div>'
+  +       '</div>'
   // v1.19.85 : nouveau carré DEVIS, ouvert à tout le monde (retour de
   // Cobey du 29/08/2026) — permet d'établir un devis avant même
   // l'inscription complète du client, avec export PDF à lui envoyer.
@@ -3380,6 +3390,29 @@ function injecterEcrans(){
   +   '<div class="content">'
   +     '<input class="fi" id="depot-carre-recherche" placeholder="&#128269; Rechercher un client (exp&eacute;diteur ou destinataire)" style="margin-bottom:14px;" oninput="depCarreDepotFiltrer()">'
   +     '<div id="depot-carre-d-content"></div>'
+  +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v2.20.38) : DÉPÔT DAKAR — automatique, dès qu'un départ
+     passe en statut "Arrivé" (voir validerArriveeDepot côté mamadou.html
+     et depEtapeValider côté DCT), tous ses clients avec livraison à
+     Dakar apparaissent ici. Pas de déplacement manuel — c'est une vue,
+     pas un nouveau rangement des données (retour de Cobey du
+     09/10/2026 : "tous les colis devraient être au dépôt à Dakar [...]
+     c'est Mamadou Niass qui les délivre [...] ceux qui ne délivrent
+     pas, c'est ceux qui restent"). ---- */
+  + '<div class="screen" id="s-dep-depot-dakar">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="retourEspaces()">&larr; Retour</button>'
+  +     '<div class="h-title">&#127970; D&eacute;p&ocirc;t Dakar</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div style="font-size:11.5px;color:#4A2E8A;background:#F0EAFB;border:1.5px solid #C9B8E8;border-radius:10px;padding:11px 13px;margin-bottom:14px;line-height:1.5;">'
+  +       '&#8505;&#65039; Automatique : d&egrave;s qu\'un d&eacute;part passe en statut <b>Arriv&eacute;</b>, tous ses clients avec livraison &agrave; Dakar apparaissent ici.</div>'
+  +     '<div id="dep-dd-recap" style="margin-bottom:14px;"></div>'
+  +     '<input class="fi" id="dep-dd-recherche" placeholder="&#128269; Rechercher un client" style="margin-bottom:14px;" oninput="depDepotDakarFiltrer()">'
+  +     '<div id="dep-dd-liste"></div>'
   +   '</div>'
   + '</div>'
 
@@ -5031,6 +5064,7 @@ function _depDepotCarreRenderListe(filtre){
         // voir depDetail/_depLienTelIcone) — retour de Cobey du 03/09/2026.
         +       _depLienTelIcone(c.tel)
         +     '</div>'
+        +     _depBadgeLivraison(c)
         +   '</div>'
         // v1.20.11 : Facture/Photos remis ici — sans ça, un collaborateur
         // non-direction (Déplacer/Détacher restent réservés à Issyaka) n'a
@@ -5590,6 +5624,15 @@ window.depRenderEspaces = function(){
   if(sdp){
     var nbDp = Object.keys(window.depotClients||{}).length;
     sdp.innerHTML = nbDp === 0 ? 'Aucun client' : '<b style="color:#B8720C;">'+nbDp+'</b> client'+(nbDp>1?'s':'')+'<br>au d&eacute;p&ocirc;t';
+  }
+
+  // Case DÉPÔT DAKAR (v2.20.38)
+  var sdd = $('dep-case-sub-depotdakar');
+  if(sdd){
+    var nbDd = (typeof _depListeDepotDakar === 'function') ? _depListeDepotDakar().filter(function(x){
+      return !(x.c.livraisonValidee && x.c.livraisonValidee.fait);
+    }).length : 0;
+    sdd.innerHTML = nbDd === 0 ? 'Rien &agrave; livrer' : '<b style="color:#4A2E8A;">'+nbDd+'</b> colis<br>&agrave; livrer';
   }
 
   // Case DEVIS (v1.19.85)
@@ -8112,6 +8155,7 @@ window.depDetail = function(id, gardeFiltres){
         +       '</span>'
         +     _depLienTelIcone(c.tel)
         +   '</div>'
+        +   _depBadgeLivraison(c)
         +   '<div class="dep-cli-btns" style="margin-top:12px;">'
               + '<button class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
                 + (x.france
@@ -11286,7 +11330,8 @@ function depRenderFicheLecture(colId, clientId, depot, france){
           ? (kv('Destinataire', esc(c.destinataireNom||'—')
                 + (c.destinataireTel ? ('<br>'+_depLienTel(c.destinataireTel, c.destinataireTel)) : '')
                 + (c.destinataireTel2 ? ('<br>'+_depLienTel(c.destinataireTel2, c.destinataireTel2)) : ''))
-            + kv('Livraison', _depLivraisonLibelle(c) + '<br>' + ((c.prixLivraison||0)+'&nbsp;&euro;')))
+            + kv('Livraison', _depLivraisonLibelle(c) + '<br>' + ((c.prixLivraison||0)+'&nbsp;&euro;'))
+            + kv('Statut de livraison', _depBadgeLivraison(c)))
           : kv('Livraison', 'Retrait sur place'))
     + '</div>'
     // v1.19.57 : photos du colis + possibilité d'en reprendre une (retour
@@ -11793,6 +11838,192 @@ function _depEncaissePar(c){
     ? c.versements.slice().sort(function(a,b){ return (a.le||0)-(b.le||0); })
     : [];
   return versementsTries.length ? (versementsTries[0].par || '') : '';
+}
+
+// v2.20.38 — Cobey, le 09/10/2026 : « on soit une mention "délivré au
+// client" avec date et heure, comme ça on peut voir en un coup d'œil si
+// un colis a été livré, et voir ce qui n'a pas été donné. » Mamadou
+// Niass enregistre déjà c.livraisonValidee = {fait, ts, par} depuis sa
+// propre page (mamadou.html, validerLivraison()) — jamais affiché côté
+// DCT jusqu'ici. Même badge réutilisé partout où un client s'affiche
+// avec une livraison à Dakar : depDetail, _depDepotCarreRenderListe,
+// depRenderFicheLecture, et le nouveau Dépôt Dakar.
+function _depBadgeLivraison(c){
+  if(!c || !c.livraisonDakar) return '';
+  var lv = c.livraisonValidee;
+  if(lv && lv.fait){
+    return '<div style="display:inline-flex;align-items:center;gap:6px;background:#EAF7EE;'
+      + 'border:1.5px solid #BFE6C8;border-radius:20px;padding:5px 11px;font-size:11.5px;'
+      + 'font-weight:800;color:#006b2d;margin:6px 0;">&#9989; D&eacute;livr&eacute; au client'
+      + (lv.ts ? (' &middot; ' + esc(dateHeureFr(lv.ts))) : '') + '</div>'
+      + (lv.par ? ('<div style="font-size:10.5px;color:#999;margin-bottom:4px;">par ' + esc(lv.par) + '</div>') : '');
+  }
+  return '<div style="display:inline-flex;align-items:center;gap:6px;background:#FFF3E0;'
+    + 'border:1.5px solid #F0C36D;border-radius:20px;padding:5px 11px;font-size:11.5px;'
+    + 'font-weight:800;color:#8A5200;margin:6px 0;">&#9203; En attente de livraison</div>';
+}
+
+/* ─────────────────────────────────────────────
+   DÉPÔT DAKAR (v2.20.38) — Cobey, le 09/10/2026 : « une fois qu'on met
+   en statut arrivé au dépôt à Dakar, tous les colis devraient être au
+   dépôt à Dakar [...] c'est Mamadou Niass qui les délivre [...] ceux
+   qui ne délivrent pas, c'est ceux qui restent. » Vue automatique, pas
+   un vrai déplacement de données : tous les clients (Collecte, Dépôt
+   direct, France & Europe confondus) dont le départ est "Arrivé" et qui
+   ont une livraison à Dakar. Le décompte (48h/5€ jour de gardiennage/
+   alerte 60 jours) suit l'article "Retrait des colis" des CGV, calculé
+   depuis l'horodatage de l'étape "Arrivée au dépôt" du départ — déjà
+   enregistré aujourd'hui (voir validerArriveeDepot, mamadou.html, et
+   depEtapeValider côté DCT), rien de neuf à saisir pour ça.
+   ───────────────────────────────────────────── */
+
+function _depListeDepotDakar(){
+  var out = [];
+  var departs = window.departsData || {};
+  Object.keys(departs).forEach(function(did){
+    var d = departs[did];
+    if(!d || d.statut !== 'arrive') return;
+    var etape = d.etapesTransport && d.etapesTransport.arrivee_depot;
+    var tsArrivee = (etape && etape.fait && etape.ts) || null;
+    var clients = tousLesClients().filter(function(x){ return x.c && x.c.departId === did; })
+      .concat(Object.keys(window.depotClients||{})
+        .filter(function(k){ return (window.depotClients[k]||{}).departId === did; })
+        .map(function(k){ return { depot:true, clientId:k, c: window.depotClients[k] }; }))
+      .concat(Object.keys((window.franceData||{}).clients||{})
+        .filter(function(k){ return (window.franceData.clients[k]||{}).departId === did; })
+        .map(function(k){ return { france:true, clientId:k, c: window.franceData.clients[k] }; }));
+    clients.forEach(function(x){
+      if(!x.c || !x.c.livraisonDakar) return;
+      if(_depEstFusionnee(x.c)) return;
+      out.push({ depart:d, departId:did, tsArrivee:tsArrivee, collecteId:x.collecteId||'',
+                 clientId:x.clientId, depot:!!x.depot, france:!!x.france, c:x.c });
+    });
+  });
+  return out;
+}
+
+// Calcule, depuis l'horodatage de l'arrivée du départ, où en est ce
+// colis par rapport à l'article "Retrait des colis" (48h ouvrées, puis
+// 5 €/jour de gardiennage, alerte à 60 jours).
+function _depInfoGardiennage(tsArrivee){
+  if(!tsArrivee) return { heures:0, joursDepot:0, enRetard:false, joursRetard:0, montant:0, alerte60:false };
+  var ms = Date.now() - tsArrivee;
+  var heures = ms / 3600000;
+  var joursDepot = Math.floor(ms / 86400000);
+  var enRetard = heures > 48;
+  var joursRetard = enRetard ? Math.max(1, Math.ceil((ms - 48*3600000) / 86400000)) : 0;
+  return { heures:heures, joursDepot:joursDepot, enRetard:enRetard, joursRetard:joursRetard,
+           montant: joursRetard * 5, alerte60: joursDepot >= 60 };
+}
+
+function _depBadgeDepotDakar(c, tsArrivee){
+  if(c && c.livraisonValidee && c.livraisonValidee.fait) return _depBadgeLivraison(c);
+  var info = _depInfoGardiennage(tsArrivee);
+  if(info.alerte60){
+    return '<div style="display:inline-flex;align-items:center;gap:6px;background:#B3261E;'
+      + 'border-radius:20px;padding:5px 11px;font-size:11.5px;font-weight:800;color:#fff;margin:6px 0;">'
+      + '&#128680; ' + info.joursDepot + ' jours au d&eacute;p&ocirc;t &middot; seuil des 60 jours d&eacute;pass&eacute; &middot; '
+      + info.montant + ' &euro; de gardiennage</div>';
+  }
+  if(info.enRetard){
+    return '<div style="display:inline-flex;align-items:center;gap:6px;background:#FFF3E0;'
+      + 'border:1.5px solid #F0C36D;border-radius:20px;padding:5px 11px;font-size:11.5px;font-weight:800;color:#8A5200;margin:6px 0;">'
+      + '&#9203; ' + info.joursRetard + ' jour' + (info.joursRetard > 1 ? 's' : '') + ' de retard &middot; '
+      + info.montant + ' &euro; de gardiennage (5 &euro;/jour)</div>';
+  }
+  var restant = Math.max(0, Math.ceil(48 - info.heures));
+  return '<div style="display:inline-flex;align-items:center;gap:6px;background:#F4F4F5;'
+    + 'border:1.5px solid #E0E0E0;border-radius:20px;padding:5px 11px;font-size:11.5px;font-weight:800;color:#555;margin:6px 0;">'
+    + '&#128337; Au d&eacute;p&ocirc;t depuis ' + Math.max(0, Math.floor(info.heures)) + 'h &middot; encore ' + restant + 'h avant gardiennage</div>';
+}
+
+var _depDdRecherche = '';
+
+window.depOuvrirEspaceDepotDakar = function(){
+  goTo('s-dep-depot-dakar');
+  _depDdRecherche = '';
+  var r = $('dep-dd-recherche'); if(r) r.value = '';
+  depRenderDepotDakar();
+};
+
+window.depDepotDakarFiltrer = function(){
+  _depDdRecherche = (($('dep-dd-recherche')||{}).value || '').trim().toLowerCase();
+  depRenderDepotDakar();
+};
+
+function depRenderDepotDakar(){
+  var tous = _depListeDepotDakar();
+  var q = _depDdRecherche;
+  var liste = !q ? tous : tous.filter(function(x){
+    var nom = (x.c.name || ((x.c.prenom||'')+' '+(x.c.nom||''))).toLowerCase();
+    return nom.indexOf(q) !== -1;
+  });
+
+  var recap = $('dep-dd-recap');
+  if(recap){
+    var nAttente = 0, nGardiennage = 0, n60 = 0;
+    tous.forEach(function(x){
+      if(x.c.livraisonValidee && x.c.livraisonValidee.fait) return;
+      var info = _depInfoGardiennage(x.tsArrivee);
+      if(info.alerte60) n60++;
+      else if(info.enRetard) nGardiennage++;
+      else nAttente++;
+    });
+    recap.innerHTML = '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;text-align:center;">'
+      + '<div><div style="font-size:19px;font-weight:800;color:#252599;">'+tous.length+'</div><div style="font-size:9px;font-weight:700;color:#888;">&Agrave; LIVRER</div></div>'
+      + '<div><div style="font-size:19px;font-weight:800;color:#555;">'+nAttente+'</div><div style="font-size:9px;font-weight:700;color:#888;">&lt; 48H</div></div>'
+      + '<div><div style="font-size:19px;font-weight:800;color:#B45309;">'+nGardiennage+'</div><div style="font-size:9px;font-weight:700;color:#888;">GARDIENNAGE</div></div>'
+      + '<div><div style="font-size:19px;font-weight:800;color:#B3261E;">'+n60+'</div><div style="font-size:9px;font-weight:700;color:#888;">&Agrave; 60J+</div></div>'
+      + '</div>';
+  }
+
+  // Non livrés d'abord (les plus anciens en premier, les plus urgents),
+  // livrés ensuite, pour référence.
+  liste = liste.slice().sort(function(a, b){
+    var aFait = !!(a.c.livraisonValidee && a.c.livraisonValidee.fait);
+    var bFait = !!(b.c.livraisonValidee && b.c.livraisonValidee.fait);
+    if(aFait !== bFait) return aFait ? 1 : -1;
+    return (a.tsArrivee||0) - (b.tsArrivee||0);
+  });
+
+  var box = $('dep-dd-liste');
+  if(!box) return;
+  if(!liste.length){
+    box.innerHTML = '<div class="dep-vide" style="padding:28px 16px;">'
+      + (q ? 'Aucun client ne correspond &agrave; cette recherche.' : 'Aucun colis au D&eacute;p&ocirc;t Dakar pour l\'instant.') + '</div>';
+    return;
+  }
+  var h = '';
+  liste.forEach(function(x){
+    var c = x.c;
+    var clic = x.depot
+      ? "depOuvrirFicheDepot('"+x.departId+"','"+x.clientId+"')"
+      : (x.france
+        ? "depOuvrirFicheFranceDepuisDepart('"+x.clientId+"','"+x.departId+"')"
+        : "depOuvrirFicheClient('"+x.collecteId+"','"+x.clientId+"')");
+    var info = _depInfoGardiennage(x.tsArrivee);
+    h += '<div class="dep-cli" style="cursor:pointer;'
+      + (info.alerte60 ? 'background:#FDECEC;border-color:#F3B8B8;' : '') + 'border-left:4px solid '
+      + (info.alerte60 ? '#B3261E' : (info.enRetard ? '#E0A030' : (c.livraisonValidee&&c.livraisonValidee.fait ? '#009A44' : '#E0E0E0')))
+      + ';" onclick="'+clic+'">'
+      +   '<div class="dep-cli-n">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
+      +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
+      +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')+'</div>'
+      +   '<div style="font-size:11px;color:#999;margin:2px 0 6px;">Venu de <b style="color:#555;">'+esc(nomDepart(x.departId)||'—')+'</b>'
+      +     (x.tsArrivee ? (' &middot; arriv&eacute; le '+esc(dateHeureFr(x.tsArrivee))) : '') + '</div>'
+      +   _depBadgeDepotDakar(c, x.tsArrivee)
+      +   '<div class="dep-cli-btns" style="margin-top:10px;">'
+      +     '<button class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
+      +       (x.france
+          ? 'onclick="event.stopPropagation();depOuvrirFactureFrance(\''+x.clientId+'\')"'
+          : 'onclick="event.stopPropagation();depOuvrirFacture(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+')"')
+      +       '>&#129534; Facture</button>'
+      +     '<button class="dep-cli-btn" style="background:#F3EFFF;border-color:#D9C8F5;color:#6d28d9;" '
+      +       'onclick="event.stopPropagation();depOuvrirPhotosRapide(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">&#128247; Photos</button>'
+      +   '</div>'
+      + '</div>';
+  });
+  box.innerHTML = h;
 }
 
 /* ─────────────────────────────────────────────
