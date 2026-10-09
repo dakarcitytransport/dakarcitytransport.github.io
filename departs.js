@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.39';
+var DEP_VERSION = 'v2.20.40';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2192,7 +2192,7 @@ var DEP_CASES = [
   { cle:'collecte', el:'dep-case-collecte' },
   { cle:'france',   el:'dep-case-france'   },
   { cle:'depot',    el:'dep-case-depot'    },
-  { cle:'depotdakar', el:'dep-case-depotdakar' },
+  { cle:'stockage', el:'dep-case-stockage' },
   { cle:'devis',    el:'dep-case-devis'    },
   { cle:'factureManuelle', el:'dep-case-fm' },
   { cle:'fidelite', el:'dep-case-fid' },
@@ -2215,7 +2215,7 @@ var DEP_CASES_TOUTES = DEP_CASES.map(function(c){ return c.cle; });
 
 // Ce que les collaborateurs voyaient déjà : tout sauf les quatre cases
 // de la direction. C'est le repli, donc personne ne perd un accès.
-var DEP_CASES_TERRAIN = ['client','collecte','france','depot','depotdakar','devis','articles','qr','archive','planning'];
+var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles','qr','archive','planning'];
 
 // v2.20.0 : « programme de fidélité » — liste de TOUS les clients et leurs
 // remises, réservée à la direction et au Bureau (voir plus bas,
@@ -2236,7 +2236,7 @@ var DEP_CASES_TERRAIN = ['client','collecte','france','depot','depotdakar','devi
    v1.19.96 : « facture manuelle » s'y ajoute aussi — Cobey, le
    02/10/2026 : « c'est des factures fictives [...] pour direction admin
    et moi », puis « Bureau aussi doit avoir cette case. » */
-var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot','depotdakar',
+var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot','stockage',
                         'qr','archive','stats','planning','annonce','factureManuelle','fidelite'];
 
 var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU };
@@ -2264,7 +2264,7 @@ var DEP_GARDES_CASES = {
   depOuvrirEspaceCollecte          : 'collecte',
   ouvrirFrance                     : 'france',
   depCarreDepotOuvrir              : 'depot',
-  depOuvrirEspaceDepotDakar        : 'depotdakar',
+  depOuvrirEspaceStockage          : 'stockage',
   depOuvrirEspaceDevis             : 'devis',
   depOuvrirEspaceFactureManuelle   : 'factureManuelle',
   depOuvrirEspaceFidelite          : 'fidelite',
@@ -2980,6 +2980,18 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#252599;">D&Eacute;PARTS</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-dep">—</div>'
   +       '</div>'
+  // v2.20.40 — Cobey, le 09/10/2026 : « on va plutôt faire une case
+  // "Stockage" à côté de la case "Départ" [...] y mettre celui de
+  // Mitry, celui de Dakar, pour moi, Bureau et direction, comme ça
+  // dans la case Départ on laisse que les containers. » Réservée au
+  // Bureau/direction (voir DEP_CASES_BUREAU) — jamais au terrain,
+  // contrairement à "Inscription au dépôt" (dep-case-depot), qui reste
+  // un outil opérationnel séparé, ouvert à tous.
+  +       '<div class="dep-case" id="dep-case-stockage" style="background:#F5ECDF;" onclick="depOuvrirEspaceStockage()">'
+  +         '<div class="dep-case-ico">&#127970;</div>'
+  +         '<div class="dep-case-tit" style="color:#B8720C;">STOCKAGE</div>'
+  +         '<div class="dep-case-sub" id="dep-case-sub-stockage">—</div>'
+  +       '</div>'
   +       '<div class="dep-case" id="dep-case-client" style="background:#EDE5FC;" onclick="depOuvrirEspaceClient()">'
   +         '<div class="dep-case-ico">&#128100;</div>'
   +         '<div class="dep-case-tit" style="color:#7c3aed;">CLIENT</div>'
@@ -3013,14 +3025,6 @@ function injecterEcrans(){
   +         '<div class="dep-case-ico">&#127970;</div>'
   +         '<div class="dep-case-tit" style="color:#B8720C;">INSCRIPTION AU D&Eacute;P&Ocirc;T</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-depot">—</div>'
-  +       '</div>'
-  // v2.20.38 : nouveau carré DÉPÔT DAKAR, ouvert à tout le monde — tous
-  // les colis des départs déjà arrivés, pas encore délivrés au client
-  // par Mamadou Niass (voir depRenderDepotDakar plus bas).
-  +       '<div class="dep-case" id="dep-case-depotdakar" style="background:#F0EAFB;" onclick="depOuvrirEspaceDepotDakar()">'
-  +         '<div class="dep-case-ico">&#127970;</div>'
-  +         '<div class="dep-case-tit" style="color:#4A2E8A;">D&Eacute;P&Ocirc;T DAKAR</div>'
-  +         '<div class="dep-case-sub" id="dep-case-sub-depotdakar">—</div>'
   +       '</div>'
   // v1.19.85 : nouveau carré DEVIS, ouvert à tout le monde (retour de
   // Cobey du 29/08/2026) — permet d'établir un devis avant même
@@ -3180,6 +3184,21 @@ function injecterEcrans(){
   +   '</div>'
   +   '<div class="content">'
   +     '<div id="dep-departs-pays-content"></div>'
+  +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v2.20.40) : STOCKAGE — choix entre Mitry (dépôt en
+     France, avant départ) et Dépôt Dakar (après arrivée, pas encore
+     livré) — Cobey, le 09/10/2026 : « une case Stockage [...] y mettre
+     celui de Mitry, celui de Dakar, pour moi, Bureau et direction. » ---- */
+  + '<div class="screen" id="s-dep-stockage">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-espaces\');depRenderEspaces();">&larr; Espaces</button>'
+  +     '<div class="h-title">Stockage</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<div id="dep-stockage-content"></div>'
   +   '</div>'
   + '</div>'
 
@@ -3403,7 +3422,13 @@ function injecterEcrans(){
      pas, c'est ceux qui restent"). ---- */
   + '<div class="screen" id="s-dep-depot-dakar">'
   +   '<div class="header">'
-  +     '<button class="btn-back" onclick="retourEspaces()">&larr; Retour</button>'
+  // v2.20.40 : reste accessible directement (anciens liens/raccourcis),
+  // mais la case qui y mène maintenant est Stockage, plus l'accueil.
+  // depOuvrirEspaceStockage() (exposée sur window) fait exactement
+  // goTo + depRenderStockageChoix() — depRenderStockageChoix() seule
+  // n'est pas appelable depuis un onclick inline (fonction interne au
+  // module, jamais posée sur window, voir le reste du fichier).
+  +     '<button class="btn-back" onclick="depOuvrirEspaceStockage()">&larr; Stockage</button>'
   +     '<div class="h-title">&#127970; D&eacute;p&ocirc;t Dakar</div>'
   +     '<div style="width:60px;"></div>'
   +   '</div>'
@@ -5626,13 +5651,16 @@ window.depRenderEspaces = function(){
     sdp.innerHTML = nbDp === 0 ? 'Aucun client' : '<b style="color:#B8720C;">'+nbDp+'</b> client'+(nbDp>1?'s':'')+'<br>au d&eacute;p&ocirc;t';
   }
 
-  // Case DÉPÔT DAKAR (v2.20.38)
-  var sdd = $('dep-case-sub-depotdakar');
+  // Case STOCKAGE (v2.20.40) — Mitry (dépôt pré-départ) + Dépôt Dakar
+  // (post-arrivée, pas encore livré), réunis sous la même case.
+  var sdd = $('dep-case-sub-stockage');
   if(sdd){
+    var nbMitry = Object.keys(window.depotClients||{}).length;
     var nbDd = (typeof _depListeDepotDakar === 'function') ? _depListeDepotDakar().filter(function(x){
       return !(x.c.livraisonValidee && x.c.livraisonValidee.fait);
     }).length : 0;
-    sdd.innerHTML = nbDd === 0 ? 'Rien &agrave; livrer' : '<b style="color:#4A2E8A;">'+nbDd+'</b> colis<br>&agrave; livrer';
+    sdd.innerHTML = (nbMitry + nbDd) === 0 ? 'Rien en stock'
+      : '<b style="color:#B8720C;">'+nbMitry+'</b> Mitry<br><b style="color:#B8720C;">'+nbDd+'</b> &agrave; livrer Dakar';
   }
 
   // Case DEVIS (v1.19.85)
@@ -5736,6 +5764,38 @@ window.depOuvrirEspaceClient = function(){
 // v1.19.16 : la case DÉPARTS ouvre désormais d'abord le choix du pays
 // (Sénégal/Mali) — la vraie liste de containers (s-departs) ne s'ouvre
 // qu'après avoir choisi lequel, via depOuvrirDepartsPays(pays) plus bas.
+// v2.20.40 — Cobey, le 09/10/2026 : « une case "Stockage" à côté de la
+// case "Départ" [...] celui de Mitry, celui de Dakar, pour moi, Bureau
+// et direction. » Choix entre les deux stocks — ni l'un ni l'autre
+// n'est un vrai container, d'où leur sortie de la case Départs.
+window.depOuvrirEspaceStockage = function(){
+  goTo('s-dep-stockage');
+  depRenderStockageChoix();
+};
+
+function depRenderStockageChoix(){
+  var box = $('dep-stockage-content');
+  if(!box) return;
+  var nbMitry = compteursDepart(DEP_ID_DEPOT).clients;
+  var nbDakar = (typeof _depListeDepotDakar === 'function') ? _depListeDepotDakar().filter(function(x){
+    return !(x.c.livraisonValidee && x.c.livraisonValidee.fait);
+  }).length : 0;
+  var h = '';
+  h += '<div class="dep-card" style="border-left-color:#B8860B;cursor:pointer;" onclick="depDetail(\''+DEP_ID_DEPOT+'\')">'
+    +   '<div class="dep-card-top">'
+    +     '<div class="dep-nom">&#127970; Mitry</div>'
+    +   '</div>'
+    +   '<div class="dep-meta"><span>'+nbMitry+' client'+(nbMitry>1?'s':'')+' en attente</span></div>'
+    + '</div>';
+  h += '<div class="dep-card" style="border-left-color:#4A2E8A;cursor:pointer;" onclick="depOuvrirEspaceDepotDakar()">'
+    +   '<div class="dep-card-top">'
+    +     '<div class="dep-nom">&#127970; D&eacute;p&ocirc;t Dakar</div>'
+    +   '</div>'
+    +   '<div class="dep-meta"><span>'+nbDakar+' colis encore &agrave; livrer</span></div>'
+    + '</div>';
+  box.innerHTML = h;
+}
+
 window.depOuvrirEspaceDeparts = function(){
   goTo('s-departs-pays');
   depRenderDepartsPaysChoix();
@@ -5759,16 +5819,10 @@ function depRenderDepartsPaysChoix(){
       +   '<div class="dep-meta"><span>'+sousTitre+'</span></div>'
       + '</div>';
   });
-  // v1.19.44 : le Dépôt (en attente) — clients détachés d'un container,
-  // en attente d'en reprendre un (voir DEP_ID_DEPOT). À part des pays
-  // puisqu'il mélange Sénégal et Mali.
-  var nbDepot = compteursDepart(DEP_ID_DEPOT).clients;
-  h += '<div class="dep-card" style="border-left-color:#B8860B;cursor:pointer;" onclick="depDetail(\''+DEP_ID_DEPOT+'\')">'
-    +   '<div class="dep-card-top">'
-    +     '<div class="dep-nom">&#127970; D&eacute;p&ocirc;t</div>'
-    +   '</div>'
-    +   '<div class="dep-meta"><span>'+nbDepot+' client'+(nbDepot>1?'s':'')+' en attente</span></div>'
-    + '</div>';
+  // v2.20.40 — Cobey, le 09/10/2026 : « comme ça dans la case Départ on
+  // laisse que les containers. » Le Dépôt (Mitry), auparavant mélangé
+  // ici avec Sénégal/Mali, déménage dans la nouvelle case STOCKAGE (voir
+  // depRenderStockageChoix) — il n'a jamais été un vrai container.
   box.innerHTML = h;
 }
 
@@ -7889,7 +7943,9 @@ window.depDetailRetour = function(){
   _depFiltreLivraison = 'tous';
   _depDetailRecherche = '';
   var rechD = $('dep-d-recherche'); if(rechD) rechD.value = '';
-  if(_depDetailId === DEP_ID_DEPOT){ goTo('s-departs-pays'); depRenderDepartsPaysChoix(); return; }
+  // v2.20.40 : le Dépôt (Mitry) vit désormais dans la case Stockage,
+  // plus dans Départs — retour mis à jour en conséquence.
+  if(_depDetailId === DEP_ID_DEPOT){ goTo('s-dep-stockage'); depRenderStockageChoix(); return; }
   goTo('s-departs'); depRenderListe();
 };
 

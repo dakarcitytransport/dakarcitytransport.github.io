@@ -2563,6 +2563,28 @@ containers arrivés confondus (hors Mali, comme partout ailleurs sur
 cette page) ; mêmes clients, même fiche, même bouton de livraison que
 depuis l'écran Containers, juste un autre chemin pour y arriver.
 
+**Suite, le 09/10 (v2.20.40 / v3.95.10) — réorganisation côté DCT.**
+Cobey, après avoir testé : « je vois pas le dépôt de Dakar côté DCT »
+— corrigé d'abord (v3.95.9) : un oubli bumpait `DEP_VERSION` sans
+`APP_VERSION`, qui seul force le rechargement de `departs.js` (règle
+déjà documentée dans `dct-app.html` depuis un incident similaire le
+27/09, récidive). Puis, une fois le Dépôt Dakar bien visible, nouvelle
+demande : « on va plutôt faire une case "Stockage" à côté de la case
+"Départ" [...] y mettre celui de Mitry, celui de Dakar, pour moi,
+Bureau et direction, comme ça dans la case Départ on laisse que les
+containers. »
+
+Le Dépôt Dakar quitte donc sa case dédiée sur l'accueil, et le Dépôt
+(Mitry) — qui vivait mélangé aux pays Sénégal/Mali dans l'écran
+Départs, sans jamais être un vrai container — quitte cet écran aussi.
+Les deux rejoignent une nouvelle case unique **STOCKAGE**, réservée au
+Bureau et à la direction (jamais ouverte au terrain, contrairement à
+« Inscription au dépôt », qui reste un outil opérationnel séparé pour
+tous) : un écran de choix (Mitry / Dépôt Dakar), chacun menant à son
+écran habituel inchangé, avec un bouton retour qui ramène maintenant à
+ce choix plutôt qu'à l'ancien emplacement. L'écran Départs > choix du
+pays ne montre plus que Sénégal et Mali.
+
 ---
 
 ## 6 · Rapport financier
