@@ -137,6 +137,20 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    sa légende désormais — seule une photo sans ts/auteur connus
    resterait muette ici. */
 .modal-zoom-info{color:#fff;font-size:13px;font-weight:600;margin-top:10px;text-align:center;}
+
+/* v1.7.0 — Cobey, le 09/10/2026 : « peut-être mettre un modal de
+   confirmation quand il délivre au client, c'est mieux ? » Même principe
+   que le reste de l'appli (jamais de confirm() natif pour une action qui
+   ne se refait pas) — fenêtre habillée, avec la dernière photo de remise
+   en aperçu, avant d'enregistrer définitivement date/heure. */
+.modal-confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;align-items:center;justify-content:center;padding:20px;}
+.modal-confirm-overlay.open{display:flex;}
+.modal-confirm-sheet{background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.25);padding:22px 20px;max-width:360px;width:100%;}
+.modal-confirm-emoji{font-size:30px;text-align:center;margin-bottom:6px;}
+.modal-confirm-titre{font-size:16px;font-weight:800;text-align:center;color:#111;margin-bottom:6px;}
+.modal-confirm-sub{font-size:12px;text-align:center;color:#888;margin-bottom:14px;}
+.modal-confirm-photo{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;height:150px;background:#eee;}
+.modal-confirm-photo img{width:100%;height:100%;object-fit:cover;display:block;}
 .modal-zoom-fermer{position:absolute;top:18px;right:18px;color:#fff;font-size:28px;cursor:pointer;line-height:1;}
 
 /* Photos de livraison prises par Mamadou (preuve de remise, max 5) */
@@ -207,6 +221,12 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
         <div class="case" onclick="ouvrirContainers()">
           <div class="case-ico">&#128230;</div>
           <div><div class="case-tit">Containers</div><div class="case-sub">Voir tous les clients</div></div>
+        </div>
+        <!-- v1.7.0 — Cobey, le 09/10/2026 : « il aurait une case du dépôt
+             de Dakar, la même que pour DCT, mais il reste dans son appli. » -->
+        <div class="case" style="border-color:#C9B8E8;background:#FAF7FF;" onclick="ouvrirDepotDakar()">
+          <div class="case-ico">&#127970;</div>
+          <div><div class="case-tit">D&eacute;p&ocirc;t Dakar</div><div class="case-sub">Tout ce qui reste &agrave; livrer, tous containers arriv&eacute;s</div></div>
         </div>
       </div>
       <div class="lien-discret" id="mn-lien-changer-mdp" onclick="mnOuvrirChangerMotDePasse()">Changer mon mot de passe</div>
@@ -306,6 +326,22 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
     </div>
   </div>
 
+  <!-- v1.7.0 — Cobey, le 09/10/2026 : « il aurait une case du dépôt de
+       Dakar [...] mais il reste dans son appli. » Vue consolidée, tous
+       containers arrivés confondus — mêmes clients, même fiche, même
+       bouton de livraison que depuis l'écran Containers. -->
+  <div id="ecran-depot-dakar" hidden class="card">
+    <div class="hdr2">
+      <div class="retour-haut-fonce" onclick="goTo('ecran-accueil')">&larr; Retour &agrave; l'accueil</div>
+      <div class="nom">&#127970; D&eacute;p&ocirc;t Dakar</div>
+      <div class="sub2" id="dd-compteur"></div>
+    </div>
+    <div class="pad">
+      <input class="recherche" id="dd-recherche" placeholder="Rechercher un client&hellip;" oninput="_mnRenderDepotDakar()">
+      <div id="dd-liste"></div>
+    </div>
+  </div>
+
   <div id="ecran-fiche" hidden class="card">
     <div class="pad">
       <div class="retour-haut" onclick="fermerFiche()">&larr; Retour</div>
@@ -345,7 +381,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
         <button type="button" class="btn btn-light" id="f-liv-photo-btn" style="margin-bottom:0;" onclick="document.getElementById('f-liv-photo-input').click()">&#128247; Prendre une photo</button>
       </div>
 
-      <button class="btn btn-green" id="f-btn-valider" style="margin-top:16px;" onclick="validerLivraison()">&#9989; Valider la livraison</button>
+      <button class="btn btn-green" id="f-btn-valider" style="margin-top:16px;" onclick="mnDemanderConfirmationLivraison()">&#9989; Valider la livraison</button>
       <div id="f-valide-note" hidden style="text-align:center;font-size:12.5px;font-weight:700;color:#006b2d;margin-top:10px;">&#9989; Livraison valid&eacute;e</div>
     </div>
   </div>
@@ -355,6 +391,17 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
     <div class="modal-zoom-contenu">
       <img id="modal-zoom-img" src="">
       <div id="modal-zoom-info" class="modal-zoom-info" hidden></div>
+    </div>
+  </div>
+
+  <div id="modal-confirm-livraison" class="modal-confirm-overlay">
+    <div class="modal-confirm-sheet">
+      <div class="modal-confirm-emoji">&#9989;</div>
+      <div class="modal-confirm-titre">Confirmer la livraison &agrave;<br><span id="mcl-nom">&mdash;</span> ?</div>
+      <div class="modal-confirm-sub">Cette action enregistre la date et l'heure &mdash; elle ne se d&eacute;fait pas.</div>
+      <div class="modal-confirm-photo"><img id="mcl-photo" src="" alt=""></div>
+      <button type="button" class="btn btn-green" style="margin-bottom:9px;" onclick="mnExecuterValidationLivraison()">&#9989; Confirmer la livraison</button>
+      <button type="button" class="btn btn-gray" style="margin-bottom:0;" onclick="mnAnnulerConfirmationLivraison()">Annuler</button>
     </div>
   </div>
 
@@ -378,7 +425,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.6.3';
+var MAMADOU_VERSION = 'v1.7.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -649,7 +696,7 @@ function rafraichirEcranActif(){
 /* ─────────── Navigation ─────────── */
 function goTo(id){
   ['ecran-chargement','ecran-erreur','ecran-login','ecran-accueil','ecran-changer-mdp',
-   'ecran-scan','ecran-secours','ecran-containers','ecran-container-detail','ecran-fiche'].forEach(function(e){
+   'ecran-scan','ecran-secours','ecran-containers','ecran-container-detail','ecran-depot-dakar','ecran-fiche'].forEach(function(e){
     $(e).hidden = (e !== id);
   });
 }
@@ -754,7 +801,11 @@ function _scanBoucle(){
           if(!c2){ fermerScan(); alert('Client introuvable pour cette étiquette.'); return; }
           if(!containerAutorise(c2.departId)){ fermerScan(); alert('Ce colis appartient à un container hors de votre périmètre.'); return; }
           fermerScan();
-          ouvrirFiche(ref, false, 'ecran-accueil');
+          // v1.7.0 — Cobey, le 09/10/2026 : « si il passe par le QR code,
+          // une fois délivré il revient dans l'espace QR code pour
+          // scanner un autre client » — avant, "ecran-accueil" (voir
+          // fermerFiche, qui relance la caméra pour ce cas précis).
+          ouvrirFiche(ref, false, 'ecran-scan');
           return;
         }
       }
@@ -839,6 +890,95 @@ function ouvrirContainers(){
   $('cont-liste').innerHTML = h;
 }
 function fermerContainers(){ goTo('ecran-accueil'); }
+
+/* ─────────── Dépôt Dakar (v1.7.0) — vue consolidée, tous containers
+   arrivés confondus, dans l'univers de Mamadou (sa propre page, son
+   propre style). Cobey, le 09/10/2026 : « il aurait une case du dépôt
+   de Dakar, la même que pour DCT, mais il reste dans son appli. »
+   Même calcul de gardiennage que côté DCT (_depInfoGardiennage,
+   departs.js) — dupliqué ici volontairement, cette page n'a pas accès
+   à departs.js (page autonome, comme facture.html et ses propres
+   copies de fonctions partagées). ─────────── */
+var _ddRecherche = '';
+
+function ouvrirDepotDakar(){
+  goTo('ecran-depot-dakar');
+  $('dd-recherche').value = '';
+  _mnRenderDepotDakar();
+}
+
+function _mnListeDepotDakar(){
+  var out = [];
+  Object.keys(departsData).forEach(function(did){
+    var d = departsData[did] || {};
+    if(d.statut !== 'arrive' || !containerAutorise(did, d)) return;
+    var etape = d.etapesTransport && d.etapesTransport.arrivee_depot;
+    var tsArrivee = (etape && etape.fait && etape.ts) || null;
+    clientsDuContainer(did).forEach(function(x){
+      if(!x.c || !x.c.livraisonDakar) return;
+      out.push({ departId:did, depart:d, tsArrivee:tsArrivee, src:x.src, collecteId:x.collecteId, clientId:x.clientId, c:x.c });
+    });
+  });
+  return out;
+}
+
+function _mnInfoGardiennage(tsArrivee){
+  if(!tsArrivee) return { heures:0, joursDepot:0, enRetard:false, joursRetard:0, montant:0, alerte60:false };
+  var ms = Date.now() - tsArrivee;
+  var heures = ms / 3600000;
+  var joursDepot = Math.floor(ms / 86400000);
+  var enRetard = heures > 48;
+  var joursRetard = enRetard ? Math.max(1, Math.ceil((ms - 48*3600000) / 86400000)) : 0;
+  return { heures:heures, joursDepot:joursDepot, enRetard:enRetard, joursRetard:joursRetard,
+           montant: joursRetard * 5, alerte60: joursDepot >= 60 };
+}
+
+function _mnBadgeDepotDakar(c, tsArrivee){
+  if(c && c.livraisonValidee && c.livraisonValidee.fait){
+    return '<div class="cli-paye" style="color:#006b2d;">&#9989; D&eacute;livr&eacute; au client &middot; '
+      + esc(_mnDateHeure(c.livraisonValidee.ts)) + '</div>';
+  }
+  var info = _mnInfoGardiennage(tsArrivee);
+  if(info.alerte60){
+    return '<div class="cli-reste" style="background:#B3261E;color:#fff;border-radius:8px;padding:6px 9px;">'
+      + '&#128680; ' + info.joursDepot + ' jours au d&eacute;p&ocirc;t &middot; seuil des 60 jours d&eacute;pass&eacute; &middot; '
+      + info.montant + ' &euro; de gardiennage</div>';
+  }
+  if(info.enRetard){
+    return '<div class="cli-reste">&#9203; ' + info.joursRetard + ' jour' + (info.joursRetard > 1 ? 's' : '')
+      + ' de retard &middot; ' + info.montant + ' &euro; de gardiennage (5 &euro;/jour)</div>';
+  }
+  var restant = Math.max(0, Math.ceil(48 - info.heures));
+  return '<div class="cli-sub">&#128337; Au d&eacute;p&ocirc;t depuis ' + Math.max(0, Math.floor(info.heures)) + 'h &middot; encore ' + restant + 'h avant gardiennage</div>';
+}
+
+function _mnRenderDepotDakar(){
+  var q = (($('dd-recherche')||{}).value || '').toLowerCase().trim();
+  var tous = _mnListeDepotDakar();
+  var liste = !q ? tous : tous.filter(function(x){ return String(x.c.name||'').toLowerCase().indexOf(q) !== -1; });
+  liste = liste.slice().sort(function(a, b){
+    var aFait = !!(a.c.livraisonValidee && a.c.livraisonValidee.fait);
+    var bFait = !!(b.c.livraisonValidee && b.c.livraisonValidee.fait);
+    if(aFait !== bFait) return aFait ? 1 : -1;
+    return (a.tsArrivee||0) - (b.tsArrivee||0);
+  });
+  $('dd-compteur').textContent = (tous.length - tous.filter(function(x){ return x.c.livraisonValidee && x.c.livraisonValidee.fait; }).length)
+    + ' colis encore &agrave; livrer';
+  if(!liste.length){
+    $('dd-liste').innerHTML = '<div class="vide">' + (q ? 'Aucun client ne correspond.' : 'Rien au D&eacute;p&ocirc;t Dakar pour l\'instant.') + '</div>';
+    return;
+  }
+  var h = '';
+  liste.forEach(function(x){
+    var c = x.c;
+    h += '<div class="cli-item" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'},false,\'ecran-depot-dakar\')">'
+      +   '<div class="cli-top"><div class="cli-nom">'+esc(c.name||'')+'</div></div>'
+      +   '<div class="cli-sub">Container '+esc((x.depart||{}).nom||'—')+'</div>'
+      +   _mnBadgeDepotDakar(c, x.tsArrivee)
+      + '</div>';
+  });
+  $('dd-liste').innerHTML = h;
+}
 
 /* ─────────── Détail d'un container : liste des clients ─────────── */
 var _cdDepartId = null;
@@ -1156,11 +1296,20 @@ function ouvrirFiche(ref, silencieux, provenance){
 function fermerFiche(){
   _ficheCtx = null;
   var retour = _ficheProvenance || 'ecran-accueil';
+  // v1.7.0 — Cobey, le 09/10/2026 : revenir sur "ecran-scan" sans rien
+  // de plus laissait un écran de scan éteint (la caméra avait été
+  // arrêtée par fermerScan() au moment du scan réussi) — on relance la
+  // caméra pour pouvoir enchaîner directement sur le client suivant.
+  if(retour === 'ecran-scan'){ ouvrirScan(); return; }
   goTo(retour);
   // Un encaissement fait dans la fiche ne rafraîchissait pas la liste
   // du container tant qu'elle restait masquée (voir rafraichirEcranActif) —
   // elle réaffichait donc un reste à payer périmé au retour.
   if(retour === 'ecran-container-detail'){ _cdMajBlocArrivee(); cdAppliquerFiltres(); }
+  // Même raison : une livraison validée depuis le Dépôt Dakar doit
+  // rafraîchir sa liste, sinon le client délivré reste affiché "en
+  // attente" jusqu'au prochain rechargement.
+  if(retour === 'ecran-depot-dakar'){ _mnRenderDepotDakar(); }
 }
 
 // v1.1.0 — Cobey : « il doit également prendre maximum 5 photos pour
@@ -1365,7 +1514,12 @@ function encaisser(type){
     alert('Échec de l’enregistrement, réessayez (vérifiez la connexion).');
   });
 }
-function validerLivraison(){
+// v1.7.0 — Cobey, le 09/10/2026 : « peut-être mettre un modal de
+// confirmation quand il délivre au client, c'est mieux ? » Les
+// vérifications (reste à payer, photo) restent ici, inchangées ; seule
+// l'écriture Firebase se fait désormais après confirmation explicite
+// dans la fenêtre (voir mnExecuterValidationLivraison).
+function mnDemanderConfirmationLivraison(){
   var c = clientActuel(_ficheCtx);
   if(!c){ alert('Client introuvable.'); return; }
   var pay = depCalculerPaiement(c);
@@ -1378,11 +1532,32 @@ function validerLivraison(){
     alert('Prenez au moins une photo de remise avant de valider.');
     return;
   }
+  $('mcl-nom').textContent = c.name || 'ce client';
+  var cles = Object.keys(_photosLivraisonActuelles);
+  var derniere = cles.length ? _photosLivraisonActuelles[cles[cles.length - 1]] : null;
+  $('mcl-photo').src = (derniere && derniere.d) || '';
+  $('modal-confirm-livraison').classList.add('open');
+}
+
+function mnAnnulerConfirmationLivraison(){
+  $('modal-confirm-livraison').classList.remove('open');
+}
+
+function mnExecuterValidationLivraison(){
+  $('modal-confirm-livraison').classList.remove('open');
+  var c = clientActuel(_ficheCtx);
+  if(!c){ alert('Client introuvable.'); return; }
   var champ = { livraisonValidee: { fait:true, ts:Date.now(), par:ACTEUR_NOM } };
   ecrireClient(_ficheCtx, champ).then(function(){
     c.livraisonValidee = champ.livraisonValidee;
     activiteExterne('✅', '<strong>' + esc(ACTEUR_NOM) + '</strong> a validé la livraison de <strong>' + esc(c.name || '') + '</strong>');
-    ouvrirFiche(_ficheCtx);
+    // v1.7.0 — Cobey : « une fois qui valide la livraison, l'écran
+    // revient dans le container [...] si il passe par le QR code [...]
+    // il revient dans l'espace QR code [...] pareil si il passe par le
+    // scan de secours » — fermerFiche() lit déjà _ficheProvenance et
+    // sait relancer la caméra pour le cas du scan (voir plus haut),
+    // donc fiche fermée plutôt que simplement rafraîchie.
+    fermerFiche();
   }).catch(function(e){
     console.error('mamadou: échec validation livraison', e);
     alert('Échec de l’enregistrement, réessayez (vérifiez la connexion).');

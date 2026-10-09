@@ -2501,6 +2501,68 @@ déjà choisi avant ce changement continue de fonctionner telle quelle
 changement), pour ne pas bloquer Mamadou s'il en avait choisi un
 différent.
 
+### ~~Visibilité des livraisons à Dakar + nouveau "Dépôt Dakar"~~
+**Fait le 09/10 (v2.20.38 / v1.7.0 mamadou.html).** Longue discussion
+avec Cobey (maquettes à l'appui, voir le fichier envoyé en PDF), en
+plusieurs temps :
+
+« Quand Mamadou Niass va délivrer les colis au client à Dakar [...] il
+faudrait [...] sur chaque client une mention "délivré au client" avec
+date et heure, comme ça on peut voir en un coup d'œil si un colis a été
+livré, et voir ce qui n'a pas été donné. » Mamadou enregistre déjà
+`c.livraisonValidee = {fait, ts, par}` depuis sa propre page en
+validant une livraison — jamais affiché côté DCT jusqu'ici.
+`_depBadgeLivraison(c)` (departs.js) comble ce manque, réutilisé sur
+`depDetail`, le carré Dépôt et `depRenderFicheLecture` : badge vert
+« Délivré au client · date/heure » + qui l'a fait, ou orange « En
+attente de livraison » sinon.
+
+« On va créer un autre stock "dépôt Dakar" [...] » — revu en cours de
+discussion : « une fois qu'on met en statut arrivé au dépôt à Dakar,
+tous les colis devraient être au dépôt à Dakar [...] c'est Mamadou
+Niass qui les délivre [...] ceux qui ne délivrent pas, c'est ceux qui
+restent. » Pas de déplacement manuel au final : nouvel écran « Dépôt
+Dakar » (case d'accueil ouverte à tout le monde) listant automatiquement
+tous les clients (Collecte/Dépôt direct/France confondus) dont le
+départ est en statut **Arrivé** et qui ont une livraison à Dakar.
+
+Décompte aligné sur l'article « Retrait des colis » des CGV (48h
+ouvrées, puis 5 €/jour de gardiennage, alerte à 60 jours), calculé
+depuis l'horodatage de l'étape « Arrivée au dépôt » du départ — déjà
+enregistré aujourd'hui (validation par Mamadou lui-même ou côté DCT),
+rien de neuf à saisir pour ça. Trois états avec code couleur : gris
+dans les 48h, orange avec le montant de gardiennage qui s'additionne
+jour après jour, rouge (fond de carte compris) passé 60 jours. Comme
+pour les frais de ramassage : le montant de gardiennage est calculé et
+affiché, jamais ajouté tout seul à la facture — c'est l'équipe qui
+décide de l'appliquer ou non au moment de régler.
+
+« Peut-être mettre un modal de confirmation quand il délivre au
+client ? » Fait : même principe que le reste de l'appli (jamais de
+`confirm()` natif pour une action qui ne se refait pas) — une fenêtre
+habillée « Confirmer la livraison à [nom] ? » avec la dernière photo de
+remise en aperçu, avant d'écrire définitivement la date et l'heure.
+
+« Une fois qu'il valide la livraison, l'écran revient dans le container
+[...] si il passe par le QR code, il revient dans l'espace QR code pour
+scanner un autre client [...] pareil si il passe par le scan de
+secours. » `fermerFiche()` (mamadou.html) lisait déjà `_ficheProvenance`
+pour savoir où revenir, mais la validation d'une livraison rouvrait la
+même fiche au lieu d'y renvoyer — corrigé. Au passage, la provenance du
+scan QR pointait vers l'accueil plutôt que vers le scanner lui-même : un
+client scanné puis délivré ramenait donc à l'accueil, pas prêt à
+scanner le suivant — `fermerFiche()` relance maintenant la caméra
+(`ouvrirScan()`) quand on revient sur l'écran de scan, que ce soit après
+une validation ou un simple retour.
+
+« Il aurait une case du dépôt de Dakar, la même que pour DCT, mais il
+reste dans son appli. » Nouvelle 4ᵉ case sur l'accueil de Mamadou
+(« Dépôt Dakar »), menant à une vue consolidée — dans le style propre à
+sa page, pas celui de DCT — de tous ses colis encore à livrer, tous
+containers arrivés confondus (hors Mali, comme partout ailleurs sur
+cette page) ; mêmes clients, même fiche, même bouton de livraison que
+depuis l'écran Containers, juste un autre chemin pour y arriver.
+
 ---
 
 ## 6 · Rapport financier
