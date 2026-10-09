@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.41';
+var DEP_VERSION = 'v2.20.43';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2784,6 +2784,14 @@ function injecterStyles(){
     +   'border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;'
     +   'color:var(--text2);cursor:pointer;white-space:nowrap;}'
     + '.dep-chip.on{border-color:var(--green);background:var(--green-light);color:var(--green-dark);}'
+    // v2.20.42 : filtre secondaire en menu déroulant plutôt qu'en
+    // pastilles — même principe que chez Mamadou (voir _cdRenderFiltres
+    // dans mamadou.html, v1.2.0 : « le système de filtre est plutôt
+    // chaotique, il y a trop d'informations »). Retour de Cobey du
+    // 09/10/2026 sur cet écran-ci.
+    + '.dep-select-filtre{width:auto;min-width:170px;padding:7px 10px;border-radius:20px;'
+    +   'border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;'
+    +   'color:var(--text2);cursor:pointer;margin-bottom:12px;}'
     // v1.19.72 : suivi transport (détail d'un départ, côté équipe) — rangée
     // de puces numérotées, défile horizontalement si besoin (5 étapes pour
     // le Mali sur petit écran).
@@ -5089,7 +5097,7 @@ function _depDepotCarreRenderListe(filtre){
         // voir depDetail/_depLienTelIcone) — retour de Cobey du 03/09/2026.
         +       _depLienTelIcone(c.tel)
         +     '</div>'
-        +     _depBadgeLivraison(c)
+        +     _depBadgeLivraison(c, ((window.departsData||{})[departId]||{}).statut === 'arrive')
         +   '</div>'
         // v1.20.11 : Facture/Photos remis ici — sans ça, un collaborateur
         // non-direction (Déplacer/Détacher restent réservés à Issyaka) n'a
@@ -8104,16 +8112,19 @@ window.depDetail = function(id, gardeFiltres){
     var chip = function(actif, label, onclick){
       return '<div class="dep-chip'+(actif?' on':'')+'" onclick="'+onclick+'">'+label+'</div>';
     };
+    var opt = function(val, label){
+      return '<option value="'+val+'"'+(_depFiltreLivraison===val?' selected':'')+'>'+label+'</option>';
+    };
     h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'
       + chip(_depFiltrePaye==='tous', 'Tous', "depFiltrerDetail('paye','tous')")
       + chip(_depFiltrePaye==='paye', '&#9989; Pay&eacute;s', "depFiltrerDetail('paye','paye')")
       + chip(_depFiltrePaye==='non_paye', '&#8987; Non pay&eacute;s', "depFiltrerDetail('paye','non_paye')")
       + '</div>'
-      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">'
-      + chip(_depFiltreLivraison==='tous', 'Tous', "depFiltrerDetail('livraison','tous')")
-      + chip(_depFiltreLivraison==='avec', '&#128666; Avec livraison', "depFiltrerDetail('livraison','avec')")
-      + chip(_depFiltreLivraison==='sans', '&#128205; Sans livraison', "depFiltrerDetail('livraison','sans')")
-      + '</div>';
+      + '<select class="dep-select-filtre" onchange="depFiltrerDetail(\'livraison\',this.value)">'
+      +   opt('tous', 'Livraison : toutes')
+      +   opt('avec', '&#128666; Avec livraison')
+      +   opt('sans', '&#128205; Sans livraison')
+      + '</select>';
   }
 
   var qDetail = String(_depDetailRecherche||'').trim().toLowerCase();
@@ -8224,7 +8235,7 @@ window.depDetail = function(id, gardeFiltres){
         +       '</span>'
         +     _depLienTelIcone(c.tel)
         +   '</div>'
-        +   _depBadgeLivraison(c)
+        +   _depBadgeLivraison(c, d.statut === 'arrive')
         +   '<div class="dep-cli-btns" style="margin-top:12px;">'
               + '<button class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
                 + (x.france
@@ -11400,7 +11411,7 @@ function depRenderFicheLecture(colId, clientId, depot, france){
                 + (c.destinataireTel ? ('<br>'+_depLienTel(c.destinataireTel, c.destinataireTel)) : '')
                 + (c.destinataireTel2 ? ('<br>'+_depLienTel(c.destinataireTel2, c.destinataireTel2)) : ''))
             + kv('Livraison', _depLivraisonLibelle(c) + '<br>' + ((c.prixLivraison||0)+'&nbsp;&euro;'))
-            + kv('Statut de livraison', _depBadgeLivraison(c)))
+            + kv('Statut de livraison', _depBadgeLivraison(c, ((window.departsData||{})[c.departId]||{}).statut === 'arrive')))
           : kv('Livraison', 'Retrait sur place'))
     + '</div>'
     // v1.19.57 : photos du colis + possibilité d'en reprendre une (retour
@@ -11917,7 +11928,17 @@ function _depEncaissePar(c){
 // DCT jusqu'ici. Même badge réutilisé partout où un client s'affiche
 // avec une livraison à Dakar : depDetail, _depDepotCarreRenderListe,
 // depRenderFicheLecture, et le nouveau Dépôt Dakar.
-function _depBadgeLivraison(c){
+// v2.20.42 (arrive) : le badge "⏳ En attente de livraison" s'affichait
+// pour tout client avec livraison à Dakar, même sur un container encore
+// en préparation ou en route — jamais arrivé au dépôt. Cobey : « j'ai
+// pas compris pourquoi, aucun container n'est arrivé au dépôt de Dakar,
+// c'est pas logique. » Le badge "en attente" (actionnable, c'est à
+// Mamadou de livrer) n'a de sens qu'une fois le container arrivé —
+// avant, l'étiquette "🚚 livraison" déjà affichée sur la ligne du
+// client suffit à annoncer l'intention. `arrive` = d.statut==='arrive'
+// (voir _depListeDepotDakar) du départ de ce client ; absent par
+// défaut (compat anciens appels), traité comme "pas encore arrivé".
+function _depBadgeLivraison(c, arrive){
   if(!c || !c.livraisonDakar) return '';
   var lv = c.livraisonValidee;
   if(lv && lv.fait){
@@ -11927,6 +11948,7 @@ function _depBadgeLivraison(c){
       + (lv.ts ? (' &middot; ' + esc(dateHeureFr(lv.ts))) : '') + '</div>'
       + (lv.par ? ('<div style="font-size:10.5px;color:#999;margin-bottom:4px;">par ' + esc(lv.par) + '</div>') : '');
   }
+  if(!arrive) return '';
   return '<div style="display:inline-flex;align-items:center;gap:6px;background:#FFF3E0;'
     + 'border:1.5px solid #F0C36D;border-radius:20px;padding:5px 11px;font-size:11.5px;'
     + 'font-weight:800;color:#8A5200;margin:6px 0;">&#9203; En attente de livraison</div>';

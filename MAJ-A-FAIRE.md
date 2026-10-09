@@ -2601,6 +2601,30 @@ INSCRIPTION AU DÉPÔT annonce la somme des clients des départs
 actuellement ouverts à l'inscription — le même total que l'écran
 affiche une fois ouvert.
 
+**Suite, le 09/10 (v2.20.42 / v3.95.12) — filtre "Livraison" de l'écran
+Départ, en menu déroulant.** Cobey, sur l'écran "Chargement DKR" :
+« Les filtre son mal présenté, je voudrai un truc plus propre [...] Les
+filtre de la partie de Mamadou Niass on l'a pas mal. » Même principe
+déjà appliqué chez Mamadou (`_cdRenderFiltres`, v1.2.0) : le filtre le
+plus consulté (Payé/Non payé) reste en pastilles, une seule ligne ; le
+filtre secondaire (Livraison) passe en petit menu déroulant au lieu
+d'une deuxième rangée de pastilles qui se chevauchait sur petit écran.
+
+**Suite, le 09/10 (v2.20.43 / v3.95.13) — badge "en attente de
+livraison" retiré avant l'arrivée du container.** Cobey, sur un
+container encore en préparation (pas même parti) : « Ya des client en
+attende de livraison j'ai pas compris pk, aucun container n'est arrivé
+au dépôt de Dakar, c'est pas logique. » Le badge orange "⏳ En attente
+de livraison" (`_depBadgeLivraison`) s'affichait pour tout client avec
+livraison à Dakar, dès son inscription — y compris sur un départ encore
+en préparation ou en route, bien avant que Mamadou n'ait quoi que ce
+soit à livrer. Corrigé : ce badge n'apparaît plus que si le départ est
+réellement arrivé au dépôt (`statut === 'arrive'`, même condition que
+_depListeDepotDakar/l'écran Dépôt Dakar) ; avant l'arrivée, l'étiquette
+"🚚 livraison" déjà affichée sur la ligne du client suffit à annoncer
+l'intention, sans faux sentiment d'urgence. Le badge vert "Délivré au
+client" reste affiché normalement dès qu'une livraison est validée.
+
 ---
 
 ## 6 · Rapport financier
