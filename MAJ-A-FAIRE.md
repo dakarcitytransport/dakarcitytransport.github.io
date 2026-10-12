@@ -2046,6 +2046,20 @@ passage à Prêt/Pas prêt, posée automatiquement à chaque tap — et
 effacée avec le statut au retour au neutre, pour ne jamais laisser une
 date sans rien à expliquer.
 
+**Suite, le 12/10 (v2.20.44 / v3.96.3) — le ramassage, sur la carte-
+chiffres tout en haut.** Un collaborateur (Ablaye Diallo), relayé par
+Cobey ("Vas-y") : « c'est possible de voir le montant de la ramasse
+cumulée France Europe ici ??? » — en désignant la carte "X CLIENTS EN
+COURS / Y € MONTANT" en haut de l'onglet Clients, visible sans rien
+sélectionner. Cette carte est injectée par departs.js par-dessus la
+ligne native de dct-app.html (elle lit le texte de son ".slabel" et le
+transforme en tuiles chiffrées, voir le patch sur `window.renderFrance`)
+— les deux fichiers ont donc été mis à jour ensemble : dct-app.html
+calcule désormais aussi le cumul ramassage de la liste visible (tous
+les clients affichés, pas seulement une sélection) et le marque pour
+que departs.js l'ajoute en 3e tuile turquoise "Ramassage", à côté de
+"Clients en cours" et "Montant" — masquée quand ce cumul est nul.
+
 ---
 
 ## 3 · Bug

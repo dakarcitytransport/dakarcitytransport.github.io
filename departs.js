@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.43';
+var DEP_VERSION = 'v2.20.44';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -17262,15 +17262,29 @@ function greffer(){
           if(!m) continue;
           var spans = el.querySelectorAll('span');
           var libTxt = spans[0] ? spans[0].textContent.split('·')[0].trim() : '';
-          var montantTxt = (spans[1] && /\d/.test(spans[1].textContent)) ? spans[1].textContent.trim() : '';
+          // v3.96.3 : le span du cumul ramassage porte data-fr-ram (posé
+          // côté dct-app.html) — on ne le confond donc jamais avec celui
+          // du montant total, qu'il soit présent ou non à côté de lui.
+          var ramSpan = el.querySelector('[data-fr-ram]');
+          var ramTxt = ramSpan ? ramSpan.textContent.trim() : '';
+          var montantTxt = '';
+          for(var si = 1; si < spans.length; si++){
+            if(spans[si] === ramSpan) continue;
+            if(/\d/.test(spans[si].textContent)){ montantTxt = spans[si].textContent.trim(); break; }
+          }
+          var nbCols = 1 + (montantTxt?1:0) + (ramTxt?1:0);
           var carte = document.createElement('div');
           carte.style.cssText = 'background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
-            + 'padding:14px;margin-bottom:12px;display:grid;grid-template-columns:'+(montantTxt?'1fr 1fr':'1fr')+';gap:8px;text-align:center;box-shadow:var(--shadow);';
+            + 'padding:14px;margin-bottom:12px;display:grid;grid-template-columns:repeat('+nbCols+',1fr);gap:8px;text-align:center;box-shadow:var(--shadow);';
           carte.innerHTML = '<div><div style="font-size:24px;font-weight:800;color:#1a237e;">'+esc(m[1])+'</div>'
             + '<div style="font-size:10.5px;color:var(--text3);font-weight:800;text-transform:uppercase;letter-spacing:.03em;">'+esc(libTxt || 'Clients')+'</div></div>'
             + (montantTxt
               ? ('<div><div style="font-size:24px;font-weight:800;color:#006b2d;">'+esc(montantTxt)+'</div>'
                  + '<div style="font-size:10.5px;color:var(--text3);font-weight:800;text-transform:uppercase;letter-spacing:.03em;">Montant</div></div>')
+              : '')
+            + (ramTxt
+              ? ('<div><div style="font-size:24px;font-weight:800;color:#00838F;">'+esc(ramTxt)+'</div>'
+                 + '<div style="font-size:10.5px;color:var(--text3);font-weight:800;text-transform:uppercase;letter-spacing:.03em;">Ramassage</div></div>')
               : '');
           el.parentNode.replaceChild(carte, el);
           break;
