@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.56';
+var DEP_VERSION = 'v2.20.57';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8296,7 +8296,14 @@ window.depDetail = function(id, gardeFiltres){
                 ? ('<button class="dep-cli-btn" style="'+(c.arriveeExpediteurPrevenu ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#FFF4E0;border-color:#E58A00;color:#A04800;')+'" '
                   + 'onclick="event.stopPropagation();depPrevenirArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
                   + (c.arriveeExpediteurPrevenu ? ('&#9989; Pr&eacute;venu &mdash; '+esc(_depDateHeureCourte(c.arriveeExpediteurPrevenu.ts))) : '&#128172; Pr&eacute;venir (arriv&eacute;)')
-                  + '</button>')
+                  + '</button>'
+                  // v2.20.57 — Cobey : « un bouton copier-coller au cas
+                  // où si le client n'a pas WhatsApp » — même bouton que
+                  // celui déjà en place pour le rappel de ramasse
+                  // (_depAjouterWhatsappCamion).
+                  + '<button class="dep-cli-btn" style="background:#1a237e;border-color:#1a237e;color:#fff;" '
+                  + 'onclick="event.stopPropagation();depCopierArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
+                  + '&#128203; Copier</button>')
                 : '')
             + '</div>'
         + '</div>';
@@ -9773,23 +9780,24 @@ function _depTexteMessageArriveeExpediteur(c){
     + 'Merci de votre confiance !\nL’équipe Dakar City Transport';
 }
 
-window.depPrevenirArriveeExpediteur = function(collecteId, clientId, depot, france){
-  var c = depot
+function _depClientArriveeExpediteur(collecteId, clientId, depot, france){
+  return depot
     ? (window.depotClients || {})[clientId]
     : (france
       ? ((window.franceData || {}).clients || {})[clientId]
       : ((window.clientsParCollecte || {})[collecteId] || {})[clientId]);
-  if(!c){ toast('⚠️ Client introuvable.'); return; }
-  var tel = _depTelIntlRelance(c.tel);
-  if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteMessageArriveeExpediteur(c)), '_blank');
-  // Aucune confirmation de lecture possible côté WhatsApp — on note donc
-  // que le message a été OUVERT (pas "envoyé"), avec qui et quand, comme
-  // demandé : « je veux aussi un historique des messages de notification
-  // pour ça voir qui a reçu le message ».
+}
+
+// v2.20.57 — Cobey : « un bouton copier-coller au cas où si le client
+// n'a pas WhatsApp, qu'on puisse copier-coller pour envoyer autre
+// part » — même raison que le bouton "Copier" déjà en place pour le
+// rappel de ramasse (_depAjouterWhatsappCamion/_depCopierTexteRelance).
+// Marquer "prévenu" ne dépend donc pas du CANAL utilisé (WhatsApp ou
+// copié-collé ailleurs) — un seul endroit pour ça, appelé par les deux.
+function _depMarquerArriveeExpediteurPrevenu(c, action, collecteId, clientId, depot, france){
   var u = window.currentUser || {};
   var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
-  hist.push({ q: u.name || u.id || '', a: 'a ouvert WhatsApp pour prévenir l’<strong>expéditeur</strong> de l’arrivée du container', ts: Date.now(), type: 'arrivee' });
+  hist.push({ q: u.name || u.id || '', a: action + ' pour prévenir l’<strong>expéditeur</strong> de l’arrivée du container', ts: Date.now(), type: 'arrivee' });
   c.hist = hist;
   // v2.20.53 — Cobey, 12/10/2026 : « je veux que quand un collaborateur
   // clique sur prévenir, qu'il y ait un changement sur le bouton. Comme
@@ -9806,6 +9814,26 @@ window.depPrevenirArriveeExpediteur = function(collecteId, clientId, depot, fran
   if($('s-depart-detail') && $('s-depart-detail').classList.contains('active') && _depDetailId){
     depDetail(_depDetailId, true);
   }
+}
+
+window.depPrevenirArriveeExpediteur = function(collecteId, clientId, depot, france){
+  var c = _depClientArriveeExpediteur(collecteId, clientId, depot, france);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  var tel = _depTelIntlRelance(c.tel);
+  if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteMessageArriveeExpediteur(c)), '_blank');
+  // Aucune confirmation de lecture possible côté WhatsApp — on note donc
+  // que le message a été OUVERT (pas "envoyé"), avec qui et quand, comme
+  // demandé : « je veux aussi un historique des messages de notification
+  // pour ça voir qui a reçu le message ».
+  _depMarquerArriveeExpediteurPrevenu(c, 'a ouvert WhatsApp', collecteId, clientId, depot, france);
+};
+
+window.depCopierArriveeExpediteur = function(collecteId, clientId, depot, france){
+  var c = _depClientArriveeExpediteur(collecteId, clientId, depot, france);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  _depCopierTexteRelance(_depTexteMessageArriveeExpediteur(c));
+  _depMarquerArriveeExpediteurPrevenu(c, 'a copié le message', collecteId, clientId, depot, france);
 };
 
 // v2.20.56 — Cobey, 12/10/2026 : « ajouter un bouton de relance pour
@@ -9820,11 +9848,18 @@ window.depPrevenirArriveeExpediteur = function(collecteId, clientId, depot, fran
 // propre caisse), texte adapté à laquelle des deux.
 function _depTexteRelancePaiement(c, d, p, estLiv){
   var prenom = (c.prenom || c.name || '').trim() || 'bonjour';
-  var nomContainer = (d && d.nom) || 'notre container';
+  // v2.20.57 — Cobey : « modifie le message [...] au lieu de "Chargement
+  // DKR", tu dis "votre container France-Sénégal arrive bientôt" » — le
+  // nom interne du container (ex. "Chargement DKR") ne veut rien dire
+  // pour un client ; le trajet, oui. "Arrivé" veut dire Bamako pour un
+  // container Mali, pas Dakar (même distinction que depStatutLabel).
+  var pays = depPaysDepart(d);
+  var trajet = 'France-' + (DEP_PAYS_NOM_PLAIN[pays] || 'Sénégal');
+  var ville = (pays === 'ML') ? 'Bamako' : 'Dakar';
   var arrive = !!(d && d.statut === 'arrive');
   var intro = arrive
-    ? ('📦 Le container ' + nomContainer + ' est arrivé à Dakar.')
-    : ('📦 Le container ' + nomContainer + ' arrive bientôt à Dakar.');
+    ? ('📦 Votre container ' + trajet + ' est arrivé à ' + ville + '.')
+    : ('📦 Votre container ' + trajet + ' arrive bientôt à ' + ville + '.');
   var demande = estLiv
     ? ('Pour que nous puissions vous livrer votre colis, merci de bien vouloir régler le solde restant de '
        + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison' + (arrive ? '.' : ', avant l’arrivée.'))
@@ -9836,29 +9871,23 @@ function _depTexteRelancePaiement(c, d, p, estLiv){
     + 'Merci de votre confiance !\nL’équipe Dakar City Transport';
 }
 
-// Appelé depuis l'écran "qui doit" (depRapfinContainer, voir
-// restants.forEach) — src/colId/clientId comme depRapfinOuvrirFacture,
-// estLiv pour savoir laquelle des deux caisses (colis/livraison) est
-// concernée, et donc quel calcul de reste et quel champ dédié utiliser.
-window.depRelancerPaiement = function(src, colId, clientId, estLiv){
-  var id = _depRapfinId;
-  var d = (window.departsData || {})[id];
-  var c = src === 'depot'
+function _depClientRelancePaiement(src, colId, clientId){
+  return src === 'depot'
     ? (window.depotClients || {})[clientId]
     : (src === 'france'
       ? ((window.franceData || {}).clients || {})[clientId]
       : ((window.clientsParCollecte || {})[colId] || {})[clientId]);
-  if(!c){ toast('⚠️ Client introuvable.'); return; }
-  var p = estLiv ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
-  var tel = _depTelIntlRelance(c.tel);
-  if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteRelancePaiement(c, d, p, estLiv)), '_blank');
+}
+
+// Même raison que _depMarquerArriveeExpediteurPrevenu : marquer
+// "relancé" ne dépend pas du canal (WhatsApp ou copié-collé ailleurs).
+function _depMarquerRelancePaiement(c, p, action, src, colId, clientId, estLiv){
   var u = window.currentUser || {};
   var champ = estLiv ? 'relancePaiementLivraison' : 'relancePaiementColis';
   var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
   hist.push({
     q: u.name || u.id || '',
-    a: 'a ouvert WhatsApp pour relancer le paiement ' + (estLiv ? 'de la <strong>livraison</strong>' : 'du <strong>colis</strong>') + ' (reste ' + p.reste + ' €)',
+    a: action + ' pour relancer le paiement ' + (estLiv ? 'de la <strong>livraison</strong>' : 'du <strong>colis</strong>') + ' (reste ' + p.reste + ' €)',
     ts: Date.now(), type: 'relance'
   });
   c.hist = hist;
@@ -9867,9 +9896,37 @@ window.depRelancerPaiement = function(src, colId, clientId, estLiv){
   maj[champ] = c[champ];
   _depEcrireFacture({ depot: src === 'depot', france: src === 'france', collecteId: colId || '', clientId: clientId }, maj);
   // Rafraîchit tout de suite le bouton, comme depPrevenirArriveeExpediteur.
+  var id = _depRapfinId;
   if($('s-rapfin-container') && $('s-rapfin-container').classList.contains('active') && id){
     depRapfinContainer(id);
   }
+}
+
+// Appelé depuis l'écran "qui doit" (depRapfinContainer, voir
+// restants.forEach) — src/colId/clientId comme depRapfinOuvrirFacture,
+// estLiv pour savoir laquelle des deux caisses (colis/livraison) est
+// concernée, et donc quel calcul de reste et quel champ dédié utiliser.
+window.depRelancerPaiement = function(src, colId, clientId, estLiv){
+  var d = (window.departsData || {})[_depRapfinId];
+  var c = _depClientRelancePaiement(src, colId, clientId);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  var p = estLiv ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
+  var tel = _depTelIntlRelance(c.tel);
+  if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteRelancePaiement(c, d, p, estLiv)), '_blank');
+  _depMarquerRelancePaiement(c, p, 'a ouvert WhatsApp', src, colId, clientId, estLiv);
+};
+
+// v2.20.57 — Cobey : « un bouton copier-coller au cas où si le client
+// n'a pas WhatsApp, qu'on puisse copier-coller pour envoyer autre
+// part. »
+window.depCopierRelancePaiement = function(src, colId, clientId, estLiv){
+  var d = (window.departsData || {})[_depRapfinId];
+  var c = _depClientRelancePaiement(src, colId, clientId);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  var p = estLiv ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
+  _depCopierTexteRelance(_depTexteRelancePaiement(c, d, p, estLiv));
+  _depMarquerRelancePaiement(c, p, 'a copié le message', src, colId, clientId, estLiv);
 };
 
 window.depCopierMessageWhatsapp = function(){
@@ -21081,7 +21138,12 @@ window.depRapfinContainer = function(id){
               ? ('<button class="dep-cli-btn" style="'+(dejaRelance ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#FFF4E0;border-color:#E58A00;color:#A04800;')+'" '
                 + 'onclick="event.stopPropagation();depRelancerPaiement(\''+x.src+'\',\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(estLiv?'true':'false')+')">'
                 + (dejaRelance ? ('&#9989; Relanc&eacute; &mdash; '+esc(_depDateHeureCourte(dejaRelance.ts))) : '&#128172; Relancer le paiement')
-                + '</button>')
+                + '</button>'
+                // v2.20.57 — Cobey : « un bouton copier-coller au cas où
+                // si le client n'a pas WhatsApp. »
+                + '<button class="dep-cli-btn" style="background:#1a237e;border-color:#1a237e;color:#fff;" '
+                + 'onclick="event.stopPropagation();depCopierRelancePaiement(\''+x.src+'\',\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(estLiv?'true':'false')+')">'
+                + '&#128203; Copier</button>')
               : '')
         +   '</div>'
         + '</div>';

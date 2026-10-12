@@ -90,8 +90,13 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    — même code couleur que .cli-liv-reste (orange, pas encore fait) /
    .cli-liv-soldee (vert, fait) juste au-dessus, pour rester cohérent et
    lisible d'un coup d'œil en défilant la liste. */
-.cli-btn-whatsapp{display:block;width:100%;margin-top:9px;padding:8px;background:#E58A00;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.cli-btn-row{display:flex;gap:8px;margin-top:9px;}
+.cli-btn-whatsapp{flex:1;padding:8px;background:#E58A00;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);}
 .cli-btn-whatsapp-fait{background:#D4F0E0;color:#006b2d;}
+/* v1.12.0 — bouton "Copier" à côté du bouton WhatsApp, même raison que
+   le bouton Copier déjà en place côté departs.js : certains clients
+   n'ont pas WhatsApp. */
+.cli-btn-copier{flex:1;padding:8px;background:#1a237e;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);}
 .vide{text-align:center;color:#aaa;padding:30px 10px;font-size:13px;}
 
 /* Fiche */
@@ -432,7 +437,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.11.0';
+var MAMADOU_VERSION = 'v1.12.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1138,21 +1143,44 @@ function _mnTexteArriveeDestinataire(c){
     + 'Merci,\nDakar City Transport';
 }
 
-// v1.8.0 — un clic ouvre WhatsApp (comme partout ailleurs dans
-// l'application, aucune confirmation de lecture possible côté WhatsApp)
-// et note tout de suite dans l'historique du client QUI a ouvert ce
-// message et QUAND — Cobey : « je veux aussi un historique des messages
-// de notification pour ça voir qui a reçu le message ».
-function mnPrevenirDestinataire(src, collecteId, clientId){
+// v1.12.0 — Cobey : « un bouton copier-coller au cas où si le client
+// n'a pas WhatsApp, qu'on puisse copier-coller pour envoyer autre
+// part. » Pas d'équivalent de clipboard dans ce fichier jusqu'ici
+// (lecture seule, aucun message à copier avant) — même mécanisme à
+// deux niveaux que departs.js (_depCopierTexteRelance) : l'API
+// Clipboard moderne, puis un repli manuel (textarea invisible +
+// execCommand) si elle n'est pas disponible.
+function _mnCopierTexte(msg){
+  var repliManuel = function(){
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = msg;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if(ok) alert('📋 Message copié'); else alert('⚠️ Copie impossible — sélectionnez le message manuellement.');
+    }catch(e){ alert('⚠️ Copie impossible — sélectionnez le message manuellement.'); }
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(msg).then(function(){ alert('📋 Message copié'); }).catch(repliManuel);
+  } else {
+    repliManuel();
+  }
+}
+
+function _mnClientPrevenirDestinataire(src, collecteId, clientId){
   var ref = { src: src, collecteId: collecteId||'', clientId: clientId };
-  var c = clientActuel(ref);
-  if(!c){ alert('Client introuvable.'); return; }
-  var d = departsData[_cdDepartId] || {};
-  var tel = _mnTelIntlDestinataire(c.destinataireTel, depPaysDepart(d));
-  if(!tel){ alert('Numéro du destinataire manquant.'); return; }
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_mnTexteArriveeDestinataire(c)), '_blank');
+  return { ref: ref, c: clientActuel(ref) };
+}
+
+// Même raison que côté departs.js : marquer "prévenu" ne dépend pas du
+// canal (WhatsApp ou copié-collé ailleurs) — un seul endroit pour ça.
+function _mnMarquerDestinatairePrevenu(c, ref, action){
   var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
-  hist.push({ q: ACTEUR_NOM, a: 'a ouvert WhatsApp pour prévenir le <strong>destinataire</strong> de l\'arrivée du container', ts: Date.now(), type: 'arrivee' });
+  hist.push({ q: ACTEUR_NOM, a: action + ' pour prévenir le <strong>destinataire</strong> de l\'arrivée du container', ts: Date.now(), type: 'arrivee' });
   c.hist = hist;
   // v1.9.0 — Cobey : « quand un collaborateur clique sur prévenir, qu'il
   // y ait un changement sur le bouton [...] un autre collaborateur voit
@@ -1165,6 +1193,28 @@ function mnPrevenirDestinataire(src, collecteId, clientId){
   });
   // Rafraîchit tout de suite le bouton de CE client sur l'écran encore ouvert.
   cdAppliquerFiltres();
+}
+
+// v1.8.0 — un clic ouvre WhatsApp (comme partout ailleurs dans
+// l'application, aucune confirmation de lecture possible côté WhatsApp)
+// et note tout de suite dans l'historique du client QUI a ouvert ce
+// message et QUAND — Cobey : « je veux aussi un historique des messages
+// de notification pour ça voir qui a reçu le message ».
+function mnPrevenirDestinataire(src, collecteId, clientId){
+  var r = _mnClientPrevenirDestinataire(src, collecteId, clientId), c = r.c;
+  if(!c){ alert('Client introuvable.'); return; }
+  var d = departsData[_cdDepartId] || {};
+  var tel = _mnTelIntlDestinataire(c.destinataireTel, depPaysDepart(d));
+  if(!tel){ alert('Numéro du destinataire manquant.'); return; }
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_mnTexteArriveeDestinataire(c)), '_blank');
+  _mnMarquerDestinatairePrevenu(c, r.ref, 'a ouvert WhatsApp');
+}
+
+function mnCopierMessageDestinataire(src, collecteId, clientId){
+  var r = _mnClientPrevenirDestinataire(src, collecteId, clientId), c = r.c;
+  if(!c){ alert('Client introuvable.'); return; }
+  _mnCopierTexte(_mnTexteArriveeDestinataire(c));
+  _mnMarquerDestinatairePrevenu(c, r.ref, 'a copié le message');
 }
 
 // v1.2.0 — Cobey : « le système de filtre est plutôt chaotique, il y a
@@ -1270,8 +1320,13 @@ function cdAppliquerFiltres(){
       // ajoutée directement dans le bouton, même esprit que _mnDateHeure
       // sur le badge "Délivré au client".
       +   (dejaArrivee
-            ? ('<button type="button" class="cli-btn-whatsapp'+(c.arriveeDestinataireNotifie?' cli-btn-whatsapp-fait':'')+'" onclick="event.stopPropagation();mnPrevenirDestinataire(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">'
-              +(c.arriveeDestinataireNotifie?('✅ Destinataire prévenu — '+esc(_mnDateHeureCourte(c.arriveeDestinataireNotifie.ts))):'💬 Prévenir le destinataire (arrivé)')+'</button>')
+            ? ('<div class="cli-btn-row">'
+              + '<button type="button" class="cli-btn-whatsapp'+(c.arriveeDestinataireNotifie?' cli-btn-whatsapp-fait':'')+'" onclick="event.stopPropagation();mnPrevenirDestinataire(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">'
+              +(c.arriveeDestinataireNotifie?('✅ Destinataire prévenu — '+esc(_mnDateHeureCourte(c.arriveeDestinataireNotifie.ts))):'💬 Prévenir le destinataire (arrivé)')+'</button>'
+              // v1.12.0 — Cobey : « un bouton copier-coller au cas où si
+              // le client n'a pas WhatsApp. »
+              + '<button type="button" class="cli-btn-copier" onclick="event.stopPropagation();mnCopierMessageDestinataire(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">&#128203; Copier</button>'
+              + '</div>')
             : '')
       + '</div>';
   });

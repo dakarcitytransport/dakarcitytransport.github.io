@@ -598,6 +598,37 @@ selon `d.statut === 'arrive'` :
   livraison » — au lieu de "récupérer votre colis", puisque justement
   il n'y a rien à venir récupérer soi-même.
 
+**Suite, le 12/10 (v2.20.57 / v1.12.0 Mamadou) — un bouton « Copier » à
+côté de chaque WhatsApp.** Cobey : « à côté de chaque case qu'on a
+faite pour les nouveaux boutons WhatsApp [...] que ce soit pour les
+relances ou pour prévenir de l'arrivée du conteneur, il faut mettre un
+bouton copier-coller au cas où si le client n'a pas WhatsApp, qu'on
+puisse copier-coller pour envoyer autre part. » Même raison et même
+mécanisme que le bouton « 📋 Copier » déjà en place pour le rappel de
+ramasse (`_depAjouterWhatsappCamion`/`_depCopierTexteRelance`) —
+repris tel quel côté departs.js, et construit pour la première fois
+côté mamadou.html (`_mnCopierTexte`), qui n'avait jusque-là jamais
+rien à copier.
+
+Posé à côté des 3 boutons WhatsApp de ce chantier : « Prévenir
+(arrivé) » (DCT), « Prévenir le destinataire » (Mamadou), et
+« Relancer le paiement » (colis et livraison). Marquer "prévenu" /
+"relancé" (couleur + date) ne dépend donc plus du canal utilisé — un
+message copié-collé pour un envoi par SMS compte tout autant qu'un
+message ouvert dans WhatsApp, l'historique le précise (« a copié le
+message » au lieu de « a ouvert WhatsApp »).
+
+**Au passage (même demande, 12/10) — le message de relance paiement ne
+nomme plus le container.** Cobey : « modifie le message pour les
+relances, au lieu de "Chargement DKR", tu dis "votre container
+France-Sénégal arrive bientôt". » Le nom interne du container (ex.
+"Chargement DKR", visible seulement en interne) ne veut rien dire pour
+un client — remplacé par le trajet, déduit du pays du départ :
+France-Sénégal ou France-Mali. Au passage, « arrivé » redevient Bamako
+pour un container Mali plutôt que Dakar — même distinction déjà faite
+ailleurs dans l'appli (`depStatutLabel`), reprise ici pour rester
+cohérent.
+
 ### Notification : diagnostiquer soi-même « j'ai envoyé mais rien reçu »
 **Fait le 04/10 (v2.20.26).** Eric, capture d'écran de l'écran
 Notification à l'appui : « j'ai envoyé une notif mais j'ai rien reçu ».
