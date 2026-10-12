@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.52';
+var DEP_VERSION = 'v2.20.53';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8274,9 +8274,17 @@ window.depDetail = function(id, gardeFiltres){
               // v2.20.52 — n'a de sens qu'une fois le container réellement
               // arrivé (même condition que le badge "en attente de
               // livraison" juste au-dessus, _depBadgeLivraison).
+              // v2.20.53 — Cobey : « quand un collaborateur clique sur
+              // prévenir, qu'il y ait un changement sur le bouton [...]
+              // un autre collaborateur voit ceux qui ont été prévenus ou
+              // pas en défilant sur les clients. » Reste cliquable après
+              // (une relance reste possible), juste une couleur/un texte
+              // différents pour le distinguer d'un coup d'œil.
               + (d.statut === 'arrive'
-                ? '<button class="dep-cli-btn" style="background:#E7F9EE;border-color:#25D366;color:#128C4A;" '
-                  + 'onclick="event.stopPropagation();depPrevenirArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">&#128172; Pr&eacute;venir (arriv&eacute;)</button>'
+                ? ('<button class="dep-cli-btn" style="'+(c.arriveeExpediteurPrevenu ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#E7F9EE;border-color:#25D366;color:#128C4A;')+'" '
+                  + 'onclick="event.stopPropagation();depPrevenirArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
+                  + (c.arriveeExpediteurPrevenu ? '&#9989; Pr&eacute;venu' : '&#128172; Pr&eacute;venir (arriv&eacute;)')
+                  + '</button>')
                 : '')
             + '</div>'
         + '</div>';
@@ -9771,7 +9779,21 @@ window.depPrevenirArriveeExpediteur = function(collecteId, clientId, depot, fran
   var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
   hist.push({ q: u.name || u.id || '', a: 'a ouvert WhatsApp pour prévenir l’<strong>expéditeur</strong> de l’arrivée du container', ts: Date.now(), type: 'arrivee' });
   c.hist = hist;
-  _depEcrireFacture({ depot: depot, france: france, collecteId: collecteId || '', clientId: clientId }, { hist: hist });
+  // v2.20.53 — Cobey, 12/10/2026 : « je veux que quand un collaborateur
+  // clique sur prévenir, qu'il y ait un changement sur le bouton. Comme
+  // ça, un autre collaborateur [...] voit ceux qui ont été prévenus ou
+  // pas en défilant sur les clients. » Champ dédié (plutôt que de relire
+  // hist[] à chaque rendu de la liste) : plus simple et plus rapide à
+  // vérifier pour CHAQUE client affiché. Reste cliquable une fois
+  // prévenu — un collaborateur peut vouloir relancer.
+  c.arriveeExpediteurPrevenu = { ts: Date.now(), par: u.name || u.id || '' };
+  _depEcrireFacture({ depot: depot, france: france, collecteId: collecteId || '', clientId: clientId },
+    { hist: hist, arriveeExpediteurPrevenu: c.arriveeExpediteurPrevenu });
+  // Rafraîchit tout de suite le bouton de CE client sur l'écran encore
+  // ouvert — sans ça, il faudrait rouvrir l'écran pour voir le changement.
+  if($('s-depart-detail') && $('s-depart-detail').classList.contains('active') && _depDetailId){
+    depDetail(_depDetailId, true);
+  }
 };
 
 window.depCopierMessageWhatsapp = function(){

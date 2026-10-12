@@ -512,10 +512,7 @@ aucune confirmation de lecture ni d'envoi réel une fois la conversation
 ouverte — chaque clic note donc dans la fiche du client QUI a ouvert le
 message et QUAND (`c.hist`, type `arrivee`, déjà consultable dans le
 Suivi de la fiche), avec la mention explicite « expéditeur » ou
-« destinataire » selon le bouton, pour les distinguer. Pas de registre
-séparé par container pour l'instant — l'historique de chaque client
-suffit à voir qui a été prévenu ou non en ouvrant sa fiche ; à revoir si
-Cobey veut une vue d'ensemble par container plus tard.
+« destinataire » selon le bouton, pour les distinguer.
 
 Message à l'expéditeur : « 📦 Votre container est bien arrivé à Dakar !
 Vous pouvez prévenir votre contact sur place pour qu'il vienne
@@ -523,6 +520,25 @@ récupérer son colis. » Message au destinataire (direct, avec l'adresse
 du dépôt) : « 📦 Le colis envoyé par [expéditeur] est bien arrivé à
 notre dépôt de Dakar (Parcelle Assainie, Unité 8). Vous pouvez venir le
 récupérer. »
+
+**Suite, le 12/10 (v2.20.53 / v1.9.0 Mamadou) — le bouton change
+d'état.** Cobey, après avoir vu que l'historique n'était visible que
+dans la fiche d'un client à la fois : « je veux que quand un
+collaborateur clique sur prévenir, bah, qu'il y ait un changement sur
+le bouton. Comme ça, un autre collaborateur, s'il ouvre l'application,
+lui, il voit ceux qui ont été prévenus ou pas en défilant sur les
+clients. » Pas de registre séparé par container, donc : directement le
+bouton, dans la liste des clients déjà sous les yeux. Une fois cliqué
+(un champ dédié, posé à côté de `hist` pour que chaque carte de la
+liste n'ait qu'un champ à vérifier, pas tout l'historique à relire) :
+- Côté DCT : « 💬 Prévenir (arrivé) » devient « ✅ Prévenu » (vert).
+- Côté Mamadou : « 💬 Prévenir le destinataire (arrivé) » devient
+  « ✅ Destinataire prévenu » (vert).
+Le bouton reste cliquable après — une relance reste possible, pour le
+cas où le client n'aurait pas vu le premier message. Le changement est
+immédiat, sans recharger l'écran : toute l'équipe le voit à sa
+prochaine ouverture, puisque c'est enregistré sur la fiche du client
+dans Firebase, pas seulement affiché localement.
 
 ### Notification : diagnostiquer soi-même « j'ai envoyé mais rien reçu »
 **Fait le 04/10 (v2.20.26).** Eric, capture d'écran de l'écran

@@ -86,6 +86,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .cli-liv-reste{background:#FFF4E0;color:#a04800;}
 .cli-liv-soldee{background:#D4F0E0;color:#006b2d;}
 .cli-btn-whatsapp{display:block;width:100%;margin-top:9px;padding:8px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.cli-btn-whatsapp-fait{background:#D4F0E0;color:#006b2d;}
 .vide{text-align:center;color:#aaa;padding:30px 10px;font-size:13px;}
 
 /* Fiche */
@@ -426,7 +427,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.8.0';
+var MAMADOU_VERSION = 'v1.9.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1136,9 +1137,17 @@ function mnPrevenirDestinataire(src, collecteId, clientId){
   var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
   hist.push({ q: ACTEUR_NOM, a: 'a ouvert WhatsApp pour prévenir le <strong>destinataire</strong> de l\'arrivée du container', ts: Date.now(), type: 'arrivee' });
   c.hist = hist;
-  ecrireClient(ref, { hist: hist }).catch(function(e){
+  // v1.9.0 — Cobey : « quand un collaborateur clique sur prévenir, qu'il
+  // y ait un changement sur le bouton [...] un autre collaborateur voit
+  // ceux qui ont été prévenus ou pas en défilant sur les clients. »
+  // Champ dédié (plutôt que de relire hist[] à chaque rendu de la liste),
+  // reste cliquable après — une relance reste possible.
+  c.arriveeDestinataireNotifie = { ts: Date.now(), par: ACTEUR_NOM };
+  ecrireClient(ref, { hist: hist, arriveeDestinataireNotifie: c.arriveeDestinataireNotifie }).catch(function(e){
     console.error('mamadou: échec enregistrement historique (prévenir destinataire)', e);
   });
+  // Rafraîchit tout de suite le bouton de CE client sur l'écran encore ouvert.
+  cdAppliquerFiltres();
 }
 
 // v1.2.0 — Cobey : « le système de filtre est plutôt chaotique, il y a
@@ -1236,8 +1245,13 @@ function cdAppliquerFiltres(){
             ? ('<div class="cli-reste">Reste à payer : '+pay.reste+' €</div>')
             : '<div class="cli-paye">✅ Soldé</div>')
       +   liv
+      // v1.9.0 — Cobey : « qu'il y ait un changement sur le bouton [...]
+      // un autre collaborateur voit ceux qui ont été prévenus ou pas en
+      // défilant sur les clients. » Reste cliquable après (relance
+      // possible), juste une couleur/un texte différents.
       +   (dejaArrivee
-            ? ('<button type="button" class="cli-btn-whatsapp" onclick="event.stopPropagation();mnPrevenirDestinataire(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">💬 Prévenir le destinataire (arrivé)</button>')
+            ? ('<button type="button" class="cli-btn-whatsapp'+(c.arriveeDestinataireNotifie?' cli-btn-whatsapp-fait':'')+'" onclick="event.stopPropagation();mnPrevenirDestinataire(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">'
+              +(c.arriveeDestinataireNotifie?'✅ Destinataire prévenu':'💬 Prévenir le destinataire (arrivé)')+'</button>')
             : '')
       + '</div>';
   });
