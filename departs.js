@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.45';
+var DEP_VERSION = 'v2.20.46';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -772,6 +772,18 @@ function _depClientFacture(ctx){
 }
 // Écrit des champs sur la fiche du client au centre de l'écran facture,
 // quelle que soit sa source — même centralisation que ci-dessus.
+// v2.20.46 — CORRECTIF : les branches France et Dépôt n'avaient aucun
+// .catch() — un échec d'écriture (réseau coupé en tournée, le cas le
+// plus fréquent sur le terrain) ne déclenchait alors RIEN : pas d'erreur
+// dans la console, pas de toast, rien. Le champ modifié restait
+// correct à l'écran (déjà mis à jour en mémoire par l'appelant) jusqu'à
+// ce que la fiche se recharge depuis Firebase — à ce moment-là, la
+// modification avait disparu, sans que personne n'ait jamais vu
+// d'erreur. Signalé par plusieurs collaborateurs (dont Aminata) le
+// 12/10/2026 : "on appuie enregistrer, [...] quand on revient sur le
+// client, il ne s'enregistre pas [...] il n'y a pas de message
+// d'erreur" — correspond exactement à ce trou. Même toast que la
+// branche Collecte, déjà correcte, pour les 3 sources désormais.
 function _depEcrireFacture(ctx, champs){
   if(!ctx) return;
   // v1.19.64 : même protection que _depEcrireClient — Firebase (update)
@@ -782,21 +794,24 @@ function _depEcrireFacture(ctx, champs){
   Object.keys(champs || {}).forEach(function(k){
     champsSurs[k] = (champs[k] === undefined) ? null : champs[k];
   });
+  var echec = function(source){ return function(e){
+    console.error('departs: échec écriture facture (' + source + ')', e);
+    toast('❌ Échec de l\'enregistrement, réessayez.');
+  }; };
   if(ctx.france){
     if(window.db && window.firebaseReady){
       var majF = {};
       Object.keys(champsSurs).forEach(function(k){ majF['clients/'+ctx.clientId+'/'+k] = champsSurs[k]; });
-      db.ref('france').update(majF);
+      db.ref('france').update(majF).catch(echec('france'));
     }
     return;
   }
   if(ctx.depot){
-    if(window.db && window.firebaseReady) db.ref('dct_depot/'+ctx.clientId).update(champsSurs);
+    if(window.db && window.firebaseReady) db.ref('dct_depot/'+ctx.clientId).update(champsSurs).catch(echec('dépôt'));
     return;
   }
   if(window.db && window.firebaseReady){
-    db.ref('dct/clients/'+ctx.collecteId+'/'+ctx.clientId).update(champsSurs)
-      .catch(function(e){ console.error('departs: échec écriture facture', e); toast('❌ Échec de l\'enregistrement, réessayez.'); });
+    db.ref('dct/clients/'+ctx.collecteId+'/'+ctx.clientId).update(champsSurs).catch(echec('collecte'));
   }
   try{ sauvegarder(); }catch(e){}
 }
@@ -10237,8 +10252,11 @@ function _depEcrireClient(ctx, champs){
     champsSurs[k] = (champs[k] === undefined) ? null : champs[k];
   });
   if(ctx.depot){
+    // v2.20.46 : le catch existait déjà mais ne prévenait jamais le
+    // collaborateur (juste un console.error) — même trou que
+    // _depEcrireFacture, voir son commentaire.
     db.ref('dct_depot/'+ctx.clientId).update(champsSurs)
-      .catch(function(e){ console.error('departs: échec écriture client (dépôt)', e); });
+      .catch(function(e){ console.error('departs: échec écriture client (dépôt)', e); toast('❌ Échec de l\'enregistrement, réessayez.'); });
   } else {
     db.ref('dct/clients/'+ctx.collecteId+'/'+ctx.clientId).update(champsSurs)
       .catch(function(e){ console.error('departs: échec écriture client (collecte)', e); toast('❌ Échec de l\'enregistrement, réessayez.'); });

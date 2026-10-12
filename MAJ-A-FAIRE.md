@@ -2078,6 +2078,34 @@ que departs.js l'ajoute en 3e tuile turquoise "Ramassage", à côté de
 
 ## 3 · Bug
 
+- ~~Des modifications sur une fiche client (montant, information) qui
+  avaient l'air d'être enregistrées, mais disparaissaient en revenant
+  sur le client — sans aucun message d'erreur.~~ **Réglé le 12/10
+  (v2.20.46).** Plusieurs collaborateurs (dont Aminata) ont fait le même
+  retour : « on met un montant ou une information sur un client, on
+  appuie enregistrer, quand on revient sur le client, il ne s'enregistre
+  pas [...] il n'y a pas de message d'erreur. »
+
+  Trouvé en lisant le code plutôt qu'en devinant : `_depEcrireFacture`
+  (les branches France et Dépôt direct — versements, fiche, etc.) et
+  `_depEcrireClient` (branche Dépôt direct) n'avaient tout simplement
+  **aucun `.catch()` visible** sur leur écriture Firebase — contrairement
+  à la branche Collecte, déjà correcte. Un échec d'écriture (le cas le
+  plus probable sur le terrain : réseau coupé pendant une tournée) ne
+  déclenchait donc RIEN — ni erreur dans la console, ni toast. Le champ
+  modifié restait juste à l'écran (déjà mis à jour en mémoire par celui
+  qui vient de taper), jusqu'à ce que la fiche se recharge depuis
+  Firebase — à ce moment-là seulement, la modification avait disparu,
+  sans que personne n'ait jamais vu d'erreur pour comprendre pourquoi.
+  Correspond exactement au symptôme décrit.
+
+  Corrigé : les 3 branches (France, Dépôt, Collecte) affichent
+  désormais le même toast rouge « ❌ Échec de l'enregistrement,
+  réessayez. » en cas d'échec. Ça ne rend pas la connexion plus fiable
+  sur le terrain, mais ça rend l'échec visible — un collaborateur qui
+  voit ce message sait qu'il doit refaire sa saisie, au lieu de croire
+  (à tort) que c'est enregistré.
+
 - ~~Un prix confirmé à la validation d'une **collecte du dimanche**
   pouvait s'enregistrer à 0 € malgré lui, et rester ensuite impossible
   à corriger.~~ **Réglé le 02/10 (v2.19.0).** Cobey, après une première
