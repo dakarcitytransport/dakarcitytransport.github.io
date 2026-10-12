@@ -2150,6 +2150,24 @@ porte désormais une ligne « Calculé le JJ/MM/AAAA à HHhMM · N clients
 pris en compte » : de quoi voir d'un coup d'œil si le dernier calcul
 a bien eu lieu après la dernière modification, sans avoir à deviner.
 
+### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
+**Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
+« il faudrait remettre les noms des collaborateurs en présélection.
+Parce que comme ça pourrait être pratique pour les statistiques plus
+tard. » Le champ "Conducteur" n'était qu'un texte libre ("Moussa — ou
+un chauffeur externe") — un nom mal tapé, ou tapé différemment d'une
+fois sur l'autre, rend impossible tout regroupement futur par
+collaborateur.
+
+Reprend telle quelle la présélection déjà en place côté Collecte
+(`addTruck`) : une pastille par collaborateur actif (admin et
+désactivés exclus), cliquable, qui remplit le champ — plusieurs
+pastilles se cumulent avec "+" (ex. "Samba + Issyaka", pour un camion à
+deux). "+ Autre" ouvre une petite fenêtre à part pour un chauffeur
+extérieur, qui vient s'ajouter au champ de la même façon. Le texte
+reste modifiable à la main si besoin — la présélection est un raccourci,
+pas une obligation.
+
 ---
 
 ## 3 · Bug

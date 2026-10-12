@@ -1747,7 +1747,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.97.3';
+var APP_VERSION = 'v3.97.4';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5131,6 +5131,15 @@ function _frValiderPick(){
 // ── Camions ──
 var _frPendingAffect=false;
 
+// v3.97.4 — Cobey, 12/10/2026 : « il faudrait remettre les noms des
+// collaborateurs en présélection [...] ça pourrait être pratique pour
+// les statistiques plus tard. » Un nom tapé à la main (fautes de frappe,
+// variantes) casse tout regroupement futur par collaborateur ; la
+// présélection, déjà en place côté Collecte (addTruck, voir COLLABS +
+// pastille-collab), garantit un nom identique à chaque fois. Même
+// mécanique reprise ici : pastilles cliquables qui remplissent le champ
+// texte (plusieurs noms cumulables avec "+", ex. "Samba + Issyaka"),
+// "+ Autre" pour un chauffeur extérieur resté en saisie libre.
 function addTruckFrance(){
   var r=_frCollecteActive();
   if(!r){ showToastNew('⚠️ Créez d\'abord une collecte.'); return; }
@@ -5140,20 +5149,113 @@ function addTruckFrance(){
     modal.id='modal-fr-truck';
     modal.className='modal-overlay';
     modal.style.cssText='align-items:center;';
-    modal.innerHTML='<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
+    var h='<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
       + '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🚛 Nouveau camion</div>'
       + '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:16px;">Qui part ramasser ? Un collaborateur ou un chauffeur extérieur.</div>'
       + '<div class="fg"><label class="fl">Conducteur</label>'
-      + '<input class="fi" id="fr-truck-name" placeholder="Moussa — ou un chauffeur externe" maxlength="60"></div>'
+      + '<input class="fi" id="fr-truck-name" placeholder="Moussa — ou un chauffeur externe" maxlength="60" oninput="_frSyncPastilles()"></div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">';
+    COLLABS.filter(function(cb){return !cb.admin && !cb.desactive;}).forEach(function(cb){
+      h += '<span class="pastille-collab" data-nom="'+cb.name+'" data-bg="'+cb.bg+'" data-color="'+cb.color+'" onclick="_frTogglePastille(this)" style="font-size:12px;padding:5px 11px;border-radius:999px;background:#f2f2f2;color:#888;font-weight:700;cursor:pointer;border:2px solid transparent;">'+cb.name+'</span>';
+    });
+    h += '<span onclick="_frOuvrirAutreNom()" style="font-size:12px;padding:5px 11px;border-radius:999px;background:#fff;color:#333;font-weight:700;cursor:pointer;border:2px dashed #999;">+ Autre</span>';
+    h += '</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">'
       + '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-fr-truck\')">Annuler</button>'
       + '<button class="btn-sm btn-green-sm" onclick="_confirmerAddTruckFrance()">✅ Créer</button>'
       + '</div></div>';
+    modal.innerHTML=h;
     document.body.appendChild(modal);
   }
   var i=document.getElementById('fr-truck-name'); if(i) i.value='';
+  _frResetPastilles();
   openModal('modal-fr-truck');
   setTimeout(function(){ var x=document.getElementById('fr-truck-name'); if(x) x.focus(); },300);
+}
+
+function _frTogglePastille(el){
+  var inp=document.getElementById('fr-truck-name');
+  if(!inp) return;
+  var nom=el.getAttribute('data-nom');
+  var parts=inp.value.split('+').map(function(x){return x.trim();}).filter(function(x){return x.length>0;});
+  var etait=(el.getAttribute('data-on')==='1');
+  if(etait){
+    _pastilleOff(el);
+    parts=parts.filter(function(x){return x.toLowerCase()!==nom.toLowerCase();});
+  }else{
+    _pastilleOn(el);
+    var deja=false;
+    for(var i=0;i<parts.length;i++){ if(parts[i].toLowerCase()===nom.toLowerCase()) deja=true; }
+    if(!deja) parts.push(nom);
+  }
+  inp.value=parts.join(' + ');
+}
+function _frSyncPastilles(){
+  var inp=document.getElementById('fr-truck-name');
+  if(!inp) return;
+  var txt=inp.value.toLowerCase();
+  var ps=document.querySelectorAll('#modal-fr-truck .pastille-collab');
+  for(var i=0;i<ps.length;i++){
+    var n=ps[i].getAttribute('data-nom').toLowerCase();
+    if(txt.indexOf(n)!==-1) _pastilleOn(ps[i]); else _pastilleOff(ps[i]);
+  }
+}
+function _frResetPastilles(){
+  var ps=document.querySelectorAll('#modal-fr-truck .pastille-collab');
+  for(var i=0;i<ps.length;i++) _pastilleOff(ps[i]);
+}
+function _frOuvrirAutreNom(){
+  var m=document.getElementById('modal-fr-autre-nom');
+  if(!m){
+    m=document.createElement('div');
+    m.id='modal-fr-autre-nom';
+    m.style.cssText='position:fixed;inset:0;background:transparent;display:none;align-items:center;justify-content:center;z-index:300;';
+    var h='<div style="background:#fff;border-radius:16px;margin:24px;padding:20px;max-width:340px;width:100%;border:1px solid #ccc;box-shadow:0 8px 30px rgba(0,0,0,0.25);">';
+    h+='<div style="font-size:16px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">Autre personne</div>';
+    h+='<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:14px;">Chauffeur extérieur, renfort, accompagnant…</div>';
+    h+='<div class="fg"><label class="fl">Prénom</label>';
+    h+='<input class="fi" id="fr-autre-nom-input" placeholder="Mamadou" maxlength="30" oninput="_frMajBoutonAutre()"></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">';
+    h+='<button class="btn-sm btn-gray-sm" onclick="_frFermerAutreNom()">Annuler</button>';
+    h+='<button class="btn-sm btn-green-sm" id="fr-autre-nom-ok" onclick="_frValiderAutreNom()" disabled style="opacity:0.45;">Ajouter</button>';
+    h+='</div></div>';
+    m.innerHTML=h;
+    document.body.appendChild(m);
+  }
+  var i=document.getElementById('fr-autre-nom-input');
+  if(i) i.value='';
+  _frMajBoutonAutre();
+  m.style.display='flex';
+  setTimeout(function(){ var x=document.getElementById('fr-autre-nom-input'); if(x) x.focus(); },200);
+}
+function _frMajBoutonAutre(){
+  var i=document.getElementById('fr-autre-nom-input');
+  var b=document.getElementById('fr-autre-nom-ok');
+  if(!i||!b) return;
+  var vide=(i.value.trim().length===0);
+  b.disabled=vide;
+  b.style.opacity=vide?'0.45':'1';
+  b.style.cursor=vide?'not-allowed':'pointer';
+}
+function _frFermerAutreNom(){
+  var m=document.getElementById('modal-fr-autre-nom');
+  if(m) m.style.display='none';
+}
+function _frValiderAutreNom(){
+  var i=document.getElementById('fr-autre-nom-input');
+  if(!i) return;
+  var nom=i.value.trim();
+  if(!nom) return;
+  var inp=document.getElementById('fr-truck-name');
+  if(inp){
+    var parts=inp.value.split('+').map(function(x){return x.trim();}).filter(function(x){return x.length>0;});
+    var deja=false;
+    for(var j=0;j<parts.length;j++){ if(parts[j].toLowerCase()===nom.toLowerCase()) deja=true; }
+    if(!deja) parts.push(nom);
+    inp.value=parts.join(' + ');
+    _frSyncPastilles();
+  }
+  _frFermerAutreNom();
 }
 
 function _confirmerAddTruckFrance(){
