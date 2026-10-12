@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.44';
+var DEP_VERSION = 'v2.20.45';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18072,6 +18072,15 @@ function _depCreneauRelance(heure){
   return null;
 }
 
+// v2.20.45 — modèle remplacé par celui discuté sur le groupe WhatsApp
+// de l'équipe le 12/10/2026 ("un truc du genre par exemple") : une ligne
+// en plus qui demande au client de confirmer la bonne réception, pour
+// valider sa ramasse — l'ancien modèle ne demandait qu'une préparation
+// silencieuse du colis, sans jamais savoir si le client avait vu le
+// message. Le créneau (matinée/après-midi) continue de varier selon
+// l'heure programmée pour CE client sur la tournée (voir _depCreneauRelance,
+// hours[id]) — plusieurs clients du même camion reçoivent donc des
+// horaires différents, comme avant.
 function _depTexteMessageRelance(c, creneauTxt, dateTxt){
   var prenom = (c.prenom || c.name || '').trim() || 'bonjour';
   var ligne = 'Dakar City Transport passera chez vous'
@@ -18080,7 +18089,8 @@ function _depTexteMessageRelance(c, creneauTxt, dateTxt){
     + ', pour la collecte de votre colis.';
   return 'Bonjour ' + prenom + ' \u{1F44B}\n\n'
     + ligne + '\n\n'
-    + 'Merci de bien vouloir préparer votre colis avant notre arrivée \u{1F4E6}.\n\n'
+    + 'Pourriez-vous nous confirmer la bonne réception de ce message afin de valider votre ramasse ?\n\n'
+    + 'Merci également de bien vouloir préparer votre colis avant notre arrivée \u{1F4E6}.\n\n'
     + 'À très bientôt !\nL’équipe Dakar City Transport';
 }
 

@@ -1379,6 +1379,20 @@ pas une coche verte) — « Arrivée au port » ne passe « en cours » que le
 jour où Issyaka la coche à son tour. Corrigé aux deux endroits
 (departs.js et facture.html).
 
+**v2.20.45 (12/10) — le message de rappel WhatsApp (avant ramasse)
+demande maintenant une confirmation.** Un modèle de message proposé sur
+le groupe WhatsApp de l'équipe (« un truc du genre par exemple »),
+relayé par Cobey : remplace le texte envoyé par les boutons « 💬
+WhatsApp » / « 📋 Copier » posés sur chaque carte client d'une tournée
+(v1.20.29, `_depTexteMessageRelance`). Une ligne en plus demande au
+client de confirmer la bonne réception du message, pour valider sa
+ramasse — avant, le message ne demandait qu'une préparation silencieuse
+du colis, sans jamais savoir si le client l'avait seulement vu. Le
+créneau (matinée/après-midi) continue de varier selon l'heure
+programmée pour CE client précis sur la tournée — plusieurs clients du
+même camion reçoivent donc toujours des horaires différents, comme
+avant.
+
 ---
 
 ## 2 bis · France & Europe
