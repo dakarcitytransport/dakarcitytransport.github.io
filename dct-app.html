@@ -416,6 +416,11 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <span id="fr-sel-info"></span>
       <span onclick="viderSelectionAdmin()" style="color:#1a237e;font-weight:700;cursor:pointer;">Annuler</span>
     </div>
+    <!-- v3.96.1 — Cobey : « c'est assez petit comme c'est placé, on le voit
+         pas assez. » Le cumul ramassage sort du petit texte gris de
+         fr-sel-info pour devenir sa propre bande, repérable d'un coup
+         d'œil — c'est le chiffre qui dit si la tournée amortit le trajet. -->
+    <div id="fr-sel-ramassage" style="display:none;background:#D7F1F3;color:#00636b;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:14px;font-weight:800;text-align:center;"></div>
     <button id="fr-btn-tournee" class="btn" style="margin:0;background:#1a237e;border:2.5px solid #0d1444;color:#fff;" onclick="ouvrirAffectCamionFrance()">&#128666; Mettre dans un camion</button>
     <button id="fr-btn-partis" class="btn btn-green" style="margin:0;display:none;" onclick="marquerRamasseSel()">&#9989; Marquer comme ramass&#233;s</button>
     <button id="fr-btn-suppr" class="btn" style="margin:0;display:none;background:#fde0e0;color:#992020;border:1.5px solid #c0392b;" onclick="supprimerHistoriqueSel()">&#128465;&#65039; Supprimer les fiches choisies</button>
@@ -1714,7 +1719,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.96.0';
+var APP_VERSION = 'v3.96.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4369,8 +4374,17 @@ function _majBarreFrance(){
     // _totalRamassage, c'est ce chiffre-là qui dit si le trajet s'amortit.
     var totRam=_totalRamassage(dannySel);
     if(i) i.innerHTML='<b style="color:#111;">'+dannySel.length+' client'+(dannySel.length>1?'s':'')+'</b> · '+colis+' colis'
-        +(_montantsVisibles()?(' · <b style="color:#006b2d;">'+_totalPrix(dannySel)+' €</b>'
-          +(totRam>0?(' <span style="color:#00838F;">(dont '+totRam+' € ramassage)</span>'):'')):'');
+        +(_montantsVisibles()?(' · <b style="color:#006b2d;">'+_totalPrix(dannySel)+' €</b>'):'');
+    // v3.96.1 : sorti de fr-sel-info (texte gris 12px, passait inaperçu —
+    // Cobey, 12/10 : « on le voit pas assez ») vers sa propre bande,
+    // visible même en scrollant vite la liste pour cocher des clients.
+    var rb=document.getElementById('fr-sel-ramassage');
+    if(rb){
+      if(_montantsVisibles() && totRam>0){
+        rb.style.display='block';
+        rb.innerHTML='🛣️ '+totRam+' € de ramassage cumulé';
+      } else rb.style.display='none';
+    }
   }
 }
 
@@ -4431,10 +4445,17 @@ function _frCarte(c){
     +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
     +   '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+'</div></div>'
     + '<div style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
-    + '<div style="font-size:11.5px;color:#555;margin-top:5px;">📦 '+(c.nb||1)+' colis'
-    +   (c.colis?(' · '+c.colis):'')
-    +   (_montantsVisibles()?(' · <b style="color:#006b2d;">'+(c.prix||0)+' €</b>'
-          +((parseFloat(c.prixRamassage)||0)>0?(' <span style="color:var(--text3);font-weight:500;">(dont '+c.prixRamassage+' € ramassage)</span>'):'')):'')+'</div>'
+    + '<div style="font-size:11.5px;color:#555;margin-top:5px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'
+    +   '<span>📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')
+    +     (_montantsVisibles()?(' · <b style="color:#006b2d;">'+(c.prix||0)+' €</b>'):'')+'</span>'
+    // v3.96.1 — Cobey, le 12/10/2026 : « on le voit pas assez [...] sur
+    // chaque carte client on devrait aussi voir le prix de ramassage en
+    // évidence. » Remplace le petit texte gris en aparté par une vraie
+    // pastille, au même traitement visuel que les badges de statut.
+    +   (_montantsVisibles() && (parseFloat(c.prixRamassage)||0)>0
+          ? ('<span class="badge" style="background:#D7F1F3;color:#00636b;">🛣️ '+c.prixRamassage+' € ramassage</span>')
+          : '')
+    + '</div>'
     + '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;">'
     +   '<span style="font-size:11.5px;color:var(--text3);">🗓 '+_dateFr(c.creeTs)
     +     ' · <span style="'+(anc?('color:'+anc.bord+';font-weight:800;'):'')+'">'+j+' j</span></span>'

@@ -2025,6 +2025,18 @@ sans ouvrir la fiche — 3 états en boucle : non renseigné → ✅ Prêt →
 filtres région/département déjà en place, permet de ne garder que les
 clients confirmés prêts d'une zone avant de passer à la sélection.
 
+**Suite, le 12/10 (v3.96.1) — le ramassage, plus visible.** Cobey,
+après avoir testé : « ça fonctionne, mais je trouve c'est assez petit
+comme c'est placé, on le voit pas assez, et sur chaque carte de client
+on devrait aussi voir le prix de ramassage en évidence. » Deux
+retouches : sur chaque carte, le ramassage quitte le petit texte gris
+entre parenthèses pour devenir sa propre pastille (même traitement que
+les badges de statut) ; dans la barre de sélection, le cumul quitte lui
+aussi le texte 12px discret de la ligne récap pour devenir sa propre
+bande turquoise, repérable même en scrollant vite pour cocher des
+clients — masquée quand la sélection ne porte aucun ramassage, pour ne
+jamais annoncer "0 € de ramassage cumulé".
+
 ---
 
 ## 3 · Bug
