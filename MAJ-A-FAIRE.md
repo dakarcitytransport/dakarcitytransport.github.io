@@ -2168,6 +2168,24 @@ extérieur, qui vient s'ajouter au champ de la même façon. Le texte
 reste modifiable à la main si besoin — la présélection est un raccourci,
 pas une obligation.
 
+**Suite, le 12/10 (v3.98.0) — ville de départ manuelle pour un
+chauffeur externe.** Cobey, après le test terrain ci-dessus : « pour les
+chauffeurs externes, on va changer. On va plutôt voir si on peut avoir
+la possibilité de mettre une ville manuellement pour la ville de
+départ. Car le chauffeur externe, selon lequel c'est, sa ville
+d'habitation est différente. Comme ça, celui-ci nous communiquera sa
+ville de départ et on l'intégrera. »
+
+Sur l'écran du camion, un chauffeur externe (et lui seul — un
+collaborateur part toujours d'Emerainville, fixe) voit désormais un
+champ « 📍 Ville de départ » : vide au départ, renseigné une fois le
+chauffeur prévenu, modifiable à tout moment. Une fois enregistrée, le
+kilométrage l'utilise comme point de départ à la place du dépôt — le
+retour à Mitry-Mory reste compté comme avant. Sans ville renseignée,
+comportement inchangé (aucun point de départ compté). Même champ, même
+comportement des deux côtés (France & Europe et Collecte), comme pour
+le reste du kilométrage.
+
 ---
 
 ## 3 · Bug

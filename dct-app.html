@@ -459,6 +459,20 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         <div class="finance-pct" id="frc-fin-pct">0% factur&eacute;</div>
       </div>
     </div>
+    <!-- v3.98.0 — Cobey, 12/10/2026 : « pour les chauffeurs externes [...]
+         mettre une ville manuellement pour la ville de départ [...] sa
+         ville d'habitation est différente [...] celui-ci nous
+         communiquera sa ville de départ et on l'intégrera. » Visible
+         seulement pour un camion "chauffeur externe" (voir
+         renderCamionFrance). -->
+    <div id="frc-ville-depart-bloc" style="display:none;background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">&#128205; Ville de d&eacute;part (chauffeur externe)</div>
+      <div style="display:flex;gap:8px;">
+        <input class="fi" id="frc-ville-depart-input" placeholder="Ex. Compi&egrave;gne" maxlength="60" style="margin:0;flex:1;">
+        <button class="btn" style="margin:0;width:auto;padding:0 16px;" onclick="enregistrerVilleDepartFrance()">Enregistrer</button>
+      </div>
+      <div id="frc-ville-depart-note" style="font-size:10.5px;color:var(--text3);margin-top:7px;line-height:1.4;">Communiqu&eacute;e par le chauffeur — tant qu'elle n'est pas renseign&eacute;e, aucun point de d&eacute;part n'est compt&eacute; dans le kilom&eacute;trage.</div>
+    </div>
     <!-- v3.97.0 — Cobey, 12/10/2026 : savoir le kilom&eacute;trage de
          chaque camion, pour estimer si une tourn&eacute;e amortit le
          carburant/p&eacute;age. Estim&eacute; par itin&eacute;raire
@@ -1080,6 +1094,17 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         <div class="finance-bar-bg"><div id="c-fin-bar" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#009A44,#00c853);transition:width 0.4s;"></div></div>
         <div class="finance-pct" id="c-fin-pct">0% facturé</div>
       </div>
+    </div>
+    <!-- v3.98.0 — même possibilité que côté France & Europe : une ville de
+         départ saisie à la main pour un chauffeur externe (voir
+         frc-ville-depart-bloc pour le détail de la demande). -->
+    <div id="c-ville-depart-bloc" style="display:none;background:white;border:2px solid var(--green);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">&#128205; Ville de d&eacute;part (chauffeur externe)</div>
+      <div style="display:flex;gap:8px;">
+        <input class="fi" id="c-ville-depart-input" placeholder="Ex. Compi&egrave;gne" maxlength="60" style="margin:0;flex:1;">
+        <button class="btn" style="margin:0;width:auto;padding:0 16px;" onclick="enregistrerVilleDepartCamion()">Enregistrer</button>
+      </div>
+      <div id="c-ville-depart-note" style="font-size:10.5px;color:var(--text3);margin-top:7px;line-height:1.4;">Communiqu&eacute;e par le chauffeur — tant qu'elle n'est pas renseign&eacute;e, aucun point de d&eacute;part n'est compt&eacute; dans le kilom&eacute;trage.</div>
     </div>
     <!-- v3.97.2 — Cobey, 12/10/2026 : « avoir la même chose dans deux
          parcours de façon différente, c'est un peu déroutant. » Même
@@ -1747,7 +1772,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.97.4';
+var APP_VERSION = 'v3.98.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6008,21 +6033,60 @@ function _geocoderBorne(conf, cb){
     if(lat && lng) cb(lat,lng); else cb(conf.secours[0], conf.secours[1]);
   });
 }
+// v3.98.0 — Cobey, 12/10/2026 : « on va plutôt voir si on peut avoir la
+// possibilité de mettre une ville manuellement pour la ville de départ
+// [d'un chauffeur externe] [...] selon lequel c'est, sa ville
+// d'habitation est différente [...] celui-ci nous communiquera sa ville
+// de départ et on l'intégrera. » Pas d'adresse structurée (juste un nom
+// de ville) : _geocodeAdresse avec un CP vide suffit, OSRM/Nominatim en
+// repli si elle échoue (comme _geocodeClientFr le fait déjà pour un
+// client hors zone CP connue).
+function _geocoderVilleDepart(ville, cb){
+  if(!ville){ cb(null, null); return; }
+  if(typeof _geocodeAdresse === 'function'){
+    _geocodeAdresse(ville, '', function(lat, lng){
+      if(lat && lng){ cb(lat, lng); return; }
+      _geocoderVilleDepartRepli(ville, cb);
+    });
+  } else {
+    _geocoderVilleDepartRepli(ville, cb);
+  }
+}
+function _geocoderVilleDepartRepli(ville, cb){
+  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(ville))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if(d && d.length) cb(parseFloat(d[0].lat), parseFloat(d[0].lon)); else cb(null,null); })
+    .catch(function(){ cb(null,null); });
+}
+// Le départ dépend du camion : le dépôt pour un camion interne, la ville
+// communiquée par le chauffeur pour un externe (ou rien s'il ne l'a pas
+// encore donnée) — l'arrivée au dépôt (Mitry-Mory) compte dans tous les
+// cas. cb(tout, libelléDépart, avecArrivée) — libelléDépart vaut false
+// si aucun départ n'a pu être placé (ville pas encore connue, ou
+// géocodage en échec), sinon le texte à afficher ("Emerainville" ou la
+// ville saisie).
 function _frAjouterBornesTrajet(tk, pts, cb){
-  var depart=window.DEP_CARTE_DEPART, arrivee=window.DEP_CARTE_ARRIVEE;
-  var ajouterDepart = !!(depart && !tk.externe);
-  var tout=pts.slice(), posDepart=null, posArrivee=null;
-  var restants=(ajouterDepart?1:0)+(arrivee?1:0);
+  var arrivee=window.DEP_CARTE_ARRIVEE;
+  var depart = tk.externe ? null : window.DEP_CARTE_DEPART;
+  var villeExterne = tk.externe ? (tk.villeDepart||'').trim() : '';
+  var tout=pts.slice(), posDepart=null, posArrivee=null, libelleDepart=null;
+  var restants=((depart||villeExterne)?1:0)+(arrivee?1:0);
   var fin=function(){
     restants--;
     if(restants<=0){
       if(posDepart) tout.unshift(posDepart);
       if(posArrivee) tout.push(posArrivee);
-      cb(tout, ajouterDepart, !!arrivee);
+      cb(tout, posDepart ? libelleDepart : false, !!posArrivee);
     }
   };
   if(!restants){ cb(tout, false, false); return; }
-  if(ajouterDepart) _geocoderBorne(depart, function(lat,lng){ posDepart={lat:lat,lng:lng}; fin(); });
+  if(depart){
+    libelleDepart = depart.lib;
+    _geocoderBorne(depart, function(lat,lng){ posDepart={lat:lat,lng:lng}; fin(); });
+  } else if(villeExterne){
+    libelleDepart = villeExterne;
+    _geocoderVilleDepart(villeExterne, function(lat,lng){ if(lat && lng) posDepart={lat:lat,lng:lng}; fin(); });
+  }
   if(arrivee) _geocoderBorne(arrivee, function(lat,lng){ posArrivee={lat:lat,lng:lng}; fin(); });
 }
 
@@ -6035,10 +6099,14 @@ function _frAjouterBornesTrajet(tk, pts, cb){
 // l'ouverture) ; cette ligne prouve, à chaque calcul, QUAND il a eu
 // lieu et sur COMBIEN de clients — de quoi voir tout de suite s'il faut
 // encore recalculer après une modification.
-function _texteConfirmationKm(nbArrets, avecDepart, avecArrivee, echecGeocode){
-  var trajetTxt = avecDepart
-    ? 'Du dépôt (Emerainville) au dépôt (Mitry-Mory)'
-    : (avecArrivee ? 'Chauffeur externe — sans point de départ fixe, retour à Mitry-Mory compté' : 'Entre les arrêts');
+// v3.98.0 : libelleDepart est maintenant soit false (aucun départ compté
+// — chauffeur externe sans ville renseignée), soit le nom du point de
+// départ réellement utilisé ("Emerainville" pour un camion interne, ou
+// la ville tapée pour un externe).
+function _texteConfirmationKm(nbArrets, libelleDepart, avecArrivee, echecGeocode){
+  var trajetTxt = libelleDepart
+    ? ('De '+libelleDepart+' au dépôt (Mitry-Mory)')
+    : (avecArrivee ? 'Chauffeur externe — sans ville de départ renseignée, retour à Mitry-Mory compté' : 'Entre les arrêts');
   return 'Calculé le '+_dateHeureFr(Date.now())+' · '+nbArrets+' client'+(nbArrets>1?'s':'')+' pris en compte — '
     + trajetTxt + ', itinéraire routier'
     + (echecGeocode ? (' — adresse introuvable pour '+echecGeocode+' client'+(echecGeocode>1?'s':'')) : '') + '.';
@@ -6072,7 +6140,7 @@ function estimerKmCamionFrance(){
   var fini=function(){
     pts.sort(function(a,b){ return a.i-b.i; });
     var coordsPts=pts.map(function(pt){ return { lat:pt.lat, lng:pt.lng }; });
-    _frAjouterBornesTrajet(tk, coordsPts, function(tout, avecDepart, avecArrivee){
+    _frAjouterBornesTrajet(tk, coordsPts, function(tout, libelleDepart, avecArrivee){
       _calculerDistanceRoute(tout, function(km){
         if(btn){ btn.disabled=false; btn.textContent='📏 Recalculer'; }
         if(km===null){
@@ -6081,7 +6149,7 @@ function estimerKmCamionFrance(){
           return;
         }
         if(val) val.textContent='~'+km+' km';
-        if(note) note.textContent = _texteConfirmationKm(pts.length, avecDepart, avecArrivee, echecGeocode);
+        if(note) note.textContent = _texteConfirmationKm(pts.length, libelleDepart, avecArrivee, echecGeocode);
       });
     });
   };
@@ -6102,10 +6170,38 @@ function estimerKmCamionFrance(){
   });
 }
 
+// v3.98.0 — enregistre la ville de départ tapée pour un camion
+// "chauffeur externe" (voir _frAjouterBornesTrajet) et relance tout de
+// suite le calcul du kilométrage avec ce nouveau point de départ.
+function enregistrerVilleDepartFrance(){
+  var r=_frCollecteActive(); if(!r) return;
+  var tk=(r.trucks||{})[_frCamion]; if(!tk) return;
+  var input=document.getElementById('frc-ville-depart-input'); if(!input) return;
+  var ville=input.value.trim();
+  tk.villeDepart = ville || null;
+  var p=_frSauverCollecte(r);
+  if(p) p.then(function(){
+    showToastNew(ville ? ('✅ Ville de départ enregistrée : '+ville) : '✅ Ville de départ effacée');
+    estimerKmCamionFrance();
+  }).catch(function(e){
+    showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée'));
+  });
+}
+
 function renderCamionFrance(){
   var r=_frCollecteActive(); if(!r) return;
   var tk=(r.trucks||{})[_frCamion]; if(!tk) return;
   var tc=_frTc(tk);
+  // v3.98.0 — le champ "ville de départ" n'a de sens que pour un chauffeur
+  // externe (un camion interne part toujours d'Emerainville, fixe). Ne pas
+  // écraser une saisie en cours (l'utilisateur tape, puis clique
+  // "Enregistrer" — un renderCamionFrance entretemps ne doit pas effacer).
+  var vdBloc=document.getElementById('frc-ville-depart-bloc');
+  if(vdBloc){
+    vdBloc.style.display = tk.externe ? 'block' : 'none';
+    var vdInput=document.getElementById('frc-ville-depart-input');
+    if(vdInput && document.activeElement!==vdInput) vdInput.value = tk.villeDepart||'';
+  }
   var fige=(r.statut==='terminee') || !_peutGererFrance();
   var validated=tk.validated||[], refused=tk.refused||[], hours=tk.hours||{};
   var nCl=(tk.clients||[]).length;
@@ -10318,7 +10414,7 @@ function estimerKmCamion(k){
   var fini=function(){
     pts.sort(function(a,b){ return a.i-b.i; });
     var coordsPts=pts.map(function(pt){ return { lat:pt.lat, lng:pt.lng }; });
-    _frAjouterBornesTrajet(tk, coordsPts, function(tout, avecDepart, avecArrivee){
+    _frAjouterBornesTrajet(tk, coordsPts, function(tout, libelleDepart, avecArrivee){
       _calculerDistanceRoute(tout, function(km){
         if(btn){ btn.disabled=false; btn.textContent='📏 Recalculer'; }
         if(km===null){
@@ -10327,7 +10423,7 @@ function estimerKmCamion(k){
           return;
         }
         if(val) val.textContent='~'+km+' km';
-        if(note) note.textContent = _texteConfirmationKm(pts.length, avecDepart, avecArrivee, echecGeocode);
+        if(note) note.textContent = _texteConfirmationKm(pts.length, libelleDepart, avecArrivee, echecGeocode);
       });
     });
   };
@@ -10345,10 +10441,31 @@ function estimerKmCamion(k){
   });
 }
 
+// v3.98.0 \u2014 m\u00eame m\u00e9canisme que c\u00f4t\u00e9 France & Europe
+// (enregistrerVilleDepartFrance) : enregistre la ville de d\u00e9part d'un
+// camion "chauffeur externe" et relance le calcul du kilom\u00e9trage.
+function enregistrerVilleDepartCamion(){
+  var trks=getTrucks(), tk=trks[currentCamion]; if(!tk) return;
+  var input=document.getElementById('c-ville-depart-input'); if(!input) return;
+  var ville=input.value.trim();
+  tk.villeDepart = ville || null;
+  sauvegarder();
+  showToastNew(ville ? ('\u2705 Ville de d\u00e9part enregistr\u00e9e : '+ville) : '\u2705 Ville de d\u00e9part effac\u00e9e');
+  estimerKmCamion(currentCamion);
+}
+
 function renderCamion(k){
   var trks=getTrucks(),cls=getClients(),tc=getTc(k),tk=trks[k];
   if(!tk)return;
   var tit=document.getElementById('camion-title');if(tit)tit.textContent='\ud83d\ude9b '+tk.name;
+  // v3.98.0 \u2014 m\u00eame logique c\u00f4t\u00e9 France & Europe (renderCamionFrance) :
+  // le champ "ville de d\u00e9part" ne s'affiche que pour un chauffeur externe.
+  var vdBloc=document.getElementById('c-ville-depart-bloc');
+  if(vdBloc){
+    vdBloc.style.display = tk.externe ? 'block' : 'none';
+    var vdInput=document.getElementById('c-ville-depart-input');
+    if(vdInput && document.activeElement!==vdInput) vdInput.value = tk.villeDepart||'';
+  }
   var total=getTruckTotal(k),collected=getTruckCollected(k);
   var pctF=total>0?Math.round(collected/total*100):0;
   var validated=tk.validated||[],refused=tk.refused||[];
