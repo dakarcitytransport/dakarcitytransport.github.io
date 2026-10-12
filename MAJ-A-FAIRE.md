@@ -2037,6 +2037,15 @@ bande turquoise, repérable même en scrollant vite pour cocher des
 clients — masquée quand la sélection ne porte aucun ramassage, pour ne
 jamais annoncer "0 € de ramassage cumulé".
 
+**Suite, le 12/10 (v3.96.2) — une date à côté du statut "Prêt".**
+Cobey : « à côté de prêt ou pas prêt, là où on coche, [il faudrait]
+mettre une date. On va en plus savoir à quelle date, si on est prêt ou
+pas prêt. » Un "pas prêt" d'il y a trois semaines n'a plus la même
+valeur qu'un d'hier. La pastille affiche maintenant la date du dernier
+passage à Prêt/Pas prêt, posée automatiquement à chaque tap — et
+effacée avec le statut au retour au neutre, pour ne jamais laisser une
+date sans rien à expliquer.
+
 ---
 
 ## 3 · Bug

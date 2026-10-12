@@ -1719,7 +1719,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.96.1';
+var APP_VERSION = 'v3.96.2';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4394,18 +4394,28 @@ function _majBarreFrance(){
 // dans la liste, modifiable en un tap par n'importe quel collaborateur
 // (celui qui a le client au téléphone), sans ouvrir la fiche. Cycle en 3
 // états : non renseigné → prêt → pas prêt → non renseigné.
+// v3.96.2 : « à côté de prêt ou pas prêt [...] mettre une date [...]
+// quelle date, si on est prêt ou pas prêt » — un "pas prêt" d'il y a
+// trois semaines n'a plus la même valeur qu'un d'hier ; la date dit
+// depuis quand ce statut tient, sans ouvrir la fiche.
 function _frPretChip(c){
   if(!_peutGererFrance()) return '';
   var on='event.stopPropagation();toggleFrPret(\''+c._id+'\')';
-  if(c.pret===true) return '<span onclick="'+on+'" class="badge badge-green" style="cursor:pointer;">&#9989; Pr&ecirc;t</span>';
-  if(c.pret===false) return '<span onclick="'+on+'" class="badge" style="cursor:pointer;background:#fde0e0;color:#992020;">&#10060; Pas pr&ecirc;t</span>';
+  var dt=c.pretTs?(' &middot; '+_dateFr(c.pretTs)):'';
+  if(c.pret===true) return '<span onclick="'+on+'" class="badge badge-green" style="cursor:pointer;">&#9989; Pr&ecirc;t'+dt+'</span>';
+  if(c.pret===false) return '<span onclick="'+on+'" class="badge" style="cursor:pointer;background:#fde0e0;color:#992020;">&#10060; Pas pr&ecirc;t'+dt+'</span>';
   return '<span onclick="'+on+'" style="cursor:pointer;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;border:1.5px dashed #bbb;color:#999;">Pr&ecirc;t&nbsp;?</span>';
 }
 function toggleFrPret(id){
   var c=(franceData.clients||{})[id]; if(!c) return;
   // true → false → (null, qui efface le champ : retour au neutre) → true
   var suivant = (c.pret===true) ? false : (c.pret===false ? null : true);
-  var maj={}; maj['clients/'+id+'/pret']=suivant;
+  var maj={};
+  maj['clients/'+id+'/pret']=suivant;
+  // La date accompagne le statut : posée à chaque passage à prêt/pas
+  // prêt, effacée avec lui au retour au neutre (jamais une date qui
+  // traîne sans statut à expliquer).
+  maj['clients/'+id+'/pretTs']=(suivant===null)?null:Date.now();
   _frUpdate(maj).then(function(){ renderFrance(); }).catch(function(e){
     showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée'));
   });
