@@ -479,22 +479,50 @@ qui touche tout le monde pareil : les boutons WhatsApp par client (voir
 ci-dessous), un par un, mais garantis.
 
 ### Boutons WhatsApp « container arrivé », par client
-*Ouvert le 12/10, en cours.* Après l'abandon du push ci-dessus, la
-solution retenue pour prévenir un client de l'arrivée d'un container :
-pas d'envoi groupé en un clic (WhatsApp ne le permet pas sans un compte
-WhatsApp Business payant), mais un bouton par client, prêt à l'emploi
-(message déjà rédigé), pour aller plus vite que de taper le message à
-chaque fois. Prévu en 2 parties :
-1. **Côté DCT** (écran Départs, sur le container concerné) — un bouton
-   WhatsApp par client, pour prévenir l'**expéditeur**.
-2. **Côté Mamadou Niass** (son écran du container) — un bouton WhatsApp
-   par client, pour prévenir le **destinataire**.
-Un historique de qui a été prévenu est prévu en plus, organisé par
-container.
+**Fait le 12/10 (v2.20.52 / v1.8.0 Mamadou).** Après l'abandon du push
+ci-dessus, la solution retenue pour prévenir un client de l'arrivée d'un
+container : pas d'envoi groupé en un clic (WhatsApp ne le permet pas
+sans un compte WhatsApp Business payant), mais un bouton par client,
+prêt à l'emploi (message déjà rédigé), pour aller plus vite que de taper
+le message à chaque fois. En 2 parties, toutes les deux faites :
 
-Message proposé (à affiner si besoin) : « 📦 Container arrivé à Dakar !
-Votre colis est bien arrivé au dépôt de Dakar City Transport. Pensez à
-prévenir votre contact sur place pour qu'il vienne le récupérer. »
+1. **Côté DCT** (`departs.js`, écran du départ/container — `depDetail`)
+   — sur chaque client, un bouton « 💬 Prévenir (arrivé) » vers
+   l'**expéditeur** (`c.tel`, numéro français → indicatif 33, même
+   formatage que les relances de ramasse). N'apparaît que si le
+   container est réellement arrivé (`d.statut === 'arrive'`), exactement
+   la même condition que le badge « en attente de livraison » déjà en
+   place (voir plus haut) — cohérent avec ce que l'équipe voit déjà.
+   Fonctionne pour les 3 parcours (Collecte, Dépôt direct, France &
+   Europe), `window.depPrevenirArriveeExpediteur(...)`.
+
+2. **Côté Mamadou Niass** (`mamadou.html`, écran d'un container —
+   `cdAppliquerFiltres`) — sur chaque client, un bouton « 💬 Prévenir le
+   destinataire (arrivé) » vers le **destinataire**
+   (`c.destinataireTel`). N'apparaît qu'une fois l'arrivée validée PAR
+   LUI (`validerArriveeDepot`, son propre bouton, déjà en place) —
+   indépendant du statut côté DCT, qui est une confirmation à part.
+   Numéro formaté à l'indicatif du PAYS du container (Sénégal 221, Mali
+   223 — jamais 33, le destinataire n'est jamais en France),
+   `_mnTelIntlDestinataire(tel, pays)` + `mnPrevenirDestinataire(...)`.
+
+**L'historique demandé** (« je veux aussi un historique des messages de
+notification pour ça voir qui a reçu le message ») : WhatsApp ne donne
+aucune confirmation de lecture ni d'envoi réel une fois la conversation
+ouverte — chaque clic note donc dans la fiche du client QUI a ouvert le
+message et QUAND (`c.hist`, type `arrivee`, déjà consultable dans le
+Suivi de la fiche), avec la mention explicite « expéditeur » ou
+« destinataire » selon le bouton, pour les distinguer. Pas de registre
+séparé par container pour l'instant — l'historique de chaque client
+suffit à voir qui a été prévenu ou non en ouvrant sa fiche ; à revoir si
+Cobey veut une vue d'ensemble par container plus tard.
+
+Message à l'expéditeur : « 📦 Votre container est bien arrivé à Dakar !
+Vous pouvez prévenir votre contact sur place pour qu'il vienne
+récupérer son colis. » Message au destinataire (direct, avec l'adresse
+du dépôt) : « 📦 Le colis envoyé par [expéditeur] est bien arrivé à
+notre dépôt de Dakar (Parcelle Assainie, Unité 8). Vous pouvez venir le
+récupérer. »
 
 ### Notification : diagnostiquer soi-même « j'ai envoyé mais rien reçu »
 **Fait le 04/10 (v2.20.26).** Eric, capture d'écran de l'écran

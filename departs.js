@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.50';
+var DEP_VERSION = 'v2.20.52';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8271,6 +8271,13 @@ window.depDetail = function(id, gardeFiltres){
                 ? '<button class="dep-cli-btn" style="background:#FDEDED;border-color:#F5C6C6;color:#992020;" '
                   + 'onclick="event.stopPropagation();depDetacherClient(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">D&eacute;tacher</button>'
                 : '')
+              // v2.20.52 — n'a de sens qu'une fois le container réellement
+              // arrivé (même condition que le badge "en attente de
+              // livraison" juste au-dessus, _depBadgeLivraison).
+              + (d.statut === 'arrive'
+                ? '<button class="dep-cli-btn" style="background:#E7F9EE;border-color:#25D366;color:#128C4A;" '
+                  + 'onclick="event.stopPropagation();depPrevenirArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">&#128172; Pr&eacute;venir (arriv&eacute;)</button>'
+                : '')
             + '</div>'
         + '</div>';
     });
@@ -9731,6 +9738,42 @@ window.depPartagerWhatsapp = function(){
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
 };
 
+// v2.20.52 — Cobey, 12/10/2026 : après l'essai (puis l'abandon, voir
+// MAJ-A-FAIRE.md) de la notification push, « on le fait manuellement
+// avec les boutons WhatsApp » : un bouton par client sur l'écran du
+// départ (container), message déjà rédigé, pour prévenir l'EXPÉDITEUR
+// (c.tel) que son container est arrivé — à lui de prévenir son contact
+// sur place. Voir mnPrevenirDestinataire dans mamadou.html, pendant
+// symétrique côté destinataire.
+function _depTexteMessageArriveeExpediteur(c){
+  var prenom = (c.prenom || c.name || '').trim() || 'bonjour';
+  return 'Bonjour ' + prenom + ' \u{1F44B}\n\n'
+    + '\u{1F4E6} Votre container est bien arrivé à Dakar !\n\n'
+    + 'Vous pouvez prévenir votre contact sur place pour qu’il vienne récupérer son colis.\n\n'
+    + 'Merci de votre confiance !\nL’équipe Dakar City Transport';
+}
+
+window.depPrevenirArriveeExpediteur = function(collecteId, clientId, depot, france){
+  var c = depot
+    ? (window.depotClients || {})[clientId]
+    : (france
+      ? ((window.franceData || {}).clients || {})[clientId]
+      : ((window.clientsParCollecte || {})[collecteId] || {})[clientId]);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  var tel = _depTelIntlRelance(c.tel);
+  if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteMessageArriveeExpediteur(c)), '_blank');
+  // Aucune confirmation de lecture possible côté WhatsApp — on note donc
+  // que le message a été OUVERT (pas "envoyé"), avec qui et quand, comme
+  // demandé : « je veux aussi un historique des messages de notification
+  // pour ça voir qui a reçu le message ».
+  var u = window.currentUser || {};
+  var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+  hist.push({ q: u.name || u.id || '', a: 'a ouvert WhatsApp pour prévenir l’<strong>expéditeur</strong> de l’arrivée du container', ts: Date.now(), type: 'arrivee' });
+  c.hist = hist;
+  _depEcrireFacture({ depot: depot, france: france, collecteId: collecteId || '', clientId: clientId }, { hist: hist });
+};
+
 window.depCopierMessageWhatsapp = function(){
   var ctx = _depFactureCtx;
   if(!ctx){ toast('⚠️ Facture introuvable.'); return; }
@@ -11157,7 +11200,10 @@ var DEP_SUIVI_THEMES = {
   // à la fiche France & Europe qui trace déjà tout).
   nom:          { icon:'&#128100;', color:'#1F6FA6', bg:'#DCEEFA' },
   tel:          { icon:'&#128222;', color:'#0F766E', bg:'#D9F2EE' },
-  adresse:      { icon:'&#127968;', color:'#7A5C2E', bg:'#F5EEDD' }
+  adresse:      { icon:'&#127968;', color:'#7A5C2E', bg:'#F5EEDD' },
+  // v2.20.52 — bouton WhatsApp "container arrivé" par client (voir
+  // depPrevenirArriveeExpediteur).
+  arrivee:      { icon:'&#128172;', color:'#128C4A', bg:'#E7F9EE' }
 };
 
 // v1.19.36 : `collecteId` (optionnel — absent pour un client dépôt direct)

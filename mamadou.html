@@ -85,6 +85,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    livraison : orange tant qu'il reste à payer, vert une fois soldée. */
 .cli-liv-reste{background:#FFF4E0;color:#a04800;}
 .cli-liv-soldee{background:#D4F0E0;color:#006b2d;}
+.cli-btn-whatsapp{display:block;width:100%;margin-top:9px;padding:8px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);}
 .vide{text-align:center;color:#aaa;padding:30px 10px;font-size:13px;}
 
 /* Fiche */
@@ -425,7 +426,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.7.0';
+var MAMADOU_VERSION = 'v1.8.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -467,6 +468,16 @@ var DEP_PAYS_DEST = {
   SN: { code:'SN', nom:'Sénégal', drapeau:'🇸🇳' },
   ML: { code:'ML', nom:'Mali',    drapeau:'🇲🇱' }
 };
+
+// v1.8.0 — indicatif téléphonique du destinataire, utilisé par
+// _mnTelIntlDestinataire (bouton "Prévenir le destinataire" du container,
+// voir plus bas). Posé ici, à côté de DEP_PAYS_DEST et avant
+// firebase.initializeApp() plus bas dans ce fichier : si jamais le SDK
+// Firebase ne charge pas (ex. hors ligne), tout le code séquentiel placé
+// APRÈS cette ligne d'initialisation s'arrête net — seules les fonctions
+// déjà déclarées (hoisting) survivent. Une simple affectation `var` comme
+// celle-ci doit donc rester avant, pour ne jamais dépendre de Firebase.
+var DEP_INDICATIF_PAYS = { SN:'221', ML:'223' };
 
 // v1.1.0 — Mamadou doit pouvoir valider lui-même l’« Arrivée au dépôt »
 // dans le suivi du container : « il sera là-bas en premier lieu » quand
@@ -1068,11 +1079,66 @@ function validerArriveeDepot(){
     .then(function(){
       activiteExterne('📦', '<strong>' + esc(ACTEUR_NOM) + '</strong> a validé l’arrivée au dépôt du container <strong>' + esc(nom) + '</strong>');
       _cdMajBlocArrivee();
+      cdAppliquerFiltres(); // v1.8.0 : fait apparaître les boutons WhatsApp par client, sans attendre un rafraîchissement
     })
     .catch(function(e){
       console.error('mamadou: échec validation arrivée dépôt', e);
       alert('Échec de l’enregistrement, réessayez (vérifiez la connexion).');
     });
+}
+
+// v1.8.0 — Cobey, 12/10/2026 : « Mamadou, lui aussi, aura dans son
+// container, pour chaque client, un bouton pour envoyer un message
+// WhatsApp au destinataire. » WhatsApp (wa.me) ne permet jamais un envoi
+// groupé en un clic — un bouton par client, message déjà rédigé, une
+// fois le container marqué arrivé (voir _cdMajBlocArrivee ci-dessus).
+function _cdEstArrivee(d){
+  return !!(d && d.etapesTransport && d.etapesTransport.arrivee_depot && d.etapesTransport.arrivee_depot.fait);
+}
+
+// Le destinataire est au Sénégal ou au Mali, jamais en France — indicatif
+// du pays du départ (DEP_INDICATIF_PAYS, déclaré plus haut à côté de
+// DEP_PAYS_DEST), pas 33 comme pour un numéro français. Un 0 de tête
+// local est retiré (saisie parfois à la française par habitude), un
+// numéro déjà international (commence par l'indicatif) est gardé tel
+// quel.
+function _mnTelIntlDestinataire(tel, pays){
+  var digits = String(tel||'').replace(/\D/g,'');
+  if(!digits) return '';
+  var indicatif = DEP_INDICATIF_PAYS[pays] || '221';
+  if(digits.indexOf(indicatif) === 0) return digits;
+  if(digits.charAt(0) === '0') digits = digits.slice(1);
+  return indicatif + digits;
+}
+
+function _mnTexteArriveeDestinataire(c){
+  var nom = (c.destinataireNom||'').trim() || 'bonjour';
+  var expediteur = (c.name || ((c.prenom||'')+' '+(c.nom||'')).trim()).trim() || 'votre expéditeur';
+  return 'Bonjour ' + nom + ' 👋\n\n'
+    + '📦 Le colis envoyé par ' + expediteur + ' est bien arrivé à notre dépôt de Dakar (Parcelle Assainie, Unité 8).\n\n'
+    + 'Vous pouvez venir le récupérer.\n\n'
+    + 'Merci,\nDakar City Transport';
+}
+
+// v1.8.0 — un clic ouvre WhatsApp (comme partout ailleurs dans
+// l'application, aucune confirmation de lecture possible côté WhatsApp)
+// et note tout de suite dans l'historique du client QUI a ouvert ce
+// message et QUAND — Cobey : « je veux aussi un historique des messages
+// de notification pour ça voir qui a reçu le message ».
+function mnPrevenirDestinataire(src, collecteId, clientId){
+  var ref = { src: src, collecteId: collecteId||'', clientId: clientId };
+  var c = clientActuel(ref);
+  if(!c){ alert('Client introuvable.'); return; }
+  var d = departsData[_cdDepartId] || {};
+  var tel = _mnTelIntlDestinataire(c.destinataireTel, depPaysDepart(d));
+  if(!tel){ alert('Numéro du destinataire manquant.'); return; }
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_mnTexteArriveeDestinataire(c)), '_blank');
+  var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+  hist.push({ q: ACTEUR_NOM, a: 'a ouvert WhatsApp pour prévenir le <strong>destinataire</strong> de l\'arrivée du container', ts: Date.now(), type: 'arrivee' });
+  c.hist = hist;
+  ecrireClient(ref, { hist: hist }).catch(function(e){
+    console.error('mamadou: échec enregistrement historique (prévenir destinataire)', e);
+  });
 }
 
 // v1.2.0 — Cobey : « le système de filtre est plutôt chaotique, il y a
@@ -1111,6 +1177,12 @@ function cdFiltreLivraison(val){ _cdFiltres.livraison = val; cdAppliquerFiltres(
 function cdFiltreRegion(val){ _cdFiltres.region = val; cdAppliquerFiltres(); }
 function cdAppliquerFiltres(){
   if(!_cdDepartId) return;
+  // v1.8.0 : le bouton WhatsApp "prévenir le destinataire" n'a de sens
+  // qu'une fois le container réellement arrivé (voir _cdMajBlocArrivee,
+  // validerArriveeDepot) — calculé une fois pour toute la liste plutôt
+  // que par client, le statut du container ne change pas d'une carte à
+  // l'autre.
+  var dejaArrivee = _cdEstArrivee(departsData[_cdDepartId] || {});
   var recherche = ($('cd-recherche').value || '').toLowerCase().trim();
   var clients = clientsDuContainer(_cdDepartId).filter(function(x){
     var c = x.c;
@@ -1164,6 +1236,9 @@ function cdAppliquerFiltres(){
             ? ('<div class="cli-reste">Reste à payer : '+pay.reste+' €</div>')
             : '<div class="cli-paye">✅ Soldé</div>')
       +   liv
+      +   (dejaArrivee
+            ? ('<button type="button" class="cli-btn-whatsapp" onclick="event.stopPropagation();mnPrevenirDestinataire(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">💬 Prévenir le destinataire (arrivé)</button>')
+            : '')
       + '</div>';
   });
   $('cd-liste').innerHTML = h;
