@@ -2084,7 +2084,7 @@ une estimation, ça nous va [...] c'est d'avoir une estimation du
 kilométrage que le camion fait par rapport aux adresses et à sa
 tournée. » Confirmé par itinéraire **routier**, pas à vol d'oiseau.
 
-Un bouton « 📏 Estimer le kilométrage » :
+Un bouton « 📏 Estimer le kilométrage » (et désormais aussi « Recalculer ») :
 - **Côté France & Europe** (écran du camion, `estimerKmCamionFrance`) —
   géocode chaque arrêt de la tournée (réutilise `_geocodeClientFr`,
   déjà en place pour la carte Suivi — un client déjà géocodé une fois
@@ -2096,10 +2096,33 @@ Un bouton « 📏 Estimer le kilométrage » :
   même principe, à partir du trajet déjà tracé sur cette carte
   (clients + bornes départ/arrivée du dépôt, Emerainville/Mitry-Mory).
 
-Action volontairement manuelle (un bouton, pas un calcul automatique à
-chaque ouverture d'écran) : OSRM est un service public gratuit, on ne
-le sollicite pas à chaque rafraîchissement. En cas d'échec (service
-indisponible), un message clair plutôt qu'un chiffre faux.
+En cas d'échec (service indisponible), un message clair plutôt qu'un
+chiffre faux.
+
+**Suite, le 12/10 (v2.20.48 / v3.97.1) — point de départ/arrivée du
+dépôt, chauffeur externe, calcul automatique.** Trois affinages, dans
+la foulée :
+
+1. « Rajouter le même point de départ et le même point d'arrivée [...]
+   oui, c'est la même adresse [...] le rendez-vous pour le départ et
+   Mitry-Mory pour l'arrivée. » Le kilométrage France & Europe compte
+   désormais aussi l'aller/retour au dépôt — mêmes points que la carte
+   Collecte (`window.DEP_CARTE_DEPART`/`ARRIVEE`, exposés par departs.js
+   et réutilisés tels quels par dct-app.html : une seule adresse à tenir
+   à jour pour les deux parcours).
+2. « Pour les chauffeurs externes, il n'y a pas de point de départ, car
+   eux démarrent de là où ils habitent. Mais [...] on peut toujours
+   mettre un point d'arrivée. » Pour un camion marqué `externe` (lien +
+   code à 4 chiffres, déjà utilisé ailleurs), le départ ne compte plus
+   dans le calcul — l'arrivée à Mitry-Mory, si.
+3. « Ça ne peut pas s'afficher automatiquement sur chaque camion par
+   rapport aux adresses déjà [là] ? » Le calcul se lance maintenant
+   tout seul à l'ouverture du camion (France) ou dès que le trajet de
+   la carte a fini de se dessiner (Collecte) — plus besoin de cliquer
+   pour un premier résultat. Toujours une seule fois par ouverture (pas
+   à chaque rafraîchissement d'écran, ex. une validation d'arrêt) : le
+   bouton, renommé « Recalculer » une fois un résultat affiché, reste
+   là pour relancer le calcul à la demande.
 
 ---
 

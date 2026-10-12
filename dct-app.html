@@ -1734,7 +1734,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.97.0';
+var APP_VERSION = 'v3.97.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5861,23 +5861,62 @@ function ouvrirCamionFrance(k){
   _frCamion=k;
   // v3.97.0 : efface l'estimation du camion précédent — sinon un vieux
   // "~87 km" resterait affiché en ouvrant un autre camion, avant même
-  // d'avoir cliqué "Estimer" pour celui-ci.
+  // que celle-ci (relancée juste en dessous) n'ait répondu.
   var val=document.getElementById('frc-km-val'); if(val) val.textContent='—';
   var note=document.getElementById('frc-km-note'); if(note) note.textContent='';
   var btn=document.getElementById('frc-km-btn'); if(btn){ btn.disabled=false; btn.textContent='📏 Estimer le kilométrage'; }
   renderCamionFrance();
   goTo('s-fr-camion');
+  // v3.97.1 — Cobey, 12/10/2026 : « ça ne peut pas s'afficher
+  // automatiquement sur chaque camion par rapport aux adresses déjà [là] ? »
+  // Calculé une fois à l'ouverture, plutôt qu'à chaque rendu de l'écran
+  // (une validation d'arrêt rappelle renderCamionFrance — le relancer à
+  // CE moment-là spammerait OSRM à chaque étape de la tournée, pour un
+  // chiffre qui ne bouge quasiment jamais entre deux arrêts validés).
+  // Le bouton reste là pour recalculer à la demande (ex. après avoir
+  // changé les clients du camion).
+  estimerKmCamionFrance();
 }
 function retourDispatchFrance(){ goTo('s-france'); renderFrance(); }
 
+// v3.97.0 — point de départ/arrivée du dépôt, réutilisés depuis la carte
+// Collecte (departs.js, window.DEP_CARTE_DEPART/ARRIVEE — Cobey,
+// 12/10/2026 : « oui, c'est la même adresse [...] le rendez-vous pour le
+// départ et Mitry-Mory pour l'arrivée »), pour que le kilométrage France
+// compte aussi le trajet aller/retour au dépôt, pas seulement entre les
+// clients. Chauffeur externe (tk.externe) : « pas de point de départ,
+// car eux démarrent de là où ils habitent [...] mais on peut toujours
+// mettre un point d'arrivée » — le retour à Mitry-Mory compte toujours.
+function _geocoderBorne(conf, cb){
+  if(typeof _geocodeAdresse !== 'function'){ cb(conf.secours[0], conf.secours[1]); return; }
+  _geocodeAdresse(conf.lib, conf.cp, function(lat,lng){
+    if(lat && lng) cb(lat,lng); else cb(conf.secours[0], conf.secours[1]);
+  });
+}
+function _frAjouterBornesTrajet(tk, pts, cb){
+  var depart=window.DEP_CARTE_DEPART, arrivee=window.DEP_CARTE_ARRIVEE;
+  var ajouterDepart = !!(depart && !tk.externe);
+  var tout=pts.slice(), posDepart=null, posArrivee=null;
+  var restants=(ajouterDepart?1:0)+(arrivee?1:0);
+  var fin=function(){
+    restants--;
+    if(restants<=0){
+      if(posDepart) tout.unshift(posDepart);
+      if(posArrivee) tout.push(posArrivee);
+      cb(tout, ajouterDepart, !!arrivee);
+    }
+  };
+  if(!restants){ cb(tout, false, false); return; }
+  if(ajouterDepart) _geocoderBorne(depart, function(lat,lng){ posDepart={lat:lat,lng:lng}; fin(); });
+  if(arrivee) _geocoderBorne(arrivee, function(lat,lng){ posArrivee={lat:lat,lng:lng}; fin(); });
+}
+
 // v3.97.0 — estimation du kilométrage d'un camion France, par itinéraire
 // routier entre ses arrêts dans l'ordre de passage (voir
-// _calculerDistanceRoute). Geocode d'abord chaque client qui n'a pas
+// _calculerDistanceRoute), plus l'aller/retour au dépôt (voir
+// _frAjouterBornesTrajet). Geocode d'abord chaque client qui n'a pas
 // encore de lat/lng (comme la carte Suivi, _geocodeClientFr persiste le
 // résultat — un client déjà géocodé une fois ne l'est jamais deux fois).
-// Action explicite (bouton), pas automatique à chaque rendu : OSRM est
-// un service public gratuit, on ne l'appelle pas à chaque rafraîchissement
-// d'écran (une validation d'arrêt, par ex., rappelle renderCamionFrance).
 function estimerKmCamionFrance(){
   var r=_frCollecteActive(); if(!r) return;
   var tk=(r.trucks||{})[_frCamion]; if(!tk) return;
@@ -5899,16 +5938,22 @@ function estimerKmCamionFrance(){
   var pts=[], restants=sorted.length, echecGeocode=0;
   var fini=function(){
     pts.sort(function(a,b){ return a.i-b.i; });
-    _calculerDistanceRoute(pts, function(km){
-      if(btn){ btn.disabled=false; btn.textContent='📏 Recalculer'; }
-      if(km===null){
-        if(val) val.textContent='—';
-        if(note) note.textContent='⚠️ Calcul indisponible, réessayez.';
-        return;
-      }
-      if(val) val.textContent='~'+km+' km';
-      if(note) note.textContent = 'Itinéraire routier entre les '+pts.length+' arrêts, dans l\'ordre de passage'
-        + (echecGeocode ? (' — adresse introuvable pour '+echecGeocode+' client'+(echecGeocode>1?'s':'')) : '') + '.';
+    var coordsPts=pts.map(function(pt){ return { lat:pt.lat, lng:pt.lng }; });
+    _frAjouterBornesTrajet(tk, coordsPts, function(tout, avecDepart, avecArrivee){
+      _calculerDistanceRoute(tout, function(km){
+        if(btn){ btn.disabled=false; btn.textContent='📏 Recalculer'; }
+        if(km===null){
+          if(val) val.textContent='—';
+          if(note) note.textContent='⚠️ Calcul indisponible, réessayez.';
+          return;
+        }
+        if(val) val.textContent='~'+km+' km';
+        var trajetTxt = avecDepart
+          ? 'Du dépôt (Emerainville) au dépôt (Mitry-Mory)'
+          : (avecArrivee ? 'Chauffeur externe — sans point de départ fixe, retour à Mitry-Mory compté' : 'Entre les arrêts');
+        if(note) note.textContent = trajetTxt + ', via les '+pts.length+' arrêt'+(pts.length>1?'s':'')+' — itinéraire routier'
+          + (echecGeocode ? (' — adresse introuvable pour '+echecGeocode+' client'+(echecGeocode>1?'s':'')) : '') + '.';
+      });
     });
   };
   sorted.forEach(function(id, i){

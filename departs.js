@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.47';
+var DEP_VERSION = 'v2.20.48';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19161,6 +19161,9 @@ var _depCarteMap = null;
 var _depCarteMarqueurs = {};
 var _depCarteTrace = null;
 var _depCarteCollecteAvant = null;
+// v2.20.48 : un seul calcul automatique par ouverture de carte (voir
+// _depCarteTenterKmAuto) — remis à false à chaque depCarteCamion().
+var _depCarteKmAuto = false;
 
 // v2.9.2 : même carte, ouverte depuis l'onglet Suivi (collecte pas
 // forcément celle en cours d'édition dans Dispatch) — Cobey : « dans le
@@ -19181,6 +19184,7 @@ window.depCarteCamion = function(k){
   if(!tk){ toast('⚠️ Camion introuvable.'); return; }
   if(!(tk.clients||[]).length){ toast('⚠️ Aucun client dans ce camion.'); return; }
   _depCarteCamionK = k;
+  _depCarteKmAuto = false;
 
   var m = $('modal-dep-carte-camion');
   if(m) m.remove();
@@ -19296,6 +19300,13 @@ function _depCarteDessiner(){
    deux racontent la même chose. */
 var DEP_CARTE_DEPART  = { lib:'Emerainville', cp:'77184', secours:[48.7739, 2.6158] };
 var DEP_CARTE_ARRIVEE = { lib:'21 rue Gay Lussac, Mitry-Mory', cp:'77290', secours:[48.9906, 2.6153] };
+// v2.20.48 : exposées pour que dct-app.html les réutilise telles quelles
+// côté France & Europe (Cobey, 12/10/2026 : « oui, c'est la même
+// adresse [...] le rendez-vous pour le départ et Mitry-Mory pour
+// l'arrivée ») — un seul dépôt, jamais deux adresses qui pourraient un
+// jour diverger entre Collecte et France & Europe.
+window.DEP_CARTE_DEPART = DEP_CARTE_DEPART;
+window.DEP_CARTE_ARRIVEE = DEP_CARTE_ARRIVEE;
 var _depCarteBorneCoords = { depart:null, arrivee:null };
 var _depCarteDerniersPts = [];   // pour retracer quand une borne arrive
 
@@ -19361,6 +19372,26 @@ function _depCarteTracer(pts){
   if(tout.length){
     try{ _depCarteMap.fitBounds(L.latLngBounds(tout), {padding:[40,40], maxZoom:14}); }catch(e){}
   }
+  _depCarteTenterKmAuto();
+}
+
+// v2.20.48 — Cobey, 12/10/2026 : « ça ne peut pas s'afficher
+// automatiquement sur chaque camion par rapport aux adresses déjà [là] ? »
+// _depCarteTracer se redessine plusieurs fois pendant qu'une carte
+// s'ouvre (géocodage des clients, puis des bornes départ/arrivée, chacun
+// arrivant séparément) — on ne lance le calcul qu'une fois que tout ce
+// dont ce camion a besoin est prêt (le départ ne compte pas pour un
+// chauffeur externe, voir depEstimerKmCamion), et une seule fois par
+// ouverture de carte (voir _depCarteKmAuto, remis à false dans
+// depCarteCamion).
+function _depCarteTenterKmAuto(){
+  if(_depCarteKmAuto || !_depCarteDerniersPts.length) return;
+  var trks = getTrucks(), tk = trks[_depCarteCamionK];
+  var besoinDepart = !(tk && tk.externe);
+  if(besoinDepart && !_depCarteBorneCoords.depart) return;
+  if(!_depCarteBorneCoords.arrivee) return;
+  _depCarteKmAuto = true;
+  try{ depEstimerKmCamion(); }catch(e){ console.error('departs: estimation km auto', e); }
 }
 
 // v2.20.47 — kilométrage estimé du trajet déjà tracé sur cette carte
@@ -19373,8 +19404,15 @@ window.depEstimerKmCamion = function(){
   var btn = $('dep-carte-km-btn'), val = $('dep-carte-km-val');
   if(!_depCarteDerniersPts.length){ toast('⚠️ Trajet pas encore prêt, patientez un instant.'); return; }
   if(typeof window._calculerDistanceRoute !== 'function'){ toast('⚠️ Calcul indisponible.'); return; }
+  // v2.20.48 — Cobey, 12/10/2026 : « pour les chauffeurs externes, il
+  // n'y a pas de point de départ, car eux démarrent de là où ils
+  // habitent [...] on peut toujours mettre un point d'arrivée. » Le
+  // départ (Emerainville) ne compte que pour un camion "interne" ;
+  // l'arrivée (Mitry-Mory) compte toujours, externe ou pas.
+  var trks = getTrucks(), tk = trks[_depCarteCamionK];
   var tout = _depCarteDerniersPts.map(function(p){ return { lat:p.lat, lng:p.lng }; });
-  if(_depCarteBorneCoords.depart)  tout.unshift({ lat:_depCarteBorneCoords.depart[0],  lng:_depCarteBorneCoords.depart[1]  });
+  if(_depCarteBorneCoords.depart && !(tk && tk.externe))
+    tout.unshift({ lat:_depCarteBorneCoords.depart[0],  lng:_depCarteBorneCoords.depart[1]  });
   if(_depCarteBorneCoords.arrivee) tout.push({ lat:_depCarteBorneCoords.arrivee[0], lng:_depCarteBorneCoords.arrivee[1] });
   if(btn){ btn.disabled = true; btn.innerHTML = '⏳ Calcul…'; }
   window._calculerDistanceRoute(tout, function(km){
