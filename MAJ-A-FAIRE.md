@@ -2117,12 +2117,24 @@ la foulée :
    dans le calcul — l'arrivée à Mitry-Mory, si.
 3. « Ça ne peut pas s'afficher automatiquement sur chaque camion par
    rapport aux adresses déjà [là] ? » Le calcul se lance maintenant
-   tout seul à l'ouverture du camion (France) ou dès que le trajet de
-   la carte a fini de se dessiner (Collecte) — plus besoin de cliquer
-   pour un premier résultat. Toujours une seule fois par ouverture (pas
-   à chaque rafraîchissement d'écran, ex. une validation d'arrêt) : le
+   tout seul à l'ouverture du camion — plus besoin de cliquer pour un
+   premier résultat. Toujours une seule fois par ouverture (pas à
+   chaque rafraîchissement d'écran, ex. une validation d'arrêt) : le
    bouton, renommé « Recalculer » une fois un résultat affiché, reste
    là pour relancer le calcul à la demande.
+
+**Suite, le 12/10 (v2.20.49 / v3.97.2) — un seul et même endroit pour
+les deux parcours.** Cobey, après avoir demandé où ça s'affichait :
+« il faudrait faire la même chose pour les deux. Parce qu'avoir la
+même chose dans deux parcours avec de façon différente, c'est un peu
+déroutant. » Le kilométrage vivait sur l'écran du camion côté France &
+Europe, mais seulement dans sa carte côté Collecte — deux façons
+différentes d'arriver au même renseignement. Déplacé sur l'écran natif
+du camion côté Collecte aussi (`estimerKmCamion`, posé dans
+`openCamion` comme côté France), retiré de la carte (`depCarteCamion`)
+qui redevient uniquement une vue du trajet. Même emplacement, même
+présentation, même déclenchement automatique à l'ouverture, des deux
+côtés désormais.
 
 ---
 

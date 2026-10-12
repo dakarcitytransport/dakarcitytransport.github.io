@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.48';
+var DEP_VERSION = 'v2.20.49';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19161,9 +19161,6 @@ var _depCarteMap = null;
 var _depCarteMarqueurs = {};
 var _depCarteTrace = null;
 var _depCarteCollecteAvant = null;
-// v2.20.48 : un seul calcul automatique par ouverture de carte (voir
-// _depCarteTenterKmAuto) — remis à false à chaque depCarteCamion().
-var _depCarteKmAuto = false;
 
 // v2.9.2 : même carte, ouverte depuis l'onglet Suivi (collecte pas
 // forcément celle en cours d'édition dans Dispatch) — Cobey : « dans le
@@ -19184,7 +19181,6 @@ window.depCarteCamion = function(k){
   if(!tk){ toast('⚠️ Camion introuvable.'); return; }
   if(!(tk.clients||[]).length){ toast('⚠️ Aucun client dans ce camion.'); return; }
   _depCarteCamionK = k;
-  _depCarteKmAuto = false;
 
   var m = $('modal-dep-carte-camion');
   if(m) m.remove();
@@ -19204,18 +19200,6 @@ window.depCarteCamion = function(k){
     +   '&#128072; Touchez un point pour le d&eacute;placer dans la tourn&eacute;e &middot; '
     +   '<span style="color:#006b2d;">&#9679;</span> ramass&eacute; &middot; '
     +   '<span style="color:#E58A00;">&#9679;</span> &agrave; faire</div>'
-    // v2.20.47 — Cobey, 12/10/2026 : « savoir chaque camion combien de
-    // kilomètres il parcourt » — estimation par itinéraire routier (pas
-    // à vol d'oiseau) sur le trajet déjà tracé ici (points + bornes
-    // départ/arrivée), via _calculerDistanceRoute (dct-app.html). Bouton
-    // explicite : pas d'appel automatique au service de calcul à chaque
-    // ouverture de la carte.
-    + '<div style="background:#fff;border-bottom:2px solid var(--border);padding:9px 14px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;">'
-    +   '<button type="button" id="dep-carte-km-btn" onclick="depEstimerKmCamion()" style="background:#e8eaf6;color:#1a237e;'
-    +     'border:1.5px solid #1a237e;border-radius:8px;padding:7px 11px;font-size:11.5px;font-weight:800;cursor:pointer;'
-    +     'font-family:var(--font);white-space:nowrap;">&#128207; Estimer le kilom&eacute;trage</button>'
-    +   '<span id="dep-carte-km-val" style="font-size:13px;font-weight:800;color:#1a237e;text-align:right;">&mdash;</span>'
-    + '</div>'
     + '<div id="dep-carte-map" style="flex:1;min-height:0;"></div>'
     + '<div id="dep-carte-liste" style="background:#fff;border-top:2px solid var(--border);'
     +   'max-height:38vh;overflow-y:auto;padding:10px 12px;flex-shrink:0;"></div>';
@@ -19372,55 +19356,7 @@ function _depCarteTracer(pts){
   if(tout.length){
     try{ _depCarteMap.fitBounds(L.latLngBounds(tout), {padding:[40,40], maxZoom:14}); }catch(e){}
   }
-  _depCarteTenterKmAuto();
 }
-
-// v2.20.48 — Cobey, 12/10/2026 : « ça ne peut pas s'afficher
-// automatiquement sur chaque camion par rapport aux adresses déjà [là] ? »
-// _depCarteTracer se redessine plusieurs fois pendant qu'une carte
-// s'ouvre (géocodage des clients, puis des bornes départ/arrivée, chacun
-// arrivant séparément) — on ne lance le calcul qu'une fois que tout ce
-// dont ce camion a besoin est prêt (le départ ne compte pas pour un
-// chauffeur externe, voir depEstimerKmCamion), et une seule fois par
-// ouverture de carte (voir _depCarteKmAuto, remis à false dans
-// depCarteCamion).
-function _depCarteTenterKmAuto(){
-  if(_depCarteKmAuto || !_depCarteDerniersPts.length) return;
-  var trks = getTrucks(), tk = trks[_depCarteCamionK];
-  var besoinDepart = !(tk && tk.externe);
-  if(besoinDepart && !_depCarteBorneCoords.depart) return;
-  if(!_depCarteBorneCoords.arrivee) return;
-  _depCarteKmAuto = true;
-  try{ depEstimerKmCamion(); }catch(e){ console.error('departs: estimation km auto', e); }
-}
-
-// v2.20.47 — kilométrage estimé du trajet déjà tracé sur cette carte
-// (mêmes points + bornes départ/arrivée que _depCarteTracer), par
-// itinéraire routier via _calculerDistanceRoute (dct-app.html, service
-// public OSRM — voir son commentaire pour le choix). Action explicite
-// (bouton) : la carte peut se redessiner plusieurs fois (géocodage
-// asynchrone des bornes) sans jamais relancer ce calcul toute seule.
-window.depEstimerKmCamion = function(){
-  var btn = $('dep-carte-km-btn'), val = $('dep-carte-km-val');
-  if(!_depCarteDerniersPts.length){ toast('⚠️ Trajet pas encore prêt, patientez un instant.'); return; }
-  if(typeof window._calculerDistanceRoute !== 'function'){ toast('⚠️ Calcul indisponible.'); return; }
-  // v2.20.48 — Cobey, 12/10/2026 : « pour les chauffeurs externes, il
-  // n'y a pas de point de départ, car eux démarrent de là où ils
-  // habitent [...] on peut toujours mettre un point d'arrivée. » Le
-  // départ (Emerainville) ne compte que pour un camion "interne" ;
-  // l'arrivée (Mitry-Mory) compte toujours, externe ou pas.
-  var trks = getTrucks(), tk = trks[_depCarteCamionK];
-  var tout = _depCarteDerniersPts.map(function(p){ return { lat:p.lat, lng:p.lng }; });
-  if(_depCarteBorneCoords.depart && !(tk && tk.externe))
-    tout.unshift({ lat:_depCarteBorneCoords.depart[0],  lng:_depCarteBorneCoords.depart[1]  });
-  if(_depCarteBorneCoords.arrivee) tout.push({ lat:_depCarteBorneCoords.arrivee[0], lng:_depCarteBorneCoords.arrivee[1] });
-  if(btn){ btn.disabled = true; btn.innerHTML = '⏳ Calcul…'; }
-  window._calculerDistanceRoute(tout, function(km){
-    if(btn){ btn.disabled = false; btn.innerHTML = '📏 Recalculer'; }
-    if(val) val.textContent = (km===null) ? '—' : ('~'+km+' km');
-    if(km === null) toast('⚠️ Calcul indisponible, réessayez.');
-  });
-};
 
 /* v1.51.0 — Placer un client entre deux autres.
    « Monter / Descendre » ne voulait rien dire sur une carte : on croyait

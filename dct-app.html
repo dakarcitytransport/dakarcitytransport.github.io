@@ -1081,6 +1081,19 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         <div class="finance-pct" id="c-fin-pct">0% facturé</div>
       </div>
     </div>
+    <!-- v3.97.2 — Cobey, 12/10/2026 : « avoir la même chose dans deux
+         parcours de façon différente, c'est un peu déroutant. » Même
+         carte-chiffres, au même endroit, que côté France & Europe
+         (#frc-km-val/-btn/-note) — plus seulement dans la carte du
+         camion (retiré de là, voir estimerKmCamion). -->
+    <div style="background:white;border:2px solid var(--green);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:12px;font-weight:800;color:var(--text);">&#128207; Kilom&eacute;trage estim&eacute;</span>
+        <span id="c-km-val" style="font-size:16px;font-weight:800;color:#1a237e;">&mdash;</span>
+      </div>
+      <button class="btn" id="c-km-btn" style="margin:0;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" onclick="estimerKmCamion(currentCamion)">&#128207; Estimer le kilom&eacute;trage</button>
+      <div id="c-km-note" style="font-size:10.5px;color:var(--text3);margin-top:7px;line-height:1.4;"></div>
+    </div>
     <div class="slabel">Ordre de passage — tap sur le nom pour modifier</div>
     <div id="camion-route"></div>
   </div>
@@ -1734,7 +1747,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.97.1';
+var APP_VERSION = 'v3.97.2';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -10147,7 +10160,79 @@ function affecter(tk){
 }
 
 // VUE CAMION
-function openCamion(k){currentCamion=k;renderCamion(k);goTo('s-camion');}
+function openCamion(k){
+  currentCamion=k;
+  // v3.97.2 : efface l'estimation du camion précédent — relancée juste
+  // en dessous, comme côté France & Europe (ouvrirCamionFrance).
+  var val=document.getElementById('c-km-val'); if(val) val.textContent='—';
+  var note=document.getElementById('c-km-note'); if(note) note.textContent='';
+  var btn=document.getElementById('c-km-btn'); if(btn){ btn.disabled=false; btn.textContent='📏 Estimer le kilométrage'; }
+  renderCamion(k);
+  goTo('s-camion');
+  estimerKmCamion(k);
+}
+
+// v3.97.2 — même estimation que côté France & Europe (estimerKmCamionFrance),
+// mais posée directement sur l'écran natif du camion (Collecte) plutôt
+// que dans sa carte — Cobey, 12/10/2026 : « avoir la même chose dans
+// deux parcours de façon différente, c'est un peu déroutant. » Réutilise
+// _geocodeClientFr (déjà la méthode employée par la carte de ce même
+// camion pour ses clients), _frAjouterBornesTrajet (départ/arrivée au
+// dépôt, départ ignoré pour un chauffeur externe) et
+// _calculerDistanceRoute — les 3 déjà en place pour France.
+function estimerKmCamion(k){
+  var trks=getTrucks(), tk=trks[k]; if(!tk) return;
+  var cls=getClients();
+  var hours=tk.hours||{};
+  var sorted=(tk.clients||[]).slice().sort(function(a,b){
+    var ha=hours[a], hb=hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return tk.clients.indexOf(a)-tk.clients.indexOf(b);
+  });
+  var btn=document.getElementById('c-km-btn');
+  var val=document.getElementById('c-km-val');
+  var note=document.getElementById('c-km-note');
+  if(note) note.textContent='';
+  if(!sorted.length){ if(val) val.textContent='—'; return; }
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Calcul en cours…'; }
+
+  var pts=[], restants=sorted.length, echecGeocode=0;
+  var fini=function(){
+    pts.sort(function(a,b){ return a.i-b.i; });
+    var coordsPts=pts.map(function(pt){ return { lat:pt.lat, lng:pt.lng }; });
+    _frAjouterBornesTrajet(tk, coordsPts, function(tout, avecDepart, avecArrivee){
+      _calculerDistanceRoute(tout, function(km){
+        if(btn){ btn.disabled=false; btn.textContent='📏 Recalculer'; }
+        if(km===null){
+          if(val) val.textContent='—';
+          if(note) note.textContent='⚠️ Calcul indisponible, réessayez.';
+          return;
+        }
+        if(val) val.textContent='~'+km+' km';
+        var trajetTxt = avecDepart
+          ? 'Du dépôt (Emerainville) au dépôt (Mitry-Mory)'
+          : (avecArrivee ? 'Chauffeur externe — sans point de départ fixe, retour à Mitry-Mory compté' : 'Entre les arrêts');
+        if(note) note.textContent = trajetTxt + ', via les '+pts.length+' arrêt'+(pts.length>1?'s':'')+' — itinéraire routier'
+          + (echecGeocode ? (' — adresse introuvable pour '+echecGeocode+' client'+(echecGeocode>1?'s':'')) : '') + '.';
+      });
+    });
+  };
+  sorted.forEach(function(id, i){
+    var c=cls[id];
+    if(!c){ restants--; if(restants<=0) fini(); return; }
+    c._id = id;
+    var poser=function(lat,lng){
+      restants--;
+      if(lat && lng) pts.push({ i:i, lat:lat, lng:lng }); else echecGeocode++;
+      if(restants<=0) fini();
+    };
+    if(c.lat && c.lng){ poser(c.lat, c.lng); return; }
+    _geocodeClientFr(c, poser);
+  });
+}
+
 function renderCamion(k){
   var trks=getTrucks(),cls=getClients(),tc=getTc(k),tk=trks[k];
   if(!tk)return;
