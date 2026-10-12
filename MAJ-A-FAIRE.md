@@ -2136,6 +2136,20 @@ qui redevient uniquement une vue du trajet. Même emplacement, même
 présentation, même déclenchement automatique à l'ouverture, des deux
 côtés désormais.
 
+**Suite, le 12/10 (v3.97.3) — une mention pour ne pas "appuyer sur
+Recalculer dans le vide".** Cobey, en pensant à un cas concret
+(ajouter un client à un camion déjà ouvert) : « quand on appuie sur
+recalculer, on met une mention avec le nombre total de clients,
+l'heure, la date. Comme ça, on est sûr que ça a bien pris en compte
+les dernières modifications [...] je ne vais pas appuyer sur
+recalculer dans le vide. » Le calcul automatique ne se relance qu'à
+l'ouverture du camion (voir l'entrée juste au-dessus) — ajouter un
+client ensuite ne met pas le chiffre à jour tout seul, il faut
+rappuyer sur "Recalculer". Chaque résultat (France comme Collecte)
+porte désormais une ligne « Calculé le JJ/MM/AAAA à HHhMM · N clients
+pris en compte » : de quoi voir d'un coup d'œil si le dernier calcul
+a bien eu lieu après la dernière modification, sans avoir à deviner.
+
 ---
 
 ## 3 · Bug

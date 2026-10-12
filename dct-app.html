@@ -1747,7 +1747,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.97.2';
+var APP_VERSION = 'v3.97.3';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5924,6 +5924,24 @@ function _frAjouterBornesTrajet(tk, pts, cb){
   if(arrivee) _geocoderBorne(arrivee, function(lat,lng){ posArrivee={lat:lat,lng:lng}; fin(); });
 }
 
+// v3.97.3 — Cobey, 12/10/2026 : « je ne vais pas appuyer sur recalculer
+// dans le vide [...] on met une mention avec le nombre total de clients,
+// l'heure, la date. Comme ça, on est sûr que ça a bien pris en compte
+// les dernières modifications. » Après un ajout/retrait de client sur
+// le camion, "Recalculer" ne le détecte pas tout seul (voir
+// estimerKmCamion/estimerKmCamionFrance — automatique seulement à
+// l'ouverture) ; cette ligne prouve, à chaque calcul, QUAND il a eu
+// lieu et sur COMBIEN de clients — de quoi voir tout de suite s'il faut
+// encore recalculer après une modification.
+function _texteConfirmationKm(nbArrets, avecDepart, avecArrivee, echecGeocode){
+  var trajetTxt = avecDepart
+    ? 'Du dépôt (Emerainville) au dépôt (Mitry-Mory)'
+    : (avecArrivee ? 'Chauffeur externe — sans point de départ fixe, retour à Mitry-Mory compté' : 'Entre les arrêts');
+  return 'Calculé le '+_dateHeureFr(Date.now())+' · '+nbArrets+' client'+(nbArrets>1?'s':'')+' pris en compte — '
+    + trajetTxt + ', itinéraire routier'
+    + (echecGeocode ? (' — adresse introuvable pour '+echecGeocode+' client'+(echecGeocode>1?'s':'')) : '') + '.';
+}
+
 // v3.97.0 — estimation du kilométrage d'un camion France, par itinéraire
 // routier entre ses arrêts dans l'ordre de passage (voir
 // _calculerDistanceRoute), plus l'aller/retour au dépôt (voir
@@ -5961,11 +5979,7 @@ function estimerKmCamionFrance(){
           return;
         }
         if(val) val.textContent='~'+km+' km';
-        var trajetTxt = avecDepart
-          ? 'Du dépôt (Emerainville) au dépôt (Mitry-Mory)'
-          : (avecArrivee ? 'Chauffeur externe — sans point de départ fixe, retour à Mitry-Mory compté' : 'Entre les arrêts');
-        if(note) note.textContent = trajetTxt + ', via les '+pts.length+' arrêt'+(pts.length>1?'s':'')+' — itinéraire routier'
-          + (echecGeocode ? (' — adresse introuvable pour '+echecGeocode+' client'+(echecGeocode>1?'s':'')) : '') + '.';
+        if(note) note.textContent = _texteConfirmationKm(pts.length, avecDepart, avecArrivee, echecGeocode);
       });
     });
   };
@@ -10211,11 +10225,7 @@ function estimerKmCamion(k){
           return;
         }
         if(val) val.textContent='~'+km+' km';
-        var trajetTxt = avecDepart
-          ? 'Du dépôt (Emerainville) au dépôt (Mitry-Mory)'
-          : (avecArrivee ? 'Chauffeur externe — sans point de départ fixe, retour à Mitry-Mory compté' : 'Entre les arrêts');
-        if(note) note.textContent = trajetTxt + ', via les '+pts.length+' arrêt'+(pts.length>1?'s':'')+' — itinéraire routier'
-          + (echecGeocode ? (' — adresse introuvable pour '+echecGeocode+' client'+(echecGeocode>1?'s':'')) : '') + '.';
+        if(note) note.textContent = _texteConfirmationKm(pts.length, avecDepart, avecArrivee, echecGeocode);
       });
     });
   };
