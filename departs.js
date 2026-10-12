@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.53';
+var DEP_VERSION = 'v2.20.54';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8280,8 +8280,15 @@ window.depDetail = function(id, gardeFiltres){
               // pas en défilant sur les clients. » Reste cliquable après
               // (une relance reste possible), juste une couleur/un texte
               // différents pour le distinguer d'un coup d'œil.
+              // v2.20.54 — Cobey : « un changement de couleur [...] pour
+              // différencier l'action effectuée [vert] de l'action [pas
+              // encore] validée [orange] » — les deux états étaient tous
+              // les deux en vert (juste une nuance différente), pas assez
+              // tranché pour repérer d'un coup d'œil en défilant. Même
+              // code couleur que "reste à payer" (orange) / "soldé"
+              // (vert) déjà utilisé ailleurs dans l'appli.
               + (d.statut === 'arrive'
-                ? ('<button class="dep-cli-btn" style="'+(c.arriveeExpediteurPrevenu ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#E7F9EE;border-color:#25D366;color:#128C4A;')+'" '
+                ? ('<button class="dep-cli-btn" style="'+(c.arriveeExpediteurPrevenu ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#FFF4E0;border-color:#E58A00;color:#A04800;')+'" '
                   + 'onclick="event.stopPropagation();depPrevenirArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
                   + (c.arriveeExpediteurPrevenu ? '&#9989; Pr&eacute;venu' : '&#128172; Pr&eacute;venir (arriv&eacute;)')
                   + '</button>')

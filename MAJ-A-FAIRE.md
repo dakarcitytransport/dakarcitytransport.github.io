@@ -540,6 +540,16 @@ immédiat, sans recharger l'écran : toute l'équipe le voit à sa
 prochaine ouverture, puisque c'est enregistré sur la fiche du client
 dans Firebase, pas seulement affiché localement.
 
+**Suite, le 12/10 (v2.20.54 / v1.10.0 Mamadou) — couleurs trop
+proches.** Cobey : « faudrait un changement de couleur [...] pour
+différencier l'action effectuée à l'action validée. » Les deux états du
+bouton étaient tous les deux en vert (juste une nuance différente), pas
+assez tranché pour repérer d'un coup d'œil en défilant — justement
+l'objectif de la demande ci-dessus. Corrigé avec le même code couleur
+déjà utilisé ailleurs dans l'appli pour "reste à faire" / "fait" (ex. le
+badge livraison de Mamadou, `.cli-liv-reste`/`.cli-liv-soldee`) :
+orange tant que le client n'a pas été prévenu, vert une fois fait.
+
 ### Notification : diagnostiquer soi-même « j'ai envoyé mais rien reçu »
 **Fait le 04/10 (v2.20.26).** Eric, capture d'écran de l'écran
 Notification à l'appui : « j'ai envoyé une notif mais j'ai rien reçu ».

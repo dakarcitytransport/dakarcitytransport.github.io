@@ -85,7 +85,12 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    livraison : orange tant qu'il reste à payer, vert une fois soldée. */
 .cli-liv-reste{background:#FFF4E0;color:#a04800;}
 .cli-liv-soldee{background:#D4F0E0;color:#006b2d;}
-.cli-btn-whatsapp{display:block;width:100%;margin-top:9px;padding:8px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);}
+/* v1.10.0 — Cobey : « un changement de couleur pour différencier
+   l'action effectuée [vert] de l'action [pas encore] validée [orange] »
+   — même code couleur que .cli-liv-reste (orange, pas encore fait) /
+   .cli-liv-soldee (vert, fait) juste au-dessus, pour rester cohérent et
+   lisible d'un coup d'œil en défilant la liste. */
+.cli-btn-whatsapp{display:block;width:100%;margin-top:9px;padding:8px;background:#E58A00;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);}
 .cli-btn-whatsapp-fait{background:#D4F0E0;color:#006b2d;}
 .vide{text-align:center;color:#aaa;padding:30px 10px;font-size:13px;}
 
@@ -427,7 +432,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.9.0';
+var MAMADOU_VERSION = 'v1.10.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
