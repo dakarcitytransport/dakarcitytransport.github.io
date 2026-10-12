@@ -459,6 +459,21 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         <div class="finance-pct" id="frc-fin-pct">0% factur&eacute;</div>
       </div>
     </div>
+    <!-- v3.97.0 — Cobey, 12/10/2026 : savoir le kilom&eacute;trage de
+         chaque camion, pour estimer si une tourn&eacute;e amortit le
+         carburant/p&eacute;age. Estim&eacute; par itin&eacute;raire
+         routier entre les arr&ecirc;ts (voir estimerKmCamionFrance),
+         pas &agrave; vol d'oiseau. Action explicite (bouton) : pas
+         d'appel automatique au service de calcul d'itin&eacute;raire
+         &agrave; chaque rendu de l'&eacute;cran. -->
+    <div style="background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:12px;font-weight:800;color:var(--text);">&#128207; Kilom&eacute;trage estim&eacute;</span>
+        <span id="frc-km-val" style="font-size:16px;font-weight:800;color:#1a237e;">&mdash;</span>
+      </div>
+      <button class="btn" id="frc-km-btn" style="margin:0;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" onclick="estimerKmCamionFrance()">&#128207; Estimer le kilom&eacute;trage</button>
+      <div id="frc-km-note" style="font-size:10.5px;color:var(--text3);margin-top:7px;line-height:1.4;"></div>
+    </div>
     <div class="slabel">Ordre de passage</div>
     <div id="frc-route"></div>
   </div>
@@ -1719,7 +1734,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.96.5';
+var APP_VERSION = 'v3.97.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5842,8 +5857,76 @@ function _frValiderPickCam(){
 var _frCamion='';
 var _frPlusClientId=null; // menu "⋯" (Annulé) du camion Chauffeur externe — v3.95.3
 
-function ouvrirCamionFrance(k){ _frCamion=k; renderCamionFrance(); goTo('s-fr-camion'); }
+function ouvrirCamionFrance(k){
+  _frCamion=k;
+  // v3.97.0 : efface l'estimation du camion précédent — sinon un vieux
+  // "~87 km" resterait affiché en ouvrant un autre camion, avant même
+  // d'avoir cliqué "Estimer" pour celui-ci.
+  var val=document.getElementById('frc-km-val'); if(val) val.textContent='—';
+  var note=document.getElementById('frc-km-note'); if(note) note.textContent='';
+  var btn=document.getElementById('frc-km-btn'); if(btn){ btn.disabled=false; btn.textContent='📏 Estimer le kilométrage'; }
+  renderCamionFrance();
+  goTo('s-fr-camion');
+}
 function retourDispatchFrance(){ goTo('s-france'); renderFrance(); }
+
+// v3.97.0 — estimation du kilométrage d'un camion France, par itinéraire
+// routier entre ses arrêts dans l'ordre de passage (voir
+// _calculerDistanceRoute). Geocode d'abord chaque client qui n'a pas
+// encore de lat/lng (comme la carte Suivi, _geocodeClientFr persiste le
+// résultat — un client déjà géocodé une fois ne l'est jamais deux fois).
+// Action explicite (bouton), pas automatique à chaque rendu : OSRM est
+// un service public gratuit, on ne l'appelle pas à chaque rafraîchissement
+// d'écran (une validation d'arrêt, par ex., rappelle renderCamionFrance).
+function estimerKmCamionFrance(){
+  var r=_frCollecteActive(); if(!r) return;
+  var tk=(r.trucks||{})[_frCamion]; if(!tk) return;
+  var hours=tk.hours||{};
+  var sorted=(tk.clients||[]).slice().sort(function(a,b){
+    var ha=hours[a], hb=hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return tk.clients.indexOf(a)-tk.clients.indexOf(b);
+  });
+  var btn=document.getElementById('frc-km-btn');
+  var val=document.getElementById('frc-km-val');
+  var note=document.getElementById('frc-km-note');
+  if(note) note.textContent='';
+  if(!sorted.length){ if(val) val.textContent='—'; return; }
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Calcul en cours…'; }
+
+  var pts=[], restants=sorted.length, echecGeocode=0;
+  var fini=function(){
+    pts.sort(function(a,b){ return a.i-b.i; });
+    _calculerDistanceRoute(pts, function(km){
+      if(btn){ btn.disabled=false; btn.textContent='📏 Recalculer'; }
+      if(km===null){
+        if(val) val.textContent='—';
+        if(note) note.textContent='⚠️ Calcul indisponible, réessayez.';
+        return;
+      }
+      if(val) val.textContent='~'+km+' km';
+      if(note) note.textContent = 'Itinéraire routier entre les '+pts.length+' arrêts, dans l\'ordre de passage'
+        + (echecGeocode ? (' — adresse introuvable pour '+echecGeocode+' client'+(echecGeocode>1?'s':'')) : '') + '.';
+    });
+  };
+  sorted.forEach(function(id, i){
+    var c=(franceData.clients||{})[id];
+    if(!c){ restants--; if(restants<=0) fini(); return; }
+    // _geocodeClientFr n'écrit (et ne mémorise) lat/lng que si c._id est
+    // posé — sinon un même client se regéocoderait à chaque clic, comme
+    // dans _frClientsDeCollecte/_carteArret (même précaution là-bas).
+    c._id = id;
+    var poser=function(lat,lng){
+      restants--;
+      if(lat && lng) pts.push({ i:i, lat:lat, lng:lng }); else echecGeocode++;
+      if(restants<=0) fini();
+    };
+    if(c.lat && c.lng){ poser(c.lat, c.lng); return; }
+    _geocodeClientFr(c, poser);
+  });
+}
 
 function renderCamionFrance(){
   var r=_frCollecteActive(); if(!r) return;
@@ -12140,6 +12223,32 @@ function _geocodeOSM(c, cb){
       else cb(null,null);
     })
     .catch(function(){ cb(null,null); });
+}
+
+// v3.97.0 — Cobey, le 12/10/2026 : « on a besoin de savoir chaque camion
+// combien de kilomètres il parcourt [...] pour mesurer [...] le meilleur
+// [...] par rapport aux adresses et à sa tournée. » Choix validé :
+// estimation par ITINÉRAIRE ROUTIER (pas à vol d'oiseau), à partir des
+// mêmes coordonnées déjà géocodées pour les cartes (_geocodeClientFr/
+// _geocodeAdresse, réutilisées telles quelles — zéro nouvelle saisie).
+// OSRM (router.project-osrm.org) : service public gratuit, sans clé,
+// même philosophie que Nominatim/adresse.data.gouv.fr déjà utilisés
+// ailleurs dans ce fichier — pas de nouveau compte à créer pour
+// démarrer. points : [{lat,lng}, ...] dans l'ordre de passage ; cb(km)
+// avec km=null si le calcul échoue (API indisponible, moins de 2 points
+// géocodés...).
+function _calculerDistanceRoute(points, cb){
+  var valides = (points||[]).filter(function(p){ return p && p.lat && p.lng; });
+  if(valides.length < 2){ cb(null); return; }
+  var coords = valides.map(function(p){ return p.lng+','+p.lat; }).join(';');
+  fetch('https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=false')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d && d.routes && d.routes[0] && typeof d.routes[0].distance === 'number'){
+        cb(Math.round(d.routes[0].distance/1000));
+      } else cb(null);
+    })
+    .catch(function(){ cb(null); });
 }
 
 

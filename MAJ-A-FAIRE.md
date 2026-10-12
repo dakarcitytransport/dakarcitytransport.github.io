@@ -2074,6 +2074,33 @@ les clients affichés, pas seulement une sélection) et le marque pour
 que departs.js l'ajoute en 3e tuile turquoise "Ramassage", à côté de
 "Clients en cours" et "Montant" — masquée quand ce cumul est nul.
 
+**Nouveau, le 12/10 (v2.20.47 / v3.97.0) — kilométrage estimé d'un
+camion.** Cobey : « on a besoin de savoir chaque camion combien de
+kilomètres il parcourt [...] pour mesurer [...] avec quel besoin [...]
+amortir le carburant, le péage du trajet [...] le parcours en Europe
+également. » Après discussion des options (boîtier GPS externe,
+compteur saisi à la main, calcul automatique), choix retenu : « j'ai
+une estimation, ça nous va [...] c'est d'avoir une estimation du
+kilométrage que le camion fait par rapport aux adresses et à sa
+tournée. » Confirmé par itinéraire **routier**, pas à vol d'oiseau.
+
+Un bouton « 📏 Estimer le kilométrage » :
+- **Côté France & Europe** (écran du camion, `estimerKmCamionFrance`) —
+  géocode chaque arrêt de la tournée (réutilise `_geocodeClientFr`,
+  déjà en place pour la carte Suivi — un client déjà géocodé une fois
+  ne l'est jamais deux fois), puis demande au service public et
+  gratuit OSRM la distance de l'itinéraire routier entre les arrêts,
+  dans l'ordre de passage réel (heure fixée d'abord, ordre
+  d'affectation sinon).
+- **Côté Collecte** (la carte d'un camion, `depEstimerKmCamion`) —
+  même principe, à partir du trajet déjà tracé sur cette carte
+  (clients + bornes départ/arrivée du dépôt, Emerainville/Mitry-Mory).
+
+Action volontairement manuelle (un bouton, pas un calcul automatique à
+chaque ouverture d'écran) : OSRM est un service public gratuit, on ne
+le sollicite pas à chaque rafraîchissement. En cas d'échec (service
+indisponible), un message clair plutôt qu'un chiffre faux.
+
 ---
 
 ## 3 · Bug
