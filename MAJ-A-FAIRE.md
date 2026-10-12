@@ -561,6 +561,43 @@ deux côtés — `_depDateHeureCourte` (departs.js) et `_mnDateHeureCourte`
 pareil, sans toucher `_mnDateHeure` qui garde son propre format pour le
 badge livraison.
 
+**Suite, le 12/10 (v2.20.56) — relancer les clients qui doivent encore
+de l'argent.** Cobey, captures d'écran de la Caisse d'un container à
+l'appui : « un bouton de relance pour chaque client qui doit encore de
+l'argent, pour leur dire que le conteneur va bientôt arriver et que
+pour récupérer leur colis, ils doivent solder leur paiement [...] avec
+le montant qu'il leur doit, qu'il doit rester à payer sur le montant
+total. » Puis : « si le conteneur est en statut déjà arrivé [...] le
+message doit changer. Il ne doit plus dire qu'il va bientôt arriver,
+mais que le conteneur est arrivé et que pour récupérer, il faut
+payer. » Et enfin : « fait pareil pour la livraison. »
+
+Ajouté sur l'écran "qui doit" (Rapport financier > un container >
+VOIR QUI DOIT, `depRapfinContainer`) — colis **et** livraison, chacune
+sa propre caisse et sa propre liste, déjà en place. Même mécanique que
+"Prévenir (arrivé)" vu plus haut : bouton « 💬 Relancer le paiement »
+orange, qui devient « ✅ Relancé — JJ/MM à HHhMM » (vert) une fois
+cliqué, reste cliquable pour relancer. N'apparaît que sur la vraie
+liste "doit" — jamais sur "en trop" ou "sans prix fixé", où il n'y a
+rien à réclamer.
+
+Message personnalisé par client, avec son reste et son total exacts
+(`depCalculerPaiement`/`depCalculerPaiementLivraison`, déjà ce qui
+alimente "reste X € sur Y €" affiché sur sa carte), et deux variantes
+selon `d.statut === 'arrive'` :
+
+- **Pas encore arrivé** (colis) : « 📦 Le container [nom] arrive
+  bientôt à Dakar. Pour récupérer votre colis, merci de bien vouloir
+  régler le solde restant de [reste] € (sur un total de [total] €)
+  avant l'arrivée. »
+- **Déjà arrivé** (colis) : même message sans "bientôt" ni "avant
+  l'arrivée" — « [...] est arrivé à Dakar. [...] merci de bien vouloir
+  régler le solde restant de [reste] € (sur un total de [total] €). »
+- **Livraison** : « Pour que nous puissions vous livrer votre colis,
+  merci de bien vouloir régler le solde restant [...] pour la
+  livraison » — au lieu de "récupérer votre colis", puisque justement
+  il n'y a rien à venir récupérer soi-même.
+
 ### Notification : diagnostiquer soi-même « j'ai envoyé mais rien reçu »
 **Fait le 04/10 (v2.20.26).** Eric, capture d'écran de l'écran
 Notification à l'appui : « j'ai envoyé une notif mais j'ai rien reçu ».

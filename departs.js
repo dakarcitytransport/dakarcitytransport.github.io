@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.55';
+var DEP_VERSION = 'v2.20.56';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9808,6 +9808,70 @@ window.depPrevenirArriveeExpediteur = function(collecteId, clientId, depot, fran
   }
 };
 
+// v2.20.56 — Cobey, 12/10/2026 : « ajouter un bouton de relance pour
+// chaque client qui doit encore de l'argent [...] pour leur dire que le
+// conteneur va bientôt arriver et que pour récupérer leur colis, ils
+// doivent solder leur paiement [...] avec le montant qu'il leur doit
+// [...] sur le montant total. » Puis : « si le conteneur est en statut
+// déjà arrivé [...] le message doit changer. Il ne doit plus dire qu'il
+// va bientôt arriver, mais que le conteneur est arrivé et que pour
+// récupérer, il faut payer. » Et : « fait pareil pour la livraison » —
+// même bouton, sur l'écran "qui doit" (colis ET livraison, chacune sa
+// propre caisse), texte adapté à laquelle des deux.
+function _depTexteRelancePaiement(c, d, p, estLiv){
+  var prenom = (c.prenom || c.name || '').trim() || 'bonjour';
+  var nomContainer = (d && d.nom) || 'notre container';
+  var arrive = !!(d && d.statut === 'arrive');
+  var intro = arrive
+    ? ('📦 Le container ' + nomContainer + ' est arrivé à Dakar.')
+    : ('📦 Le container ' + nomContainer + ' arrive bientôt à Dakar.');
+  var demande = estLiv
+    ? ('Pour que nous puissions vous livrer votre colis, merci de bien vouloir régler le solde restant de '
+       + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison' + (arrive ? '.' : ', avant l’arrivée.'))
+    : ('Pour récupérer votre colis, merci de bien vouloir régler le solde restant de '
+       + p.reste + ' € (sur un total de ' + p.total + ' €)' + (arrive ? '.' : ' avant l’arrivée.'));
+  return 'Bonjour ' + prenom + ' \u{1F44B}\n\n'
+    + intro + '\n\n'
+    + demande + '\n\n'
+    + 'Merci de votre confiance !\nL’équipe Dakar City Transport';
+}
+
+// Appelé depuis l'écran "qui doit" (depRapfinContainer, voir
+// restants.forEach) — src/colId/clientId comme depRapfinOuvrirFacture,
+// estLiv pour savoir laquelle des deux caisses (colis/livraison) est
+// concernée, et donc quel calcul de reste et quel champ dédié utiliser.
+window.depRelancerPaiement = function(src, colId, clientId, estLiv){
+  var id = _depRapfinId;
+  var d = (window.departsData || {})[id];
+  var c = src === 'depot'
+    ? (window.depotClients || {})[clientId]
+    : (src === 'france'
+      ? ((window.franceData || {}).clients || {})[clientId]
+      : ((window.clientsParCollecte || {})[colId] || {})[clientId]);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  var p = estLiv ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
+  var tel = _depTelIntlRelance(c.tel);
+  if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteRelancePaiement(c, d, p, estLiv)), '_blank');
+  var u = window.currentUser || {};
+  var champ = estLiv ? 'relancePaiementLivraison' : 'relancePaiementColis';
+  var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+  hist.push({
+    q: u.name || u.id || '',
+    a: 'a ouvert WhatsApp pour relancer le paiement ' + (estLiv ? 'de la <strong>livraison</strong>' : 'du <strong>colis</strong>') + ' (reste ' + p.reste + ' €)',
+    ts: Date.now(), type: 'relance'
+  });
+  c.hist = hist;
+  c[champ] = { ts: Date.now(), par: u.name || u.id || '' };
+  var maj = { hist: hist };
+  maj[champ] = c[champ];
+  _depEcrireFacture({ depot: src === 'depot', france: src === 'france', collecteId: colId || '', clientId: clientId }, maj);
+  // Rafraîchit tout de suite le bouton, comme depPrevenirArriveeExpediteur.
+  if($('s-rapfin-container') && $('s-rapfin-container').classList.contains('active') && id){
+    depRapfinContainer(id);
+  }
+};
+
 window.depCopierMessageWhatsapp = function(){
   var ctx = _depFactureCtx;
   if(!ctx){ toast('⚠️ Facture introuvable.'); return; }
@@ -11251,7 +11315,11 @@ var DEP_SUIVI_THEMES = {
   adresse:      { icon:'&#127968;', color:'#7A5C2E', bg:'#F5EEDD' },
   // v2.20.52 — bouton WhatsApp "container arrivé" par client (voir
   // depPrevenirArriveeExpediteur).
-  arrivee:      { icon:'&#128172;', color:'#128C4A', bg:'#E7F9EE' }
+  arrivee:      { icon:'&#128172;', color:'#128C4A', bg:'#E7F9EE' },
+  // v2.20.56 — bouton WhatsApp "relancer le paiement" (voir
+  // depRelancerPaiement) — orange, même code couleur que le bouton
+  // lui-même tant que le client n'a pas encore été relancé.
+  relance:      { icon:'&#128172;', color:'#A04800', bg:'#FFF4E0' }
 };
 
 // v1.19.36 : `collecteId` (optionnel — absent pour un client dépôt direct)
@@ -20967,6 +21035,9 @@ window.depRapfinContainer = function(id){
 
     restants.forEach(function(x){
       var c = x.c;
+      // v2.20.56 — n'a de sens que sur la vraie liste "qui doit" (pas
+      // "en trop" ni "sans prix", où il n'y a rien à réclamer).
+      var dejaRelance = (!estSansPrix && !estTrop) ? (estLiv ? c.relancePaiementLivraison : c.relancePaiementColis) : null;
       h += '<div class="dep-cli" style="cursor:pointer;" onclick="depRapfinOuvrirFiche(\''
         +   x.src + '\',\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\')">'
         +   '<div class="dep-cli-n">' + _depPastilleRang(c, id)
@@ -21001,6 +21072,17 @@ window.depRapfinContainer = function(id){
         +     '<button class="dep-cli-btn" onclick="event.stopPropagation();depRapfinOuvrirFiche(\''
         +       x.src + '\',\'' + (x.collecteId||'') + '\',\'' + x.clientId + '\')">'
         +       '&#128196; Fiche</button>'
+        // v2.20.56 — Cobey : « un bouton de relance [...] avec le
+        // montant qu'il leur doit [...] sur le montant total [...] fait
+        // pareil pour la livraison. » Même mécanique que "Prévenir
+        // (arrivé)" : orange tant que pas relancé, vert + date une fois
+        // fait, reste cliquable pour relancer à nouveau.
+        +     (!estSansPrix && !estTrop
+              ? ('<button class="dep-cli-btn" style="'+(dejaRelance ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#FFF4E0;border-color:#E58A00;color:#A04800;')+'" '
+                + 'onclick="event.stopPropagation();depRelancerPaiement(\''+x.src+'\',\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(estLiv?'true':'false')+')">'
+                + (dejaRelance ? ('&#9989; Relanc&eacute; &mdash; '+esc(_depDateHeureCourte(dejaRelance.ts))) : '&#128172; Relancer le paiement')
+                + '</button>')
+              : '')
         +   '</div>'
         + '</div>';
     });
