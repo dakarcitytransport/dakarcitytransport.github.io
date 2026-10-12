@@ -550,6 +550,17 @@ déjà utilisé ailleurs dans l'appli pour "reste à faire" / "fait" (ex. le
 badge livraison de Mamadou, `.cli-liv-reste`/`.cli-liv-soldee`) :
 orange tant que le client n'a pas été prévenu, vert une fois fait.
 
+**Suite, le 12/10 (v2.20.55 / v1.11.0 Mamadou) — date et heure sur le
+bouton.** Cobey : « faudrai heure et date à côté de la case, comme ça on
+sait quand le client a était prévenu, côté DCT et côté Mamadou. » Posée
+directement dans le texte du bouton une fois prévenu (même esprit que le
+badge « Délivré au client », qui affiche déjà sa date) : « ✅ Prévenu —
+12/10 à 14h32 ». Même format court (jour/mois + heure, sans l'année) des
+deux côtés — `_depDateHeureCourte` (departs.js) et `_mnDateHeureCourte`
+(mamadou.html), écrites en miroir pour que les deux écrans affichent ça
+pareil, sans toucher `_mnDateHeure` qui garde son propre format pour le
+badge livraison.
+
 ### Notification : diagnostiquer soi-même « j'ai envoyé mais rien reçu »
 **Fait le 04/10 (v2.20.26).** Eric, capture d'écran de l'écran
 Notification à l'appui : « j'ai envoyé une notif mais j'ai rien reçu ».

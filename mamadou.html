@@ -432,7 +432,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.10.0';
+var MAMADOU_VERSION = 'v1.11.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -445,6 +445,18 @@ function _mnDateHeure(ts){
   if(!ts) return '—';
   var d = new Date(ts);
   return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'}) + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+}
+// v1.11.0 — Cobey : « faudrait heure et date à côté de la case, comme ça
+// on sait quand le client a été prévenu, côté DCT et côté Mamadou. »
+// Même format "JJ/MM à HHhMM" que son pendant _depDateHeureCourte
+// (departs.js), pour que les deux écrans affichent ça pareil — une
+// fonction à part plutôt que de changer _mnDateHeure, qui garde son
+// propre format ailleurs (badge "Délivré au client").
+function _mnDateHeureCourte(ts){
+  if(!ts) return '';
+  var d = new Date(ts);
+  return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)
+       + ' à ' + ('0'+d.getHours()).slice(-2)+'h'+('0'+d.getMinutes()).slice(-2);
 }
 function initiales(prenom, nom){
   var a = (prenom||'').trim().charAt(0), b = (nom||'').trim().charAt(0);
@@ -1254,9 +1266,12 @@ function cdAppliquerFiltres(){
       // un autre collaborateur voit ceux qui ont été prévenus ou pas en
       // défilant sur les clients. » Reste cliquable après (relance
       // possible), juste une couleur/un texte différents.
+      // v1.11.0 — Cobey : « faudrait heure et date à côté de la case » —
+      // ajoutée directement dans le bouton, même esprit que _mnDateHeure
+      // sur le badge "Délivré au client".
       +   (dejaArrivee
             ? ('<button type="button" class="cli-btn-whatsapp'+(c.arriveeDestinataireNotifie?' cli-btn-whatsapp-fait':'')+'" onclick="event.stopPropagation();mnPrevenirDestinataire(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">'
-              +(c.arriveeDestinataireNotifie?'✅ Destinataire prévenu':'💬 Prévenir le destinataire (arrivé)')+'</button>')
+              +(c.arriveeDestinataireNotifie?('✅ Destinataire prévenu — '+esc(_mnDateHeureCourte(c.arriveeDestinataireNotifie.ts))):'💬 Prévenir le destinataire (arrivé)')+'</button>')
             : '')
       + '</div>';
   });

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.54';
+var DEP_VERSION = 'v2.20.55';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8287,10 +8287,15 @@ window.depDetail = function(id, gardeFiltres){
               // tranché pour repérer d'un coup d'œil en défilant. Même
               // code couleur que "reste à payer" (orange) / "soldé"
               // (vert) déjà utilisé ailleurs dans l'appli.
+              // v2.20.55 — Cobey : « faudrait heure et date à côté de la
+              // case, comme ça on sait quand le client a été prévenu » —
+              // ajoutée directement dans le bouton (comme le badge
+              // "Délivré au client", _depBadgeLivraison, qui fait déjà
+              // pareil juste au-dessus).
               + (d.statut === 'arrive'
                 ? ('<button class="dep-cli-btn" style="'+(c.arriveeExpediteurPrevenu ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#FFF4E0;border-color:#E58A00;color:#A04800;')+'" '
                   + 'onclick="event.stopPropagation();depPrevenirArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
-                  + (c.arriveeExpediteurPrevenu ? '&#9989; Pr&eacute;venu' : '&#128172; Pr&eacute;venir (arriv&eacute;)')
+                  + (c.arriveeExpediteurPrevenu ? ('&#9989; Pr&eacute;venu &mdash; '+esc(_depDateHeureCourte(c.arriveeExpediteurPrevenu.ts))) : '&#128172; Pr&eacute;venir (arriv&eacute;)')
                   + '</button>')
                 : '')
             + '</div>'
@@ -10112,6 +10117,20 @@ function dateHeureFr(ts){
   var hh = ('0'+d.getHours()).slice(-2);
   var mi = ('0'+d.getMinutes()).slice(-2);
   return jj+'/'+mm+'/'+d.getFullYear()+' '+hh+':'+mi;
+}
+
+// v2.20.55 — Cobey : « faudrait heure et date à côté de la case, comme
+// ça on sait quand le client a été prévenu. » Version courte de
+// dateHeureFr (sans l'année — contexte récent) pour tenir à côté d'un
+// bouton sans l'alourdir, même esprit "à HHhMM" que _texteConfirmationKm
+// (dct-app.html) et _dateHeureFr. Pendant symétrique côté Mamadou :
+// _mnDateHeureCourte (mamadou.html), même format, pour que les deux
+// écrans affichent la date/heure de la même façon.
+function _depDateHeureCourte(ts){
+  if(!ts) return '';
+  var d = new Date(ts);
+  return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)
+       + ' à ' + ('0'+d.getHours()).slice(-2)+'h'+('0'+d.getMinutes()).slice(-2);
 }
 
 window.depVersDevise = function(d){
