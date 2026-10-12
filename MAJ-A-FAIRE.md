@@ -1994,6 +1994,37 @@ Dans les deux cas, on touche le bloc et la fenêtre des notes s'ouvre
 directement sur ce client, prête à écrire. Toucher ailleurs sur la carte
 ouvre la fiche, comme avant.
 
+### ~~Cumul des frais de ramassage pour estimer une tournée, et pastille "Prêt"~~
+**Fait le 12/10 (v3.96.0).** Cobey : « on a besoin de savoir le cumul
+des frais de ramassage des clients pour pouvoir estimer une tournée et
+voir si on rentre dans ses coûts pour amortir le carburant, le péage du
+trajet [...] soit au total des clients, soit en sélectionnant des
+clients. » Après discussion (sélection libre plutôt qu'un simple total
+par région — « il y a des clients qui sont prêts et d'autres non [...]
+des fois on part sur une région et on revient sur une autre sur le
+chemin ») :
+
+- La sélection de clients qui existait déjà sur l'onglet Clients (cases
+  à cocher, utilisées jusqu'ici pour « Mettre dans un camion ») affiche
+  maintenant, dans sa barre du bas, le cumul des frais de ramassage à
+  part du total colis + ramassage — c'est ce chiffre-là qui dit si le
+  détour est rentable. Chaque carte client affiche aussi son propre
+  ramassage (« dont X € ramassage »). La sélection continue de résister
+  à un changement de filtre région/département (déjà le cas) — on peut
+  cocher en Normandie puis repasser en Île-de-France sur le chemin, la
+  sélection et son cumul ne se vident pas.
+
+Puis, deuxième besoin découvert en creusant le premier : « il y a des
+clients qui sont prêts, d'autres pas [...] des fois on met dans la
+note » — une info enterrée dans du texte libre, invisible sans ouvrir
+chaque fiche une par une. Une **pastille "Prêt"** apparaît maintenant
+directement sur chaque carte client, modifiable en un tap par
+n'importe quel collaborateur (celui qui a le client au téléphone),
+sans ouvrir la fiche — 3 états en boucle : non renseigné → ✅ Prêt →
+❌ Pas prêt → non renseigné. Une puce "Prêts seulement", sous les
+filtres région/département déjà en place, permet de ne garder que les
+clients confirmés prêts d'une zone avant de passer à la sélection.
+
 ---
 
 ## 3 · Bug

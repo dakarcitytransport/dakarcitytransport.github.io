@@ -1714,7 +1714,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.95.13';
+var APP_VERSION = 'v3.96.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3693,6 +3693,12 @@ var franceTab   = 'clients';
 var franceFiltre= 'tous';      // v3.81.0 : plus qu'une seule valeur
 var franceRegion= '';          // '' = toutes
 var franceDept  = '';
+// v3.96.0 : « il y a des clients qui sont prêts, d'autres non [...] des
+// fois on met dans la note » (Cobey, 12/10/2026) — une info enterrée dans
+// un texte libre, que personne ne voit sans ouvrir la fiche. Filtre
+// indépendant de la zone : on garde la même région tout en ne gardant que
+// les clients confirmés prêts (voir _frBarrePret/setFranceFiltrePret).
+var franceFiltrePret = false;
 var franceClientId = null;
 
 // v3.58.0 : le parcours s'arrête à « Ramassé ».
@@ -3703,7 +3709,7 @@ var FR_STATUTS = {
 };
 
 function ouvrirFrance(){
-  franceTab='clients'; franceFiltre='tous'; franceRegion=''; franceDept='';
+  franceTab='clients'; franceFiltre='tous'; franceRegion=''; franceDept=''; franceFiltrePret=false;
   currentCollecteFrId='';
   var q=document.getElementById('fr-q'); if(q) q.value='';
   var a=document.getElementById('fr-av');
@@ -3862,6 +3868,11 @@ function renderFrance(){
   html+=_frBarresGeo(liste);
   if(franceRegion) liste=liste.filter(function(c){ return c.region===franceRegion; });
   if(franceDept)   liste=liste.filter(function(c){ return c.dept===franceDept; });
+  // v3.96.0 : filtre "Prêts seulement", au-dessus de la zone géographique
+  // — on réduit d'abord à une région, puis on ne garde que ceux confirmés
+  // prêts avant de passer en sélection pour monter la tournée.
+  html+=_frBarrePret(liste);
+  if(franceFiltrePret) liste=liste.filter(function(c){ return c.pret===true; });
 
   liste.sort(function(a,b){ return (a.creeTs||0)-(b.creeTs||0); });
 
@@ -3885,9 +3896,25 @@ function _frVide(txt){
   return '<div style="text-align:center;color:#aaa;padding:36px 20px;font-size:13.5px;line-height:1.6;"><div style="font-size:34px;margin-bottom:10px;">📦</div>'+txt+'</div>';
 }
 
-function setFranceFiltre(f){ franceFiltre=f; franceRegion=''; franceDept=''; dannySel=[]; renderFrance(); }
+function setFranceFiltre(f){ franceFiltre=f; franceRegion=''; franceDept=''; franceFiltrePret=false; dannySel=[]; renderFrance(); }
 function setFranceRegion(r){ franceRegion=(franceRegion===r?'':r); franceDept=''; renderFrance(); }
 function setFranceDept(d){ franceDept=(franceDept===d?'':d); renderFrance(); }
+// v3.96.0 : indépendant de la région — on peut garder "Prêts seulement"
+// activé en passant d'une zone à l'autre sur le même trajet.
+function setFranceFiltrePret(){ franceFiltrePret=!franceFiltrePret; renderFrance(); }
+
+// Puce "Prêts seulement", sous la zone géographique — ne s'affiche que
+// s'il y a au moins un client marqué prêt dans la liste courante (sinon
+// rien à filtrer), ou si le filtre est déjà actif (pour pouvoir le
+// désactiver même si la liste vient de se vider).
+function _frBarrePret(liste){
+  if(!_peutGererFrance()) return '';
+  var nPret=liste.filter(function(c){ return c.pret===true; }).length;
+  if(!nPret && !franceFiltrePret) return '';
+  return '<div style="margin-bottom:8px;">'
+    + _chip('✅ Prêts seulement · '+nPret, franceFiltrePret, 'setFranceFiltrePret()', '#1a7a40')
+    + '</div>';
+}
 
 // Barres région / département, construites depuis les clients présents
 function _frBarresGeo(liste){
@@ -4280,6 +4307,19 @@ function _totalPrix(ids){
   });
   return t;
 }
+// v3.96.0 — Cobey, le 12/10/2026 : « on a besoin de savoir le cumul des
+// frais de ramassage des clients pour pouvoir estimer une tournée [...]
+// voir si on rentre dans ses coûts pour amortir le carburant, le péage
+// du trajet. » Séparé de _totalPrix (qui mélange colis + ramassage) :
+// seul le ramassage sert à juger si le trajet s'amortit.
+function _totalRamassage(ids){
+  var t=0;
+  (ids||[]).forEach(function(id){
+    var c=(franceData.clients||{})[id];
+    if(c) t+=(c.prixRamassage||0);
+  });
+  return t;
+}
 // Les montants ne s'affichent que côté Dakar City
 function _montantsVisibles(){ return _peutGererFrance(); }
 
@@ -4325,9 +4365,36 @@ function _majBarreFrance(){
     var colis=0;
     dannySel.forEach(function(id){ var c=(franceData.clients||{})[id]; if(c) colis+=(c.nb||1); });
     var i=document.getElementById('fr-sel-info');
+    // v3.96.0 : le ramassage sorti à part du total colis+ramassage — voir
+    // _totalRamassage, c'est ce chiffre-là qui dit si le trajet s'amortit.
+    var totRam=_totalRamassage(dannySel);
     if(i) i.innerHTML='<b style="color:#111;">'+dannySel.length+' client'+(dannySel.length>1?'s':'')+'</b> · '+colis+' colis'
-        +(_montantsVisibles()?(' · <b style="color:#006b2d;">'+_totalPrix(dannySel)+' €</b>'):'');
+        +(_montantsVisibles()?(' · <b style="color:#006b2d;">'+_totalPrix(dannySel)+' €</b>'
+          +(totRam>0?(' <span style="color:#00838F;">(dont '+totRam+' € ramassage)</span>'):'')):'');
   }
+}
+
+// v3.96.0 — Cobey, le 12/10/2026 : « il y a des clients qui sont prêts,
+// d'autres pas [...] des fois on met dans la note » — une info enterrée
+// dans du texte libre, invisible sans ouvrir la fiche. Pastille visible
+// dans la liste, modifiable en un tap par n'importe quel collaborateur
+// (celui qui a le client au téléphone), sans ouvrir la fiche. Cycle en 3
+// états : non renseigné → prêt → pas prêt → non renseigné.
+function _frPretChip(c){
+  if(!_peutGererFrance()) return '';
+  var on='event.stopPropagation();toggleFrPret(\''+c._id+'\')';
+  if(c.pret===true) return '<span onclick="'+on+'" class="badge badge-green" style="cursor:pointer;">&#9989; Pr&ecirc;t</span>';
+  if(c.pret===false) return '<span onclick="'+on+'" class="badge" style="cursor:pointer;background:#fde0e0;color:#992020;">&#10060; Pas pr&ecirc;t</span>';
+  return '<span onclick="'+on+'" style="cursor:pointer;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;border:1.5px dashed #bbb;color:#999;">Pr&ecirc;t&nbsp;?</span>';
+}
+function toggleFrPret(id){
+  var c=(franceData.clients||{})[id]; if(!c) return;
+  // true → false → (null, qui efface le champ : retour au neutre) → true
+  var suivant = (c.pret===true) ? false : (c.pret===false ? null : true);
+  var maj={}; maj['clients/'+id+'/pret']=suivant;
+  _frUpdate(maj).then(function(){ renderFrance(); }).catch(function(e){
+    showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée'));
+  });
 }
 
 function _frCarte(c){
@@ -4361,11 +4428,13 @@ function _frCarte(c){
   return '<div onclick="'+act+'" style="'+cadre+'border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;">'
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
     +   '<div style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
-    +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'+lieu+'</div>'
+    +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
+    +   '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+'</div></div>'
     + '<div style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
     + '<div style="font-size:11.5px;color:#555;margin-top:5px;">📦 '+(c.nb||1)+' colis'
     +   (c.colis?(' · '+c.colis):'')
-    +   (_montantsVisibles()?(' · <b style="color:#006b2d;">'+(c.prix||0)+' €</b>'):'')+'</div>'
+    +   (_montantsVisibles()?(' · <b style="color:#006b2d;">'+(c.prix||0)+' €</b>'
+          +((parseFloat(c.prixRamassage)||0)>0?(' <span style="color:var(--text3);font-weight:500;">(dont '+c.prixRamassage+' € ramassage)</span>'):'')):'')+'</div>'
     + '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;">'
     +   '<span style="font-size:11.5px;color:var(--text3);">🗓 '+_dateFr(c.creeTs)
     +     ' · <span style="'+(anc?('color:'+anc.bord+';font-weight:800;'):'')+'">'+j+' j</span></span>'
