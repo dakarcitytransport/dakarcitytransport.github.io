@@ -432,6 +432,12 @@ un prestataire.
   **?** « numéro cette semaine » — à quoi cela correspond-il ? Rien dans
   l'application ne porte ce nom aujourd'hui.
 
+  **Suite, le 12/10 (v2.20.50) — la case Départs s'y ajoute.** Cobey :
+  « Aminata de Bureau, on lui rajoute la case de départ. » Sa liste de
+  cases passe de dix à onze entrées ; Rapport financier et Réglages
+  restent fermés — seule la case Départs s'ouvre désormais (case
+  visible *et* entrée autorisée, comme pour les autres cases).
+
 - **Régler les accès depuis les Réglages.** Aujourd'hui la liste des cases
   de chacun se change dans Firebase (champ `cases` de sa fiche), pas depuis
   un écran. À faire quand un deuxième poste sortira du moule.

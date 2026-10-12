@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.49';
+var DEP_VERSION = 'v2.20.50';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2250,9 +2250,11 @@ var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles'
    IDS_DIRECTION un peu plus bas, qui leur donne toutes les cases).
    v1.19.96 : « facture manuelle » s'y ajoute aussi — Cobey, le
    02/10/2026 : « c'est des factures fictives [...] pour direction admin
-   et moi », puis « Bureau aussi doit avoir cette case. » */
+   et moi », puis « Bureau aussi doit avoir cette case. »
+   v2.20.50 : « departs » s'y ajoute aussi — Cobey, le 12/10/2026 :
+   « Aminata de Bureau, on lui rajoute la case de départ. » */
 var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot','stockage',
-                        'qr','archive','stats','planning','annonce','factureManuelle','fidelite'];
+                        'qr','archive','stats','planning','annonce','factureManuelle','fidelite','departs'];
 
 var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU };
 
