@@ -446,63 +446,55 @@ un prestataire.
 
 ## 2 · Améliorations
 
-### Notification client « container arrivé » — chantier en plusieurs étapes
-*Ouvert le 12/10. Étape 1 faite (v2.20.51), étapes suivantes à venir.*
-Cobey, après discussion sur l'envoi groupé de messages aux clients
-(WhatsApp ne permet pas d'envoyer en un clic à plusieurs numéros à la
-fois — seulement un par un) : « déjà faire en sorte que le client
-puisse activer sa notification à partir de sa facture […] après du
-coup quand Mamadou Niass cliquera sur "arrivé au dépôt" cela va
-enclencher un envoi push à tout les clients expéditeurs qui ont
-cliqué sur le bouton de notification. Côté DCT, dans Départs, une
-fois ce bouton activé, on aura, sur chaque client, un bouton WhatsApp
-qui enverra un message pour prévenir de l'arrivée du container au
-port de Dakar. Et Mamadou, lui aussi, aura dans son container, pour
-chaque client, un bouton pour envoyer un message WhatsApp au
-destinataire. » Prévu en 4 étapes :
-1. **Fait (v2.20.51)** — le bouton d'activation sur la facture.
-2. Le push automatique à l'arrivée (bouton de Mamadou Niass).
-3. Le bouton WhatsApp par client, côté DCT (écran Départs), vers
-   l'expéditeur.
-4. Le bouton WhatsApp par client, côté Mamadou Niass, vers le
-   destinataire.
-Un historique des notifications envoyées (qui a reçu quoi) est prévu
-en plus, organisé par container.
+### ~~Notification push client « container arrivé »~~
+**Essayé le 12/10 (v2.20.51), retiré le même jour.** Cobey, après
+discussion sur l'envoi groupé de messages aux clients (WhatsApp ne
+permet pas d'envoyer en un clic à plusieurs numéros à la fois —
+seulement un par un) avait demandé un bouton « 🔔 M'avertir quand le
+container est arrivé » sur chaque facture publique, pour abonner le
+client à une notification push envoyée automatiquement quand Mamadou
+Niass validerait l'arrivée d'un container. Construit, testé, déployé
+(voir `facture.html`, mécanisme repris de `depActiverNotifs` côté
+personnel — `dct_push_clients/`, une clé par facture plutôt que par
+téléphone).
 
-**Étape 1 (facture.html) — le bouton « 🔔 M'avertir quand le
-container est arrivé ».** Visible sur **toute** facture publique, quel
-que soit le parcours (France & Europe, Dépôt direct, Collecte) — Cobey :
-« le nouveau bouton d'activation doit s'émettre pour tout client
-possible de tout parcours confondu, car une fois qu'il a une facture
-peu importe d'où il provient. » Reprend le mécanisme déjà en place pour
-le personnel (même clé VAPID, même `sw.js`, même empreinte d'appareil —
-voir `departs.js`, `depActiverNotifs`), mais rangé à part dans Firebase
-(`dct_push_clients/`, jamais `dct_push/` qui reste réservé au
-personnel), sous une clé propre à **cette facture précise** (parcours +
-collecte + client) plutôt qu'au téléphone — pour que deux clients d'un
-même foyer, sur le même appareil, ne reçoivent jamais les notifications
-l'un de l'autre.
+**Retiré après un test réel.** Cobey a testé depuis son propre
+téléphone : le lien ouvert directement dans WhatsApp (le cas normal —
+c'est comme ça qu'un client reçoit sa facture) affichait « Les
+notifications ne sont pas disponibles sur ce téléphone ou ce
+navigateur. » Deux restrictions qui s'ajoutent, aucune des deux liée à
+l'application :
+- le navigateur intégré de WhatsApp ne gère les notifications sur
+  aucun téléphone ;
+- sur iPhone, même ouvert dans Safari, il faudrait en plus que la page
+  ait été ajoutée à l'écran d'accueil avant.
 
-C'est la toute première écriture Firebase depuis `facture.html`,
-jusqu'ici strictement en lecture. **⚠️ Si l'enregistrement échoue en
-réel**, c'est très probablement les nouvelles règles de sécurité
-Firebase (resserrées section par section, voir plus bas « Sécurité de
-la base Firebase ») qui bloquent ce nouveau chemin d'écriture — il
-faudra alors ajouter, dans Realtime Database → Rules, un accès en
-écriture à `dct_push_clients/` pour la connexion anonyme (celle des
-pages publiques), au même titre que les chemins déjà autorisés pour
-`facture.html`.
+Seul un client Android ouvrant le lien aurait pu, dans certains cas,
+activer la notification malgré tout. Mais DCT ne sait pas, parmi ses
+clients, qui est sur iPhone et qui est sur Android — Cobey : « de ce
+fait de ne pas avoir cette info-là, autant tout supprimer et le faire
+manuellement avec les boutons WhatsApp. » Plutôt qu'une fonctionnalité
+à moitié fiable selon le téléphone du client, retour à une solution
+qui touche tout le monde pareil : les boutons WhatsApp par client (voir
+ci-dessous), un par un, mais garantis.
 
-Message de notification proposé pour l'étape 2 (à affiner si besoin) :
-« 📦 Container arrivé à Dakar ! Votre colis est bien arrivé au dépôt de
-Dakar City Transport. Pensez à prévenir votre contact sur place pour
-qu'il vienne le récupérer. »
+### Boutons WhatsApp « container arrivé », par client
+*Ouvert le 12/10, en cours.* Après l'abandon du push ci-dessus, la
+solution retenue pour prévenir un client de l'arrivée d'un container :
+pas d'envoi groupé en un clic (WhatsApp ne le permet pas sans un compte
+WhatsApp Business payant), mais un bouton par client, prêt à l'emploi
+(message déjà rédigé), pour aller plus vite que de taper le message à
+chaque fois. Prévu en 2 parties :
+1. **Côté DCT** (écran Départs, sur le container concerné) — un bouton
+   WhatsApp par client, pour prévenir l'**expéditeur**.
+2. **Côté Mamadou Niass** (son écran du container) — un bouton WhatsApp
+   par client, pour prévenir le **destinataire**.
+Un historique de qui a été prévenu est prévu en plus, organisé par
+container.
 
-**Limite assumée (comme pour le personnel) :** sur iPhone, les
-notifications web ne fonctionnent que si la page a été ajoutée à
-l'écran d'accueil — en pratique, très peu de clients le feront pour une
-simple facture. D'où les boutons WhatsApp par client (étapes 3 et 4),
-qui couvrent tout le monde, notification activée ou non.
+Message proposé (à affiner si besoin) : « 📦 Container arrivé à Dakar !
+Votre colis est bien arrivé au dépôt de Dakar City Transport. Pensez à
+prévenir votre contact sur place pour qu'il vienne le récupérer. »
 
 ### Notification : diagnostiquer soi-même « j'ai envoyé mais rien reçu »
 **Fait le 04/10 (v2.20.26).** Eric, capture d'écran de l'écran
