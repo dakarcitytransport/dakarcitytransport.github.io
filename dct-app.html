@@ -481,12 +481,47 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
          d'appel automatique au service de calcul d'itin&eacute;raire
          &agrave; chaque rendu de l'&eacute;cran. -->
     <div style="background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <span style="font-size:12px;font-weight:800;color:var(--text);">&#128207; Kilom&eacute;trage estim&eacute;</span>
         <span id="frc-km-val" style="font-size:16px;font-weight:800;color:#1a237e;">&mdash;</span>
       </div>
+      <!-- v3.99.4 — Cobey, 13/10/2026 : « est-il possible d'avoir le
+           calcul de temps de trajet de la tourn&eacute;e, avec une
+           moyenne de 20 min chez le client ». M&ecirc;me calcul OSRM que
+           le kilom&eacute;trage (voir estimerKmCamionFrance), + 20 min
+           par arr&ecirc;t. -->
+      <div id="frc-duree-val" style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:10px;"></div>
       <button class="btn" id="frc-km-btn" style="margin:0;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" onclick="estimerKmCamionFrance()">&#128207; Estimer le kilom&eacute;trage</button>
       <div id="frc-km-note" style="font-size:10.5px;color:var(--text3);margin-top:7px;line-height:1.4;"></div>
+    </div>
+    <!-- v3.99.4 — Cobey, 13/10/2026 : « pour chaque camion un comparatif
+         avec le prix de ramassage, car on veut voir si on rentre dans
+         nos co&ucirc;ts » — outil d'ESTIMATION, volontairement &agrave;
+         part du rapport financier (dépenses r&eacute;elles juste
+         au-dessus) : « la case des d&eacute;penses doit &ecirc;tre
+         identique au parcours Collecte [...] mais pour l'estimation
+         avec comparatif [...] &ccedil;a doit &ecirc;tre &agrave; part. »
+         Essence estim&eacute;e &agrave; partir du kilom&eacute;trage
+         (consommation/prix modifiables, aucune donn&eacute;e r&eacute;elle
+         pour ce camion) ; p&eacute;ages repris de la case D&eacute;penses
+         juste au-dessus (saisis &agrave; la main, « aucune API gratuite
+         fiable » pour les calculer). -->
+    <div style="background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px;">&#128202; Comparatif co&ucirc;ts / ramassage</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <div style="flex:1;">
+          <label style="font-size:10.5px;color:var(--text3);font-weight:700;display:block;margin-bottom:3px;">Conso. (L/100km)</label>
+          <input class="fi" id="frc-cmp-conso" type="number" min="0" step="0.5" value="11" style="margin:0;padding:8px;font-size:13px;" oninput="_frMajComparatifCouts()">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:10.5px;color:var(--text3);font-weight:700;display:block;margin-bottom:3px;">Prix du litre (&euro;)</label>
+          <input class="fi" id="frc-cmp-prix" type="number" min="0" step="0.01" value="1.75" style="margin:0;padding:8px;font-size:13px;" oninput="_frMajComparatifCouts()">
+        </div>
+      </div>
+      <div id="frc-cmp-detail" style="font-size:12.5px;color:var(--text);line-height:1.9;"></div>
+      <div style="border-top:1.5px solid var(--border);margin-top:8px;padding-top:9px;">
+        <div id="frc-cmp-verdict" style="font-size:13px;font-weight:800;"></div>
+      </div>
     </div>
     <!-- v3.99.0 — Cobey, 13/10/2026 : « la case des d&eacute;penses doit
          &ecirc;tre identique au parcours Collecte, car &ccedil;a sera
@@ -1787,7 +1822,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.3';
+var APP_VERSION = 'v3.99.4';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6027,6 +6062,11 @@ function _frValiderPickCam(){
 // heure de rendez-vous, adresse vers Waze, telephone, et les deux
 // boutons qui closent chaque arret.
 var _frCamion='';
+// v3.99.4 — dernier résultat de estimerKmCamionFrance pour CE camion,
+// réutilisé par le comparatif coûts/ramassage (évite de relancer OSRM
+// juste pour changer la consommation/le prix du litre, voir
+// _frMajComparatifCouts).
+var _frDerniereEstimation={ km:null, dureeTrajetMin:null, dureeTotaleMin:null, nbArrets:0 };
 var _frPlusClientId=null; // menu "⋯" (Annulé) du camion Chauffeur externe — v3.95.3
 
 function ouvrirCamionFrance(k){
@@ -6037,6 +6077,9 @@ function ouvrirCamionFrance(k){
   var val=document.getElementById('frc-km-val'); if(val) val.textContent='—';
   var note=document.getElementById('frc-km-note'); if(note) note.textContent='';
   var btn=document.getElementById('frc-km-btn'); if(btn){ btn.disabled=false; btn.textContent='📏 Estimer le kilométrage'; }
+  var dv=document.getElementById('frc-duree-val'); if(dv) dv.textContent='';
+  // v3.99.4 : même raison — efface l'estimation du camion précédent.
+  _frDerniereEstimation = { km:null, dureeTrajetMin:null, dureeTotaleMin:null, nbArrets:0 };
   renderCamionFrance();
   goTo('s-fr-camion');
   // v3.97.1 — Cobey, 12/10/2026 : « ça ne peut pas s'afficher
@@ -6173,15 +6216,26 @@ function estimerKmCamionFrance(){
     pts.sort(function(a,b){ return a.i-b.i; });
     var coordsPts=pts.map(function(pt){ return { lat:pt.lat, lng:pt.lng }; });
     _frAjouterBornesTrajet(tk, coordsPts, function(tout, libelleDepart, avecArrivee){
-      _calculerDistanceRoute(tout, function(km){
+      _calculerDistanceRoute(tout, function(km, dureeMin){
         if(btn){ btn.disabled=false; btn.textContent='📏 Recalculer'; }
         if(km===null){
           if(val) val.textContent='—';
           if(note) note.textContent='⚠️ Calcul indisponible, réessayez.';
+          _frDerniereEstimation = { km:null, dureeTrajetMin:null, dureeTotaleMin:null, nbArrets:pts.length };
+          _frMajComparatifCouts();
           return;
         }
         if(val) val.textContent='~'+km+' km';
         if(note) note.textContent = _texteConfirmationKm(pts.length, libelleDepart, avecArrivee, echecGeocode);
+        // v3.99.4 : + 20 min par client (Cobey, 13/10/2026 : « avec une
+        // moyenne de 20 min chez le client »), en plus du trajet routier.
+        var dureeArrets = pts.length * 20;
+        var dureeTotale = (dureeMin===null) ? null : (dureeMin + dureeArrets);
+        var eDuree=document.getElementById('frc-duree-val');
+        if(eDuree) eDuree.textContent = (dureeTotale===null) ? ''
+          : ('⏱️ ≈ '+_frDureeTexte(dureeTotale)+' (trajet '+_frDureeTexte(dureeMin)+' + 20 min × '+pts.length+' client'+(pts.length>1?'s':'')+')');
+        _frDerniereEstimation = { km:km, dureeTrajetMin:dureeMin, dureeTotaleMin:dureeTotale, nbArrets:pts.length };
+        _frMajComparatifCouts();
       });
     });
   };
@@ -6200,6 +6254,55 @@ function estimerKmCamionFrance(){
     if(c.lat && c.lng){ poser(c.lat, c.lng); return; }
     _geocodeClientFr(c, poser);
   });
+}
+
+// v3.99.4 — « 2h15 » se lit d'un coup d'œil, « 135 min » se recalcule.
+function _frDureeTexte(min){
+  if(min===null || min===undefined) return '';
+  min = Math.round(min);
+  var h = Math.floor(min/60), m = min%60;
+  return h>0 ? (h+'h'+(m?(' '+('0'+m).slice(-2)+'min'):'')) : (m+' min');
+}
+
+// v3.99.4 — Cobey, 13/10/2026 : « pour chaque camion un comparatif avec
+// le prix de ramassage, car on veut voir si on rentre dans nos coûts »
+// — outil d'estimation à part du rapport financier (voir le commentaire
+// au-dessus de la case dans le HTML). Essence = kilométrage × conso ×
+// prix du litre (les deux modifiables, aucune donnée réelle pour ce
+// camion — Cobey : « on a pas de chiffre pour ce camion »). Péage =
+// repris de la case Dépenses juste au-dessus (window._depMontantParType,
+// departs.js), saisi à la main faute d'API gratuite pour le calculer.
+function _frMajComparatifCouts(){
+  var boxDetail=document.getElementById('frc-cmp-detail');
+  var boxVerdict=document.getElementById('frc-cmp-verdict');
+  if(!boxDetail || !boxVerdict) return;
+  var r=_frCollecteActive();
+  var tk=r && (r.trucks||{})[_frCamion];
+  if(!r || !tk){ boxDetail.textContent=''; boxVerdict.textContent=''; return; }
+
+  var est=_frDerniereEstimation||{};
+  if(est.km===null || est.km===undefined){
+    boxDetail.innerHTML='<span style="color:var(--text3);">Estimez d\'abord le kilométrage (bouton ci-dessus) pour voir le comparatif.</span>';
+    boxVerdict.textContent='';
+    return;
+  }
+
+  var conso=parseFloat((document.getElementById('frc-cmp-conso')||{}).value)||0;
+  var prixLitre=parseFloat((document.getElementById('frc-cmp-prix')||{}).value)||0;
+  var essence=Math.round(est.km * conso/100 * prixLitre * 100)/100;
+  var peage=(typeof window._depMontantParType==='function') ? window._depMontantParType(r._id, _frCamion, 'peage') : 0;
+  var totalCouts=Math.round((essence+peage)*100)/100;
+  var ramassage=_frCollecteCamion(tk);
+  var marge=Math.round((ramassage-totalCouts)*100)/100;
+
+  boxDetail.innerHTML=
+      '<div style="display:flex;justify-content:space-between;"><span>⛽ Essence estimée (' + est.km + ' km)</span><b>' + essence + ' €</b></div>'
+    + '<div style="display:flex;justify-content:space-between;"><span>🛣️ Péages (saisis dans Dépenses)</span><b>' + peage + ' €</b></div>'
+    + '<div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:4px;margin-top:2px;"><span>Total estimé</span><b style="color:#B3261E;">' + totalCouts + ' €</b></div>'
+    + '<div style="display:flex;justify-content:space-between;"><span>Ramassage de ce camion</span><b style="color:#006b2d;">' + ramassage + ' €</b></div>';
+  boxVerdict.innerHTML = marge>=0
+    ? ('✅ Marge estimée : <span style="color:#006b2d;">+' + marge + ' €</span> — rentable')
+    : ('⚠️ Marge estimée : <span style="color:#B3261E;">' + marge + ' €</span> — ne couvre pas les coûts estimés');
 }
 
 // v3.98.0 — enregistre la ville de départ tapée pour un camion
@@ -6254,6 +6357,7 @@ function renderCamionFrance(){
   e=document.getElementById('frc-fin-bar'); if(e) e.style.width=pctF+'%';
   e=document.getElementById('frc-fin-pct'); if(e) e.textContent=pctF+'% facturé';
   _frMajBlocDepenses(_frCamion);
+  _frMajComparatifCouts();
 
   var route=document.getElementById('frc-route'); if(!route) return;
   if(!nCl){
@@ -12680,6 +12784,12 @@ function _geocodeOSM(c, cb){
 // démarrer. points : [{lat,lng}, ...] dans l'ordre de passage ; cb(km)
 // avec km=null si le calcul échoue (API indisponible, moins de 2 points
 // géocodés...).
+// v3.99.4 — Cobey, 13/10/2026 : « est-il possible d'avoir le calcul de
+// temps de trajet de la tournée ». OSRM renvoie déjà la durée du trajet
+// (routes[0].duration, en secondes) dans la même réponse que la
+// distance — jamais lue jusqu'ici. cb(km, dureeMin) : dureeMin est null
+// si la réponse ne la contenait pas (callers existants, qui ignorent ce
+// second argument, continuent de marcher à l'identique).
 function _calculerDistanceRoute(points, cb){
   var valides = (points||[]).filter(function(p){ return p && p.lat && p.lng; });
   if(valides.length < 2){ cb(null); return; }
@@ -12688,7 +12798,8 @@ function _calculerDistanceRoute(points, cb){
     .then(function(r){ return r.json(); })
     .then(function(d){
       if(d && d.routes && d.routes[0] && typeof d.routes[0].distance === 'number'){
-        cb(Math.round(d.routes[0].distance/1000));
+        var dureeMin = (typeof d.routes[0].duration === 'number') ? Math.round(d.routes[0].duration/60) : null;
+        cb(Math.round(d.routes[0].distance/1000), dureeMin);
       } else cb(null);
     })
     .catch(function(){ cb(null); });

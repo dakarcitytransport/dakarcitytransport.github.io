@@ -2430,6 +2430,31 @@ Au passage, le titre de la fenêtre Photos affichait toujours « Client »
 pour une fiche France (champ `.name` qui n'existe que côté Collecte) —
 corrigé en même temps.
 
+**Suite, le 13/10 (v3.99.4 / v2.20.62) — le comparatif coûts/ramassage,
+« à part » du rapport financier, tel que demandé au départ.** Trois
+pièces :
+
+1. **Temps de trajet** — le service déjà utilisé pour le kilométrage
+   (OSRM) renvoie aussi la durée du trajet, jamais lue jusqu'ici ; il a
+   suffi de la récupérer. Affichée sous le kilométrage : « ⏱️ ≈ 3h 10min
+   (trajet 2h 30min + 20 min × 2 clients) » — les 20 min par client
+   demandées, ajoutées au trajet routier pur.
+2. **Essence estimée** — kilométrage × consommation × prix du litre,
+   deux champs modifiables (défaut 11 L/100km, 1,75 €/L — « on a pas de
+   chiffre pour ce camion », donc une valeur de départ à corriger au
+   besoin plutôt qu'une vraie consommation).
+3. **Péages** — repris directement des vraies dépenses de ce camion
+   (catégorie « Péage », ajoutée avec la case Dépenses) : saisis une
+   seule fois, à la main (toujours aucune API gratuite trouvée), ils
+   comptent à la fois comme dépense réelle et dans ce comparatif.
+
+Le tout dans une nouvelle case « 📊 Comparatif coûts / ramassage » sur
+l'écran du camion, sous Dépenses : essence + péages comparés au
+ramassage de ce camion, avec un verdict (rentable ou non) et la marge
+en euros. Volontairement séparée de la case Dépenses (données réelles,
+rapport financier) — recalcule à la volée si on change la consommation
+ou le prix du litre, sans relancer le calcul d'itinéraire.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.
