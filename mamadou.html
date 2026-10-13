@@ -437,7 +437,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.12.0';
+var MAMADOU_VERSION = 'v1.13.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -481,10 +481,22 @@ var DEP_PAYS_DEFAUT = 'SN';
 // Sénégal, pas du Mali » — il livre à Dakar, les containers Mali partent
 // vers Bamako, hors de son périmètre. Le dépôt (DEP_ID_DEPOT) n’a pas de
 // champ pays : on le traite comme Sénégal, il y est basé.
+// v1.13.0 — Cobey, 14/10/2026 : « il ne doit même pas voir le
+// conteneur. Le conteneur et ses informations n'apparaissent que quand
+// DCT valide l'étape du transport [...] par souci de confidentialité de
+// nos clients. » Tant que DCT n'a pas coché « Départ de Mitry »
+// (etapesTransport.depart_mitry, la 1ère étape — voir DEP_ETAPES_TRANSPORT
+// plus bas) pour ce container, Mamadou ne doit même pas savoir qu'il
+// existe — un seul point de contrôle (cette fonction, déjà utilisée par
+// tous les écrans qui listent ou valident un container) suffit à couvrir
+// la liste des containers, le Dépôt Dakar, le scan et la saisie de
+// secours.
 function containerAutorise(departId, d){
   d = d || departsData[departId] || {};
   if(departId === DEP_ID_DEPOT) return true;
-  return (d.pays || DEP_PAYS_DEFAUT) !== 'ML';
+  if((d.pays || DEP_PAYS_DEFAUT) === 'ML') return false;
+  var etape1 = d.etapesTransport && d.etapesTransport.depart_mitry;
+  return !!(etape1 && etape1.fait);
 }
 
 var DEP_PAYS_DEST = {

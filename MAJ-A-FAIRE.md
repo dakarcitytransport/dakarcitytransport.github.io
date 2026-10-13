@@ -3216,6 +3216,22 @@ _depListeDepotDakar/l'écran Dépôt Dakar) ; avant l'arrivée, l'étiquette
 l'intention, sans faux sentiment d'urgence. Le badge vert "Délivré au
 client" reste affiché normalement dès qu'une livraison est validée.
 
+**Suite, le 14/10 (v1.13.0 Mamadou) — un container reste invisible tant
+que DCT n'a pas validé son départ.** Cobey : « il ne doit avoir accès
+qu'aux gros conteneurs qui font partie de Mitry-Mory. C'est-à-dire que
+tant que DCT n'a pas validé au niveau du suivi de transport l'étape 1,
+Mamadou Niass ne peut pas avoir accès aux conteneurs. Par souci de
+confidentialité de nos clients. » Puis, précisé : « il ne doit même pas
+voir le conteneur. Le conteneur et ses informations n'apparaissent que
+quand DCT valide l'étape du transport. »
+
+Jusqu'ici seul le pays (Sénégal/Mali) filtrait ce que Mamadou voit
+(`containerAutorise`, déjà le seul passage obligé pour la liste des
+containers, le Dépôt Dakar, le scan et la saisie de secours). La même
+fonction exige maintenant en plus que la 1ère étape du suivi de
+transport (« Départ de Mitry ») soit cochée côté DCT — sinon le
+container n'apparaît nulle part, comme s'il n'existait pas encore.
+
 ---
 
 ## 6 · Rapport financier
