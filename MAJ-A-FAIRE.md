@@ -2339,6 +2339,22 @@ porte désormais une ligne « Calculé le JJ/MM/AAAA à HHhMM · N clients
 pris en compte » : de quoi voir d'un coup d'œil si le dernier calcul
 a bien eu lieu après la dernière modification, sans avoir à deviner.
 
+**Suite, le 13/10 (v3.98.8) — aucune carte sur l'écran du camion
+lui-même.** Cobey, juste après avoir créé une tournée France Europe :
+« déjà dans le camion créé on ne voit pas la carte ». Exact : le bouton
+🗺️ existait déjà sur l'écran du chauffeur (`s-poste-tournee`) et sur la
+carte Collecte d'un camion (`depCarteCamion`), mais jamais sur l'écran
+du camion vu par DCT (`s-fr-camion`, celui-là même qui affiche le
+kilométrage et l'ordre de passage) — un oubli, pas un choix. Même bouton
+🗺️ ajouté dans son en-tête, à la même place que les autres écrans
+camion : ouvre la carte scopée sur les seuls clients de ce camion, dans
+l'ordre de passage, avec le trajet tracé dans la couleur du camion.
+
+Au passage, pour le second point de son message (les points bleu foncé
+sur la « Carte des colis ») : la légende en bas de cette carte le dit
+déjà — gris = en attente, **bleu foncé = planifié** (affecté à un
+camion, pas encore ramassé), vert = ramassé.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.

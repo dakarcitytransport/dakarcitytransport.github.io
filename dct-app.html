@@ -438,7 +438,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <div class="h-title" style="font-size:14px;" id="frc-title">Camion</div>
       <div class="h-sub" id="frc-sous">Feuille de route</div>
     </div>
-    <div style="width:64px;"></div>
+    <button onclick="ouvrirCarteFrance('camion', _frCamion)" style="background:#e8eaf6;color:#1a237e;border:1.5px solid #1a237e;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">&#128506;</button>
   </div>
   <div class="content">
     <div style="background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;">
@@ -1772,7 +1772,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.98.7';
+var APP_VERSION = 'v3.98.8';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -12701,7 +12701,7 @@ function ouvrirCarteFrance(mode, tid){
   if(_carteFrTrace){ try{ _carteFrTrace.remove(); }catch(e){} _carteFrTrace=null; }
   _effacerFleches();
   var t=document.getElementById('cfr-titre');
-  if(t) t.textContent = (_carteFrMode==='tournee') ? 'Carte de la tournée' : 'Carte des colis';
+  if(t) t.textContent = (_carteFrMode==='tournee') ? 'Carte de la tournée' : (_carteFrMode==='camion' ? 'Carte du camion' : 'Carte des colis');
   var a=document.getElementById('cfr-aide');
   if(a) a.style.display = _carteSelectionPossible() ? 'block' : 'none';
   var bb=document.getElementById('cfr-barre');
@@ -12724,6 +12724,26 @@ function _clientsPourCarte(){
     (to&&to.clients||[]).forEach(function(id,i){
       var c=(franceData.clients||{})[id];
       if(c){ c._id=id; out.push({c:c, num:i+1, to:to}); }
+    });
+  } else if(_carteFrMode==='camion'){
+    // v3.98.8 — Cobey, 13/10/2026 : « déjà dans le camion créé on ne voit
+    // pas la carte » — le camion n'avait aucun lien vers la carte ; on
+    // affiche ses clients dans l'ordre de passage (même tri que
+    // estimerKmCamionFrance, par heure puis par ordre d'ajout).
+    var r=_frCollecteActive();
+    var tk=r && (r.trucks||{})[_carteFrTid];
+    var hours=(tk&&tk.hours)||{};
+    var clients=(tk&&tk.clients)||[];
+    var sorted=clients.slice().sort(function(a,b){
+      var ha=hours[a], hb=hours[b];
+      if(ha && hb) return ha.localeCompare(hb);
+      if(ha) return -1;
+      if(hb) return 1;
+      return clients.indexOf(a)-clients.indexOf(b);
+    });
+    sorted.forEach(function(id,i){
+      var c=(franceData.clients||{})[id];
+      if(c){ c._id=id; out.push({c:c, num:i+1}); }
     });
   } else {
     Object.keys(franceData.clients||{}).forEach(function(id){
@@ -12777,10 +12797,12 @@ function _construireCarteFrance(){
       }
       if(faits>=liste.length){
         if(st) st.textContent=points.length+' colis sur '+liste.length+' localisé'+(points.length>1?'s':'');
-        if(_carteFrMode==='tournee'){
+        if(_carteFrMode==='tournee' || _carteFrMode==='camion'){
           var ordre=liste.map(function(x){ return _carteFrCoords[x.c._id]; }).filter(Boolean);
           if(ordre.length>1){
-            var _cl=getPc(((franceData.tournees||{})[_carteFrTid]||{}).posteId).bar;
+            var _cl = (_carteFrMode==='tournee')
+              ? getPc(((franceData.tournees||{})[_carteFrTid]||{}).posteId).bar
+              : ((((_frCollecteActive()||{}).trucks||{})[_carteFrTid]||{}).color || '#1a237e');
             try{ L.polyline(ordre,{color:_cl,weight:3,opacity:.8}).addTo(_carteFr); }catch(e){}
             _effacerFleches();
             _poserFleches(ordre, _cl);
