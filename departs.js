@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.64';
+var DEP_VERSION = 'v2.20.65';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8576,14 +8576,23 @@ window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, vi
 // Mitry-Mory. Pas de collecteId/dépôt ici : source distincte, voir
 // _depClientFacture (retour de Cobey du 29/08/2026 : "une édition de
 // facture similaire à la collecte").
-window.depOuvrirFactureFrance = function(clientId, viaFidelite){
+// v2.20.65 — Cobey, 14/10/2026 : « une fois la facture validée, il
+// manque aussi le bouton retour pour revenir directement dans le
+// camion lui-même, pas dans l'espace où on voit tous les camions. »
+// `retourCamion` : même paramètre que depOuvrirFacture côté Collecte
+// (voir "← Camion" ci-dessus) — posé par le bouton "🧾" sur la carte
+// d'un client déjà validé (_depAjouterFactureCamionValide).
+window.depOuvrirFactureFrance = function(clientId, viaFidelite, retourCamion){
   var c = ((window.franceData||{}).clients||{})[clientId];
   if(!c){ toast('⚠️ Facture introuvable.'); return; }
   _depFactureCtx = { collecteId: '', clientId: clientId, depot: false, france: true };
   window._depDocVientDepart = false;
   var btnRetour = $('dep-fact-retour');
   if(btnRetour){
-    if(viaFidelite){
+    if(retourCamion){
+      btnRetour.textContent = '← Camion';
+      btnRetour.onclick = function(){ goTo('s-fr-camion'); try{ renderCamionFrance(); }catch(e){} };
+    } else if(viaFidelite){
       // v2.20.2 — voir le même paramètre sur depOuvrirFacture ci-dessus.
       btnRetour.textContent = '← Retour';
       btnRetour.onclick = function(){ goTo('s-fidelite-contact'); try{ depRenderFideliteContact(); }catch(e){} };
@@ -18212,8 +18221,17 @@ window._depClotureCollecteExterne = function(){
 // quelle carte appartient à quel client (elles n'ont pas d'id dans le
 // DOM), on recalcule le même tri que l'original — à resynchroniser si
 // ce tri change un jour dans index.html.
-function _depAjouterFactureCamionValide(k){
-  var trks = getTrucks(), tk = trks[k];
+// v2.20.65 — Cobey, 14/10/2026 : « il manque le bouton pour accéder à
+// la facture [...] une fois la facture validée. » Même manque que
+// WhatsApp/Observation/Photos avant eux : ce bouton n'existait que
+// côté Collecte. Généralisé avec `src` ('collecte' par défaut, ou
+// 'france'), même principe que _depAjouterBoutonsExtraCamionValide.
+function _depAjouterFactureCamionValide(k, src){
+  var estFr = (src === 'france');
+  var rFr = estFr ? (_frCollecteActive()||{}) : null;
+  var tk = estFr
+    ? _depDepenseTruck({ colId: rFr._id, camion: k, src: 'france' })
+    : getTrucks()[k];
   if(!tk) return;
   var validated = tk.validated || [];
   if(!validated.length) return;
@@ -18225,7 +18243,7 @@ function _depAjouterFactureCamionValide(k){
     if(hb) return 1;
     return tk.clients.indexOf(a) - tk.clients.indexOf(b);
   });
-  var cartes = document.querySelectorAll('#camion-route .route-card.done');
+  var cartes = document.querySelectorAll((estFr ? '#frc-route' : '#camion-route') + ' .route-card.done');
   var idxCarte = 0;
   for(var i = 0; i < sorted.length; i++){
     if(validated.indexOf(sorted[i]) < 0) continue;
@@ -18239,11 +18257,16 @@ function _depAjouterFactureCamionValide(k){
       b.className = 'route-action-btn dep-fact-camion';
       b.style.cssText = 'background:#EAF7EE;color:#006b2d;border:2px solid #006b2d;border-radius:10px;padding:12px;font-size:16px;font-weight:800;cursor:pointer;font-family:var(--font);flex-shrink:0;';
       b.textContent = '🧾';
-      b.onclick = function(e){ if(e) e.stopPropagation(); depOuvrirFacture(window.currentCollecteId || '', cid, false, true); };
+      b.onclick = function(e){
+        if(e) e.stopPropagation();
+        if(estFr) depOuvrirFactureFrance(cid, false, true);
+        else depOuvrirFacture(window.currentCollecteId || '', cid, false, true);
+      };
       act.appendChild(b);
     })(sorted[i]);
   }
 }
+window._depAjouterFactureCamionValide = _depAjouterFactureCamionValide;
 
 // v1.18.2 : petite icône "📋" juste à côté du nom, sur CHAQUE carte de la
 // tournée (pas seulement les validées — le Suivi est utile dès la création

@@ -3588,3 +3588,18 @@ Corrigé à la source : la suppression forcée nettoie maintenant aussi
 le camion. Et pour les camions déjà abîmés par l'ancien bug, l'écran
 d'un camion France & Europe se répare tout seul à l'ouverture (retire
 discrètement tout id sans fiche derrière) — rien à refaire à la main.
+
+---
+
+### Bouton "🧾 Facture" manquant sur un client déjà validé (camion France & Europe)
+**Fait le 14/10 (v3.99.14 / v2.20.65).** Cobey : « il manque le bouton
+pour accéder à la facture, une fois la facture validée, il manque
+aussi le bouton retour pour revenir directement dans le camion lui-
+même, pas dans l'espace où on voit tous les camions avec le nom du
+chauffeur. »
+
+Côté Collecte, un client déjà validé a toujours eu un petit bouton
+"🧾" sur sa carte pour rouvrir sa facture, avec un bouton retour qui
+dit "← Camion" et ramène directement sur l'écran de ce camion — jamais
+porté côté France & Europe (même angle mort que WhatsApp/Observation/
+Photos, corrigés le 13/10). Généralisé aux deux parcours.

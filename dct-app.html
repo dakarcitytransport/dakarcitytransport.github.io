@@ -1863,7 +1863,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.13';
+var APP_VERSION = 'v3.99.14';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6615,6 +6615,7 @@ function renderCamionFrance(){
   try{ _depAjouterWhatsappCamion(_frCamion, 'france'); }catch(e){}
   try{ _depAjouterObservationAvantCollecte(_frCamion, 'france'); }catch(e){}
   try{ _depAjouterBoutonsExtraCamionValide(_frCamion, 'france'); }catch(e){}
+  try{ _depAjouterFactureCamionValide(_frCamion, 'france'); }catch(e){}
 }
 
 // v3.99.0 — la case « Dépenses du camion », identique côté Collecte et
