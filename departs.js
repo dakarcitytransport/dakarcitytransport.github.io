@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.57';
+var DEP_VERSION = 'v2.20.58';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18878,6 +18878,10 @@ function _depInjecterBoutonEtiquettesCamion(k){
    réserves de l'appli et jamais mêlées aux factures clients. */
 var DEP_TYPES_DEPENSE = [
   { cle:'carburant',       icone:'&#9981;',   label:'Carburant' },
+  // v3.99.0 — Cobey, 13/10/2026, sur le comparatif coûts/ramassage
+  // France & Europe : « on peut y rajouter péage, car ça sera dépense
+  // réelle » — même poste que carburant, côté dépenses réelles.
+  { cle:'peage',           icone:'&#128739;', label:'P&eacute;age' },
   { cle:'dejeuner',        icone:'&#127860;', label:'D&eacute;jeuner' },
   // v1.94.11 : Cobey, sur le report des tournées : « il se peut qu'on
   // loue des camions et qu'on paye les chauffeurs » — deux postes
@@ -19002,6 +19006,42 @@ function _depEncaisseDuCamion(tk){
   });
   return depArrondi2(total);
 }
+
+// v3.99.0 — Cobey, 13/10/2026 : « la case des dépenses doit être
+// identique au parcours Collecte, car ça sera des dépenses réelles,
+// pour le rapport financier. » Plutôt que dupliquer tout l'écran
+// s-dep-depenses pour France & Europe, les mêmes fonctions servent aux
+// deux parcours — seul ce petit trio sait où trouver le camion et son
+// « collecté »/« encaissé », selon ctx.src ('collecte', par défaut, ou
+// 'france'). Le reste (catégories, stockage dct_depenses, permissions
+// de suppression) est déjà générique, sans rien à toucher.
+function _depDepenseTruck(ctx){
+  if(!ctx) return null;
+  if(ctx.src === 'france'){
+    var col = ((window.franceData||{}).collectes||{})[ctx.colId];
+    return (col && (col.trucks||{})[ctx.camion]) || null;
+  }
+  var dc = ((window.dispatchParCollecte||{})[ctx.colId]) || {};
+  return (dc.trucks||{})[ctx.camion] || null;
+}
+function _depDepenseCollecteMontant(ctx, tk){
+  return ctx.src === 'france' ? _frCollecteCamion(tk) : _depCollecteDuCamion(tk);
+}
+function _depDepenseEncaisseMontant(ctx, tk){
+  return ctx.src === 'france' ? _frEncaisseCamion(tk) : _depEncaisseDuCamion(tk);
+}
+// v3.99.0 — departs.js s'exécute dans sa propre fermeture : rien ici
+// n'est visible depuis dct-app.html (autre script) sauf ce qui est posé
+// sur window. Le résumé affiché sur l'écran du camion France & Europe
+// (_frMajBlocDepenses, dct-app.html) passe par CE SEUL pont, plutôt que
+// d'exposer _depTotalDepenses/_depEuros un par un.
+window._depResumeDepenses = function(colId, camion, src){
+  var ctx = { colId: colId, camion: camion, src: src || 'collecte' };
+  var tk = _depDepenseTruck(ctx) || {};
+  var tot = _depTotalDepenses(colId, camion);
+  var net = depArrondi2(_depDepenseCollecteMontant(ctx, tk) - tot);
+  return { total: tot, totalTexte: _depEuros(tot), net: net, netTexte: _depEuros(net) };
+};
 
 // v2.20.16 — Cobey, sur le bandeau "Suivi financier global" d'une
 // collecte (ici vu depuis Archivage, France & Europe) : « on a le total
@@ -19214,10 +19254,14 @@ function _depMajBlocDepensesCamion(k){
   box.appendChild(rowNE);
 }
 
-window.depOuvrirDepenses = function(k){
-  var colId = window.currentCollecteId;
-  if(!colId || !k){ toast('⚠️ Ouvrez d\'abord un camion.'); return; }
-  _depDepenseCtx = { colId: colId, camion: k };
+// v3.99.0 : src/colId optionnels — Collecte continue d'appeler
+// depOuvrirDepenses(k) seul (colId retombe sur currentCollecteId, src
+// sur 'collecte', comme avant) ; France & Europe passe les deux
+// explicitement (voir frOuvrirDepensesCamion, dct-app.html).
+window.depOuvrirDepenses = function(k, src, colId){
+  var cId = colId || window.currentCollecteId;
+  if(!cId || !k){ toast('⚠️ Ouvrez d\'abord un camion.'); return; }
+  _depDepenseCtx = { colId: cId, camion: k, src: src || 'collecte' };
   _depDepenseType = 'carburant';
   var m = $('dep-dep-montant'); if(m) m.value = '';
   var n = $('dep-dep-note');    if(n) n.value = '';
@@ -19226,6 +19270,12 @@ window.depOuvrirDepenses = function(k){
 };
 
 window.depDepensesRetour = function(){
+  var ctx = _depDepenseCtx;
+  if(ctx && ctx.src === 'france'){
+    goTo('s-fr-camion');
+    try{ renderCamionFrance(); }catch(e){}
+    return;
+  }
   goTo('s-camion');
   try{ renderCamion(window.currentCamion); }catch(e){}
 };
@@ -19233,7 +19283,7 @@ window.depDepensesRetour = function(){
 window.depRenderDepenses = function(){
   var ctx = _depDepenseCtx;
   if(!ctx) return;
-  var trks = getTrucks(), tk = trks[ctx.camion] || {};
+  var tk = _depDepenseTruck(ctx) || {};
 
   var sous = $('dep-dep-sous');
   if(sous) sous.textContent = tk.name || 'Camion';
@@ -19249,9 +19299,9 @@ window.depRenderDepenses = function(){
 
   var liste = _depDepensesDe(ctx.colId, ctx.camion);
   var tot = _depTotalDepenses(ctx.colId, ctx.camion);
-  var collecte = _depCollecteDuCamion(tk);
+  var collecte = _depDepenseCollecteMontant(ctx, tk);
   var net = depArrondi2(collecte - tot);
-  var netEnc = depArrondi2(_depEncaisseDuCamion(tk) - tot);
+  var netEnc = depArrondi2(_depDepenseEncaisseMontant(ctx, tk) - tot);
 
   var zTot = $('dep-dep-total');
   if(zTot){

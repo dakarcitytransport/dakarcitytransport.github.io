@@ -488,6 +488,21 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <button class="btn" id="frc-km-btn" style="margin:0;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" onclick="estimerKmCamionFrance()">&#128207; Estimer le kilom&eacute;trage</button>
       <div id="frc-km-note" style="font-size:10.5px;color:var(--text3);margin-top:7px;line-height:1.4;"></div>
     </div>
+    <!-- v3.99.0 — Cobey, 13/10/2026 : « la case des d&eacute;penses doit
+         &ecirc;tre identique au parcours Collecte, car &ccedil;a sera
+         des d&eacute;penses r&eacute;elles, pour le rapport financier. »
+         M&ecirc;mes cat&eacute;gories (carburant, p&eacute;age...), m&ecirc;me
+         stockage, m&ecirc;me &eacute;cran (s-dep-depenses, departs.js) —
+         seul frOuvrirDepensesCamion() lui indique le camion France &amp;
+         Europe &agrave; ouvrir. -->
+    <div style="background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:12px;font-weight:800;color:var(--text);">&#128176; D&eacute;penses du camion</span>
+        <span id="frc-dep-val" style="font-size:16px;font-weight:800;color:#B3261E;">&mdash;</span>
+      </div>
+      <div id="frc-dep-net" style="font-size:10.5px;color:var(--text3);margin-bottom:10px;line-height:1.4;"></div>
+      <button class="btn" style="margin:0;background:#FFF3E0;color:#8A5200;border:2px solid #E58A00;" onclick="frOuvrirDepensesCamion()">&#128176; Ajouter / voir les d&eacute;penses</button>
+    </div>
     <div class="slabel">Ordre de passage</div>
     <div id="frc-route"></div>
   </div>
@@ -1772,7 +1787,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.98.9';
+var APP_VERSION = 'v3.99.0';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5574,6 +5589,19 @@ function _frNomDept(code){
 function _frPrixClient(id){ var c=(franceData.clients||{})[id]; return c?((c.prix||0)+(c.prixRamassage||0)):0; }
 function _frTotalCamion(tk){ return ((tk&&tk.clients)||[]).reduce(function(s,id){ return s+_frPrixClient(id); },0); }
 function _frCollecteCamion(tk){ return ((tk&&tk.validated)||[]).reduce(function(s,id){ return s+_frPrixClient(id); },0); }
+// v3.99.0 — l'argent réellement encaissé (pas seulement facturé) des
+// clients ramassés par ce camion, même lecture que _depEncaisseDuCamion
+// côté Collecte (versements réels, pas la valeur du colis) — sert à la
+// case « Dépenses du camion », identique des deux côtés. Arrondi en
+// ligne (pas depArrondi2, interne à departs.js et invisible d'ici —
+// departs.js s'exécute dans sa propre fermeture).
+function _frEncaisseCamion(tk){
+  var total=((tk&&tk.validated)||[]).reduce(function(s,id){
+    var c=(franceData.clients||{})[id];
+    return s + (c ? depCalculerPaiement(c).paye : 0);
+  },0);
+  return Math.round((total + Number.EPSILON) * 100) / 100;
+}
 
 // Un dispatch est validable quand chaque client de la collecte a un
 // camion et une heure de passage — meme regle qu'a Paris.
@@ -6225,6 +6253,7 @@ function renderCamionFrance(){
   e=document.getElementById('frc-restant'); if(e) e.textContent=(total-collected)+' €';
   e=document.getElementById('frc-fin-bar'); if(e) e.style.width=pctF+'%';
   e=document.getElementById('frc-fin-pct'); if(e) e.textContent=pctF+'% facturé';
+  _frMajBlocDepenses(_frCamion);
 
   var route=document.getElementById('frc-route'); if(!route) return;
   if(!nCl){
@@ -6303,6 +6332,33 @@ function renderCamionFrance(){
   }
   route.innerHTML=h;
 }
+
+// v3.99.0 — la case « Dépenses du camion », identique côté Collecte et
+// France & Europe (mêmes catégories, même stockage, même écran partagé
+// s-dep-depenses dans departs.js). departs.js s'exécute dans sa propre
+// fermeture : seul window._depResumeDepenses (departs.js) en sort, pour
+// que ce petit résumé n'ait pas à dupliquer son calcul ici.
+function _frMajBlocDepenses(k){
+  var e=document.getElementById('frc-dep-val');
+  var eNet=document.getElementById('frc-dep-net');
+  if(!e && !eNet) return;
+  var r=_frCollecteActive();
+  if(!r || !k || typeof window._depResumeDepenses !== 'function'){
+    if(e) e.textContent='—'; if(eNet) eNet.textContent=''; return;
+  }
+  var resume=window._depResumeDepenses(r._id, k, 'france');
+  if(e) e.textContent = resume.total>0 ? ('− '+resume.totalTexte+' €') : '—';
+  if(eNet){
+    eNet.innerHTML = resume.total>0
+      ? ('Gain net (sur le ramassé) : <b style="color:'+(resume.net<0?'#B3261E':'#006b2d')+';">'+resume.netTexte+' €</b>')
+      : 'Aucune dépense enregistrée pour l\'instant.';
+  }
+}
+window.frOuvrirDepensesCamion = function(){
+  var r=_frCollecteActive();
+  if(!r || !_frCamion){ showToastNew('⚠️ Ouvrez d\'abord un camion.'); return; }
+  depOuvrirDepenses(_frCamion, 'france', r._id);
+};
 
 // ── Heure de passage ──
 var _frHeureId='';

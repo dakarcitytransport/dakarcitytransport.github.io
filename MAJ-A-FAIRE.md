@@ -2376,6 +2376,28 @@ camion, pas encore ramassé), vert = ramassé.
    à venir ne le montre plus), pour ne pas le confondre avec un colis
    qui attend encore d'être pris lors de la prochaine tournée.
 
+**Suite, le 13/10 (v3.99.0 / v2.20.58) — le comparatif coûts/ramassage
+par camion.** Cobey : « est-il possible d'avoir le calcul de temps de
+trajet de la tournée, avec une moyenne de 20 min chez le client, avoir
+une estimation de l'essence qu'on va utiliser, des péages qu'on va
+prendre, et le tout pour chaque camion un comparatif avec le prix de
+ramassage, car on veut voir si on rentre dans nos coûts. » Après
+discussion, décision retenue : les péages se saisissent à la main
+(aucune API gratuite fiable trouvée pour les calculer automatiquement —
+Mappy et Google en ont une, mais payante), et cette estimation reste
+séparée des vraies dépenses du rapport financier : « la case des
+dépenses doit être identique au parcours Collecte, car ça sera des
+dépenses réelles [...] mais pour l'estimation avec comparatif du prix
+de ramassage, ça doit être à part. »
+
+Premier chantier fait : la case **« 💰 Dépenses du camion »**, qui
+n'existait que côté Collecte, posée aussi sur l'écran du camion France
+& Europe — le même écran partagé (catégories, saisie, suppression,
+calcul du gain net), juste relié aux données France & Europe au lieu de
+Collecte. Nouvelle catégorie commune aux deux : **Péage**. Le temps de
+trajet + l'essence estimée + le comparatif face au ramassage (l'outil «
+à part » demandé) restent à faire.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.
