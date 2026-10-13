@@ -1822,7 +1822,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.6';
+var APP_VERSION = 'v3.99.7';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6297,14 +6297,20 @@ function _frMajComparatifCouts(){
   // clients DÉJÀ validés (0 € tant que la tournée n'a pas commencé) —
   // le comparatif veut la valeur de TOUT ce qui est prévu sur ce
   // camion, pas seulement ce qui est déjà fait.
-  var ramassage=_frTotalCamion(tk);
+  // v3.99.7 — Cobey, 14/10/2026 : « il faut le comparer avec les prix
+  // de ramassage uniquement, pas le prix des colis. » _frTotalCamion
+  // mélangeait colis + ramassage (comme _totalPrix) — _totalRamassage
+  // (déjà construite pour exactement ce besoin, v3.96.0 : « seul le
+  // ramassage sert à juger si le trajet s'amortit ») isole le frais de
+  // ramassage seul.
+  var ramassage=_totalRamassage(tk.clients);
   var marge=Math.round((ramassage-totalCouts)*100)/100;
 
   boxDetail.innerHTML=
       '<div style="display:flex;justify-content:space-between;"><span>⛽ Essence estimée (' + est.km + ' km)</span><b>' + essence + ' €</b></div>'
     + '<div style="display:flex;justify-content:space-between;"><span>🛣️ Péages (saisis dans Dépenses)</span><b>' + peage + ' €</b></div>'
     + '<div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:4px;margin-top:2px;"><span>Total estimé</span><b style="color:#B3261E;">' + totalCouts + ' €</b></div>'
-    + '<div style="display:flex;justify-content:space-between;"><span>Ramassage de ce camion</span><b style="color:#006b2d;">' + ramassage + ' €</b></div>';
+    + '<div style="display:flex;justify-content:space-between;"><span>Frais de ramassage de ce camion</span><b style="color:#006b2d;">' + ramassage + ' €</b></div>';
   boxVerdict.innerHTML = marge>=0
     ? ('✅ Marge estimée : <span style="color:#006b2d;">+' + marge + ' €</span> — rentable')
     : ('⚠️ Marge estimée : <span style="color:#B3261E;">' + marge + ' €</span> — ne couvre pas les coûts estimés');

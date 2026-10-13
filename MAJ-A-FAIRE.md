@@ -2470,6 +2470,16 @@ PRÉVUE est rentable, pas seulement ce qui est déjà fait. Lit maintenant
 la valeur totale de tous les clients affectés à ce camion, qu'ils
 soient déjà ramassés ou non.
 
+**Correctif du 14/10 (v3.99.7) — ce total comptait le prix du colis,
+pas seulement le ramassage.** Cobey : « il faut le comparer avec les
+prix de ramassage uniquement, pas le prix des colis. » Le correctif
+précédent (`_frTotalCamion`) additionnait colis + frais de ramassage —
+même mélange que `_totalPrix`, déjà écarté pour cette estimation côté «
+Caisse de ce container » (v3.96.0 : « seul le ramassage sert à juger si
+le trajet s'amortit »). Reprend `_totalRamassage`, construite pour
+exactement ce besoin : seuls les frais de ramassage des clients du
+camion entrent dans le comparatif.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.
