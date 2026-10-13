@@ -2440,9 +2440,14 @@ pièces :
    (trajet 2h 30min + 20 min × 2 clients) » — les 20 min par client
    demandées, ajoutées au trajet routier pur.
 2. **Essence estimée** — kilométrage × consommation × prix du litre,
-   deux champs modifiables (défaut 11 L/100km, 1,75 €/L — « on a pas de
+   deux champs modifiables (défaut 11 L/100km, 2,35 €/L — « on a pas de
    chiffre pour ce camion », donc une valeur de départ à corriger au
    besoin plutôt qu'une vraie consommation).
+
+   **Correctif du 13/10 :** le prix par défaut (1,75 €/L) datait, pas le
+   prix du jour — vérifié : le gazole tournait autour de 2,35 €/L début
+   octobre 2026. Valeur par défaut corrigée ; elle reste modifiable à la
+   main si le prix réel payé diffère.
 3. **Péages** — repris directement des vraies dépenses de ce camion
    (catégorie « Péage », ajoutée avec la case Dépenses) : saisis une
    seule fois, à la main (toujours aucune API gratuite trouvée), ils
