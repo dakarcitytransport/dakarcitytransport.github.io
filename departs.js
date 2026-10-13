@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.59';
+var DEP_VERSION = 'v2.20.61';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -12492,7 +12492,10 @@ window.depOuvrirPhotosRapide = function(collecteId, clientId, depot, france){
   var c = _depClientFacture({ collecteId: collecteId, clientId: clientId, depot: !!depot, france: !!france });
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   var titre = $('dep-photos-rapide-nom');
-  if(titre) titre.textContent = '📷 Photos — ' + (c.name || 'Client');
+  // v3.99.3 : un client France & Europe n'a pas de champ .name (nom/prénom
+  // séparés, affichés via _nomAffiche) — sans quoi le titre retombait
+  // toujours sur "Client".
+  if(titre) titre.textContent = '📷 Photos — ' + ((france ? _nomAffiche(c) : c.name) || 'Client');
   openModal('modal-dep-photos-rapide');
   _depChargerPhotosFiche(clientId, c, 'dep-photos-rapide-box', !!france);
 };
@@ -18407,8 +18410,19 @@ function _depNomCarteBrut(carte){
   return txt.trim();
 }
 
-function _depAjouterWhatsappCamion(k){
-  var trks = getTrucks(), tk = trks[k];
+// v3.99.2 — Cobey, 13/10/2026 : « le bouton whatsapp et copier (pour
+// prévenir de l'arrivée du chauffeur) et observation n'existe pas
+// également dans les camions de France Europe. » src ('collecte' par
+// défaut, ou 'france') choisit où lire le camion/les clients et quel
+// conteneur de cartes cibler (#camion-route ou #frc-route, même
+// structure .route-card/.route-details des deux côtés) — le reste
+// (message, numéro, copier) est déjà générique.
+function _depAjouterWhatsappCamion(k, src){
+  var estFr = (src === 'france');
+  var rFr = estFr ? (_frCollecteActive()||{}) : null;
+  var tk = estFr
+    ? _depDepenseTruck({ colId: rFr._id, camion: k, src: 'france' })
+    : getTrucks()[k];
   if(!tk || !(tk.clients||[]).length) return;
   var hours = tk.hours || {};
   var sorted = (tk.clients || []).slice().sort(function(a,b){
@@ -18418,17 +18432,22 @@ function _depAjouterWhatsappCamion(k){
     if(hb) return 1;
     return tk.clients.indexOf(a) - tk.clients.indexOf(b);
   });
-  var col = (window.collectes || []).filter(function(x){ return x && x.id === window.currentCollecteId; })[0];
-  var dateTxt = col ? (col.date || '') : '';
-  var clients = getClients() || {};
-  var cartes = document.querySelectorAll('#camion-route .route-card');
+  var dateTxt = '';
+  if(estFr){
+    dateTxt = rFr.dateLib || '';
+  } else {
+    var col = (window.collectes || []).filter(function(x){ return x && x.id === window.currentCollecteId; })[0];
+    dateTxt = col ? (col.date || '') : '';
+  }
+  var clients = estFr ? ((window.franceData||{}).clients||{}) : (getClients() || {});
+  var cartes = document.querySelectorAll((estFr ? '#frc-route' : '#camion-route') + ' .route-card');
   var cartesUtilisees = {};
   for(var i = 0; i < sorted.length; i++){
     var id = sorted[i];
     var c = clients[id];
     if(!c) continue;
     var carte = cartes[i];
-    var nomAttendu = (c.name || '').trim();
+    var nomAttendu = (estFr ? _nomAffiche(c) : (c.name || '')).trim();
     if(carte && nomAttendu && _depNomCarteBrut(carte) !== nomAttendu){
       // Décalage détecté — on cherche la bonne carte par son nom parmi
       // celles pas déjà attribuées, plutôt que de faire confiance à
@@ -18481,6 +18500,10 @@ function _depAjouterWhatsappCamion(k){
     det.insertBefore(ligne, det.firstChild);
   }
 }
+// v3.99.2 — departs.js s'exécute dans sa propre fermeture : sans ça,
+// dct-app.html (renderCamionFrance) ne peut pas l'appeler pour le cas
+// France & Europe.
+window._depAjouterWhatsappCamion = _depAjouterWhatsappCamion;
 
 /* ─────────────────────────────────────────────
    v1.21.0. CARTE CLIENT SIMPLIFIÉE (écran camion, avant collecte) — le
@@ -18680,8 +18703,14 @@ function _depAlerterArretsSansHeure(k){
   route.insertBefore(div, route.firstChild);
 }
 
-function _depAjouterObservationAvantCollecte(k){
-  var trks = getTrucks(), tk = trks[k];
+// v3.99.2 — même généralisation que _depAjouterWhatsappCamion, pour la
+// même demande de Cobey.
+function _depAjouterObservationAvantCollecte(k, src){
+  var estFr = (src === 'france');
+  var rFr = estFr ? (_frCollecteActive()||{}) : null;
+  var tk = estFr
+    ? _depDepenseTruck({ colId: rFr._id, camion: k, src: 'france' })
+    : getTrucks()[k];
   if(!tk || !tk.clients || !tk.clients.length) return;
   var hours = tk.hours || {};
   var sorted = tk.clients.slice().sort(function(a,b){
@@ -18691,10 +18720,11 @@ function _depAjouterObservationAvantCollecte(k){
     if(hb) return 1;
     return tk.clients.indexOf(a) - tk.clients.indexOf(b);
   });
-  var clients = getClients() || {};
+  var clients = estFr ? ((window.franceData||{}).clients||{}) : (getClients() || {});
+  var colIdPourObs = estFr ? rFr._id : (window.currentCollecteId || '');
   // La correspondance
   // carte↔client reste donc un simple index, comme ailleurs.
-  var cartes = document.querySelectorAll('#camion-route .route-card');
+  var cartes = document.querySelectorAll((estFr ? '#frc-route' : '#camion-route') + ' .route-card');
   for(var i = 0; i < sorted.length; i++){
     var carte = cartes[i];
     if(!carte) continue;
@@ -18719,15 +18749,27 @@ function _depAjouterObservationAvantCollecte(k){
       b.innerHTML = aUneObs ? '&#9888;&#65039; Observation &agrave; lire' : '&#128221; Observation';
       b.onclick = function(e){
         if(e) e.stopPropagation();
-        depOuvrirObservation(window.currentCollecteId || '', cid);
+        depOuvrirObservation(colIdPourObs, cid, estFr ? 'france' : 'collecte');
       };
       act.parentNode.insertBefore(b, act);
     })(sorted[i], c);
   }
 }
+window._depAjouterObservationAvantCollecte = _depAjouterObservationAvantCollecte;
 
-function _depAjouterBoutonsExtraCamionValide(k){
-  var trks = getTrucks(), tk = trks[k];
+// v3.99.3 — Cobey, 13/10/2026 : « quand on prend une photo, le
+// raccourci de la photo devrait apparaître sur chaque cadre du client,
+// pour avoir un aperçu rapide, ça ne s'affiche pas non plus. » Même
+// généralisation que WhatsApp/Observation : ce bouton « 📷 Photos »
+// (posé sur les cartes déjà ramassées, à côté d'Observation) n'existait
+// que côté Collecte. depOuvrirPhotosRapide(...) sait déjà lire une
+// fiche France (paramètre `france`) — il manquait juste l'appel ici.
+function _depAjouterBoutonsExtraCamionValide(k, src){
+  var estFr = (src === 'france');
+  var rFr = estFr ? (_frCollecteActive()||{}) : null;
+  var tk = estFr
+    ? _depDepenseTruck({ colId: rFr._id, camion: k, src: 'france' })
+    : getTrucks()[k];
   if(!tk) return;
   var validated = tk.validated || [];
   if(!validated.length) return;
@@ -18739,8 +18781,9 @@ function _depAjouterBoutonsExtraCamionValide(k){
     if(hb) return 1;
     return tk.clients.indexOf(a) - tk.clients.indexOf(b);
   });
-  var clients = getClients() || {};
-  var cartes = document.querySelectorAll('#camion-route .route-card.done');
+  var clients = estFr ? ((window.franceData||{}).clients||{}) : (getClients() || {});
+  var colIdPourObs = estFr ? rFr._id : (window.currentCollecteId || '');
+  var cartes = document.querySelectorAll((estFr ? '#frc-route' : '#camion-route') + ' .route-card.done');
   var idxCarte = 0;
   for(var i = 0; i < sorted.length; i++){
     if(validated.indexOf(sorted[i]) < 0) continue;
@@ -18759,7 +18802,7 @@ function _depAjouterBoutonsExtraCamionValide(k){
       bPhoto.style.cssText = 'flex:1;padding:8px;background:#F5F6FC;color:#1a237e;border:2px solid #1a237e;'
         + 'border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--font);';
       bPhoto.innerHTML = '&#128247; Photos';
-      bPhoto.onclick = function(e){ if(e) e.stopPropagation(); depOuvrirPhotosRapide(window.currentCollecteId || '', cid, false, false); };
+      bPhoto.onclick = function(e){ if(e) e.stopPropagation(); depOuvrirPhotosRapide(colIdPourObs, cid, false, estFr); };
 
       var aUneObs = _depObservationsListe(c).length > 0;
       var bObs = document.createElement('button');
@@ -18767,7 +18810,7 @@ function _depAjouterBoutonsExtraCamionValide(k){
       bObs.style.cssText = 'flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--font);'
         + (aUneObs ? 'background:#FFF3E0;color:#B45309;border:2px solid #E58A00;' : 'background:#F0F0F0;color:#555;border:2px solid #bbb;');
       bObs.innerHTML = aUneObs ? '&#9888;&#65039; Observation' : '&#128221; Observation';
-      bObs.onclick = function(e){ if(e) e.stopPropagation(); depOuvrirObservation(window.currentCollecteId || '', cid); };
+      bObs.onclick = function(e){ if(e) e.stopPropagation(); depOuvrirObservation(colIdPourObs, cid, estFr ? 'france' : 'collecte'); };
 
       ligne.appendChild(bPhoto);
       ligne.appendChild(bObs);
@@ -18775,6 +18818,7 @@ function _depAjouterBoutonsExtraCamionValide(k){
     })(sorted[i]);
   }
 }
+window._depAjouterBoutonsExtraCamionValide = _depAjouterBoutonsExtraCamionValide;
 
 // v1.21.2 : liste normalisée des observations d'un client — gère aussi la
 // migration silencieuse (lecture seule ici, l'écriture réelle n'a lieu
@@ -18798,12 +18842,16 @@ window._depObservationCtx = null;
 // (retour de Cobey du 06/09/2026 : "on voit plus le champ d'écriture que
 // l'observation"). Le champ de saisie a depuis déménagé dans sa propre
 // modale (modal-dep-observation-ajouter, voir depOuvrirAjoutObservation).
-window.depOuvrirObservation = function(collecteId, clientId){
-  var cls = (window.clientsParCollecte||{})[collecteId] || {};
-  var c = cls[clientId];
+// v3.99.2 : src ('collecte' par défaut, ou 'france') — même observation,
+// même modale, juste une autre source de clients (voir
+// _depAjouterObservationAvantCollecte).
+window.depOuvrirObservation = function(collecteId, clientId, src){
+  var estFr = (src === 'france');
+  var c = estFr ? ((window.franceData||{}).clients||{})[clientId]
+                : ((window.clientsParCollecte||{})[collecteId]||{})[clientId];
   if(!c){ toast('⚠️ Client introuvable.'); return; }
-  window._depObservationCtx = { collecteId: collecteId, clientId: clientId };
-  var titre = $('dep-observation-nom'); if(titre) titre.textContent = c.name || 'Client';
+  window._depObservationCtx = { collecteId: collecteId, clientId: clientId, src: src || 'collecte' };
+  var titre = $('dep-observation-nom'); if(titre) titre.textContent = (estFr ? _nomAffiche(c) : c.name) || 'Client';
   var liste = _depObservationsListe(c);
   var hist = $('dep-observation-historique');
   if(hist){
@@ -18835,14 +18883,15 @@ window.depOuvrirAjoutObservation = function(){
 window.depAnnulerAjoutObservation = function(){
   closeModal('modal-dep-observation-ajouter');
   var ctx = window._depObservationCtx;
-  if(ctx) window.depOuvrirObservation(ctx.collecteId, ctx.clientId);
+  if(ctx) window.depOuvrirObservation(ctx.collecteId, ctx.clientId, ctx.src);
 };
 
 window.depEnregistrerObservation = function(){
   var ctx = window._depObservationCtx;
   if(!ctx){ toast('⚠️ Client introuvable.'); return; }
-  var cls = (window.clientsParCollecte||{})[ctx.collecteId] || {};
-  var c = cls[ctx.clientId];
+  var estFr = (ctx.src === 'france');
+  var c = estFr ? ((window.franceData||{}).clients||{})[ctx.clientId]
+                : ((window.clientsParCollecte||{})[ctx.collecteId]||{})[ctx.clientId];
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   var champ = $('dep-observation-texte');
   var texte = (champ && champ.value || '').trim();
@@ -18854,13 +18903,20 @@ window.depEnregistrerObservation = function(){
   liste.push({ texte: texte, le: Date.now(), par: u.name || u.id || '' });
   c.observations = liste;
   c.observationCollecte = null; // migration terminée, on ne garde plus l'ancien champ
-  _depEcrireClient({ collecteId: ctx.collecteId, clientId: ctx.clientId }, { observations: liste, observationCollecte: null });
+  if(estFr){
+    _depEcrireFacture({ france: true, clientId: ctx.clientId }, { observations: liste, observationCollecte: null });
+  } else {
+    _depEcrireClient({ collecteId: ctx.collecteId, clientId: ctx.clientId }, { observations: liste, observationCollecte: null });
+  }
   try{ sauvegarder(); }catch(e){}
   closeModal('modal-dep-observation-ajouter');
   toast('✅ Observation ajoutée');
-  try{ if(typeof currentCamion !== 'undefined' && currentCamion) renderCamion(currentCamion); }catch(e){}
+  try{
+    if(estFr){ renderCamionFrance(); }
+    else if(typeof currentCamion !== 'undefined' && currentCamion) renderCamion(currentCamion);
+  }catch(e){}
   // Retour à l'historique, à jour avec la nouvelle entrée.
-  window.depOuvrirObservation(ctx.collecteId, ctx.clientId);
+  window.depOuvrirObservation(ctx.collecteId, ctx.clientId, ctx.src);
 };
 
 /* ─────────────────────────────────────────────

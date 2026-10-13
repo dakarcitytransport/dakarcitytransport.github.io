@@ -2410,6 +2410,26 @@ revenir une fiche ouverte depuis un container (Départ) ou le rapport
 financier sur le bon endroit, étendu au cas "ouverte depuis un camion".
 Ouverte depuis la liste Suivi, le retour reste inchangé (liste générale).
 
+**Suite, le 13/10 (v3.99.2-v3.99.3 / v2.20.60-v2.20.61) — trois autres
+boutons manquants sur le camion France & Europe.** Cobey : « le bouton
+whatsapp et copier (pour prévenir de l'arrivée du chauffeur) et
+observation n'existe pas également dans les camions de France Europe »,
+puis « quand on prend une photo, le raccourci de la photo devrait
+apparaître sur chaque cadre du client, pour avoir un aperçu rapide, ça
+ne s'affiche pas non plus. » Les trois existaient déjà côté Collecte
+(rappel WhatsApp + Copier avant la ramasse, bouton Observation, bouton
+📷 Photos sur une carte déjà ramassée), posés directement sur les cartes
+natives (`#camion-route`) — jamais branchés sur les cartes France & Europe
+(`#frc-route`), bien que la structure des cartes soit identique des deux
+côtés. Même généralisation que pour la case Dépenses : les fonctions qui
+posent ces boutons lisent maintenant soit la Collecte soit France & Europe
+selon leur source, et les écrans de lecture (historique des observations,
+grille de photos) qu'ils ouvrent savaient déjà lire une fiche France
+(construits pour ça dès l'origine, juste jamais atteints depuis ce camion).
+Au passage, le titre de la fenêtre Photos affichait toujours « Client »
+pour une fiche France (champ `.name` qui n'existe que côté Collecte) —
+corrigé en même temps.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.
