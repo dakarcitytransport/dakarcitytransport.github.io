@@ -2355,6 +2355,27 @@ sur la « Carte des colis ») : la légende en bas de cette carte le dit
 déjà — gris = en attente, **bleu foncé = planifié** (affecté à un
 camion, pas encore ramassé), vert = ramassé.
 
+**Suite, le 13/10 (v3.98.9) — deux retouches sur ces mêmes cartes.**
+
+1. « Il manque le point de départ, Emerainville, et le point d'arrivée
+   à Mitry-Mory, on a besoin de tout le visuel, avec son cheminement. »
+   La carte du camion (ajoutée juste au-dessus) ne traçait le trajet
+   qu'entre les clients. Elle pose maintenant les deux mêmes repères
+   que la carte d'un camion Collecte (🚛 départ, 🏁 arrivée), avec les
+   mêmes bornes que celles déjà utilisées pour le kilométrage
+   (Emerainville pour un camion interne, la ville du chauffeur pour un
+   externe qui l'a renseignée, Mitry-Mory à l'arrivée dans tous les cas)
+   — le trajet complet, pas seulement entre les clients.
+
+2. « Les clients dont le ramassage a été effectué, il faut les retirer
+   de la carte principale, pour que lors de la prochaine tournée on ne
+   se trompe pas. » Un client déjà ramassé (vert) restait affiché sur
+   la « Carte des colis » — simplement vert au lieu de bleu. Il
+   disparaît maintenant de cette carte (il reste visible partout
+   ailleurs — fiche, listes, suivi financier — seule la carte des colis
+   à venir ne le montre plus), pour ne pas le confondre avec un colis
+   qui attend encore d'être pris lors de la prochaine tournée.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.

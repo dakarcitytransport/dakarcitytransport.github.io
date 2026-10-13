@@ -1772,7 +1772,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.98.8';
+var APP_VERSION = 'v3.98.9';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3872,9 +3872,13 @@ function _frEstRamasse(c){ return c.statut==='ramasse' || c.lieu==='mitry'; }
 // v3.68.0 : un seul écran, les clients en cours. Un colis facturé est
 // parti dans son container : on le retrouve dans le container, plus dans
 // une liste de suivi à part.
+// v3.98.9 — Cobey, 13/10/2026 : « les clients dont le ramassage a été
+// effectué, il faut les retirer de la carte principale, pour que lors
+// de la prochaine tournée on ne se trompe pas » — un client déjà
+// ramassé n'a plus rien à faire sur la carte des colis à venir.
 function _frDansFiltre(c){
 
-  return c.statut!=='parti';
+  return c.statut!=='parti' && !_frEstRamasse(c);
 }
 function _joursDepuis(ts){
   if(!ts) return 0;
@@ -12797,12 +12801,10 @@ function _construireCarteFrance(){
       }
       if(faits>=liste.length){
         if(st) st.textContent=points.length+' colis sur '+liste.length+' localisé'+(points.length>1?'s':'');
-        if(_carteFrMode==='tournee' || _carteFrMode==='camion'){
+        if(_carteFrMode==='tournee'){
           var ordre=liste.map(function(x){ return _carteFrCoords[x.c._id]; }).filter(Boolean);
           if(ordre.length>1){
-            var _cl = (_carteFrMode==='tournee')
-              ? getPc(((franceData.tournees||{})[_carteFrTid]||{}).posteId).bar
-              : ((((_frCollecteActive()||{}).trucks||{})[_carteFrTid]||{}).color || '#1a237e');
+            var _cl=getPc(((franceData.tournees||{})[_carteFrTid]||{}).posteId).bar;
             try{ L.polyline(ordre,{color:_cl,weight:3,opacity:.8}).addTo(_carteFr); }catch(e){}
             _effacerFleches();
             _poserFleches(ordre, _cl);
@@ -12812,11 +12814,63 @@ function _construireCarteFrance(){
           try{ _carteFr.fitBounds(L.latLngBounds(points).pad(0.2)); }catch(e){}
         }
         setTimeout(function(){ try{ _carteFr.invalidateSize(); }catch(e){} }, 100);
+        // v3.98.9 — Cobey, 13/10/2026 : « il manque le point de départ,
+        // Emerainville, et le point d'arrivée à Mitry-Mory, on a besoin
+        // de tout le visuel, avec son cheminement » — même traitement
+        // que la carte d'un camion Collecte (_depCarteBornes/_depCarteTracer),
+        // réutilisant les mêmes bornes (_frAjouterBornesTrajet, déjà
+        // utilisées pour le kilométrage) pour raconter le même trajet.
+        if(_carteFrMode==='camion'){
+          _carteCamionFrBornes(liste);
+        }
       }
     });
   });
 }
 
+// v3.98.9 — le départ (dépôt pour un camion interne, ville communiquée
+// par le chauffeur pour un externe) et l'arrivée (Mitry-Mory), posés sur
+// la carte du camion comme sur celle d'un camion Collecte (mêmes bornes,
+// voir _frAjouterBornesTrajet déjà utilisées pour le kilométrage —
+// même géocodage, pas de nouvelle requête). Asynchrone : si la carte a
+// déjà tracé le trajet client à client, on le refait avec les bornes.
+function _carteCamionFrBornes(liste){
+  var r=_frCollecteActive();
+  var tk=r && (r.trucks||{})[_carteFrTid];
+  var _cl=(tk&&tk.color)||'#1a237e';
+  var coordsPts=liste.map(function(x){ return _carteFrCoords[x.c._id]; }).filter(Boolean)
+    .map(function(ll){ return {lat:ll[0], lng:ll[1]}; });
+  _frAjouterBornesTrajet(tk||{}, coordsPts, function(tout, libelleDepart, avecArrivee){
+    if(!_carteFr) return;
+    var pts=tout.map(function(pt){ return [pt.lat, pt.lng]; });
+    if(pts.length>1){
+      try{ L.polyline(pts,{color:_cl,weight:3,opacity:.8}).addTo(_carteFr); }catch(e){}
+      _effacerFleches();
+      _poserFleches(pts, _cl);
+    }
+    if(libelleDepart){
+      _poserBorneFr(pts[0], '&#128666;', libelleDepart.toUpperCase(),
+        '#00c853','#003d00','#00e676','rgba(0,200,83,.5)');
+    }
+    if(avecArrivee){
+      _poserBorneFr(pts[pts.length-1], '&#127937;', 'MITRY-MORY',
+        '#d50000','#fff','#ff5252','rgba(213,0,0,.5)');
+    }
+    if(pts.length){
+      try{ _carteFr.fitBounds(L.latLngBounds(pts).pad(0.2)); }catch(e){}
+    }
+  });
+}
+function _poserBorneFr(ll, emojiHtml, texte, bg, txtColor, bordure, ombre){
+  if(!ll) return;
+  try{
+    var html='<div style="background:'+bg+';color:'+txtColor+';border-radius:10px;padding:5px 12px;'
+      +'font-size:12px;font-weight:800;border:3px solid '+bordure+';box-shadow:0 2px 10px '+ombre+';'
+      +'white-space:nowrap;letter-spacing:.5px;'+(txtColor==='#fff'?'text-shadow:0 0 4px #000,0 0 4px #000;':'')
+      +'">'+emojiHtml+' '+texte+'</div>';
+    L.marker(ll,{icon:L.divIcon({className:'',html:html,iconAnchor:[35,16]}), zIndexOffset:1000}).addTo(_carteFr);
+  }catch(e){}
+}
 
 // ═══════════ ACTIVITÉ DU RAMASSAGE — v3.14.0 ═══════════
 // On se branche sur le fil existant, avec la bonne signature :
