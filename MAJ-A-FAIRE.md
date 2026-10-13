@@ -3603,3 +3603,19 @@ Côté Collecte, un client déjà validé a toujours eu un petit bouton
 dit "← Camion" et ramène directement sur l'écran de ce camion — jamais
 porté côté France & Europe (même angle mort que WhatsApp/Observation/
 Photos, corrigés le 13/10). Généralisé aux deux parcours.
+
+---
+
+### Heure de départ et péage du comparatif : perdus en rechargeant l'appli
+**Fait le 14/10 (v3.99.15).** Cobey : « dans trajet et coût, quand
+j'entre une heure de départ et le montant de péage, ça ne se
+sauvegarde pas, ça disparaît quand on quitte. »
+
+Les deux ne vivaient que dans la mémoire du navigateur (l'heure de
+départ dans une variable JS, le péage nulle part du tout) — perdus au
+moindre vrai rechargement de l'appli, exactement ce qui venait d'être
+demandé pour corriger le problème d'affichage en cache (fermer et
+rouvrir l'appli). Posés maintenant sur le camion lui-même, comme la
+ville de départ déjà sauvegardée juste au-dessus : survivent
+désormais à un vrai rechargement, pas seulement à une navigation dans
+l'appli.
