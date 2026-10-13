@@ -3557,3 +3557,10 @@ global » d'une collecte entière (Sénégal et France & Europe). Le calcul
 de « Restant à ramasser » continue de tourner pareil en interne (total
 des clients assignés moins facturé) — seule la ligne d'affichage
 disparaît.
+
+**Suite, le 14/10 (v3.99.12) — « Restant à ramasser » aussi retiré.**
+Cobey : « il sert plus à rien du coup, cette ligne est restée. » Une
+fois « Total prévu » parti, cette ligne n'avait plus de repère pour se
+situer — retirée aux mêmes 4 endroits. Seules ces deux lignes
+d'affichage disparaissent ; les calculs internes (dont la barre de
+progression « % facturé ») restent inchangés.
