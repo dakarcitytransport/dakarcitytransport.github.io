@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.63';
+var DEP_VERSION = 'v2.20.64';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -17232,6 +17232,40 @@ function greffer(){
         var c = (((window.franceData||{}).clients||{})[window.franceClientId]) || {};
         if(c.statut !== 'attente' && typeof estDirection === 'function' && estDirection()){
           if(!confirm('⚠️ Ce colis est déjà engagé (' + (c.statut||'') + ') — le supprimer effacera aussi son historique de paiement/suivi. Confirmer la suppression de la fiche de ' + (c.name || c.nom || 'ce client') + ' ?')) return;
+          // v2.20.64 — la fiche engagée est forcément déjà dans un camion
+          // (c'est justement ce que "déjà engagé" veut dire) : sans ce
+          // nettoyage, son id restait dans tk.clients/tk.hours/r.assigned
+          // après sa suppression de france/clients. Un id "fantôme" dans
+          // tk.clients ne produit plus de carte (la fiche n'existe plus),
+          // mais décale quand même l'index de tous les clients suivants —
+          // le "📏 Ordre de passage" recommençait alors à 2 au lieu de 1,
+          // et les boutons WhatsApp/Observation (qui recollent carte↔client
+          // par position) atterrissaient sur le mauvais client ou nulle
+          // part (retour de Cobey du 14/10/2026, capture à l'appui).
+          try{
+            var colId = c.collecteId;
+            var rCol = colId ? ((window.franceData||{}).collectes||{})[colId] : null;
+            if(rCol){
+              rCol._id = colId;
+              var camionId = c.camionId || (rCol.assigned||{})[window.franceClientId];
+              var tkCol = camionId ? (rCol.trucks||{})[camionId] : null;
+              if(tkCol){
+                ['clients','validated','refused'].forEach(function(f){
+                  if(Array.isArray(tkCol[f])){
+                    var ix = tkCol[f].indexOf(window.franceClientId);
+                    if(ix >= 0) tkCol[f].splice(ix, 1);
+                  }
+                });
+                if(tkCol.hours) delete tkCol.hours[window.franceClientId];
+              }
+              if(rCol.assigned) delete rCol.assigned[window.franceClientId];
+              if(Array.isArray(rCol.clients)){
+                var ic = rCol.clients.indexOf(window.franceClientId);
+                if(ic >= 0) rCol.clients.splice(ic, 1);
+              }
+              if(typeof window._frSauverCollecte === 'function') window._frSauverCollecte(rCol);
+            }
+          }catch(eClean){ console.error('departs: nettoyage camion après suppression forcée (France)', eClean); }
           try{ _versCarnet(c); }catch(e){}
           try{ db.ref('france_photos/'+window.franceClientId).remove(); }catch(e){}
           db.ref('france/clients/'+window.franceClientId).remove().then(function(){

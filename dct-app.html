@@ -1863,7 +1863,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.12';
+var APP_VERSION = 'v3.99.13';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6476,6 +6476,29 @@ function enregistrerVilleDepartFrance(){
 function renderCamionFrance(){
   var r=_frCollecteActive(); if(!r) return;
   var tk=(r.trucks||{})[_frCamion]; if(!tk) return;
+  // v3.99.13 — une fiche supprimée (forcé, direction) alors qu'elle était
+  // déjà dans un camion ne nettoyait pas tk.clients/tk.hours : l'id
+  // fantôme restait, décalait le numéro "Ordre de passage" de tous les
+  // clients suivants (2 au lieu de 1...) et faisait atterrir les boutons
+  // WhatsApp/Observation sur le mauvais client (retour de Cobey du
+  // 14/10/2026). Corrigé à la source (voir supprimerClientFrance,
+  // departs.js) pour toute nouvelle suppression — ceci guérit les camions
+  // déjà abîmés par le bug, en retirant ici tout id sans fiche derrière.
+  if(Array.isArray(tk.clients) && tk.clients.length){
+    var clientsExistants=franceData.clients||{};
+    var fantomes=tk.clients.filter(function(id){ return !clientsExistants[id]; });
+    if(fantomes.length){
+      tk.clients=tk.clients.filter(function(id){ return !!clientsExistants[id]; });
+      fantomes.forEach(function(id){
+        if(tk.hours) delete tk.hours[id];
+        ['validated','refused'].forEach(function(f){
+          if(Array.isArray(tk[f])){ var ix=tk[f].indexOf(id); if(ix>=0) tk[f].splice(ix,1); }
+        });
+        if(r.assigned) delete r.assigned[id];
+      });
+      try{ _frSauverCollecte(r); }catch(e){}
+    }
+  }
   var tc=_frTc(tk);
   // v3.98.0 — le champ "ville de départ" n'a de sens que pour un chauffeur
   // externe (un camion interne part toujours d'Emerainville, fixe). Ne pas

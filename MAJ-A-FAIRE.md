@@ -3564,3 +3564,27 @@ fois « Total prévu » parti, cette ligne n'avait plus de repère pour se
 situer — retirée aux mêmes 4 endroits. Seules ces deux lignes
 d'affichage disparaissent ; les calculs internes (dont la barre de
 progression « % facturé ») restent inchangés.
+
+---
+
+### Un client supprimé de force décalait la numérotation du camion
+**Fait le 14/10 (v3.99.13 / v2.20.64).** Cobey, écran d'un camion
+France & Europe : « un client a été retiré, mais le premier client de
+la liste reste au numéro 2, bizarre » puis « le client 3 n'a pas de
+bouton WhatsApp et le 2 n'a pas le bouton observation. »
+
+Cause réelle : la suppression forcée d'une fiche France & Europe déjà
+engagée dans un camion (réservée à la direction, pour nettoyer une
+fiche de test allée jusqu'au bout — voir plus haut, "suppression d'une
+fiche") effaçait bien la fiche, mais ne retirait pas son id du camion
+(`tk.clients`/`tk.hours`/`tk.validated`/`tk.refused`). Ce client
+"fantôme" ne produisait plus de carte à l'écran (sa fiche n'existe
+plus), mais décalait quand même le numéro de tous les clients suivants
+dans l'« Ordre de passage », et désalignait les boutons WhatsApp/
+Observation (qui recollent chaque bouton à la bonne carte par
+position).
+
+Corrigé à la source : la suppression forcée nettoie maintenant aussi
+le camion. Et pour les camions déjà abîmés par l'ancien bug, l'écran
+d'un camion France & Europe se répare tout seul à l'ouverture (retire
+discrètement tout id sans fiche derrière) — rien à refaire à la main.
