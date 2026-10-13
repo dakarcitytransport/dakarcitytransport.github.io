@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.58';
+var DEP_VERSION = 'v2.20.59';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -739,6 +739,13 @@ var _depFactureCtx = null;      // { collecteId, clientId, depot, france } — f
 // posé juste avant d'appeler la fiche, consommé une seule fois (voir
 // patch de window.ouvrirFicheFrance dans greffer()).
 var _depFicheFranceRetour = null;
+// v3.99.1 — departs.js s'exécute dans sa propre fermeture : dct-app.html
+// (_frOuvrirFiche) ne peut pas écrire _depFicheFranceRetour directement,
+// seul ce pont posé sur window le peut. type=null efface le contexte
+// spécial (comportement natif, retour sur la liste générale).
+window._depDefinirRetourFicheFrance = function(type, id){
+  _depFicheFranceRetour = type ? { type: type, id: id } : null;
+};
 // v1.19.79 : passe-partout (code de maintenance) utilisé pour se connecter
 // sur un compte collaborateur — le journal d'activité doit préciser que
 // c'est l'admin qui agit "sous" ce compte, pas le collaborateur lui-même
@@ -17172,6 +17179,17 @@ function greffer(){
             // financier — on y retourne, pas dans le carré Départ.
             var depId3 = retour.id;
             btn.onclick = function(){ depRapfinContainer(depId3); };
+          } else if(retour && retour.type === 'camion'){
+            // v3.99.1 — Cobey, 13/10/2026 : « une fois le client validé
+            // avec sa facture, le bouton retour à la tournée fait
+            // revenir dans l'interface avec tout les camions, il
+            // devrait faire revenir dans la tournée du camion lui-même,
+            // pour qu'on puisse enchaîner avec le prochain client
+            // rapidement. » Ouverte depuis la tournée d'un camion
+            // France & Europe (voir _frOuvrirFiche, dct-app.html) : on y
+            // retourne, pas sur la liste générale.
+            var camionId = retour.id;
+            btn.onclick = function(){ try{ ouvrirCamionFrance(camionId); }catch(e){ goTo('s-france'); } };
           } else {
             btn.onclick = function(){ goTo('s-france'); };
           }

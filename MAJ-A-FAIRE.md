@@ -2398,6 +2398,18 @@ Collecte. Nouvelle catégorie commune aux deux : **Péage**. Le temps de
 trajet + l'essence estimée + le comparatif face au ramassage (l'outil «
 à part » demandé) restent à faire.
 
+**Suite, le 13/10 (v3.99.1 / v2.20.59) — le bouton retour de la fiche
+client ramenait sur toute la liste, pas sur le camion.** Cobey : « une
+fois le client validé avec sa facture, le bouton retour à la tournée
+fait revenir dans l'interface avec tout les camions, il devrait faire
+revenir dans la tournée du camion lui-même, pour qu'on puisse enchaîner
+avec le prochain client rapidement. » La fiche client, ouverte depuis la
+tournée d'un camion, ramenait toujours sur la liste générale France &
+Europe au lieu de ce camion précis — le même mécanisme qui fait déjà
+revenir une fiche ouverte depuis un container (Départ) ou le rapport
+financier sur le bon endroit, étendu au cas "ouverte depuis un camion".
+Ouverte depuis la liste Suivi, le retour reste inchangé (liste générale).
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.

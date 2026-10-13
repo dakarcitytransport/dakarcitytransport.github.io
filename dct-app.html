@@ -1787,7 +1787,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.0';
+var APP_VERSION = 'v3.99.1';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4519,7 +4519,7 @@ function _frCarte(c){
   var sel=_selectionPossible();
   var coche=(dannySel.indexOf(c._id)>=0);
   // La case coche, le reste de la carte ouvre la fiche.
-  var act = 'ouvrirFicheFrance(\''+c._id+'\')';
+  var act = '_frOuvrirFiche(\''+c._id+'\',false)';
   var anc=_anciennete(c);
   var cadre = sel&&coche
     ? 'border:1.5px solid #009A44;background:#f2fbf5;'
@@ -6283,7 +6283,7 @@ function renderCamionFrance(){
     h+='<div class="route-card'+(isVal?' done':isRef?' refused':'')+'">'
       + '<div class="route-top">'
       +   '<div class="route-num" style="background:'+(isVal?'#006b2d':isRef?'#c0392b':tc.bar)+';">'+(idx+1)+'</div>'
-      +   '<div style="flex:1;" onclick="ouvrirFicheFrance(\''+id+'\')">'
+      +   '<div style="flex:1;" onclick="_frOuvrirFiche(\''+id+'\',true)">'
       +     '<div class="route-client-name" style="color:'+tc.color+';">'+_nomAffiche(c)+'</div>'
       +     '<div style="font-size:11px;color:#555;margin-top:2px;">Tap pour la fiche</div>'
       +   '</div>'
@@ -6725,6 +6725,23 @@ function _enregistrerModifFrance(z){
 }
 
 // ── Fiche client ──
+// v3.99.1 — Cobey, 13/10/2026 : « une fois le client validé avec sa
+// facture, le bouton retour à la tournée fait revenir dans l'interface
+// avec tout les camions, il devrait faire revenir dans la tournée du
+// camion lui-même, pour qu'on puisse enchaîner avec le prochain client
+// rapidement. » ouvrirFicheFrance() elle-même est réécrite par
+// departs.js (elle ouvre l'écran de lecture partagé s-dep-fiche-lecture,
+// pas s-france-client — voir son patch, "ouvrirFicheFrance est donc
+// réécrit pour ouvrir l'écran de lecture PARTAGÉ") ; ce wrapper fixe
+// juste la cible du bouton Retour AVANT de l'appeler, via le même
+// mécanisme que Départ/Carré/Rapport financier (_depFicheFranceRetour,
+// departs.js — voir window._depDefinirRetourFicheFrance).
+function _frOuvrirFiche(id, depuisCamion){
+  if(typeof window._depDefinirRetourFicheFrance === 'function'){
+    window._depDefinirRetourFicheFrance(depuisCamion ? 'camion' : null, depuisCamion ? _frCamion : null);
+  }
+  ouvrirFicheFrance(id);
+}
 function ouvrirFicheFrance(id){
   franceClientId=id;
   _renderFicheFrance();
