@@ -452,7 +452,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       </div>
       <div style="background:#F9F9F7;border-radius:10px;padding:11px;border:1.5px solid var(--border);">
         <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:9px;">&#128176; Suivi financier</div>
-        <div class="finance-row"><span class="finance-label">Total pr&eacute;vu</span><span class="finance-val" id="frc-prevu">0 &euro;</span></div>
         <div class="finance-row"><span class="finance-label">&#128203; Factur&eacute;</span><span class="finance-val" id="frc-collecte" style="color:#1a237e;">0 &euro;</span></div>
         <div class="finance-row" style="margin-bottom:8px;"><span class="finance-label">&#8987; Restant &agrave; ramasser</span><span class="finance-val" id="frc-restant" style="color:#b45309;">0 &euro;</span></div>
         <div class="finance-bar-bg"><div id="frc-fin-bar" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#009A44,#00c853);transition:width .4s;"></div></div>
@@ -1183,7 +1182,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <!-- Barre financière (euros) -->
       <div style="background:#F9F9F7;border-radius:10px;padding:11px;border:1.5px solid var(--border);">
         <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:9px;">💰 Suivi financier</div>
-        <div class="finance-row"><span class="finance-label">Total prévu</span><span class="finance-val" id="c-prevu">0 €</span></div>
         <div class="finance-row"><span class="finance-label">📋 Facturé</span><span class="finance-val" id="c-collected" style="color:#1a237e;">0 €</span></div>
         <div class="finance-row" style="margin-bottom:8px;"><span class="finance-label">⏳ Restant à ramasser</span><span class="finance-val" id="c-remaining" style="color:#b45309;">0 €</span></div>
         <div class="finance-bar-bg"><div id="c-fin-bar" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#009A44,#00c853);transition:width 0.4s;"></div></div>
@@ -1867,7 +1865,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.10';
+var APP_VERSION = 'v3.99.11';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5712,7 +5710,6 @@ function _frDispatchDetail(r){
     var collG=cles.reduce(function(s,k){ return s+_frCollecteCamion(trks[k]); },0);
     var pctG=totalG>0?Math.round(collG/totalG*100):0;
     h+='<div class="finance-global"><div class="finance-title">💰 Suivi financier global</div>'
-      +'<div class="finance-row"><span class="finance-label">Total prévu</span><span class="finance-val">'+totalG+' €</span></div>'
       +'<div class="finance-row"><span class="finance-label">📋 Facturé</span><span class="finance-val" style="color:#1a237e;">'+collG+' €</span></div>'
       +'<div class="finance-row"><span class="finance-label">⏳ Restant à ramasser</span><span class="finance-val" style="color:#b45309;">'+(totalG-collG)+' €</span></div>'
       +'<div class="finance-bar-bg"><div class="finance-bar" style="width:'+pctG+'%;"></div></div>'
@@ -8560,7 +8557,6 @@ function renderDispatchTab(){
   var rem=nb-aff;
   var fg=document.createElement('div');fg.className='finance-global';
   fg.innerHTML='<div class="finance-title">💰 Suivi financier global</div>'
-    +'<div class="finance-row"><span class="finance-label">Total prévu</span><span class="finance-val">'+totalG+' €</span></div>'
     +'<div class="finance-row"><span class="finance-label">📋 Facturé</span><span class="finance-val" style="color:#1a237e;">'+collG+' €</span></div>'
     +'<div class="finance-row"><span class="finance-label">⏳ Restant à ramasser</span><span class="finance-val" style="color:#b45309;">'+(totalG-collG)+' €</span></div>'
     +'<div class="finance-bar-bg"><div class="finance-bar" style="width:'+pctG+'%;"></div></div>'

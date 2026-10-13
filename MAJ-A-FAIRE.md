@@ -3543,3 +3543,17 @@ ailleurs.
 **?** Sur quoi porte la comparaison en priorité — le chiffre d'affaires,
 le bénéfice, le nombre de clients ? À préciser avec Cobey avant de
 dessiner les graphiques : c'est ce qui décide de ce qu'on met en avant.
+
+---
+
+### ~~« Total prévu » retiré de la carte « Suivi financier »~~
+**Fait le 14/10 (v3.99.11).** Cobey : « enlève le "total prévu" car ce
+qui importe c'est les total facturé, c'est ce prix qu'on facture au
+client ! » Cette ligne comptait tous les clients assignés au camion,
+pas seulement ceux déjà validés — donc un montant qui ne correspond à
+aucune vraie facture. Retirée aux 4 endroits où la carte existe : écran
+d'un camion (Collecte et France & Europe) et bandeau « Suivi financier
+global » d'une collecte entière (Sénégal et France & Europe). Le calcul
+de « Restant à ramasser » continue de tourner pareil en interne (total
+des clients assignés moins facturé) — seule la ligne d'affichage
+disparaît.
