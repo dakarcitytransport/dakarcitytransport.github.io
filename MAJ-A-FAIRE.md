@@ -2460,6 +2460,16 @@ en euros. Volontairement séparée de la case Dépenses (données réelles,
 rapport financier) — recalcule à la volée si on change la consommation
 ou le prix du litre, sans relancer le calcul d'itinéraire.
 
+**Correctif du 14/10 (v3.99.6) — le ramassage affichait 0 € tant que
+la tournée n'avait pas commencé.** Cobey, sur une tournée tout juste
+créée, aucun client encore validé : « où est le prix total des prix de
+ramassage du camion ? » « Ramassage de ce camion » lisait le montant
+déjà COLLECTÉ (les clients validés uniquement — 0 € en début de
+tournée), alors que le comparatif veut savoir si toute la tournée
+PRÉVUE est rentable, pas seulement ce qui est déjà fait. Lit maintenant
+la valeur totale de tous les clients affectés à ce camion, qu'ils
+soient déjà ramassés ou non.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.

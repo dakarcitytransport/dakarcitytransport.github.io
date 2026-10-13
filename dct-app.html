@@ -1822,7 +1822,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.5';
+var APP_VERSION = 'v3.99.6';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6292,7 +6292,12 @@ function _frMajComparatifCouts(){
   var essence=Math.round(est.km * conso/100 * prixLitre * 100)/100;
   var peage=(typeof window._depMontantParType==='function') ? window._depMontantParType(r._id, _frCamion, 'peage') : 0;
   var totalCouts=Math.round((essence+peage)*100)/100;
-  var ramassage=_frCollecteCamion(tk);
+  // v3.99.6 — Cobey, 14/10/2026 : « où est le prix total des prix de
+  // ramassage du camion ? » _frCollecteCamion(tk) ne compte que les
+  // clients DÉJÀ validés (0 € tant que la tournée n'a pas commencé) —
+  // le comparatif veut la valeur de TOUT ce qui est prévu sur ce
+  // camion, pas seulement ce qui est déjà fait.
+  var ramassage=_frTotalCamion(tk);
   var marge=Math.round((ramassage-totalCouts)*100)/100;
 
   boxDetail.innerHTML=
