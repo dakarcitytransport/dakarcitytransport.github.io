@@ -2490,6 +2490,27 @@ dans les vraies Dépenses — désormais un champ de saisie libre, propre
 au comparatif, sans aucun lien avec la dépense réelle : ajouter un
 péage dans les Dépenses ne change plus le comparatif, et inversement.
 
+**Suite, le 14/10 (v3.99.9) — l'heure d'arrivée estimée, et l'écran du
+camion allégé.** Deux demandes dans le même message :
+
+1. « Je voulais aussi mettre le temps de trajet, avec la moyenne de 20
+   min chez le client, et pouvoir choisir une heure de départ, comme ça
+   on a une estimation d'arrivée au dépôt à Mitry. » Un champ « Heure de
+   départ » sous la durée estimée : l'appli calcule automatiquement
+   « 🏁 Arrivée estimée au dépôt (Mitry-Mory) : HH h MM » à partir de
+   l'heure saisie + la durée déjà calculée (trajet + 20 min/client).
+   Remise à zéro en changeant de camion, comme le reste de l'estimation.
+
+2. « Les clients sont tout en bas [...] ça devient trop chargé [...]
+   faudra sinon faire des sous-interfaces ? » Kilométrage + heure de
+   départ/arrivée + Comparatif coûts/ramassage déménagent sur un écran à
+   part, ouvert par une case résumé compacte (« 📊 Trajet & coûts »,
+   km/durée/arrivée + le verdict rentable ou non) — même principe que la
+   case Dépenses, déjà construite sur ce modèle. L'écran principal du
+   camion ne garde que l'essentiel pour la tournée en cours : le résumé
+   financier, les Dépenses (laissées en place, non demandées à
+   déménager) et la liste des clients.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.

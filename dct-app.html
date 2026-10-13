@@ -473,6 +473,50 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       </div>
       <div id="frc-ville-depart-note" style="font-size:10.5px;color:var(--text3);margin-top:7px;line-height:1.4;">Communiqu&eacute;e par le chauffeur — tant qu'elle n'est pas renseign&eacute;e, aucun point de d&eacute;part n'est compt&eacute; dans le kilom&eacute;trage.</div>
     </div>
+    <!-- v3.99.9 — Cobey, 14/10/2026 : « les clients sont tout en bas [...]
+         ça devient trop chargé » — Kilométrage + Comparatif (gros blocs
+         de saisie) déménagent dans une sous-interface dédiée
+         (s-fr-camion-stats), sur le même principe que les Dépenses
+         (case résumé + bouton). L'écran principal ne garde que
+         l'essentiel pour la tournée en cours : le résumé financier et
+         la liste des clients. -->
+    <div style="background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;cursor:pointer;" onclick="frOuvrirStatsCamion()">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;font-weight:800;color:var(--text);">&#128202; Trajet &amp; co&ucirc;ts</span>
+        <span style="color:#1a237e;font-size:12px;font-weight:700;">Voir le d&eacute;tail &rsaquo;</span>
+      </div>
+      <div id="frc-stats-resume" style="font-size:12px;color:var(--text3);margin-top:7px;line-height:1.6;"></div>
+    </div>
+    <!-- v3.99.0 — Cobey, 13/10/2026 : « la case des d&eacute;penses doit
+         &ecirc;tre identique au parcours Collecte, car &ccedil;a sera
+         des d&eacute;penses r&eacute;elles, pour le rapport financier. »
+         M&ecirc;mes cat&eacute;gories (carburant, p&eacute;age...), m&ecirc;me
+         stockage, m&ecirc;me &eacute;cran (s-dep-depenses, departs.js) —
+         seul frOuvrirDepensesCamion() lui indique le camion France &amp;
+         Europe &agrave; ouvrir. -->
+    <div style="background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:12px;font-weight:800;color:var(--text);">&#128176; D&eacute;penses du camion</span>
+        <span id="frc-dep-val" style="font-size:16px;font-weight:800;color:#B3261E;">&mdash;</span>
+      </div>
+      <div id="frc-dep-net" style="font-size:10.5px;color:var(--text3);margin-bottom:10px;line-height:1.4;"></div>
+      <button class="btn" style="margin:0;background:#FFF3E0;color:#8A5200;border:2px solid #E58A00;" onclick="frOuvrirDepensesCamion()">&#128176; Ajouter / voir les d&eacute;penses</button>
+    </div>
+    <div class="slabel">Ordre de passage</div>
+    <div id="frc-route"></div>
+  </div>
+</div>
+
+<!-- v3.99.9 — Kilométrage + heure de départ/arrivée + Comparatif
+     coûts/ramassage, sortis de l'écran du camion (voir le commentaire
+     au-dessus de la case résumé « 📊 Trajet & coûts » dans s-fr-camion). -->
+<div class="screen" id="s-fr-camion-stats">
+  <div class="header">
+    <button class="btn-back" onclick="frFermerStatsCamion()">&larr; Camion</button>
+    <div class="h-title" style="font-size:14px;">&#128202; Trajet &amp; co&ucirc;ts</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="content">
     <!-- v3.97.0 — Cobey, 12/10/2026 : savoir le kilom&eacute;trage de
          chaque camion, pour estimer si une tourn&eacute;e amortit le
          carburant/p&eacute;age. Estim&eacute; par itin&eacute;raire
@@ -493,22 +537,33 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <div id="frc-duree-val" style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:10px;"></div>
       <button class="btn" id="frc-km-btn" style="margin:0;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" onclick="estimerKmCamionFrance()">&#128207; Estimer le kilom&eacute;trage</button>
       <div id="frc-km-note" style="font-size:10.5px;color:var(--text3);margin-top:7px;line-height:1.4;"></div>
+      <!-- v3.99.9 — Cobey, 14/10/2026 : « je voulais aussi mettre le
+           temps de trajet, avec la moyenne de 20 min chez le client, et
+           pouvoir choisir une heure de d&eacute;part, comme &ccedil;a on
+           a une estimation d'arriv&eacute;e au d&eacute;p&ocirc;t &agrave;
+           Mitry. » -->
+      <div style="border-top:1.5px dashed var(--border);margin-top:10px;padding-top:10px;">
+        <label style="font-size:10.5px;color:var(--text3);font-weight:700;display:block;margin-bottom:3px;">Heure de d&eacute;part</label>
+        <input class="fi" id="frc-heure-depart" type="time" style="margin:0;padding:8px;font-size:13px;max-width:140px;" oninput="_frMajHeureArrivee()">
+        <div id="frc-arrivee-val" style="font-size:12px;color:#1a237e;font-weight:700;margin-top:7px;"></div>
+      </div>
     </div>
     <!-- v3.99.4 — Cobey, 13/10/2026 : « pour chaque camion un comparatif
          avec le prix de ramassage, car on veut voir si on rentre dans
          nos co&ucirc;ts » — outil d'ESTIMATION, volontairement &agrave;
-         part du rapport financier (dépenses r&eacute;elles juste
-         au-dessus) : « la case des d&eacute;penses doit &ecirc;tre
-         identique au parcours Collecte [...] mais pour l'estimation
-         avec comparatif [...] &ccedil;a doit &ecirc;tre &agrave; part. »
-         Essence estim&eacute;e &agrave; partir du kilom&eacute;trage
-         (consommation/prix modifiables, aucune donn&eacute;e r&eacute;elle
-         pour ce camion) ; p&eacute;age estim&eacute; en saisie libre,
-         s&eacute;par&eacute;e de la case D&eacute;penses juste au-dessus
-         — Cobey, 14/10/2026 : « on va le laisser dans les d&eacute;penses,
-         pour avoir le chiffre r&eacute;el, et on va mettre la possibilit&eacute;
-         de rentrer un montant total dans le comparatif pour avoir une
-         id&eacute;e directe, l'un n'impacte pas l'autre ». -->
+         part du rapport financier (d&eacute;penses r&eacute;elles,
+         &eacute;cran du camion) : « la case des d&eacute;penses doit
+         &ecirc;tre identique au parcours Collecte [...] mais pour
+         l'estimation avec comparatif [...] &ccedil;a doit &ecirc;tre
+         &agrave; part. » Essence estim&eacute;e &agrave; partir du
+         kilom&eacute;trage (consommation/prix modifiables, aucune
+         donn&eacute;e r&eacute;elle pour ce camion) ; p&eacute;age
+         estim&eacute; en saisie libre, s&eacute;par&eacute;e de la vraie
+         d&eacute;pense — Cobey, 14/10/2026 : « on va le laisser dans les
+         d&eacute;penses, pour avoir le chiffre r&eacute;el, et on va
+         mettre la possibilit&eacute; de rentrer un montant total dans le
+         comparatif pour avoir une id&eacute;e directe, l'un n'impacte
+         pas l'autre ». -->
     <div style="background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;">
       <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px;">&#128202; Comparatif co&ucirc;ts / ramassage</div>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
@@ -530,23 +585,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         <div id="frc-cmp-verdict" style="font-size:13px;font-weight:800;"></div>
       </div>
     </div>
-    <!-- v3.99.0 — Cobey, 13/10/2026 : « la case des d&eacute;penses doit
-         &ecirc;tre identique au parcours Collecte, car &ccedil;a sera
-         des d&eacute;penses r&eacute;elles, pour le rapport financier. »
-         M&ecirc;mes cat&eacute;gories (carburant, p&eacute;age...), m&ecirc;me
-         stockage, m&ecirc;me &eacute;cran (s-dep-depenses, departs.js) —
-         seul frOuvrirDepensesCamion() lui indique le camion France &amp;
-         Europe &agrave; ouvrir. -->
-    <div style="background:white;border:2px solid #1a237e;border-radius:var(--radius);padding:14px;margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <span style="font-size:12px;font-weight:800;color:var(--text);">&#128176; D&eacute;penses du camion</span>
-        <span id="frc-dep-val" style="font-size:16px;font-weight:800;color:#B3261E;">&mdash;</span>
-      </div>
-      <div id="frc-dep-net" style="font-size:10.5px;color:var(--text3);margin-bottom:10px;line-height:1.4;"></div>
-      <button class="btn" style="margin:0;background:#FFF3E0;color:#8A5200;border:2px solid #E58A00;" onclick="frOuvrirDepensesCamion()">&#128176; Ajouter / voir les d&eacute;penses</button>
-    </div>
-    <div class="slabel">Ordre de passage</div>
-    <div id="frc-route"></div>
   </div>
 </div>
 
@@ -1829,7 +1867,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.8';
+var APP_VERSION = 'v3.99.9';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6085,6 +6123,10 @@ function ouvrirCamionFrance(k){
   var note=document.getElementById('frc-km-note'); if(note) note.textContent='';
   var btn=document.getElementById('frc-km-btn'); if(btn){ btn.disabled=false; btn.textContent='📏 Estimer le kilométrage'; }
   var dv=document.getElementById('frc-duree-val'); if(dv) dv.textContent='';
+  // v3.99.9 : même raison — l'heure de départ et l'arrivée estimée
+  // d'un autre camion n'ont plus de sens ici.
+  var hd=document.getElementById('frc-heure-depart'); if(hd) hd.value='';
+  var av=document.getElementById('frc-arrivee-val'); if(av) av.textContent='';
   // v3.99.4 : même raison — efface l'estimation du camion précédent.
   _frDerniereEstimation = { km:null, dureeTrajetMin:null, dureeTotaleMin:null, nbArrets:0 };
   renderCamionFrance();
@@ -6100,6 +6142,20 @@ function ouvrirCamionFrance(k){
   estimerKmCamionFrance();
 }
 function retourDispatchFrance(){ goTo('s-france'); renderFrance(); }
+
+// v3.99.9 — Cobey, 14/10/2026 : « les clients sont tout en bas [...] ça
+// devient trop chargé [...] faudra sinon faire des sous-interfaces ? »
+// Kilométrage + Comparatif déménagent sur leur propre écran, au même
+// principe que les Dépenses — la case résumé sur l'écran du camion
+// (_frMajResumeTrajetCouts) reste à jour même si cet écran n'a jamais
+// été ouvert, puisque estimerKmCamionFrance/_frMajComparatifCouts
+// écrivent dans son DOM qu'il soit visible ou non.
+function frOuvrirStatsCamion(){
+  goTo('s-fr-camion-stats');
+}
+function frFermerStatsCamion(){
+  goTo('s-fr-camion');
+}
 
 // v3.97.0 — point de départ/arrivée du dépôt, réutilisés depuis la carte
 // Collecte (departs.js, window.DEP_CARTE_DEPART/ARRIVEE — Cobey,
@@ -6229,6 +6285,7 @@ function estimerKmCamionFrance(){
           if(val) val.textContent='—';
           if(note) note.textContent='⚠️ Calcul indisponible, réessayez.';
           _frDerniereEstimation = { km:null, dureeTrajetMin:null, dureeTotaleMin:null, nbArrets:pts.length };
+          _frMajHeureArrivee();
           _frMajComparatifCouts();
           return;
         }
@@ -6242,6 +6299,7 @@ function estimerKmCamionFrance(){
         if(eDuree) eDuree.textContent = (dureeTotale===null) ? ''
           : ('⏱️ ≈ '+_frDureeTexte(dureeTotale)+' (trajet '+_frDureeTexte(dureeMin)+' + 20 min × '+pts.length+' client'+(pts.length>1?'s':'')+')');
         _frDerniereEstimation = { km:km, dureeTrajetMin:dureeMin, dureeTotaleMin:dureeTotale, nbArrets:pts.length };
+        _frMajHeureArrivee();
         _frMajComparatifCouts();
       });
     });
@@ -6271,6 +6329,29 @@ function _frDureeTexte(min){
   return h>0 ? (h+'h'+(m?(' '+('0'+m).slice(-2)+'min'):'')) : (m+' min');
 }
 
+// v3.99.9 — Cobey, 14/10/2026 : « je voulais aussi mettre le temps de
+// trajet [...] et pouvoir choisir une heure de départ, comme ça on a
+// une estimation d'arrivée au dépôt à Mitry. »
+function _frHeureArriveeTexte(){
+  var input=document.getElementById('frc-heure-depart');
+  var dep=input && input.value;
+  var est=_frDerniereEstimation||{};
+  if(!dep || est.dureeTotaleMin===null || est.dureeTotaleMin===undefined) return '';
+  var parts=dep.split(':');
+  var minTotal=parseInt(parts[0],10)*60 + parseInt(parts[1],10) + est.dureeTotaleMin;
+  minTotal=((minTotal % 1440) + 1440) % 1440; // passe minuit si besoin
+  var h=Math.floor(minTotal/60), m=minTotal%60;
+  return ('0'+h).slice(-2)+'h'+('0'+m).slice(-2);
+}
+function _frMajHeureArrivee(){
+  var box=document.getElementById('frc-arrivee-val');
+  if(box){
+    var txt=_frHeureArriveeTexte();
+    box.textContent = txt ? ('🏁 Arrivée estimée au dépôt (Mitry-Mory) : '+txt) : '';
+  }
+  _frMajResumeTrajetCouts();
+}
+
 // v3.99.4 — Cobey, 13/10/2026 : « pour chaque camion un comparatif avec
 // le prix de ramassage, car on veut voir si on rentre dans nos coûts »
 // — outil d'estimation à part du rapport financier (voir le commentaire
@@ -6279,21 +6360,12 @@ function _frDureeTexte(min){
 // camion — Cobey : « on a pas de chiffre pour ce camion »). Péage =
 // saisie libre (frc-cmp-peage), sans lien avec la vraie dépense
 // « Péage » (v3.99.8 : « l'un n'impacte pas l'autre »).
-function _frMajComparatifCouts(){
-  var boxDetail=document.getElementById('frc-cmp-detail');
-  var boxVerdict=document.getElementById('frc-cmp-verdict');
-  if(!boxDetail || !boxVerdict) return;
-  var r=_frCollecteActive();
-  var tk=r && (r.trucks||{})[_frCamion];
-  if(!r || !tk){ boxDetail.textContent=''; boxVerdict.textContent=''; return; }
-
+// v3.99.9 : calcul isolé dans sa propre fonction — le résumé compact de
+// l'écran du camion (_frMajResumeTrajetCouts) en a besoin aussi, sans
+// dupliquer la formule.
+function _frCalculComparatifCouts(tk){
   var est=_frDerniereEstimation||{};
-  if(est.km===null || est.km===undefined){
-    boxDetail.innerHTML='<span style="color:var(--text3);">Estimez d\'abord le kilométrage (bouton ci-dessus) pour voir le comparatif.</span>';
-    boxVerdict.textContent='';
-    return;
-  }
-
+  if(est.km===null || est.km===undefined) return null;
   var conso=parseFloat((document.getElementById('frc-cmp-conso')||{}).value)||0;
   var prixLitre=parseFloat((document.getElementById('frc-cmp-prix')||{}).value)||0;
   var essence=Math.round(est.km * conso/100 * prixLitre * 100)/100;
@@ -6318,15 +6390,57 @@ function _frMajComparatifCouts(){
   // ramassage seul.
   var ramassage=_totalRamassage(tk.clients);
   var marge=Math.round((ramassage-totalCouts)*100)/100;
+  return { km:est.km, essence:essence, peage:peage, totalCouts:totalCouts, ramassage:ramassage, marge:marge };
+}
 
+function _frMajComparatifCouts(){
+  var r=_frCollecteActive();
+  var tk=r && (r.trucks||{})[_frCamion];
+  _frMajResumeTrajetCouts();
+  var boxDetail=document.getElementById('frc-cmp-detail');
+  var boxVerdict=document.getElementById('frc-cmp-verdict');
+  if(!boxDetail || !boxVerdict) return;
+  if(!r || !tk){ boxDetail.textContent=''; boxVerdict.textContent=''; return; }
+  var c=_frCalculComparatifCouts(tk);
+  if(!c){
+    boxDetail.innerHTML='<span style="color:var(--text3);">Estimez d\'abord le kilométrage (bouton ci-dessus) pour voir le comparatif.</span>';
+    boxVerdict.textContent='';
+    return;
+  }
   boxDetail.innerHTML=
-      '<div style="display:flex;justify-content:space-between;"><span>⛽ Essence estimée (' + est.km + ' km)</span><b>' + essence + ' €</b></div>'
-    + '<div style="display:flex;justify-content:space-between;"><span>🛣️ Péage estimé</span><b>' + peage + ' €</b></div>'
-    + '<div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:4px;margin-top:2px;"><span>Total estimé</span><b style="color:#B3261E;">' + totalCouts + ' €</b></div>'
-    + '<div style="display:flex;justify-content:space-between;"><span>Frais de ramassage de ce camion</span><b style="color:#006b2d;">' + ramassage + ' €</b></div>';
-  boxVerdict.innerHTML = marge>=0
-    ? ('✅ Marge estimée : <span style="color:#006b2d;">+' + marge + ' €</span> — rentable')
-    : ('⚠️ Marge estimée : <span style="color:#B3261E;">' + marge + ' €</span> — ne couvre pas les coûts estimés');
+      '<div style="display:flex;justify-content:space-between;"><span>⛽ Essence estimée (' + c.km + ' km)</span><b>' + c.essence + ' €</b></div>'
+    + '<div style="display:flex;justify-content:space-between;"><span>🛣️ Péage estimé</span><b>' + c.peage + ' €</b></div>'
+    + '<div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:4px;margin-top:2px;"><span>Total estimé</span><b style="color:#B3261E;">' + c.totalCouts + ' €</b></div>'
+    + '<div style="display:flex;justify-content:space-between;"><span>Frais de ramassage de ce camion</span><b style="color:#006b2d;">' + c.ramassage + ' €</b></div>';
+  boxVerdict.innerHTML = c.marge>=0
+    ? ('✅ Marge estimée : <span style="color:#006b2d;">+' + c.marge + ' €</span> — rentable')
+    : ('⚠️ Marge estimée : <span style="color:#B3261E;">' + c.marge + ' €</span> — ne couvre pas les coûts estimés');
+}
+
+// v3.99.9 — le résumé compact affiché sur l'écran principal du camion
+// (case « 📊 Trajet & coûts »), à jour même si la sous-interface n'a
+// jamais été ouverte.
+function _frMajResumeTrajetCouts(){
+  var box=document.getElementById('frc-stats-resume');
+  if(!box) return;
+  var r=_frCollecteActive();
+  var tk=r && (r.trucks||{})[_frCamion];
+  var est=_frDerniereEstimation||{};
+  if(!r || !tk || est.km===null || est.km===undefined){
+    box.textContent='Estimez le kilométrage pour voir le détail.';
+    return;
+  }
+  var txt='📏 ~'+est.km+' km';
+  if(est.dureeTotaleMin!==null && est.dureeTotaleMin!==undefined) txt+=' · ⏱️ '+_frDureeTexte(est.dureeTotaleMin);
+  var arr=_frHeureArriveeTexte();
+  if(arr) txt+=' · 🏁 '+arr;
+  var c=_frCalculComparatifCouts(tk);
+  if(c){
+    txt += '<br>' + (c.marge>=0
+      ? ('✅ <b style="color:#006b2d;">+'+c.marge+' €</b> — rentable')
+      : ('⚠️ <b style="color:#B3261E;">'+c.marge+' €</b> — ne couvre pas les coûts estimés'));
+  }
+  box.innerHTML=txt;
 }
 
 // v3.98.0 — enregistre la ville de départ tapée pour un camion
