@@ -2480,6 +2480,16 @@ le trajet s'amortit »). Reprend `_totalRamassage`, construite pour
 exactement ce besoin : seuls les frais de ramassage des clients du
 camion entrent dans le comparatif.
 
+**Suite, le 14/10 (v3.99.8 / v2.20.63) — le péage change de
+fonctionnement.** Cobey : « on va le laisser dans les dépenses, pour
+avoir le chiffre réel, et on va mettre la possibilité de rentrer un
+montant total dans le comparatif pour avoir une idée directe, l'un
+n'impacte pas l'autre, un c'est la dépense réelle, l'autre c'est pour
+le comparatif. » Le comparatif reprenait jusqu'ici le péage déjà saisi
+dans les vraies Dépenses — désormais un champ de saisie libre, propre
+au comparatif, sans aucun lien avec la dépense réelle : ajouter un
+péage dans les Dépenses ne change plus le comparatif, et inversement.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.

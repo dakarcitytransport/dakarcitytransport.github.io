@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.62';
+var DEP_VERSION = 'v2.20.63';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19115,14 +19115,6 @@ window._depResumeDepenses = function(colId, camion, src){
   var tot = _depTotalDepenses(colId, camion);
   var net = depArrondi2(_depDepenseCollecteMontant(ctx, tk) - tot);
   return { total: tot, totalTexte: _depEuros(tot), net: net, netTexte: _depEuros(net) };
-};
-// v3.99.4 — le comparatif coûts/ramassage (dct-app.html, écran du
-// camion France & Europe) reprend le péage déjà saisi dans les vraies
-// dépenses, plutôt que de le faire ressaisir pour l'estimation.
-window._depMontantParType = function(colId, camion, type){
-  return depArrondi2(_depDepensesDe(colId, camion)
-    .filter(function(o){ return o.type === type; })
-    .reduce(function(s,o){ return s + (parseFloat(o.montant) || 0); }, 0));
 };
 
 // v2.20.16 — Cobey, sur le bandeau "Suivi financier global" d'une
