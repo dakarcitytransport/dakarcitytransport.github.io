@@ -2511,6 +2511,16 @@ camion allégé.** Deux demandes dans le même message :
    financier, les Dépenses (laissées en place, non demandées à
    déménager) et la liste des clients.
 
+**Correctif du 14/10 (v3.99.10) — l'heure de départ se perdait en
+quittant l'écran du camion.** Cobey : « l'heure d'estimation ne reste
+pas quand on sort du camion, laisse la dernière écriture en place, si
+on veut revoir. » `ouvrirCamionFrance` vidait l'heure de départ à
+CHAQUE ouverture, y compris en rouvrant le même camion après être
+passé par le hub général ou un autre camion entretemps. Elle est
+maintenant gardée par camion (tant que la page reste ouverte) et
+restaurée à la réouverture — seul le passage sur un AUTRE camion
+l'efface, puisqu'elle n'a plus de sens là.
+
 ### ~~"Nouveau camion" (France & Europe) : conducteur en saisie libre~~
 **Fait le 12/10 (v3.97.4).** Cobey, sur la modale "Nouveau camion" :
 « il faudrait remettre les noms des collaborateurs en présélection.

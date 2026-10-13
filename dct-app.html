@@ -1867,7 +1867,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.9';
+var APP_VERSION = 'v3.99.10';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6112,6 +6112,11 @@ var _frCamion='';
 // juste pour changer la consommation/le prix du litre, voir
 // _frMajComparatifCouts).
 var _frDerniereEstimation={ km:null, dureeTrajetMin:null, dureeTotaleMin:null, nbArrets:0 };
+// v3.99.10 — Cobey, 14/10/2026 : « l'heure d'estimation ne reste pas
+// quand on sort du camion, laisse la dernière écriture en place, si on
+// veut revoir » — l'heure de départ tapée pour chaque camion, gardée
+// tant que la page reste ouverte (pas en base, pure estimation locale).
+var _frHeuresDepartParCamion={};
 var _frPlusClientId=null; // menu "⋯" (Annulé) du camion Chauffeur externe — v3.95.3
 
 function ouvrirCamionFrance(k){
@@ -6123,12 +6128,19 @@ function ouvrirCamionFrance(k){
   var note=document.getElementById('frc-km-note'); if(note) note.textContent='';
   var btn=document.getElementById('frc-km-btn'); if(btn){ btn.disabled=false; btn.textContent='📏 Estimer le kilométrage'; }
   var dv=document.getElementById('frc-duree-val'); if(dv) dv.textContent='';
-  // v3.99.9 : même raison — l'heure de départ et l'arrivée estimée
-  // d'un autre camion n'ont plus de sens ici.
-  var hd=document.getElementById('frc-heure-depart'); if(hd) hd.value='';
-  var av=document.getElementById('frc-arrivee-val'); if(av) av.textContent='';
+  // v3.99.10 — Cobey, 14/10/2026 : « l'heure d'estimation ne reste pas
+  // quand on sort du camion, laisse la dernière écriture en place, si
+  // on veut revoir. » L'heure de départ tapée se perdait en quittant
+  // l'écran puis en revenant sur CE MÊME camion (ouvrirCamionFrance la
+  // vidait à chaque ouverture) — gardée par camion dans
+  // _frHeuresDepartParCamion, restaurée ici au lieu d'être effacée.
+  var hd=document.getElementById('frc-heure-depart');
+  if(hd) hd.value = _frHeuresDepartParCamion[k] || '';
   // v3.99.4 : même raison — efface l'estimation du camion précédent.
   _frDerniereEstimation = { km:null, dureeTrajetMin:null, dureeTotaleMin:null, nbArrets:0 };
+  // Pas encore de durée tant que le calcul (plus bas) n'a pas répondu —
+  // évite d'afficher un vieux horaire d'arrivée pendant ce court délai.
+  _frMajHeureArrivee();
   renderCamionFrance();
   goTo('s-fr-camion');
   // v3.97.1 — Cobey, 12/10/2026 : « ça ne peut pas s'afficher
@@ -6344,6 +6356,12 @@ function _frHeureArriveeTexte(){
   return ('0'+h).slice(-2)+'h'+('0'+m).slice(-2);
 }
 function _frMajHeureArrivee(){
+  // v3.99.10 : mémorisée par camion — voir _frHeuresDepartParCamion,
+  // restaurée en rouvrant ce même camion (ouvrirCamionFrance).
+  if(_frCamion){
+    var hd=document.getElementById('frc-heure-depart');
+    _frHeuresDepartParCamion[_frCamion] = (hd && hd.value) || '';
+  }
   var box=document.getElementById('frc-arrivee-val');
   if(box){
     var txt=_frHeureArriveeTexte();
