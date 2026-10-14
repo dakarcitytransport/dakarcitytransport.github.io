@@ -3686,17 +3686,55 @@ plusieurs containers servis le même jour par un camion, avec le repli
 Mali si le camion n'a validé que des clients Mali) s'applique
 maintenant aussi aux collectes France & Europe.
 
-**En attente, Cobey a aussi relevé le 14/10** (pas encore traité,
-discussion en cours) :
-- pas de bouton « imprimer toutes les étiquettes » sur l'écran d'un
-  camion France & Europe (existe côté Collecte, jamais porté) ;
-- la ligne « ✅ Collecté » (encaissé) du Suivi financier d'un camion
-  France s'est cassée en retirant « Restant à ramasser » le 14/10 —
-  elle s'accrochait à cet élément supprimé ;
-- discussion sur ce que « Suivi financier global » devrait montrer en
-  plus (facturé/encaissé déjà là, dépenses et résultat après dépenses
-  à voir — en évitant le doublon avec « Gain net (sur le ramassé) »,
-  déjà dans la carte Dépenses) ;
-- la validation d'un client France & Europe ne clôture pas son entrée
-  dans le Suivi en direct (pas d'heure de fin enregistrée, contrairement
-  à la Collecte).
+### Ligne « ✅ Collecté » cassée dans le Suivi financier (camion France ET Collecte)
+**Fait le 14/10 (v3.99.20 / v2.20.68).** Effet de bord du retrait de
+« Restant à ramasser » plus haut le même jour : la ligne « ✅ Collecté »
+(l'argent réellement encaissé) s'ancrait sur cet élément pour trouver
+où s'insérer dans la carte « Suivi financier » — supprimé, elle
+s'accrochait dans le vide et ne s'affichait plus nulle part, ni côté
+camion France & Europe, ni côté camion Collecte (même ancrage cassé
+aux deux endroits). Réancrée sur la ligne « Facturé », restée en
+place.
+
+### Suivi financier du camion France & Europe : dépenses et résultat manquants
+**Fait le 14/10 (v3.99.20 / v2.20.68).** Cobey : « je veux le tout
+dans le suivi financier [...] le total facturé, le total encaissé,
+les dépenses du camion et le résultat total après dépenses. » Déjà le
+cas côté Collecte (Facturé/Encaissé/Dépenses/Gain net, posés dans la
+carte depuis la v1.62.0) mais jamais porté côté France & Europe, qui
+n'affichait que Facturé et Encaissé. Même carte, mêmes lignes,
+complétées pour France & Europe : Dépenses de la tournée et Résultat
+total après dépenses s'y ajoutent maintenant.
+
+### Dépenses du camion : la case retenue ne garde que « Gain net »
+**Fait le 14/10 (v3.99.20 / v2.20.68).** Cobey, sur l'écran « Dépenses
+du camion » : « dans ici (sur la photo) uniquement le total de frais
+de ramassage moins les dépenses » — la ligne « 💵 Encaissé auprès des
+clients − dépenses » faisait doublon avec le « Gain net » déjà affiché
+juste au-dessus (Collecté/Dépensé/Gain net), et n'avait plus sa place
+une fois celui-ci remonté dans le Suivi financier (voir ci-dessus).
+Retirée ; l'écran ne garde que le bloc Collecté/Dépensé/Gain net.
+
+### Bouton « imprimer toutes les étiquettes » absent du camion France & Europe
+**Fait le 14/10 (v3.99.20 / v2.20.68).** Existait côté Collecte
+(`depOuvrirImpressionToutesEtiquettesCamion`) depuis la v1.21.0,
+jamais porté côté France & Europe — même angle mort que les
+précédents cette session. Généralisé (src/colId optionnels, même
+convention que `depOuvrirDepenses`) et ajouté sur l'écran du camion
+France & Europe, juste avant « Ordre de passage », comme côté
+Collecte.
+
+### Valider un client France & Europe ne clôturait pas son entrée dans le Suivi en direct
+**Fait le 14/10 (v3.99.20 / v2.20.68).** Cobey : « le bouton de
+ramasse doit clôturer le ramassé dans le suivi client [...] mais là
+y'a rien. » Piste initialement suivie (`validerArretFrance`,
+dct-app.html) : fausse piste — cette fonction est en réalité
+remplacée depuis la v1.45.0 par un correctif de departs.js qui route
+le bouton « Valider » vers le même écran que la Collecte Paris
+(`depOuvrirValidation`/`depValiderConfirmer` : photo, container,
+facture), exactement comme prévu à l'époque (« on fait désormais comme
+à Paris »). Le vrai point où le camion France & Europe marque un
+client ramassé est `_depMarquerRamasseCamionFrance` (departs.js) — il
+posait `tk.validated` mais jamais `tk.finTs`, dont dépend le Suivi en
+direct pour afficher « Collecté à HH:MM ». Corrigé à la bonne
+fonction, avec la même écriture que `confirmValider` côté Collecte.

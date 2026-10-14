@@ -500,6 +500,11 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <div id="frc-dep-net" style="font-size:10.5px;color:var(--text3);margin-bottom:10px;line-height:1.4;"></div>
       <button class="btn" style="margin:0;background:#FFF3E0;color:#8A5200;border:2px solid #E58A00;" onclick="frOuvrirDepensesCamion()">&#128176; Ajouter / voir les d&eacute;penses</button>
     </div>
+    <!-- v3.99.19 — Cobey, 14/10/2026 : « pas de bouton d'impression total
+         des étiquettes » sur un camion France & Europe (existait côté
+         Collecte seulement, voir depOuvrirImpressionToutesEtiquettesCamion,
+         departs.js). Même bouton, généralisé pour viser ce camion-ci. -->
+    <button type="button" style="width:100%;padding:12px;background:#111;color:#fff;border:2px solid #000;border-radius:10px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:var(--font);margin-bottom:14px;" onclick="frOuvrirImpressionToutesEtiquettesCamion()">&#127991;&#65039; Imprimer toutes les &eacute;tiquettes du camion</button>
     <div class="slabel">Ordre de passage</div>
     <div id="frc-route"></div>
   </div>
@@ -1863,7 +1868,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.19';
+var APP_VERSION = 'v3.99.20';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6732,6 +6737,11 @@ window.frOuvrirDepensesCamion = function(){
   if(!r || !_frCamion){ showToastNew('⚠️ Ouvrez d\'abord un camion.'); return; }
   depOuvrirDepenses(_frCamion, 'france', r._id);
 };
+window.frOuvrirImpressionToutesEtiquettesCamion = function(){
+  var r=_frCollecteActive();
+  if(!r || !_frCamion){ showToastNew('⚠️ Ouvrez d\'abord un camion.'); return; }
+  depOuvrirImpressionToutesEtiquettesCamion(_frCamion, 'france', r._id);
+};
 
 // ── Heure de passage ──
 var _frHeureId='';
@@ -6804,6 +6814,8 @@ function refuserArretFrance(id){
   tk.refused=tk.refused||[];
   if(tk.refused.indexOf(id)<0) tk.refused.push(id);
   var iv=(tk.validated||[]).indexOf(id); if(iv>=0) tk.validated.splice(iv,1);
+  tk.finTs=tk.finTs||{};
+  tk.finTs[id]=Date.now();
   var hist=(c.hist||[]).slice();
   hist.push({q:(currentUser||{}).name||'', a:'ramasse non effectuée ('+tk.name+')', ts:Date.now()});
   var maj={};

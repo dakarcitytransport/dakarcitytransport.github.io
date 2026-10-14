@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.67';
+var DEP_VERSION = 'v2.20.68';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10034,7 +10034,14 @@ window.depRetourEtiquette = function(){
   // Documents, qui n'ont pas de sens pour un lot multi-clients.
   if(window._depEtqVientCamion){
     var k = window._depEtqVientCamion;
+    var srcVient = window._depEtqVientSrc;
     window._depEtqVientCamion = null;
+    window._depEtqVientSrc = null;
+    if(srcVient === 'france'){
+      goTo('s-fr-camion');
+      try{ renderCamionFrance(); }catch(e){}
+      return;
+    }
     window.currentCamion = k;
     goTo('s-camion');
     try{ renderCamion(k); }catch(e){}
@@ -14935,6 +14942,13 @@ function _depMarquerRamasseCamionFrance(id){
   if(tk.validated.indexOf(id) < 0) tk.validated.push(id);
   var ir = (tk.refused || []).indexOf(id);
   if(ir >= 0) tk.refused.splice(ir, 1);
+  // v3.99.19 — Cobey, 14/10/2026 : « le bouton de ramasse doit clôturer
+  // le ramassé dans le suivi client [...] mais là y'a rien. » Même
+  // écriture que confirmValider côté Collecte Paris (dct-app.html) —
+  // sans elle, le Suivi en direct ne sait jamais que ce client est
+  // terminé pour un camion France & Europe.
+  tk.finTs = tk.finTs || {};
+  tk.finTs[id] = Date.now();
   if(typeof window._frSauverCollecte === 'function') window._frSauverCollecte(r);
 }
 
@@ -19158,9 +19172,6 @@ function _depDepenseTruck(ctx){
 function _depDepenseCollecteMontant(ctx, tk){
   return ctx.src === 'france' ? _frCollecteCamion(tk) : _depCollecteDuCamion(tk);
 }
-function _depDepenseEncaisseMontant(ctx, tk){
-  return ctx.src === 'france' ? _frEncaisseCamion(tk) : _depEncaisseDuCamion(tk);
-}
 // v3.99.0 — departs.js s'exécute dans sa propre fermeture : rien ici
 // n'est visible depuis dct-app.html (autre script) sauf ce qui est posé
 // sur window. Le résumé affiché sur l'écran du camion France & Europe
@@ -19245,9 +19256,9 @@ function _frInjecterEncaisseCamion(){
   if(!r) return;
   var tk = (r.trucks || {})[window._frCamion];
   if(!tk) return;
-  var remRow = $('frc-restant');
-  if(!remRow || !remRow.parentNode) return;
-  var box = remRow.parentNode.parentNode;
+  var facRow = $('frc-collecte');
+  if(!facRow || !facRow.parentNode) return;
+  var box = facRow.parentNode.parentNode;
   if(!box) return;
   var rowE = $('frc-finance-encaisse');
   if(!rowE){
@@ -19256,9 +19267,61 @@ function _frInjecterEncaisseCamion(){
     rowE.className = 'finance-row';
     rowE.style.cssText = 'margin-top:4px;';
   }
+  var enc = _frEncaisseDuCamion(tk);
+  var ramasse = _frCollecteCamion(tk);
   rowE.innerHTML = '<span class="finance-label">&#9989; Collect&eacute;</span>'
-    + '<span class="finance-val" style="color:#006b2d;">' + _frEncaisseDuCamion(tk) + ' &euro;</span>';
+    + '<span class="finance-val" style="color:#006b2d;">' + enc + ' &euro;</span>';
   box.appendChild(rowE);
+
+  if(ramasse > enc){
+    var rowR = $('frc-finance-adu');
+    if(!rowR){
+      rowR = document.createElement('div');
+      rowR.id = 'frc-finance-adu';
+      rowR.className = 'finance-row';
+      rowR.style.cssText = 'margin-top:4px;';
+    }
+    rowR.innerHTML = '<span class="finance-label">&#8987; Encore d&ucirc; par les clients ramass&eacute;s</span>'
+      + '<span class="finance-val" style="color:#B3261E;">' + depArrondi2(ramasse - enc) + ' &euro;</span>';
+    box.appendChild(rowR);
+  } else {
+    var vieuxR = $('frc-finance-adu');
+    if(vieuxR && vieuxR.parentNode) vieuxR.parentNode.removeChild(vieuxR);
+  }
+
+  // v3.99.19 — Cobey, 14/10/2026 : « je veux le tout dans le suivi
+  // financier [...] les dépenses du camion et le résultat total après
+  // dépenses. » Même ligne « Dépenses de la tournée »/« Gain net » déjà
+  // posée côté Collecte (_depMajBlocDepensesCamion), jamais portée ici.
+  var tot = _depTotalDepenses(r._id, window._frCamion);
+  var rowD = $('frc-finance-depenses');
+  var rowN = $('frc-finance-net');
+  if(tot <= 0){
+    if(rowD && rowD.parentNode) rowD.parentNode.removeChild(rowD);
+    if(rowN && rowN.parentNode) rowN.parentNode.removeChild(rowN);
+    return;
+  }
+  if(!rowD){
+    rowD = document.createElement('div');
+    rowD.id = 'frc-finance-depenses';
+    rowD.className = 'finance-row';
+    rowD.style.cssText = 'margin-top:4px;';
+  }
+  rowD.innerHTML = '<span class="finance-label">&#128176; D&eacute;penses de la tourn&eacute;e</span>'
+    + '<span class="finance-val" style="color:#B3261E;">&minus; ' + tot + ' &euro;</span>';
+  box.appendChild(rowD);
+
+  var net = depArrondi2(ramasse - tot);
+  if(!rowN){
+    rowN = document.createElement('div');
+    rowN.id = 'frc-finance-net';
+    rowN.className = 'finance-row';
+    rowN.style.cssText = 'margin-top:4px;padding-top:7px;border-top:1.5px solid var(--border);';
+  }
+  rowN.innerHTML = '<span class="finance-label" style="font-weight:800;">&#9989; R&eacute;sultat total apr&egrave;s d&eacute;penses</span>'
+    + '<span class="finance-val" style="font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">'
+    + net + ' &euro;</span>';
+  box.appendChild(rowN);
 }
 
 /* Le bouton et le bilan, posés sous « Imprimer toutes les étiquettes »
@@ -19297,9 +19360,9 @@ function _depMajBlocDepensesCamion(k){
       : '&#128176; D&eacute;penses du camion';
   }
 
-  var remRow = $('c-remaining');
-  if(!remRow || !remRow.parentNode) return;
-  var box = remRow.parentNode.parentNode;
+  var facRow = $('c-collected');
+  if(!facRow || !facRow.parentNode) return;
+  var box = facRow.parentNode.parentNode;
   if(!box) return;
   var trks = getTrucks(), tk = trks[k];
 
@@ -19432,7 +19495,6 @@ window.depRenderDepenses = function(){
   var tot = _depTotalDepenses(ctx.colId, ctx.camion);
   var collecte = _depDepenseCollecteMontant(ctx, tk);
   var net = depArrondi2(collecte - tot);
-  var netEnc = depArrondi2(_depDepenseEncaisseMontant(ctx, tk) - tot);
 
   var zTot = $('dep-dep-total');
   if(zTot){
@@ -19446,14 +19508,8 @@ window.depRenderDepenses = function(){
       +   '<div><div style="font-size:18px;font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(net) + ' &euro;</div>'
       +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">GAIN NET</div></div>'
       + '</div>'
-      + '<div style="margin-top:10px;padding-top:9px;border-top:1.5px solid var(--border);'
-      +   'display:flex;justify-content:space-between;align-items:baseline;gap:8px;">'
-      +   '<span style="font-size:11.5px;font-weight:700;color:var(--text3);">'
-      +     '&#128181; Encaiss&eacute; aupr&egrave;s des clients &minus; d&eacute;penses</span>'
-      +   '<b style="font-size:13.5px;white-space:nowrap;color:' + (netEnc < 0 ? '#B3261E' : '#006b2d') + ';">'
-      +     _depEuros(netEnc) + ' &euro;</b>'
-      + '</div>'
-      + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;text-align:center;">'
+      + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:10px;padding-top:9px;'
+      +   'border-top:1.5px solid var(--border);text-align:center;">'
       +   liste.length + ' d&eacute;pense' + (liste.length>1?'s':'') + ' enregistr&eacute;e' + (liste.length>1?'s':'')
       +   ' sur cette tourn&eacute;e</div>'
       + '</div>';
@@ -20038,10 +20094,27 @@ function _depCarteRafraichir(){
 
 window._depImprimerToutesEtiquettesCtx = null;
 
-window.depOuvrirImpressionToutesEtiquettesCamion = function(k){
-  var trks = getTrucks(), tk = trks[k];
+// v3.99.19 — Cobey, 14/10/2026 : « pas de bouton imprimer toutes les
+// étiquettes [...] sur un camion France & Europe » (existait côté
+// Collecte seulement). src/colId optionnels, même convention que
+// depOuvrirDepenses : la Collecte continue d'appeler la fonction avec
+// k seul, France & Europe passe les deux explicitement.
+window.depOuvrirImpressionToutesEtiquettesCamion = function(k, src, colId){
+  src = src || 'collecte';
+  var tk, clients, ctxBase;
+  if(src === 'france'){
+    var r = colId ? ((window.franceData||{}).collectes||{})[colId]
+      : (typeof window._frCollecteActive === 'function' ? window._frCollecteActive() : null);
+    if(!r){ toast('⚠️ Collecte France & Europe introuvable.'); return; }
+    tk = (r.trucks||{})[k];
+    clients = (window.franceData||{}).clients || {};
+    ctxBase = { collecteId: r._id, depot: false, france: true };
+  } else {
+    var trks = getTrucks(); tk = trks[k];
+    clients = getClients() || {};
+    ctxBase = { collecteId: window.currentCollecteId, depot: false, france: false };
+  }
   if(!tk || !(tk.clients||[]).length){ toast('⚠️ Aucun client dans ce camion.'); return; }
-  var clients = getClients() || {};
   var hours = tk.hours || {};
   var sorted = (tk.clients || []).slice().sort(function(a,b){
     var ha = hours[a], hb = hours[b];
@@ -20062,10 +20135,10 @@ window.depOuvrirImpressionToutesEtiquettesCamion = function(k){
       plan = _depPlanEtiquettes(c);
       if(plan && plan.length) nEtq = plan.length; else plan = null;
     }catch(e){ plan = null; }
-    items.push({ id: id, c: c, n: nEtq, plan: plan });
+    items.push({ id: id, c: c, n: nEtq, plan: plan, ctx: { collecteId: ctxBase.collecteId, clientId: id, depot: ctxBase.depot, france: ctxBase.france } });
   });
   if(!items.length){ toast('⚠️ Aucun client de ce camion n\'est rattaché à un départ pour l\'instant.'); return; }
-  window._depImprimerToutesEtiquettesCtx = { camion: k, items: items };
+  window._depImprimerToutesEtiquettesCtx = { camion: k, src: src, items: items };
   var total = items.reduce(function(s, it){ return s + it.n; }, 0);
   var detail = items.map(function(it){ return it.n; }).join(' + ');
   // v1.40.0 : combien de lots dans le tas, et en combien de paquets.
@@ -20096,6 +20169,7 @@ window.depConfirmerImpressionToutesEtiquettesCamion = function(){
   if(!ctxAll || !ctxAll.items.length) return;
   window._depEtqVientImpression = false;
   window._depEtqVientCamion = ctxAll.camion;
+  window._depEtqVientSrc = ctxAll.src || 'collecte';
   window._depEtiquetteCtx = { collecteId: window.currentCollecteId, clientId: '', depot: false };
   goTo('s-etiquette');
   _depRenderEtiquettesMultiples(ctxAll.items);
@@ -20114,7 +20188,7 @@ function _depRenderEtiquettesMultiples(items){
   var giIndex = 0;
   items.forEach(function(item){
     var c = item.c, n = item.n, id = item.id, plan = item.plan;
-    var ctx = { collecteId: window.currentCollecteId, clientId: id, depot: false };
+    var ctx = item.ctx || { collecteId: window.currentCollecteId, clientId: id, depot: false, france: false };
     var d = (window.departsData || {})[c.departId] || {};
     var pInfo = DEP_PAYS_DEST[depPaysDepart(d)] || {};
     var ddmmyy = '';
