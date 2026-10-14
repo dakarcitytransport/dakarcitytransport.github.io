@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.74';
+var DEP_VERSION = 'v2.20.75';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -581,10 +581,8 @@ var DEP_ETAPES_TRANSPORT = {
 function depEtapesTransportPour(pays){ return DEP_ETAPES_TRANSPORT[pays] || DEP_ETAPES_TRANSPORT[DEP_PAYS_DEFAUT]; }
 
 // Affichés au client une fois l'étape "Arrivée au dépôt" (Sénégal) validée.
-// v1.19.72 : numéro de Mamadou Niass pas encore communiqué par Cobey — le
-// nom s'affiche déjà, le téléphone suit dès qu'on l'a (voir DEP_CONTACT_DEPOT.tel).
 var DEP_ADRESSE_DEPOT = 'Parcelle Assainie, Unité 8, Dakar';
-var DEP_CONTACT_DEPOT = { nom: 'Mamadou Niass', tel: '' };
+var DEP_CONTACT_DEPOT = { nom: 'Mamadou Niass', tel: '+221 78 432 36 17' };
 
 // Statut de paiement d'une facture — jamais choisi à la main, toujours
 // recalculé à partir des versements enregistrés (voir depCalculerPaiement).
@@ -3263,6 +3261,9 @@ function injecterEcrans(){
   +     '<div class="fg"><label class="fl">Date d\'arriv&eacute;e pr&eacute;vue &agrave; Dakar '
   +       '<span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
   +       '<input class="fi" id="dep-f-arrivee" type="date"></div>'
+  +     '<div class="fg"><label class="fl">Date d\'arriv&eacute;e pr&eacute;vue au d&eacute;p&ocirc;t '
+  +       '<span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label>'
+  +       '<input class="fi" id="dep-f-arrivee-depot" type="date"></div>'
   +     '<div class="dep-switch" onclick="depToggleOuvert()">'
   +       '<div><div class="dep-switch-lab">Ouvert &agrave; l\'inscription</div>'
   +       '<div class="dep-switch-sub">Les collaborateurs pourront choisir ce d&eacute;part</div></div>'
@@ -3684,6 +3685,11 @@ function injecterEcrans(){
   +     '.fac-suivi-det[open] summary{background:#006b2d;color:#fff;border-color:#006b2d;}'
   +     '.fac-suivi-now-tag{display:inline-block;background:#FFF4E0;color:#a04800;font-size:9.5px;font-weight:800;'
   +       'padding:2px 8px;border-radius:20px;margin-top:4px;letter-spacing:.03em;}'
+  // v2.20.73 : date estimée d'arrivée au dépôt, affichée à la place du
+  // badge "Étape en cours" sur cette étape précise (voir plus haut).
+  +     '.fac-suivi-estim-etape{margin-top:6px;background:#fff;border:1.5px solid #C8E6D0;border-radius:9px;'
+  +       'padding:7px 11px;font-size:11px;color:#444;line-height:1.5;}'
+  +     '.fac-suivi-estim-etape strong{color:#006b2d;font-weight:800;}'
   +     '.fac-suivi-infos{margin-top:8px;background:#fff;border:1.5px dashed #C8E6D0;border-radius:9px;'
   +       'padding:10px 12px;font-size:11.5px;color:#444;line-height:1.7;}'
   +     '.fac-suivi-infos b{color:#006b2d;}'
@@ -7635,7 +7641,7 @@ window.depNouveau = function(){
   var p = DEP_PAYS_DEST[paysNouveau] || {};
   var t = $('dep-form-titre'); if(t) t.innerHTML = 'Nouveau d&eacute;part &middot; ' + p.drapeau + ' ' + p.nom;
   var apercu = $('dep-f-nom-apercu'); if(apercu) apercu.textContent = depNomParDefaut(paysNouveau);
-  ['dep-f-date','dep-f-arrivee'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
+  ['dep-f-date','dep-f-arrivee','dep-f-arrivee-depot'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
   var bs = $('dep-f-bloc-statut'); if(bs) bs.style.display = 'none';
   var sp = $('dep-f-suppr');       if(sp) sp.style.display = 'none';
   depMajToggle();
@@ -7654,6 +7660,7 @@ window.depModifier = function(id){
   var e;
   e = $('dep-f-date');    if(e) e.value = d.dateDepart || '';
   e = $('dep-f-arrivee'); if(e) e.value = d.dateArriveePrevue || '';
+  e = $('dep-f-arrivee-depot'); if(e) e.value = d.dateArriveeDepotPrevue || '';
 
   var bs = $('dep-f-bloc-statut'); if(bs) bs.style.display = 'block';
 
@@ -7691,17 +7698,19 @@ function depMajToggle(){
 }
 
 window.depEnregistrer = function(){
-  var date    = ($('dep-f-date')||{}).value || '';
-  var arrivee = ($('dep-f-arrivee')||{}).value || '';
+  var date         = ($('dep-f-date')||{}).value || '';
+  var arrivee      = ($('dep-f-arrivee')||{}).value || '';
+  var arriveeDepot = ($('dep-f-arrivee-depot')||{}).value || '';
 
   if(!date){ toast('⚠️ La date de départ est obligatoire.'); return; }
   if(!window.db || !window.firebaseReady){ toast('❌ Connexion Firebase indisponible.'); return; }
 
   var u = window.currentUser || {};
   var obj = {
-    dateDepart        : date,
-    dateArriveePrevue : arrivee || '',
-    ouvertInscription : !!_depFormOuvert
+    dateDepart             : date,
+    dateArriveePrevue      : arrivee || '',
+    dateArriveeDepotPrevue : arriveeDepot || '',
+    ouvertInscription      : !!_depFormOuvert
   };
   // v1.49.0 : ce formulaire ne décide que de la clôture. Il écrivait
   // "preparation" dès qu'elle n'était pas cochée — corriger la date d'un
@@ -9449,8 +9458,23 @@ function depRenderSuiviTransportPublic(c){
      haut — c'est la question qu'on nous pose, pas celle qu'on cache. */
   var DATES_VISIBLES = { arrivee_port:1, arrivee_depot:1 };
 
+  // v2.20.73 — l'étape "Arrivée au dépôt" ne doit jamais s'afficher comme
+  // "Étape en cours" : contrairement aux autres transitions, le passage du
+  // port au dépôt n'est pas instantané (douane/déchargement/route), et cette
+  // étiquette faisait croire au client que le colis était déjà en cours
+  // d'arrivée au dépôt juste après la validation de l'arrivée au port
+  // (retour de Cobey du 14/10/2026, captures à l'appui). On remplace par la
+  // date estimée saisie par l'administration (rien si elle n'est pas
+  // renseignée), et on la garde masquée dès que l'étape est validée.
+  var idxArriveePort = -1;
+  etapes.forEach(function(e, i){ if(e.key === 'arrivee_port') idxArriveePort = i; });
+
   var estimee = '';
-  if(d.dateArriveePrevue){
+  // v2.20.73 : cette bannière disparaît dès que l'étape "Arrivée au port"
+  // est validée — elle n'a plus de sens une fois le port atteint (retour de
+  // Cobey du 14/10/2026).
+  var portValide = (idxArriveePort >= 0 && dernierIdx >= idxArriveePort);
+  if(d.dateArriveePrevue && !portValide){
     estimee = '<div class="fac-suivi-estim">&#9875; Arriv&eacute;e estim&eacute;e au port de Dakar&nbsp;: '
       + '<strong>' + esc(dateFr(d.dateArriveePrevue)) + '</strong></div>';
   }
@@ -9462,7 +9486,17 @@ function depRenderSuiviTransportPublic(c){
     var cls = (naviguEnCours && i === dernierIdx) ? 'now'
       : (i <= dernierIdx ? 'done' : ((i === dernierIdx + 1 && !naviguEnCours) ? 'now' : 'futur'));
     var sousLigne = '';
-    if(cls === 'now') sousLigne = '<span class="fac-suivi-now-tag">&Eacute;tape en cours</span>';
+    if(cls === 'now' && e.key === 'arrivee_depot'){
+      // v2.20.73 : pas de "Étape en cours" ici — voir commentaire plus haut.
+      // On affiche la date estimée saisie par l'administration si elle
+      // existe, sinon rien du tout (retour de Cobey du 14/10/2026).
+      if(d.dateArriveeDepotPrevue){
+        sousLigne = '<div class="fac-suivi-estim-etape">&#9875; Arriv&eacute;e estim&eacute;e au d&eacute;p&ocirc;t&nbsp;: '
+          + '<strong>' + esc(dateFr(d.dateArriveeDepotPrevue)) + '</strong></div>';
+      }
+    } else if(cls === 'now'){
+      sousLigne = '<span class="fac-suivi-now-tag">&Eacute;tape en cours</span>';
+    }
     // La date, pliée, et seulement sur les deux étapes qui comptent.
     if(DATES_VISIBLES[e.key] && cls === 'done' && fait[e.key] && fait[e.key].ts){
       sousLigne += '<details class="fac-suivi-det">'
@@ -9475,8 +9509,10 @@ function depRenderSuiviTransportPublic(c){
     // contact sur place dès que cette étape est atteinte ou en cours,
     // demande de Cobey du 29/08/2026 ("comme ça les clients auront l'info
     // directement").
+    // v2.20.73 : ce bloc ne s'affiche plus dès que l'étape est "en cours" —
+    // seulement une fois réellement validée (retour de Cobey du 14/10/2026).
     var infosDepot = '';
-    if(e.key === 'arrivee_depot' && pays === 'SN' && cls !== 'futur'){
+    if(e.key === 'arrivee_depot' && pays === 'SN' && cls === 'done'){
       infosDepot = '<div class="fac-suivi-infos">'
         + '&#128205; <b>Adresse du d&eacute;p&ocirc;t</b> : ' + esc(DEP_ADRESSE_DEPOT) + '<br>'
         + '&#9742;&#65039; <b>Contact sur place</b> : ' + esc(DEP_CONTACT_DEPOT.nom)

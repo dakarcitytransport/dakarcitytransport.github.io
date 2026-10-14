@@ -3895,3 +3895,26 @@ même sans dépense enregistrée (indépendantes de « Dépenses »/
 « Résultat », qui restent masquées tant qu'aucune dépense n'existe).
 Un versement sans méthode enregistrée (saisi avant l'ajout de ce
 champ) n'est compté dans aucun des deux plutôt que deviné.
+
+### Suivi transport : date estimée d'arrivée au dépôt (fusion d'un fichier fourni)
+**Fait le 14/10 (v3.99.28 / v2.20.75).** Cobey a fourni directement
+`facture.html` et `departs.js` modifiés et demandé « pousse ça
+également. » Le fichier fourni datait d'un point légèrement antérieur
+à cette session (avant le dernier correctif « Résultat basé sur le
+collecté » et avant la remise en haut de la barre d'onglets France) —
+fusionné à la main plutôt que copié tel quel, pour ne perdre ni ce
+travail-là ni les deux correctifs plus récents.
+
+La feature elle-même (authentifiée par ses propres commentaires
+v2.20.73/v1.19.72, datés et signés Cobey) : « l'étape "Arrivée au
+dépôt" ne doit jamais s'afficher "Étape en cours" [...] le passage du
+port au dépôt n'est pas instantané (douane/déchargement/route) [...]
+on remplace par la date estimée saisie par l'administration. » Un
+nouveau champ « Date d'arrivée prévue au dépôt » (facultatif) sur le
+formulaire d'un départ ; une fois « Arrivée au port » validée, le
+suivi transport (facture interne ET page publique de suivi — les deux
+copies, « commentaires jumeaux », partagent la même logique) affiche
+cette date estimée à la place du badge « Étape en cours », qui n'avait
+pas de sens pour une transition qui dure plusieurs jours. Le numéro
+de Mamadou Niass (contact du dépôt), pas encore communiqué jusqu'ici,
+est maintenant renseigné : +221 78 432 36 17.
