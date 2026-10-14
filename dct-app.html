@@ -1863,7 +1863,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.17';
+var APP_VERSION = 'v3.99.18';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2334,11 +2334,32 @@ function _esc(t){
   return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// v3.99.18 — Cobey, 14/10/2026, sur le Suivi en direct : « j'ai
+// l'impression que l'ordre d'affichage des clients est pas bon. » Vrai :
+// le Suivi (ici et côté France, _frRenderTimelineCamion) listait les
+// clients dans l'ordre d'affectation au camion (tk.clients tel quel),
+// alors que l'« Ordre de passage » (renderCamion/renderCamionFrance)
+// les trie par heure fixée — Michèle (09:00) apparaissait donc après
+// Haby (11:00) et Samantha (13:00) dans le Suivi, alors qu'elle passe
+// en premier dans la vraie tournée. Même tri qu'ailleurs, mis en commun
+// ici pour que Suivi et Ordre de passage s'accordent toujours.
+function _suiviClientsTries(tk){
+  var hours = tk.hours || {};
+  var liste = tk.clients || [];
+  return liste.slice().sort(function(a,b){
+    var ha=hours[a], hb=hours[b];
+    if(ha && hb) return ha.localeCompare(hb);
+    if(ha) return -1;
+    if(hb) return 1;
+    return liste.indexOf(a) - liste.indexOf(b);
+  });
+}
+
 // Statistiques d'un camion
 function _suiviStatsCamion(tk){
   var r={total:0,traites:0,collectes:0,refuses:0,annules:0,reportes:0,
          enRoute:null,depart:null,dernier:null,durees:[],segments:[]};
-  var ids = tk.clients||[];
+  var ids = _suiviClientsTries(tk);
   r.total = ids.length;
   for(var i=0;i<ids.length;i++){
     var id=ids[i], st=_suiviStatut(tk,id);
@@ -2558,7 +2579,7 @@ function renderTimelineCamion(k){
   var elB=document.getElementById('suivi-detail-band');
   if(elB) elB.innerHTML=b;
 
-  var ids=tk.clients||[];
+  var ids=_suiviClientsTries(tk);
   var h='';
   if(!ids.length) h='<div style="text-align:center;color:#94a3b8;font-size:13px;padding:30px 14px;">Aucun client affect\u00e9 \u00e0 ce camion.</div>';
   ids.forEach(function(id,i){

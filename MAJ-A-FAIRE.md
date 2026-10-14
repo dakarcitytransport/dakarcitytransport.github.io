@@ -3652,3 +3652,29 @@ collecte bien démarrée. Même angle mort "construit pour la Collecte
 seulement" que WhatsApp/Observation/Photos/Facture avant lui — la
 ligne adresse du camion France passe maintenant par la même
 confirmation, avec la même écriture d'heure de départ.
+
+---
+
+### Ordre des clients inversé dans le Suivi en direct
+**Fait le 14/10 (v3.99.18 / v2.20.66).** Cobey, après une vraie
+tournée France & Europe : « j'ai l'impression que l'ordre d'affichage
+des clients est pas bon dans le suivi. » Exact, et pas que côté
+France : le Suivi en direct listait les clients dans l'ordre
+d'affectation au camion (tel quel), alors que « Ordre de passage »
+les trie par heure fixée — un client à 9h pouvait apparaître après un
+autre à 11h, alors qu'il passe en réalité en premier. Même tri
+qu'ailleurs (`_suiviClientsTries`, mis en commun), appliqué au Suivi
+Collecte et France & Europe, pour que les deux écrans s'accordent
+toujours.
+
+**En attente, Cobey a aussi relevé le 14/10** (pas encore traité,
+discussion en cours) :
+- pas de bouton « imprimer toutes les étiquettes » sur l'écran d'un
+  camion France & Europe (existe côté Collecte, jamais porté) ;
+- la ligne « ✅ Collecté » (encaissé) du Suivi financier d'un camion
+  France s'est cassée en retirant « Restant à ramasser » le 14/10 —
+  elle s'accrochait à cet élément supprimé ;
+- discussion sur ce que « Suivi financier global » devrait montrer en
+  plus (facturé/encaissé déjà là, dépenses et résultat après dépenses
+  à voir — en évitant le doublon avec « Gain net (sur le ramassé) »,
+  déjà dans la carte Dépenses).

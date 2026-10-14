@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.65';
+var DEP_VERSION = 'v2.20.66';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -15385,7 +15385,7 @@ function _frRenderTimelineCamion(k){
     +   (col.dateLib ? (esc(col.dateLib) + ' &middot; ') : '') + s.traites + '/' + s.total + ' clients trait&eacute;s</div>'
     + '</div>';
 
-  var ids = tk.clients || [];
+  var ids = _suiviClientsTries(tk);
   var h = '';
   if(!ids.length){
     h = '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:30px 14px;">Aucun client affect&eacute; &agrave; ce camion.</div>';
