@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.72';
+var DEP_VERSION = 'v2.20.73';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -15543,36 +15543,21 @@ function _frFusionnerOngletCollectesDispatch(t){
 /* v2.11.6 — Cobey : « le bouton inscrire client ne doit être que sur
    la partie où on voit tous les clients [...] et les onglets, il faut
    les descendre en bas, comme dans le parcours client. » Deux
-   retouches, une fois au chargement :
-   1) la barre Clients/Collectes/Dispatch/Suivi, native en haut de
-      l'écran France, est déplacée tout en bas — même emplacement que
-      la barre de navigation Accueil/Clients/Suivi/Activité (.bottomnav)
-      utilisée partout ailleurs dans l'appli ;
-   2) le bouton "+ Inscrire un client" (natif, toujours visible) ne
-      s'affiche plus que sur l'onglet Clients. */
-function _frDeplacerOngletsEnBas(){
+   retouches à l'époque : la barre d'onglets déplacée tout en bas, et
+   le bouton "+ Inscrire un client" limité à l'onglet Clients.
+   v3.99.26 — Cobey, 14/10/2026 : « replace les onglets en haut comme
+   dans le parcours Collecte [...] reprendre la même interface. » Le
+   déplacement en bas est annulé (la barre reprend sa position native,
+   juste sous l'en-tête — déjà exactement celle de la Collecte, voir
+   #s-collecte) ; seule la 2e retouche (bouton Inscrire limité à
+   Clients) reste, elle n'a jamais été remise en cause. */
+function _frPreparerBarreInscrire(){
   var ecran = document.getElementById('s-france');
   if(!ecran) return;
-  var onglets = ecran.querySelector('.subtabs');
-  if(!onglets || onglets._depDeplace) return;
   var btnInscrire = ecran.querySelector('button[onclick="ouvrirAjoutFrance()"]');
   var barreInscrire = btnInscrire ? btnInscrire.parentNode : null;
   if(!barreInscrire) return;
   barreInscrire.id = barreInscrire.id || 'fr-barre-inscrire';
-  ecran.appendChild(onglets); // dernier enfant de l'écran : tout en bas, sous le bouton
-  onglets.style.borderBottom = 'none';
-  onglets.style.borderTop = '1.5px solid var(--border)';
-  // v2.11.8 — Cobey : « les boutons du bas sont assez petits quand
-  // même. » Plus de place pour le doigt : padding et texte agrandis
-  // sur cette barre précise (les onglets du haut, ailleurs dans
-  // l'appli — s-collecte, Espace partenaire — gardent leur taille
-  // d'origine, inchangée).
-  Array.prototype.forEach.call(onglets.querySelectorAll('.subtab'), function(tab){
-    tab.style.padding = '15px 6px';
-    tab.style.fontSize = '14.5px';
-  });
-  onglets.style.paddingBottom = 'env(safe-area-inset-bottom, 0px)';
-  onglets._depDeplace = true;
 }
 
 function _frMajBarreInscrire(t){
@@ -17903,9 +17888,9 @@ function greffer(){
   // natifs, ne connaissent pas ce 4e onglet — on les complète.
   try{ _frAjouterOngletSuivi(); }catch(e){ console.error('departs: onglet Suivi France', e); }
 
-  // v2.11.6 — onglets France descendus en bas, bouton "Inscrire un
-  // client" limité à l'onglet Clients (voir _frDeplacerOngletsEnBas).
-  try{ _frDeplacerOngletsEnBas(); }catch(e){ console.error('departs: onglets France en bas', e); }
+  // Bouton "Inscrire un client" limité à l'onglet Clients (voir
+  // _frPreparerBarreInscrire).
+  try{ _frPreparerBarreInscrire(); }catch(e){ console.error('departs: barre inscrire France', e); }
   try{ _frMajBarreInscrire(window.franceTab || 'clients'); }catch(e){}
 
   // v2.11.7 — "Collectes" et "Dispatch" fusionnés en un seul onglet

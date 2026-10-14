@@ -3851,3 +3851,25 @@ Seul le nouveau récap par collaborateur est scopé à la collecte
 ouverte ; la liste elle-même ne l'était pas avant ce correctif et ne
 l'est toujours pas (hors sujet de cette demande, mais à garder en tête
 si un jour ça surprend).
+
+### Barre d'onglets France & Europe redescendue en haut, comme la Collecte
+**Fait le 14/10 (v3.99.26 / v2.20.73).** Suite du point précédent :
+« replace les onglets en haut comme dans le parcours Collecte,
+reprendre la même interface, à gauche onglet Clients à droite onglet
+Dispatch. »
+
+Cause : `_frDeplacerOngletsEnBas` (v2.11.6, une ancienne demande de
+Cobey) déplaçait délibérément la barre d'onglets de France & Europe
+tout en bas de l'écran, au même endroit que la barre de navigation
+principale — jamais le cas côté Collecte, dont la barre reste en haut,
+juste sous l'en-tête. Cobey revient sur cette décision : il veut la
+même position qu'à Dakar.
+
+Remplacée par `_frPreparerBarreInscrire`, qui ne garde que l'autre
+moitié de la demande d'origine — toujours valable, jamais remise en
+cause — à savoir le bouton « + Inscrire un client » limité à l'onglet
+Clients. La barre d'onglets n'est plus déplacée ni restylée : elle
+reste à sa position native, en haut, déjà structurellement identique
+à la Collecte (même agencement `.header` → `.subtabs` → contenu). La
+fusion Collectes/Dispatch en un seul onglet (demande séparée, toujours
+en place) n'est pas touchée.
