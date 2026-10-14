@@ -3750,3 +3750,26 @@ fait exactement le même doublon que la ligne déjà retirée : « Collecté »
 est désormais dans le Suivi financier du camion (voir plus haut).
 Retirée à son tour : la case ne montre plus que Dépensé et Gain net
 (ramassage − dépenses), sur 2 colonnes.
+
+### « Modifier » (Report des tournées du container) ouvrait la mauvaise collecte pour France & Europe
+**Fait le 14/10 (v3.99.22 / v2.20.70).** Cobey, 2 captures à l'appui :
+« quand on clique sur modifier, dans la tournée de Abdoulaye Eric on
+tombe sur la collecte du parcours Collecte, il devrait tomber sur
+celle de France Europe, c'est une erreur. Et précise que c'est une
+collecte de France Europe dans le carré, comme ça on différencie
+direct. »
+
+Rapport financier d'un container → Dépenses du container → Report des
+tournées : le bouton « ✏️ Modifier » de chaque groupe (par collecte)
+appelait toujours `ouvrirCollecte(colId)` (Sénégal), quel que soit le
+vrai parcours du camion listé — conséquence directe du correctif
+« dépenses des camions France & Europe dans le rapport du container »
+du 14/10 (voir plus haut), qui a fait apparaître pour la première fois
+des colId France & Europe dans cette liste. Pour un tel colId,
+`ouvrirCollecte` créait même une collecte Sénégal fantôme VIDE sous
+cet id (0 client, tous les camions à 0 €) au lieu d'ouvrir la vraie
+collecte. Corrigé : le bouton détecte maintenant le parcours du colId
+et route vers `ouvrirCollecteFrance` quand il s'agit de France &
+Europe. Ajouté en plus, comme demandé : un badge « 🇪🇺 France & Europe »
+sur l'en-tête de chaque groupe qui en vient, pour distinguer les deux
+parcours d'un coup d'œil dans la liste.

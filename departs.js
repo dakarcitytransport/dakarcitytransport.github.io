@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.69';
+var DEP_VERSION = 'v2.20.70';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -22041,11 +22041,26 @@ window.depRetourContainerDepuisFixes = function(){
 // mécanique que depArchiveOuvrirCollecte (v1.92.0, plus haut) : on
 // ouvre la collecte normalement, puis on réécrit son bouton Retour pour
 // revenir ici plutôt qu'à l'écran Collecte par défaut.
+// v3.99.21 — Cobey, 14/10/2026 : « dans la tournée de Abdoulaye Eric
+// on tombe sur la collecte parcours Collecte, il devrait tomber sur
+// celle de France Europe, c'est une erreur. » _depCamionsParContainer
+// mélange désormais les deux parcours (voir le correctif container,
+// plus haut), mais ce bouton "Modifier" ouvrait toujours la collecte
+// Sénégal (ouvrirCollecte), quel que soit le vrai parcours du colId —
+// pour un colId France & Europe, ça créait même une collecte Sénégal
+// fantôme vide sous cet id. Route maintenant vers le bon écran.
+function _depColIdEstFrance(colId){
+  return !!(((window.franceData||{}).collectes||{})[colId]);
+}
 window.depFixesOuvrirCollecte = function(colId){
   var retour = _depRapfinId;
-  try{ ouvrirCollecte(colId); }catch(e){ console.error('departs: collecte du report des tournées', e); }
+  var estFr = _depColIdEstFrance(colId);
+  try{
+    if(estFr){ ouvrirFrance(); ouvrirCollecteFrance(colId); }
+    else { ouvrirCollecte(colId); }
+  }catch(e){ console.error('departs: collecte du report des tournées', e); }
   setTimeout(function(){
-    var btn = document.querySelector('#s-collecte .btn-back');
+    var btn = document.querySelector((estFr ? '#s-france' : '#s-collecte') + ' .btn-back');
     if(!btn) return;
     btn.innerHTML = '&larr; Container';
     btn.onclick = function(){ depOuvrirRapfinFixes(retour); };
@@ -22182,9 +22197,18 @@ window.depRenderDepensesFixes = function(){
       // sur sa propre ligne ; total et bouton suivent en dessous, alignés
       // à droite — plus de calcul de place à faire tenir sur une largeur
       // qui varie avec le jour de la semaine.
+      // v3.99.21 — Cobey : « précise que c'est une collecte de France
+      // Europe [...] comme ça on différencie direct » — un badge sur
+      // l'en-tête de chaque groupe qui vient de France & Europe, pour
+      // ne plus confondre les deux parcours d'un seul coup d'œil.
+      var ghEstFr = _depColIdEstFrance(g.colId);
       var gh = '<div style="margin:16px 0 7px;padding-top:12px;border-top:1px solid var(--border);">'
-        +   '<div style="font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;">'
-        +     '&#128197; ' + esc(g.colDate || '—') + '</div>'
+        +   '<div style="font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:6px;">'
+        +     '<span>&#128197; ' + esc(g.colDate || '—') + '</span>'
+        +     (ghEstFr ? ('<span style="background:#E8EAF6;color:#1a237e;border:1.5px solid #1a237e;'
+                + 'border-radius:20px;padding:1px 8px;font-size:9.5px;letter-spacing:0;text-transform:none;">'
+                + '&#127466;&#127482; France &amp; Europe</span>') : '')
+        +   '</div>'
         +   '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:5px;">'
         +     '<span style="font-size:12px;font-weight:700;color:var(--text3);">' + _depEuros(sousTotal) + ' &euro;</span>'
         // v1.94.14 : ouvre directement la collecte de ce jour-là — voir
