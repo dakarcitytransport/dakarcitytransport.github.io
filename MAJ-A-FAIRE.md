@@ -3738,3 +3738,15 @@ client ramassé est `_depMarquerRamasseCamionFrance` (departs.js) — il
 posait `tk.validated` mais jamais `tk.finTs`, dont dépend le Suivi en
 direct pour afficher « Collecté à HH:MM ». Corrigé à la bonne
 fonction, avec la même écriture que `confirmValider` côté Collecte.
+
+### Écran Dépenses : « Collecté » oublié dans la case à 3 chiffres
+**Fait le 14/10 (v3.99.21 / v2.20.69).** Cobey, sur un deuxième
+retour écran à l'appui : « ici je t'ai demandé de ne mettre que le
+total des frais de ramassage − les dépenses et le total. » Le premier
+passage (v3.99.20) avait bien retiré la ligne en double « Encaissé
+auprès des clients − dépenses », mais avait laissé la case du dessus
+à 3 chiffres (Collecté / Dépensé / Gain net) — oubliée, alors qu'elle
+fait exactement le même doublon que la ligne déjà retirée : « Collecté »
+est désormais dans le Suivi financier du camion (voir plus haut).
+Retirée à son tour : la case ne montre plus que Dépensé et Gain net
+(ramassage − dépenses), sur 2 colonnes.

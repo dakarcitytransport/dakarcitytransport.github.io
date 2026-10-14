@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.68';
+var DEP_VERSION = 'v2.20.69';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19498,11 +19498,14 @@ window.depRenderDepenses = function(){
 
   var zTot = $('dep-dep-total');
   if(zTot){
+    // v3.99.21 — Cobey, 14/10/2026 : « je veux le total des frais de
+    // ramassage − les dépenses et le total [dépensé] » — retiré
+    // « Collecté » de cette case (redondant : déjà dans « Suivi
+    // financier » du camion, voir _frInjecterEncaisseCamion /
+    // _depMajBlocDepensesCamion), ne garde que Dépensé et Gain net.
     zTot.innerHTML = '<div style="background:#fff;border:1.5px solid var(--border);'
       +   'border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">'
-      +   '<div><div style="font-size:18px;font-weight:800;color:#006b2d;">' + _depEuros(collecte) + ' &euro;</div>'
-      +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">COLLECT&Eacute;</div></div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">'
       +   '<div><div style="font-size:18px;font-weight:800;color:#B3261E;">' + (tot > 0 ? '&minus; ' : '') + _depEuros(tot) + ' &euro;</div>'
       +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">D&Eacute;PENS&Eacute;</div></div>'
       +   '<div><div style="font-size:18px;font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(net) + ' &euro;</div>'
