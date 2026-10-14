@@ -1863,7 +1863,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.15';
+var APP_VERSION = 'v3.99.16';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4203,6 +4203,22 @@ function _supprimerFiches(ids, libelle){
   });
 }
 
+// v3.99.16 — Cobey, 14/10/2026 : « je veux supprimer le client de la
+// liste, pas le contact en lui-même. » Bouton 🗑️ directement sur la
+// carte (voir _frCarte) — même garde et même logique que « 🗑️
+// Supprimer cette fiche » sur la fiche ouverte (supprimerClientFrance),
+// juste accessible sans avoir à ouvrir la fiche d'abord. _supprimerFiches
+// efface uniquement l'inscription/le colis (clients/<id>) — jamais le
+// contact (dctContacts), un carnet d'adresses à part.
+function supprimerClientFranceListe(id){
+  if(!_peutGererFrance()) return;
+  var c=(franceData.clients||{})[id];
+  if(!c){ showToastNew('⚠️ Client introuvable.'); return; }
+  if(c.statut!=='attente'){ showToastNew('⚠️ Impossible : le colis est déjà engagé.'); return; }
+  if(!confirm('Supprimer la fiche de '+(_nomAffiche(c))+' ?')) return;
+  _supprimerFiches([id], 'depuis la liste');
+}
+
 function _fichesHistorique(){
   var out=[];
   Object.keys(franceData.clients||{}).forEach(function(k){
@@ -4604,11 +4620,21 @@ function _frCarte(c){
   var boite = sel
     ? '<div onclick="event.stopPropagation();toggleSelAdmin(\''+c._id+'\')" style="width:26px;height:26px;border-radius:7px;border:2px solid '+(coche?'#009A44':'#ccc')+';background:'+(coche?'#009A44':'#fff')+';color:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;margin-right:10px;cursor:pointer;">'+(coche?'✓':'')+'</div>'
     : '';
+  // v3.99.16 — Cobey, 14/10/2026 : « j'ai pas de bouton pour supprimer
+  // le client de France Europe [...] je veux supprimer le client de la
+  // liste, pas le contact en lui-même. » Avant, seule la fiche ouverte
+  // avait "🗑️ Supprimer cette fiche" — rien directement depuis la liste.
+  // Même garde que supprimerClientFrance (statut encore "attente", pas
+  // déjà engagé) : au-delà, le bouton disparaît plutôt que d'afficher un
+  // avertissement à chaque carte.
+  var btnSuppr = (c.statut==='attente' && _peutGererFrance())
+    ? '<button type="button" onclick="event.stopPropagation();supprimerClientFranceListe(\''+c._id+'\')" style="background:#fde0e0;color:#992020;border:1.5px solid #c0392b;border-radius:7px;width:26px;height:26px;flex-shrink:0;font-size:13px;cursor:pointer;line-height:1;">🗑️</button>'
+    : '';
   return '<div onclick="'+act+'" style="'+cadre+'border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;">'
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
     +   '<div style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
     +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
-    +   '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+'</div></div>'
+    +   '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+'</div></div>'
     + '<div style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
     + '<div style="font-size:11.5px;color:#555;margin-top:5px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'
     +   '<span>📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')

@@ -3619,3 +3619,18 @@ rouvrir l'appli). Posés maintenant sur le camion lui-même, comme la
 ville de départ déjà sauvegardée juste au-dessus : survivent
 désormais à un vrai rechargement, pas seulement à une navigation dans
 l'appli.
+
+---
+
+### Bouton pour supprimer un client directement depuis la liste France & Europe
+**Fait le 14/10 (v3.99.16).** Cobey : « j'ai pas de bouton pour
+supprimer le client de France Europe, je veux supprimer le client de
+la liste, pas contact en lui-même. »
+
+Seule la fiche ouverte avait « 🗑️ Supprimer cette fiche » — rien
+directement sur la liste « Clients inscrits ». Un bouton 🗑️ apparaît
+maintenant sur chaque carte **encore en attente** (même garde que la
+fiche : une fois le colis engagé, le bouton disparaît, comme avant).
+Il supprime l'inscription — jamais le contact, qui reste dans le
+carnet d'adresses pour une prochaine fois, exactement comme la
+suppression depuis la fiche le fait déjà.
