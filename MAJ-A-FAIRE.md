@@ -3634,3 +3634,21 @@ fiche : une fois le colis engagé, le bouton disparaît, comme avant).
 Il supprime l'inscription — jamais le contact, qui reste dans le
 carnet d'adresses pour une prochaine fois, exactement comme la
 suppression depuis la fiche le fait déjà.
+
+---
+
+### Le Suivi en direct ne s'enclenchait jamais côté France & Europe
+**Fait le 14/10 (v3.99.17).** Cobey : « on a démarré la collecte mais
+le suivi ne s'est pas enclenché » puis, après vérification : « le
+bouton Waze a été cliqué. »
+
+Cause réelle : la ligne adresse du camion France ouvrait Waze
+directement, sans jamais passer par la fonction qui enregistre le
+départ (`ouvrirModalWaze`) — contrairement à la Collecte, qui, elle,
+passe toujours par cette confirmation avant d'ouvrir Waze. Le Suivi en
+direct ne passe "En route" que si cette heure de départ existe :
+resté bloqué sur "À venir" quel que soit le nombre de clics, même la
+collecte bien démarrée. Même angle mort "construit pour la Collecte
+seulement" que WhatsApp/Observation/Photos/Facture avant lui — la
+ligne adresse du camion France passe maintenant par la même
+confirmation, avec la même écriture d'heure de départ.

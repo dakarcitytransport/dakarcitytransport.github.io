@@ -1863,7 +1863,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.16';
+var APP_VERSION = 'v3.99.17';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6525,6 +6525,21 @@ function enregistrerVilleDepartFrance(){
   });
 }
 
+// v3.99.17 — Cobey, 14/10/2026 : « le suivi ne s'est pas enclenché [...]
+// le bouton Waze a été cliqué. » La ligne adresse du camion France
+// ouvrait Waze directement (window.open), sans jamais passer par
+// ouvrirModalWaze — donc sans jamais écrire wazeTs, donc le Suivi en
+// direct (qui se base dessus) restait bloqué sur "À venir" quoi qu'il
+// arrive. Petite fonction à part (plutôt qu'embarquer l'adresse brute
+// dans le onclick) pour ne pas risquer une apostrophe d'adresse
+// (« rue de l'Église ») cassant le HTML généré.
+function _frOuvrirWaze(id){
+  var c=(franceData.clients||{})[id]; if(!c) return;
+  var adresse=(c.adresse||'')+', '+(c.cp||'')+' '+(c.ville||'');
+  var waze='https://waze.com/ul?q='+encodeURIComponent(adresse)+'&navigate=yes';
+  ouvrirModalWaze(waze, adresse, id, true);
+}
+
 function renderCamionFrance(){
   var r=_frCollecteActive(); if(!r) return;
   var tk=(r.trucks||{})[_frCamion]; if(!tk) return;
@@ -6623,7 +6638,7 @@ function renderCamionFrance(){
           : ('<div style="font-size:13px;font-weight:800;flex-shrink:0;color:'+(isVal?'#006b2d':isRef?'#c0392b':heure?tc.color:'#aaa')+';">'+(heure||'--h--')+'</div>'))
       + '</div>'
       + '<div class="route-details">'
-      +   '<div class="route-detail-row" onclick="window.open(\''+waze+'\',\'_blank\')" style="cursor:pointer;">📍 <strong style="color:#009A44;text-decoration:underline;">'+adresse+'</strong></div>'
+      +   '<div class="route-detail-row" onclick="_frOuvrirWaze(\''+id+'\')" style="cursor:pointer;">📍 <strong style="color:#009A44;text-decoration:underline;">'+adresse+'</strong></div>'
       +   '<div class="route-detail-row">'+(tel?('<a href="tel:'+tel+'" style="color:#1a237e;font-weight:700;text-decoration:none;">📞 '+(c.tel||'')+'</a>'):'📞 —')+'</div>'
       +   '<div class="route-detail-row">📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')+'</div>'
       +   '<div class="route-detail-row">💰 <strong style="color:#006b2d;font-size:15px;">'+_frPrixClient(id)+' €</strong>'
@@ -11025,7 +11040,20 @@ function renderCamion(k){
 }
 
 // HEURE MODAL
-function ouvrirModalWaze(url, adresse, clientId){
+// v3.99.17 — Cobey, 14/10/2026 : « on a démarré la collecte mais le
+// suivi ne s'est pas enclenché [...] le bouton Waze a été cliqué. »
+// Cette fonction n'écrivait que dans la structure Collecte
+// (getTrucks()/currentCamion/dct/dispatch/...) — le camion France,
+// lui, n'appelait même pas cette fonction : sa ligne adresse faisait un
+// window.open() direct (voir renderCamionFrance), donc aucune écriture
+// de départ, jamais, quel que soit le clic. Le Suivi en direct (_suiviStatut)
+// ne passe en "En route" que si wazeTs[clientId] existe — resté bloqué
+// sur "À venir" pour la même raison que WhatsApp/Observation/Photos/
+// Facture avant elle (angle mort Collecte-only, généralisé le 13-14/10).
+// `estFr` (posé par l'appelant France) bascule l'écriture vers
+// _frCamion/_frCollecteActive()/france/collectes/..., même logique de
+// "premier clic fait foi" que côté Collecte.
+function ouvrirModalWaze(url, adresse, clientId, estFr){
   var el = document.getElementById('waze-adresse');
   if(el) el.textContent = adresse;
   var btn = document.getElementById('waze-btn');
@@ -11034,7 +11062,23 @@ function ouvrirModalWaze(url, adresse, clientId){
     // v2.8.6 : écriture du départ AVANT l'ouverture de Waze (ouvrir Waze
     // met Safari en veille sur iOS et interrompt tout ce qui suit).
     // set() direct sur le chemin précis, comme le finTs du bouton Livré.
-    if(currentCamion && clientId && currentCollecteId && firebaseReady && db){
+    if(estFr){
+      if(clientId && _frCamion && firebaseReady && db){
+        var r = _frCollecteActive();
+        var tk = r && (r.trucks||{})[_frCamion];
+        if(tk){
+          if(!tk.wazeTs) tk.wazeTs = {};
+          if(!tk.wazeTs[clientId]){
+            var tsF = Date.now();
+            tk.wazeTs[clientId] = tsF;
+            db.ref('france/collectes/'+r._id+'/trucks/'+_frCamion+'/wazeTs/'+clientId)
+              .set(tsF)
+              .catch(function(e){ console.log('[WAZE] erreur écriture départ (France):', e); });
+            if(typeof renderCamionFrance === 'function') renderCamionFrance();
+          }
+        }
+      }
+    } else if(currentCamion && clientId && currentCollecteId && firebaseReady && db){
       var trks = getTrucks();
       if(trks[currentCamion]){
         if(!trks[currentCamion].wazeTs) trks[currentCamion].wazeTs = {};
