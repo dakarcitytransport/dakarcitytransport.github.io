@@ -3873,3 +3873,25 @@ reste à sa position native, en haut, déjà structurellement identique
 à la Collecte (même agencement `.header` → `.subtabs` → contenu). La
 fusion Collectes/Dispatch en un seul onglet (demande séparée, toujours
 en place) n'est pas touchée.
+
+### Résultat du Suivi financier basé sur le facturé, pas le collecté — et ventilation espèces/virement
+**Fait le 14/10 (v3.99.27 / v2.20.74).** Cobey, capture à l'appui :
+« dans suivi financier le prix du résultat doit être soustrait du
+prix collecté et non facturé ! Et en dessous du résultat, faut mettre
+le total des encaissés en espèce et en virement de la tournée. »
+
+« Résultat total après dépenses » se calculait sur le FACTURÉ
+(`_frCollecteCamion`, prix + ramassage de tous les clients ramassés)
+moins les dépenses — un chiffre trop optimiste dès qu'un client n'a
+pas encore payé (« Encore dû » le montre juste au-dessus). Corrigé :
+le résultat part maintenant du COLLECTÉ (l'argent réellement rentré),
+moins les dépenses — la vraie situation de caisse de la tournée.
+
+Ajouté juste en dessous, comme demandé : deux nouvelles lignes
+« 💵 Encaissé en espèces » et « 🏦 Encaissé en virement », la somme des
+versements de la tournée ventilée par méthode (nouvelle fonction
+`_frEncaisseParMethodeCamion`) — visibles dès qu'il y a de l'encaissé,
+même sans dépense enregistrée (indépendantes de « Dépenses »/
+« Résultat », qui restent masquées tant qu'aucune dépense n'existe).
+Un versement sans méthode enregistrée (saisi avant l'ajout de ce
+champ) n'est compté dans aucun des deux plutôt que deviné.

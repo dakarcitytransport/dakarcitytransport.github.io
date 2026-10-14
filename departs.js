@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.73';
+var DEP_VERSION = 'v2.20.74';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19298,29 +19298,85 @@ function _frInjecterEncaisseCamion(){
   if(tot <= 0){
     if(rowD && rowD.parentNode) rowD.parentNode.removeChild(rowD);
     if(rowN && rowN.parentNode) rowN.parentNode.removeChild(rowN);
+  } else {
+    if(!rowD){
+      rowD = document.createElement('div');
+      rowD.id = 'frc-finance-depenses';
+      rowD.className = 'finance-row';
+      rowD.style.cssText = 'margin-top:4px;';
+    }
+    rowD.innerHTML = '<span class="finance-label">&#128176; D&eacute;penses de la tourn&eacute;e</span>'
+      + '<span class="finance-val" style="color:#B3261E;">&minus; ' + tot + ' &euro;</span>';
+    box.appendChild(rowD);
+
+    // v3.99.27 — Cobey, 14/10/2026 : « le prix du résultat doit être
+    // soustrait du prix collecté et non facturé » — le résultat réel
+    // part de l'argent réellement rentré (enc), pas de la valeur
+    // facturée (ramasse), qui peut inclure des impayés (voir "Encore
+    // dû" juste au-dessus).
+    var net = depArrondi2(enc - tot);
+    if(!rowN){
+      rowN = document.createElement('div');
+      rowN.id = 'frc-finance-net';
+      rowN.className = 'finance-row';
+      rowN.style.cssText = 'margin-top:4px;padding-top:7px;border-top:1.5px solid var(--border);';
+    }
+    rowN.innerHTML = '<span class="finance-label" style="font-weight:800;">&#9989; R&eacute;sultat total apr&egrave;s d&eacute;penses</span>'
+      + '<span class="finance-val" style="font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">'
+      + net + ' &euro;</span>';
+    box.appendChild(rowN);
+  }
+
+  // v3.99.27 — Cobey : « en dessous du résultat [...] faut mettre le
+  // total des encaissés en espèces et en virement de la tournée. »
+  var parMethode = _frEncaisseParMethodeCamion(tk);
+  var rowEsp = $('frc-finance-especes');
+  var rowVir = $('frc-finance-virement');
+  if(enc <= 0){
+    if(rowEsp && rowEsp.parentNode) rowEsp.parentNode.removeChild(rowEsp);
+    if(rowVir && rowVir.parentNode) rowVir.parentNode.removeChild(rowVir);
     return;
   }
-  if(!rowD){
-    rowD = document.createElement('div');
-    rowD.id = 'frc-finance-depenses';
-    rowD.className = 'finance-row';
-    rowD.style.cssText = 'margin-top:4px;';
+  if(!rowEsp){
+    rowEsp = document.createElement('div');
+    rowEsp.id = 'frc-finance-especes';
+    rowEsp.className = 'finance-row';
+    rowEsp.style.cssText = 'margin-top:4px;';
   }
-  rowD.innerHTML = '<span class="finance-label">&#128176; D&eacute;penses de la tourn&eacute;e</span>'
-    + '<span class="finance-val" style="color:#B3261E;">&minus; ' + tot + ' &euro;</span>';
-  box.appendChild(rowD);
+  rowEsp.innerHTML = '<span class="finance-label">&#128181; Encaiss&eacute; en esp&egrave;ces</span>'
+    + '<span class="finance-val">' + parMethode.especes + ' &euro;</span>';
+  box.appendChild(rowEsp);
 
-  var net = depArrondi2(ramasse - tot);
-  if(!rowN){
-    rowN = document.createElement('div');
-    rowN.id = 'frc-finance-net';
-    rowN.className = 'finance-row';
-    rowN.style.cssText = 'margin-top:4px;padding-top:7px;border-top:1.5px solid var(--border);';
+  if(!rowVir){
+    rowVir = document.createElement('div');
+    rowVir.id = 'frc-finance-virement';
+    rowVir.className = 'finance-row';
+    rowVir.style.cssText = 'margin-top:4px;';
   }
-  rowN.innerHTML = '<span class="finance-label" style="font-weight:800;">&#9989; R&eacute;sultat total apr&egrave;s d&eacute;penses</span>'
-    + '<span class="finance-val" style="font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">'
-    + net + ' &euro;</span>';
-  box.appendChild(rowN);
+  rowVir.innerHTML = '<span class="finance-label">&#127974; Encaiss&eacute; en virement</span>'
+    + '<span class="finance-val">' + parMethode.virement + ' &euro;</span>';
+  box.appendChild(rowVir);
+}
+
+// v3.99.27 — même somme que _frEncaisseDuCamion, mais répartie par
+// méthode de versement (espèces/virement) — un versement sans méthode
+// enregistrée (ancien, avant l'ajout de ce champ) n'est compté dans
+// aucun des deux, plutôt que deviné.
+function _frEncaisseParMethodeCamion(tk){
+  var out = { especes: 0, virement: 0 };
+  var cls = (window.franceData || {}).clients || {};
+  (tk && Array.isArray(tk.validated) ? tk.validated : []).forEach(function(id){
+    var c = cls[id];
+    if(!c || !Array.isArray(c.versements)) return;
+    c.versements.forEach(function(v){
+      var m = parseFloat(v && v.montant) || 0;
+      if(v && v.methode === 'virement') out.virement += m;
+      else if(v && v.methode === 'especes') out.especes += m;
+    });
+  });
+  out.especes = depArrondi2(out.especes);
+  out.virement = depArrondi2(out.virement);
+  return out;
 }
 
 /* Le bouton et le bilan, posés sous « Imprimer toutes les étiquettes »
