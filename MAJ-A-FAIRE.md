@@ -3819,3 +3819,35 @@ du camion » isolent maintenant `prixRamassage` seul (nouvelle fonction
 `_frFraisRamassageCamion`), moins les dépenses. Côté Collecte
 (Sénégal), aucun changement : pas de distinction colis/ramassage,
 `c.prix` EST déjà le frais de ramassage.
+
+### Onglet Dispatch (France & Europe) trop chargé : le récap par collaborateur déménage sur Clients
+**Fait le 14/10 (v3.99.25).** Cobey, capture à l'appui : « les
+montants des collaborateurs sont dans la même interface que les
+camions [...] ici je trouve que ça fait trop chargé. » Après
+discussion (déplacer sans réduire l'info n'aurait fait que charger
+l'autre écran), Cobey a précisé avec 2 captures du parcours Collecte :
+« faudra faire comme le parcours collecte, quand on clique sur une
+collecte, on tombe sur une interface à deux onglets, l'un des deux
+[Clients] c'est les clients sélectionnés pour la collecte, et l'autre
+c'est le côté dispatch. »
+
+Vérifié dans le code : côté Collecte, le récap par collaborateur
+(`collab-grid`) vit dans l'onglet **Clients** (`renderClientsTab`),
+jamais dans Dispatch (`renderDispatchTab`, camions seuls). Côté
+France & Europe, il était câblé à l'envers : posé directement dans
+`_frDispatchDetail` (l'onglet **Dispatch**), juste au-dessus des
+camions — d'où l'écran surchargé. Aligné sur Collecte :
+- le récap par collaborateur déménage sur l'onglet Clients de France &
+  Europe, scopé à la collecte ouverte (via `_frClientsDeCollecte`) ;
+- l'onglet Dispatch ne garde plus que Suivi financier global + camions ;
+- `ouvrirCollecteFrance` atterrit maintenant sur l'onglet Clients (pas
+  Dispatch), comme `ouvrirCollecte` côté Sénégal.
+
+Noté au passage (pas un bug, juste observé en testant) : contrairement
+à la Collecte Sénégal, la liste des clients de l'onglet Clients
+France & Europe n'est pas filtrée par collecte ouverte — c'est un
+inbox global (tous les clients en cours, toutes collectes confondues).
+Seul le nouveau récap par collaborateur est scopé à la collecte
+ouverte ; la liste elle-même ne l'était pas avant ce correctif et ne
+l'est toujours pas (hors sujet de cette demande, mais à garder en tête
+si un jour ça surprend).
