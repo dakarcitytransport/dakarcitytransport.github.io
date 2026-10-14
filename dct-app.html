@@ -1868,7 +1868,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.22';
+var APP_VERSION = 'v3.99.23';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6727,8 +6727,13 @@ function _frMajBlocDepenses(k){
   var resume=window._depResumeDepenses(r._id, k, 'france');
   if(e) e.textContent = resume.total>0 ? ('− '+resume.totalTexte+' €') : '—';
   if(eNet){
+    // v3.99.23 — Cobey : « voir le gain réel après dépense, mais
+    // uniquement sur le frais de ramassage [...] tu n'as même pas mis
+    // le total des frais de ramassage. » Le calcul complet, lisible :
+    // frais de ramassage − dépenses = gain net, pas juste le résultat.
     eNet.innerHTML = resume.total>0
-      ? ('Gain net (sur le ramassé) : <b style="color:'+(resume.net<0?'#B3261E':'#006b2d')+';">'+resume.netTexte+' €</b>')
+      ? ('Frais de ramassage : <b>'+resume.ramassageTexte+' €</b><br>'
+         + 'Gain net (sur le ramassé) : <b style="color:'+(resume.net<0?'#B3261E':'#006b2d')+';">'+resume.netTexte+' €</b>')
       : 'Aucune dépense enregistrée pour l\'instant.';
   }
 }

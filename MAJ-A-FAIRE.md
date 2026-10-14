@@ -3773,3 +3773,26 @@ et route vers `ouvrirCollecteFrance` quand il s'agit de France &
 Europe. Ajouté en plus, comme demandé : un badge « 🇪🇺 France & Europe »
 sur l'en-tête de chaque groupe qui en vient, pour distinguer les deux
 parcours d'un coup d'œil dans la liste.
+
+### Total des frais de ramassage manquant à deux endroits
+**Fait le 14/10 (v3.99.23 / v2.20.71).** Cobey, 2 captures à l'appui :
+« sur l'une [la mini-case Dépenses du camion] je veux une affirmation
+[réelle, pas une estimation] ! Voir le gain réel après dépense, mais
+uniquement sur le frais de ramassage, et là tu n'as même pas mis le
+total des frais de ramassage. » (L'autre capture, « Comparatif
+coûts/ramassage », est bien une estimation avant tournée — confirmée
+correcte telle quelle, aucun changement là.)
+
+Deux cas :
+1. La mini-case « Dépenses du camion » sur l'écran du camion France &
+   Europe (`_frMajBlocDepenses`) ne montrait que Dépensé et Gain net,
+   jamais le total brut des frais de ramassage dont ce gain net est la
+   soustraction. Ajouté — `_depResumeDepenses` (departs.js) expose
+   maintenant aussi ce total.
+2. L'écran Dépenses (`s-dep-depenses`) avait vu sa case « COLLECTÉ »
+   retirée au passage précédent (v3.99.21) en pensant qu'elle faisait
+   doublon avec l'encaissé réel du Suivi financier — en réalité elle
+   montrait depuis toujours le total FACTURÉ/ramassage (pas
+   l'encaissé), exactement ce qui manque ici. Mauvaise ligne retirée,
+   bon nom cette fois : remise sous « FRAIS DE RAMASSAGE », à côté de
+   Dépensé et Gain net.

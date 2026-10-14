@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.70';
+var DEP_VERSION = 'v2.20.71';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19181,8 +19181,16 @@ window._depResumeDepenses = function(colId, camion, src){
   var ctx = { colId: colId, camion: camion, src: src || 'collecte' };
   var tk = _depDepenseTruck(ctx) || {};
   var tot = _depTotalDepenses(colId, camion);
-  var net = depArrondi2(_depDepenseCollecteMontant(ctx, tk) - tot);
-  return { total: tot, totalTexte: _depEuros(tot), net: net, netTexte: _depEuros(net) };
+  // v3.99.23 — Cobey, 14/10/2026 : « voir le gain réel après dépense
+  // [...] et là tu n'as même pas mis le total des frais de ramassage. »
+  // Le résumé donnait déjà Dépensé et Gain net, mais jamais le total
+  // de frais de ramassage dont ce gain net est la soustraction —
+  // ajouté ici pour que le calcul soit lisible (ramassage − dépenses
+  // = gain net), pas juste son résultat.
+  var ramassage = _depDepenseCollecteMontant(ctx, tk);
+  var net = depArrondi2(ramassage - tot);
+  return { total: tot, totalTexte: _depEuros(tot), net: net, netTexte: _depEuros(net),
+           ramassage: ramassage, ramassageTexte: _depEuros(ramassage) };
 };
 
 // v2.20.16 — Cobey, sur le bandeau "Suivi financier global" d'une
@@ -19498,17 +19506,21 @@ window.depRenderDepenses = function(){
 
   var zTot = $('dep-dep-total');
   if(zTot){
-    // v3.99.21 — Cobey, 14/10/2026 : « je veux le total des frais de
-    // ramassage − les dépenses et le total [dépensé] » — retiré
-    // « Collecté » de cette case (redondant : déjà dans « Suivi
-    // financier » du camion, voir _frInjecterEncaisseCamion /
-    // _depMajBlocDepensesCamion), ne garde que Dépensé et Gain net.
+    // v3.99.23 — Cobey, 14/10/2026 : « tu n'as même pas mis le total
+    // des frais de ramassage. » Le v3.99.21 avait bien retiré le
+    // doublon avec le Suivi financier, mais retiré la mauvaise ligne :
+    // la case s'appelait « COLLECTÉ » mais montrait déjà, depuis
+    // toujours, le total FACTURÉ/ramassage (collecte, pas l'encaissé
+    // réel) — exactement le chiffre redemandé ici. Remise, avec le
+    // bon nom cette fois : Frais de ramassage / Dépensé / Gain net.
     zTot.innerHTML = '<div style="background:#fff;border:1.5px solid var(--border);'
       +   'border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">'
-      +   '<div><div style="font-size:18px;font-weight:800;color:#B3261E;">' + (tot > 0 ? '&minus; ' : '') + _depEuros(tot) + ' &euro;</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">'
+      +   '<div><div style="font-size:16px;font-weight:800;color:#1a237e;">' + _depEuros(collecte) + ' &euro;</div>'
+      +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">FRAIS DE RAMASSAGE</div></div>'
+      +   '<div><div style="font-size:16px;font-weight:800;color:#B3261E;">' + (tot > 0 ? '&minus; ' : '') + _depEuros(tot) + ' &euro;</div>'
       +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">D&Eacute;PENS&Eacute;</div></div>'
-      +   '<div><div style="font-size:18px;font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(net) + ' &euro;</div>'
+      +   '<div><div style="font-size:16px;font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(net) + ' &euro;</div>'
       +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">GAIN NET</div></div>'
       + '</div>'
       + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:10px;padding-top:9px;'
