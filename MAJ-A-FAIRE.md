@@ -3796,3 +3796,26 @@ Deux cas :
    l'encaissé), exactement ce qui manque ici. Mauvaise ligne retirée,
    bon nom cette fois : remise sous « FRAIS DE RAMASSAGE », à côté de
    Dépensé et Gain net.
+
+### « Frais de ramassage » confondait prix du colis et frais de ramassage (France & Europe)
+**Fait le 14/10 (v3.99.24 / v2.20.72).** Suite immédiate du point
+précédent : Cobey a demandé confirmation — « tu as bien compris que
+les frais de ramassage c'est pas le prix total facturé ? [...] Ces
+clients on facture le ramassage de leurs colis pour Dakar [séparément
+du colis]. » Vérification faite : `_frCollecteCamion` (utilisé pour
+« FRAIS DE RAMASSAGE » dans le point précédent) additionne `prix` (le
+colis/transport) ET `prixRamassage` (le vrai frais de ramassage —
+gratuit en Île-de-France, payant ailleurs, champ « fa-ramassage » de
+la fiche) : c'était donc le total facturé, pas le frais de ramassage
+seul.
+
+Cobey a précisé où chaque calcul est juste : « le Suivi financier est
+bon, car là on parle du total des colis + le prix du ramassage » —
+resté inchangé, `_frInjecterEncaisseCamion` continue d'appeler
+`_frCollecteCamion` directement. Mais « dans ce que je t'ai demandé
+après, c'est d'avoir uniquement le prix des frais de ramassage et en
+déduire les dépenses » — l'écran Dépenses et la mini-case « Dépenses
+du camion » isolent maintenant `prixRamassage` seul (nouvelle fonction
+`_frFraisRamassageCamion`), moins les dépenses. Côté Collecte
+(Sénégal), aucun changement : pas de distinction colis/ramassage,
+`c.prix` EST déjà le frais de ramassage.

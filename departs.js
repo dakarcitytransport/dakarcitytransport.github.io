@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.71';
+var DEP_VERSION = 'v2.20.72';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19169,8 +19169,14 @@ function _depDepenseTruck(ctx){
   var dc = ((window.dispatchParCollecte||{})[ctx.colId]) || {};
   return (dc.trucks||{})[ctx.camion] || null;
 }
+// v3.99.24 — Cobey : « uniquement le prix des frais de ramassage, et
+// en déduire les dépenses » — sert à la case « Dépenses du camion »
+// (Frais de ramassage − Dépenses), distincte du Suivi financier qui
+// reste sur le total colis + ramassage (_frCollecteCamion). Côté
+// Collecte (Sénégal), pas de distinction colis/ramassage : c.prix EST
+// déjà le frais de ramassage, _depCollecteDuCamion reste inchangé.
 function _depDepenseCollecteMontant(ctx, tk){
-  return ctx.src === 'france' ? _frCollecteCamion(tk) : _depCollecteDuCamion(tk);
+  return ctx.src === 'france' ? _frFraisRamassageCamion(tk) : _depCollecteDuCamion(tk);
 }
 // v3.99.0 — departs.js s'exécute dans sa propre fermeture : rien ici
 // n'est visible depuis dct-app.html (autre script) sauf ce qui est posé

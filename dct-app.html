@@ -1868,7 +1868,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.23';
+var APP_VERSION = 'v3.99.24';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5717,6 +5717,21 @@ function _frNomDept(code){
 function _frPrixClient(id){ var c=(franceData.clients||{})[id]; return c?((c.prix||0)+(c.prixRamassage||0)):0; }
 function _frTotalCamion(tk){ return ((tk&&tk.clients)||[]).reduce(function(s,id){ return s+_frPrixClient(id); },0); }
 function _frCollecteCamion(tk){ return ((tk&&tk.validated)||[]).reduce(function(s,id){ return s+_frPrixClient(id); },0); }
+// v3.99.24 — Cobey, 14/10/2026 : « le suivi financier est bon, car là
+// on parle du total des colis + le prix du ramassage, mais [...] c'est
+// d'avoir uniquement le prix des frais de ramassage [et] en déduire
+// les dépenses. » _frCollecteCamion additionne prix (colis) ET
+// prixRamassage (le vrai frais de ramassage — gratuit en Île-de-France,
+// payant ailleurs, voir fa-ramassage) ; celle-ci isole prixRamassage
+// seul, pour la case « Dépenses du camion » (Frais de ramassage −
+// Dépenses = Gain net), distincte du Suivi financier qui garde à
+// raison le total colis + ramassage.
+function _frFraisRamassageCamion(tk){
+  var cls = franceData.clients || {};
+  return ((tk && tk.validated) || []).reduce(function(s, id){
+    var c = cls[id]; return s + (c ? (parseFloat(c.prixRamassage) || 0) : 0);
+  }, 0);
+}
 // v3.99.0 — l'argent réellement encaissé (pas seulement facturé) des
 // clients ramassés par ce camion, même lecture que _depEncaisseDuCamion
 // côté Collecte (versements réels, pas la valeur du colis) — sert à la
