@@ -3667,6 +3667,25 @@ qu'ailleurs (`_suiviClientsTries`, mis en commun), appliqué au Suivi
 Collecte et France & Europe, pour que les deux écrans s'accordent
 toujours.
 
+### Dépenses du camion France & Europe absentes du rapport financier du container
+**Fait le 14/10 (v3.99.19 / v2.20.67).** Cobey, devant le rapport
+financier d'un container : « les dépenses de la tournée du camion
+n'apparaissent pas dans le rapport financier du container [...] dans
+parcours client ça s'ajoute » puis, après explication de la logique :
+« Donc tu vas corriger ça ? Pour France ? »
+
+Cause réelle : `_depCamionsParContainer` (le calcul de « Tournées des
+camions » dans le rapport d'un container) ne regardait que les
+collectes et camions côté Sénégal (`collectes`/`clientsParCollecte`/
+`dispatchParCollecte`) — un camion France & Europe enregistre ses
+dépenses exactement au même endroit (`dct_depenses/<collecteId>/
+<camion>`), mais n'était jamais pris en compte dans le rapport d'un
+container. Même angle mort "construit pour la Collecte seulement".
+Généralisé : la même logique de répartition (proportionnelle entre
+plusieurs containers servis le même jour par un camion, avec le repli
+Mali si le camion n'a validé que des clients Mali) s'applique
+maintenant aussi aux collectes France & Europe.
+
 **En attente, Cobey a aussi relevé le 14/10** (pas encore traité,
 discussion en cours) :
 - pas de bouton « imprimer toutes les étiquettes » sur l'écran d'un
@@ -3677,4 +3696,7 @@ discussion en cours) :
 - discussion sur ce que « Suivi financier global » devrait montrer en
   plus (facturé/encaissé déjà là, dépenses et résultat après dépenses
   à voir — en évitant le doublon avec « Gain net (sur le ramassé) »,
-  déjà dans la carte Dépenses).
+  déjà dans la carte Dépenses) ;
+- la validation d'un client France & Europe ne clôture pas son entrée
+  dans le Suivi en direct (pas d'heure de fin enregistrée, contrairement
+  à la Collecte).

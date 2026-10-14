@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.66';
+var DEP_VERSION = 'v2.20.67';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -21462,11 +21462,28 @@ function _depCollecteExiste(colId){
   return cols.some(function(c){ return c && c.id === colId; });
 }
 
-// Toutes les dépenses de tournée, toutes collectes et tous camions.
+// v3.99.19 — Cobey, 14/10/2026 : « les dépenses de la tournée du
+// camion n'apparaissent pas dans le rapport financier du container. »
+// _depCollecteExiste ne connaît que window.collectes (Sénégal) — un
+// colId de collecte France & Europe (franceData.collectes) y était
+// donc traité comme "collecte orpheline" et purement ignoré, alors que
+// ses dépenses de camion sont enregistrées au même endroit
+// (dct_depenses) que côté Collecte. Même prudence que
+// _depCollecteExiste : tant que window.collectes n'est pas chargé, on
+// ne déclare rien orphelin.
+function _depColIdValide(colId){
+  var cols = window.collectes;
+  if(!Array.isArray(cols) || !cols.length) return true;
+  if(cols.some(function(c){ return c && c.id === colId; })) return true;
+  return !!(((window.franceData || {}).collectes || {})[colId]);
+}
+
+// Toutes les dépenses de tournée, toutes collectes et tous camions
+// (Collecte ET France & Europe — voir _depColIdValide).
 function _depTotalDepensesCamions(){
   var t = 0, src = window.depensesData || {};
   Object.keys(src).forEach(function(colId){
-    if(!_depCollecteExiste(colId)) return;
+    if(!_depColIdValide(colId)) return;
     var parCamion = src[colId] || {};
     Object.keys(parCamion).forEach(function(cam){
       var lignes = parCamion[cam] || {};
@@ -21741,9 +21758,10 @@ window.depRenderRapfinBilan = function(){
 // nombre de clients de chacun. Sert de repli quand un camion n'a
 // ramassé que des colis maliens : ses frais restent portés par le
 // Sénégal, à l'échelle de la journée (voir plus bas).
-function _depContainersSNdeCollecte(colId){
-  var cls = (window.clientsParCollecte || {})[colId] || {};
-  var trucks = ((window.dispatchParCollecte || {})[colId] || {}).trucks || {};
+// v3.99.19 — généralisée : prend cls/trucks déjà résolus (Collecte OU
+// France & Europe) au lieu de les relire elle-même à partir d'un colId
+// Collecte supposé — voir _depCamionsParContainer.
+function _depContainersSNde(cls, trucks){
   var parDepart = {}, n = 0;
   Object.keys(trucks).forEach(function(cam){
     var tk = trucks[cam] || {};
@@ -21758,16 +21776,29 @@ function _depContainersSNdeCollecte(colId){
   });
   return { parDepart: parDepart, n: n };
 }
+// Ancienne signature (colId Collecte), gardée pour ne rien casser si
+// appelée ailleurs un jour.
+function _depContainersSNdeCollecte(colId){
+  return _depContainersSNde((window.clientsParCollecte || {})[colId] || {}, ((window.dispatchParCollecte || {})[colId] || {}).trucks || {});
+}
 
+// v3.99.19 — Cobey, 14/10/2026 : « les dépenses de la tournée du
+// camion n'apparaissent pas dans le rapport financier du container. »
+// Cette fonction ne lisait que clientsParCollecte/dispatchParCollecte
+// (Collecte/Sénégal) — un camion France & Europe avait beau avoir des
+// dépenses enregistrées (même stockage dct_depenses que la Collecte,
+// voir _depDepensesDe) et des clients bien rattachés à un container,
+// jamais comptés ici. _depCollecteExiste rejetait même d'entrée tout
+// colId de collecte France (inconnu de window.collectes). Le calcul
+// lui-même (parDepart/repli Mali) ne dépendait déjà que de cls/trucks
+// en paramètre — extrait en traiterCamions, appelé une fois pour
+// chaque collecte Sénégal et une fois pour chaque collecte France.
 function _depCamionsParContainer(departId){
   var out = [];
   var src = window.depensesData || {};
-  Object.keys(src).forEach(function(colId){
-    if(!_depCollecteExiste(colId)) return;
+
+  function traiterCamions(colId, cls, trucks, colDate){
     var parCamion = src[colId] || {};
-    var cls = (window.clientsParCollecte || {})[colId] || {};
-    var trucks = ((window.dispatchParCollecte || {})[colId] || {}).trucks || {};
-    var col = (window.collectes || []).find(function(x){ return x.id === colId; }) || {};
     var snCollecte = null;   // calculé à la demande, une seule fois
     Object.keys(parCamion).forEach(function(cam){
       var lignes = parCamion[cam] || {};
@@ -21801,7 +21832,7 @@ function _depCamionsParContainer(departId){
          — le même jour, les mêmes camions, comme Cobey l'a formulé. */
       var repli = false;
       if(!n){
-        if(!snCollecte) snCollecte = _depContainersSNdeCollecte(colId);
+        if(!snCollecte) snCollecte = _depContainersSNde(cls, trucks);
         parDepart = snCollecte.parDepart;
         n = snCollecte.n;
         repli = true;
@@ -21815,10 +21846,10 @@ function _depCamionsParContainer(departId){
       // septembre" passait AVANT "Dimanche 20 septembre", le "2" de 20
       // étant alphabétiquement avant le "6") — jamais un vrai ordre de
       // dates.
-      var dCol = _depParseDateSure(col.date);
+      var dCol = _depParseDateSure(colDate);
       out.push({
         colId: colId,
-        colDate: col.date || '',
+        colDate: colDate || '',
         colTs: (dCol && !isNaN(dCol.getTime())) ? dCol.getTime() : 0,
         camion: cam,
         nom: tk.name || 'Camion',
@@ -21831,6 +21862,16 @@ function _depCamionsParContainer(departId){
         montantCamion: depArrondi2(total)
       });
     });
+  }
+
+  Object.keys(src).forEach(function(colId){
+    var colSN = (window.collectes || []).find(function(x){ return x && x.id === colId; });
+    if(colSN){
+      traiterCamions(colId, (window.clientsParCollecte||{})[colId]||{}, ((window.dispatchParCollecte||{})[colId]||{}).trucks||{}, colSN.date);
+      return;
+    }
+    var rFr = ((window.franceData||{}).collectes||{})[colId];
+    if(rFr) traiterCamions(colId, (window.franceData||{}).clients||{}, rFr.trucks||{}, rFr.dateLib);
   });
   return out.sort(function(a,b){ return b.colTs - a.colTs; });
 }
