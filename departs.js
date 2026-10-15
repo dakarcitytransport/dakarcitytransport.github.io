@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.79';
+var DEP_VERSION = 'v2.20.80';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8594,6 +8594,12 @@ window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, vi
 window.depOuvrirFactureFrance = function(clientId, viaFidelite, retourCamion){
   var c = ((window.franceData||{}).clients||{})[clientId];
   if(!c){ toast('⚠️ Facture introuvable.'); return; }
+  // v3.99.35 — client "Parti" archivé : voir le même correctif sur
+  // window.ouvrirFicheFrance ci-dessus.
+  if(c._archive && !(c.colisDetail || c.hist)){
+    _frAssurerDetailClientArchive(clientId, function(){ window.depOuvrirFactureFrance(clientId, viaFidelite, retourCamion); });
+    return;
+  }
   _depFactureCtx = { collecteId: '', clientId: clientId, depot: false, france: true };
   window._depDocVientDepart = false;
   var btnRetour = $('dep-fact-retour');
@@ -9419,6 +9425,14 @@ function depAfficherFacturePublique(ctx, cbApresQR){
   if(chargement) chargement.style.display = 'none';
   if(!c){
     if(erreur) erreur.style.display = 'block';
+    return;
+  }
+  // v3.99.35 — même correctif que depOuvrirFactureFrance : un client
+  // France "Parti" archivé n'a plus colisDetail/hist dans la copie live
+  // (voir _frArchiverClientParti) — on va chercher le détail complet
+  // avant d'afficher cette facture (lien profond, "Imprimer/PDF"...).
+  if(ctx && ctx.france && c._archive && !c.colisDetail){
+    _frAssurerDetailClientArchive(ctx.clientId, function(){ depAfficherFacturePublique(ctx, cbApresQR); });
     return;
   }
   if(contenu) contenu.style.display = 'block';
@@ -11345,6 +11359,14 @@ window.depValiderFactureFinaleFrance = function(){
   c.hist = hist;
 
   _depEcrireFacture(ctx, maj);
+
+  // v3.99.35 — archivage (voir le correctif de lenteur en France &
+  // Europe) : seulement au vrai départ (maj.statut==='parti' posé juste
+  // au-dessus), jamais sur un ré-appel de rattrapage (facture déjà
+  // validée, déjà parti).
+  if(maj.statut === 'parti'){
+    try{ _frArchiverClientParti(ctx.clientId, c); }catch(e){ console.error('departs: archivage client France', e); }
+  }
 
   toast('✅ Facture validée');
   depRenderFacture(c);
@@ -15543,6 +15565,76 @@ function _frReconcilierStatutsRamasses(){
   }
 }
 
+/* ─────────────────────────────────────────────
+   v3.99.35 — ARCHIVAGE DES CLIENTS "PARTI" (France & Europe)
+
+   Cobey : « l'appli a encore des lenteurs [...] chargement de page lent,
+   bouton non clicable », en France & Europe spécifiquement. Cause : rien
+   ne retire jamais un client de franceData.clients, même une fois son
+   colis expédié depuis longtemps — l'écoute Firebase télécharge donc
+   l'historique COMPLET de l'activité France & Europe (des mois de
+   clients) à chaque ouverture de l'appli, même sur un réseau faible en
+   tournée.
+
+   Les clients "En attente"/"Planifié" doivent rester tels quels, même
+   très anciens (Cobey : « c'est des client qui attente car on est pas
+   encore passé chez eux, ramasse France ça peut être long » — un vrai
+   dossier en cours, pas un oubli). Seuls les clients "Parti" (colis
+   déjà expédié, dossier clos) sont concernés.
+
+   Pour ne RIEN casser des rapports financiers par container ni de
+   l'historique des factures (qui filtrent tous franceData.clients par
+   departId, voir window.depDetail et consorts), on ne supprime PAS le
+   client de la liste live — on l'allège : les deux champs qui grossissent
+   le plus avec le temps (colisDetail : détail de chaque colis ; hist :
+   historique complet des modifications) partent dans une archive à part
+   (france_archive/clients/<id>), pas téléchargée par défaut. Tout le
+   reste (prix, versements, dates, departId, statut...) reste dans
+   franceData.clients comme avant : les listes, comptages et rapports
+   fonctionnent sans aucun changement de code ailleurs. Seule l'ouverture
+   de la FICHE ou de la FACTURE détaillée d'un client déjà archivé va
+   chercher le détail complet à la demande (voir
+   _frAssurerDetailClientArchive, ci-dessous) — un peu plus long une fois,
+   sur une vieille fiche, jamais au chargement normal de l'appli.
+   ───────────────────────────────────────────── */
+function _frArchiverClientParti(id, c){
+  if(!window.db || !window.firebaseReady || !c) return;
+  var full = Object.assign({}, c);
+  full._id = id;
+  var maj = {};
+  maj['france_archive/clients/' + id] = full;
+  maj['france/clients/' + id + '/colisDetail'] = null;
+  maj['france/clients/' + id + '/hist'] = null;
+  maj['france/clients/' + id + '/_archive'] = true;
+  window.db.ref().update(maj).catch(function(e){ console.error('departs: archivage client France', e); });
+  // v3.99.35 : on ne retire PAS colisDetail/hist de la copie en mémoire
+  // ici — la facture qu'on vient de valider s'affiche juste après avec
+  // ces mêmes champs (voir depValiderFactureFinaleFrance). Seule la
+  // copie envoyée à Firebase ci-dessus est allégée ; au prochain
+  // chargement de l'appli (cet appareil ou un autre), c'est cette
+  // version allégée qui sera téléchargée, et _frAssurerDetailClientArchive
+  // saura aller rechercher le détail complet à la demande.
+  c._archive = true;
+}
+
+// Va chercher le détail complet (colisDetail, hist) d'un client archivé,
+// une seule fois, avant d'afficher sa fiche ou sa facture — invisible en
+// usage normal (callback immédiat) tant que le client n'est pas archivé
+// ou que son détail est déjà là.
+function _frAssurerDetailClientArchive(id, callback){
+  var c = ((window.franceData || {}).clients || {})[id];
+  if(!c || !c._archive || c.colisDetail || c.hist){ callback(); return; }
+  if(!window.db || !window.firebaseReady){ callback(); return; }
+  db.ref('france_archive/clients/' + id).once('value').then(function(snap){
+    var full = snap.val();
+    if(full){
+      full._id = id;
+      window.franceData.clients[id] = full;
+    }
+    callback();
+  }).catch(function(e){ console.error('departs: récupération détail archivé France', e); callback(); });
+}
+
 // v3.99.32 — garde-fou anti-rafale : sans ça, renderFrance() (appelé à
 // chaque interaction ET à chaque écho Firebase de l'écoute large sur
 // france/) pouvait réécrire le même statut plusieurs fois de suite avant
@@ -17268,6 +17360,15 @@ function greffer(){
   if(typeof window.ouvrirFicheFrance === 'function' && !window.ouvrirFicheFrance._depPatch){
     window.ouvrirFicheFrance = function(id){
       window.franceClientId = id;
+      // v3.99.35 — client "Parti" archivé (voir le correctif de lenteur
+      // en France & Europe) : son détail complet (colisDetail, hist)
+      // n'est plus téléchargé par défaut, seulement à la demande ici,
+      // avant d'afficher sa fiche.
+      var _c = ((window.franceData || {}).clients || {})[id];
+      if(_c && _c._archive && !(_c.colisDetail || _c.hist) && typeof _frAssurerDetailClientArchive === 'function'){
+        _frAssurerDetailClientArchive(id, function(){ window.ouvrirFicheFrance(id); });
+        return;
+      }
       depRenderFicheLecture('', id, false, true);
       try{
         var retour = _depFicheFranceRetour;

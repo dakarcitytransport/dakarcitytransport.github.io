@@ -860,12 +860,7 @@ var _connexionAnonyme = firebase.auth
         ? db.ref('dct_depot/' + ctx.clientId)
         : db.ref('dct/clients/' + ctx.collecteId + '/' + ctx.clientId));
 
-  _connexionAnonyme.then(function(){ return refClient.once('value'); }).then(function(snap){
-    var c = snap.val();
-    var chargement = $('pub-chargement');
-    if(chargement) chargement.style.display = 'none';
-    if(!c){ afficherErreur(); return; }
-
+  function suiteAffichageFacture(c){
     // Deux petites lectures ciblées supplémentaires, en parallèle,
     // JAMAIS toute la base : la référence permanente du client (lecture
     // seule) et, si un départ est déjà rattaché, ses infos pour le suivi
@@ -877,7 +872,7 @@ var _connexionAnonyme = firebase.auth
       ? db.ref('departs/' + c.departId).once('value').catch(function(){ return null; })
       : Promise.resolve(null);
 
-    Promise.all([pRef, pDepart]).then(function(res){
+    return Promise.all([pRef, pDepart]).then(function(res){
       var refSnap = res[0], departSnap = res[1];
       window._depRefsCache = {};
       if(refSnap && refSnap.val()) window._depRefsCache[cle] = refSnap.val();
@@ -889,6 +884,29 @@ var _connexionAnonyme = firebase.auth
       window._depPubFactureCtx = { ctx: ctx, c: c };
       depRenderFacturePublique(c, ctx);
     });
+  }
+
+  _connexionAnonyme.then(function(){ return refClient.once('value'); }).then(function(snap){
+    var c = snap.val();
+    var chargement = $('pub-chargement');
+    if(chargement) chargement.style.display = 'none';
+    if(!c){ afficherErreur(); return; }
+
+    // v3.99.35 — commentaire jumeau : voir _frArchiverClientParti dans
+    // departs.js. Un client France "Parti" depuis longtemps a son détail
+    // (colisDetail, la liste des colis de la facture) allégé de la copie
+    // "live" pour ne plus ralentir le chargement de l'appli interne — ce
+    // détail reste nécessaire ICI, sur la facture PUBLIQUE que le client
+    // consulte via son lien WhatsApp. On va donc le rechercher dans
+    // l'archive avant de continuer, si besoin (invisible si le client
+    // n'est pas archivé ou si son détail est déjà complet).
+    if(ctx.france && c._archive && !c.colisDetail){
+      return db.ref('france_archive/clients/' + ctx.clientId).once('value').then(function(archSnap){
+        var full = archSnap.val();
+        return suiteAffichageFacture(full || c);
+      });
+    }
+    return suiteAffichageFacture(c);
   }).catch(function(e){
     console.error('facture: lecture Firebase', e);
     afficherErreur();

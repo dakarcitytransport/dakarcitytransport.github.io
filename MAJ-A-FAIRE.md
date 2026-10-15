@@ -4057,3 +4057,38 @@ un client apparaît déjà validé dans un camion (ce qui fait afficher
 elle est corrigée automatiquement, sans aucune action de personne. La
 fiche disparaît alors d'elle-même de la carte et de la liste des
 clients, exactement comme pour un ramassage normal.
+
+### Lenteur persistante en France & Europe : archivage des clients "Parti"
+**Fait le 15/10 (v3.99.35 + départs v2.20.80).** Cobey, après les deux
+correctifs précédents : « l'appli a encore des lenteurs [...] dans
+France Europe c'est là que je galère beaucoup, chargement de page
+lent, bouton non clicable. »
+
+Cause, différente des deux précédentes : rien ne retirait jamais un
+client de `franceData.clients`, même son colis expédié depuis des
+mois — l'écoute Firebase télécharge donc l'historique COMPLET de
+l'activité France & Europe à chaque ouverture de l'appli, y compris
+sur un réseau faible en tournée. Plus l'activité s'accumule, plus ce
+téléchargement grossit.
+
+Cobey a confirmé que les clients « En attente »/« Planifié », même
+très anciens, sont un vrai travail en cours (« c'est des client qui
+attente car on est pas encore passé chez eux, ramasse France ça peut
+être long, faut le temps de s'organiser ») — ils ne doivent JAMAIS
+être touchés, quel que soit leur âge. Seuls les clients « Parti »
+(colis déjà expédié, dossier clos) sont concernés par ce correctif.
+
+Pour ne rien casser des rapports financiers par container ni des
+factures déjà envoyées (qui listent tous les clients d'un départ en
+filtrant `franceData.clients` par `departId`), le client n'est pas
+supprimé de la liste — seuls les deux champs qui grossissent le plus
+avec le temps (`colisDetail`, le détail colis par colis, et `hist`,
+l'historique complet des modifications) partent dans une archive à
+part (`france_archive/clients/<id>`), retirés de la copie téléchargée
+par défaut. Tout le reste (prix, versements, dates, container, statut)
+reste en place : les rapports, listes et comptages fonctionnent sans
+aucun changement. Seule l'ouverture de LA fiche ou LA facture d'un
+client déjà archivé va rechercher son détail complet à la demande —
+invisible en usage normal, un peu plus long une seule fois sur une
+vieille fiche (y compris sur la facture publique que le client
+consulte via son lien WhatsApp, `facture.html`, corrigée à l'identique).
