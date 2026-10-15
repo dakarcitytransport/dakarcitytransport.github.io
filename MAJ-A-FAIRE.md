@@ -3939,3 +3939,28 @@ comme côté France & Europe (voir plus haut, v3.99.27). Ajoutée aussi,
 comme demandé : la ventilation « Encaissé en espèces »/« Encaissé en
 virement » (nouvelle fonction `_depEncaisseParMethodeCamion`, miroir
 de `_frEncaisseParMethodeCamion`), jusque-là absente côté Collecte.
+
+### Collectes France & Europe : date libre + possibilité de la changer
+**Fait le 15/10 (v3.99.30).** Cobey : « pour les dates de collecte de
+France Europe, actuellement ils sont sélectionnables pour les
+dimanches [...] il faudrait changer ça parce qu'en fait, France
+Europe, on peut aller faire des collectes n'importe quel jour [...]
+un lundi, un mardi, un mercredi. Et il faudrait aussi mettre la
+possibilité, une fois qu'on a fait une tournée, de changer la date
+[...] on programme une tournée pour un lundi, mais pour X raisons, la
+tournée va changer, elle sera pour un mercredi. »
+
+Deux correctifs, tous deux propres à France & Europe (la Collecte
+Sénégal reste au dimanche, inchangée — sa restriction a un vrai sens
+là-bas) :
+1. **Création d'une collecte** — la grille des 6 prochains dimanches +
+   le mode « jour exceptionnel » (détour pour saisir une autre date)
+   sont retirés, remplacés par un simple sélecteur de date libre,
+   pré-rempli sur le prochain dimanche à titre de repère mais modifiable
+   vers n'importe quel jour.
+2. **Changer la date d'une collecte déjà créée** — n'existait pas
+   (seul le statut se changeait, via le « ✏️ » sur chaque carte de
+   collecte). La même fenêtre porte maintenant aussi un champ date ;
+   l'enregistrer recalcule le libellé et, sauf collecte déjà « Terminé »,
+   le statut En cours/À venir selon la semaine — avec le même garde-fou
+   qu'à la création contre deux collectes à la même date.

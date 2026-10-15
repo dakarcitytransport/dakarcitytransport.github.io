@@ -591,12 +591,14 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   </div>
 </div>
 
-<!-- NOUVELLE COLLECTE FRANCE & EUROPE — même écran que "Nouvelle collecte"
-     (s-new, Collecte Dakar) : même choix du dimanche, même case "jour
-     exceptionnel" + raison, même calcul automatique du statut. Seule
-     différence volontaire avec la Collecte : ici les clients existent
-     déjà dans le vivier "attente" avant la collecte (pas l'inverse), donc
-     on enchaîne sur le choix des clients juste après la création. -->
+<!-- NOUVELLE COLLECTE FRANCE & EUROPE — même calcul automatique du
+     statut que "Nouvelle collecte" (s-new, Collecte Dakar), mais une
+     date libre plutôt qu'un choix de dimanche (v3.99.30 : une tournée
+     France & Europe peut avoir lieu n'importe quel jour, contrairement
+     à la Collecte Dakar). Différence volontaire avec la Collecte : ici
+     les clients existent déjà dans le vivier "attente" avant la
+     collecte (pas l'inverse), donc on enchaîne sur le choix des
+     clients juste après la création. -->
 <div class="screen" id="s-new-france">
   <div class="header">
     <button class="btn-back" onclick="goTo('s-france')">← Retour</button>
@@ -604,16 +606,14 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     <div style="width:60px;"></div>
   </div>
   <div class="content">
-    <div class="slabel">Choisir le dimanche</div>
-    <div class="sunday-grid" id="sunday-grid-fr"></div>
-    <div class="toggle-wrap">
-      <span class="toggle-label">Jour exceptionnel</span>
-      <button class="toggle-btn" id="excep-toggle-fr" onclick="toggleExcepFrance()"></button>
-    </div>
-    <div id="excep-fields-fr" style="display:none;">
-      <div class="fg" style="margin-top:12px;"><label class="fl">Date</label><input class="fi" type="date" id="excep-date-fr"></div>
-      <div class="fg"><label class="fl">Raison (optionnel)</label><input class="fi" id="excep-raison-fr" placeholder="ex: départ anticipé client"></div>
-    </div>
+    <!-- v3.99.30 — Cobey, 15/10/2026 : « France Europe, on peut aller
+         faire des collectes n'importe quel jour [...] un lundi, un
+         mardi, un mercredi. » Contrairement à la Collecte (Dakar),
+         toujours le dimanche, le choix du jour n'a pas de sens à
+         restreindre ici — un simple sélecteur de date libre remplace
+         la grille de dimanches + le mode "jour exceptionnel" (qui
+         n'était qu'un détour pour arriver au même résultat). -->
+    <div class="fg"><label class="fl">Date de la collecte</label><input class="fi" type="date" id="fr-date-collecte"></div>
     <div style="margin-top:20px;">
       <button class="btn btn-green" onclick="creerCollecteFrance()">✅ Créer cette collecte</button>
       <button class="btn btn-gray" onclick="goTo('s-france')">✕ Annuler</button>
@@ -1868,7 +1868,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.29';
+var APP_VERSION = 'v3.99.30';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2005,7 +2005,6 @@ var curAnnulerId = null, curAnnulerTk = null, curAnnulerType = null;
 var curSupprimerCamion = null;
 var _pendingAffect = null;
 var excepOn = false;
-var excepOnFrance = false; // même principe que excepOn, pour s-new-france
 var activeFilter = '';
 var truckCount = 0;
 var collectes = [];
@@ -4996,58 +4995,24 @@ function _frSauverCollecte(r, maj){
 function nouvelleCollecteFrance(){
   if(!_peutGererFrance()) return;
   if(!firebaseReady){ showToastNew('⏳ Chargement en cours, réessaie dans quelques secondes…'); return; }
-  excepOnFrance=false;
-  var et=document.getElementById('excep-toggle-fr'); if(et) et.classList.remove('on');
-  var ef=document.getElementById('excep-fields-fr'); if(ef) ef.style.display='none';
-  var sg=document.getElementById('sunday-grid-fr'); if(sg){ sg.style.opacity='1'; sg.style.pointerEvents='auto'; }
-  buildSundaysFrance();
+  // v3.99.30 : pré-rempli sur le prochain dimanche (repère familier,
+  // comme avant), mais n'importe quel autre jour reste un simple tap.
+  var dInp=document.getElementById('fr-date-collecte');
+  if(dInp){
+    var d=new Date(); d.setDate(d.getDate() + ((7-d.getDay())%7||7));
+    dInp.value=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }
   goTo('s-new-france');
-}
-
-function buildSundaysFrance(){
-  try{
-    var grid=document.getElementById('sunday-grid-fr'); if(!grid) return;
-    var m=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
-    var d=new Date(); var diff=(7-d.getDay())%7||7; d.setDate(d.getDate()+diff);
-    grid.innerHTML='';
-    for(var i=0;i<6;i++){
-      var nd=new Date(d); nd.setDate(d.getDate()+i*7);
-      var chip=document.createElement('div'); chip.className='sunday-chip'+(i===0?' sel':'');
-      chip.textContent='Dim. '+nd.getDate()+' '+m[nd.getMonth()];
-      (function(ch){ ch.onclick=function(){ grid.querySelectorAll('.sunday-chip').forEach(function(c){ c.classList.remove('sel'); }); ch.classList.add('sel'); }; })(chip);
-      grid.appendChild(chip);
-    }
-  }catch(e){}
-}
-function toggleExcepFrance(){
-  excepOnFrance=!excepOnFrance;
-  var et=document.getElementById('excep-toggle-fr'); if(et) et.classList.toggle('on',excepOnFrance);
-  var ef=document.getElementById('excep-fields-fr'); if(ef) ef.style.display=excepOnFrance?'block':'none';
-  var sg=document.getElementById('sunday-grid-fr');
-  if(sg){ sg.style.opacity=excepOnFrance?'0.3':'1'; sg.style.pointerEvents=excepOnFrance?'none':'auto'; }
 }
 
 function creerCollecteFrance(){
   if(!firebaseReady){ showToastNew('⏳ Chargement en cours, réessaie dans quelques secondes…'); return; }
   var J=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
   var M=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  var v, dt, lib;
-  if(excepOnFrance){
-    v=((document.getElementById('excep-date-fr')||{}).value)||'';
-    if(!v){ showToastNew('⚠️ Veuillez sélectionner une date.'); return; }
-    dt=new Date(v+'T12:00:00');
-    lib=J[dt.getDay()]+' '+dt.getDate()+' '+M[dt.getMonth()]+' '+dt.getFullYear();
-  } else {
-    var sel=document.querySelector('#sunday-grid-fr .sunday-chip.sel');
-    var chips=document.querySelectorAll('#sunday-grid-fr .sunday-chip');
-    var chipIdx=0;
-    chips.forEach(function(c,i){ if(c.classList.contains('sel')) chipIdx=i; });
-    var now=new Date();
-    now.setDate(now.getDate() + ((7-now.getDay())%7||7) + chipIdx*7);
-    dt=now;
-    v=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
-    lib=J[dt.getDay()]+' '+dt.getDate()+' '+M[dt.getMonth()]+' '+dt.getFullYear();
-  }
+  var v=((document.getElementById('fr-date-collecte')||{}).value)||'';
+  if(!v){ showToastNew('⚠️ Veuillez sélectionner une date.'); return; }
+  var dt=new Date(v+'T12:00:00');
+  var lib=J[dt.getDay()]+' '+dt.getDate()+' '+M[dt.getMonth()]+' '+dt.getFullYear();
 
   var rs=_frCollectes();
   var doublon=Object.keys(rs).some(function(k){ return rs[k] && rs[k].dateIso===v; });
@@ -5068,11 +5033,10 @@ function creerCollecteFrance(){
   var rid='fr_'+Date.now();
   var maj={};
   maj['collectes/'+rid]={
-    id:rid, dateIso:v, dateLib:lib, statut:statut, type:excepOnFrance?'exceptionnel':'normal',
+    id:rid, dateIso:v, dateLib:lib, statut:statut,
     creePar:(currentUser||{}).name||'', creeTs:Date.now(),
     clients:[], trucks:{}, assigned:{}
   };
-  excepOnFrance=false;
   _frUpdate(maj).then(function(){
     showToastNew('✅ Collecte du '+lib+' créé');
     _activiteFrance('🚛','a créé la collecte <strong>'+lib+'</strong>');
@@ -5104,11 +5068,22 @@ function ouvrirStatutCollecteFr(id){
     modal=document.createElement('div');
     modal.id='modal-fc-statut';
     modal.className='modal-overlay';
-    modal.innerHTML='<div class="modal-sheet"><div class="modal-title">Statut de la collecte</div>'
+    // v3.99.30 — Cobey, 15/10/2026 : « il faudrait aussi mettre la
+    // possibilité, une fois qu'on a fait une tournée, de changer la
+    // date [...] on programme une tournée pour un lundi, mais pour X
+    // raisons, la tournée va changer, elle sera pour un mercredi. »
+    // Même fenêtre que le statut (déjà réservée à la direction, déjà
+    // sur chaque carte) plutôt qu'un bouton de plus.
+    modal.innerHTML='<div class="modal-sheet"><div class="modal-title">Modifier la collecte</div>'
+      + '<div class="fg" style="text-align:left;"><label class="fl">Date</label>'
+      +   '<input class="fi" type="date" id="fc-date-input"></div>'
+      + '<button class="btn btn-gray" style="margin:0 0 14px;" onclick="changerDateCollecteFr()">📅 Enregistrer cette date</button>'
+      + '<div class="slabel" style="text-align:left;margin:0 0 8px;">Statut</div>'
       + '<div id="fc-statut-options"></div>'
-      + '<button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal(\'modal-fc-statut\')">✕ Annuler</button></div>';
+      + '<button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal(\'modal-fc-statut\')">✕ Fermer</button></div>';
     document.body.appendChild(modal);
   }
+  var di=document.getElementById('fc-date-input'); if(di) di.value=r.dateIso||'';
   var h='';
   [['en_cours','🟢','En cours'],['a_venir','🔵','À venir'],['terminee','⚫','Terminé']].forEach(function(s){
     var on=(r.statut||'en_cours')===s[0];
@@ -5117,6 +5092,43 @@ function ouvrirStatutCollecteFr(id){
   });
   var o=document.getElementById('fc-statut-options'); if(o) o.innerHTML=h;
   openModal('modal-fc-statut');
+}
+
+function changerDateCollecteFr(){
+  var id=_fcStatutId, r=_frCollectes()[id];
+  if(!r){ closeModal('modal-fc-statut'); return; }
+  var v=((document.getElementById('fc-date-input')||{}).value)||'';
+  if(!v){ showToastNew('⚠️ Veuillez sélectionner une date.'); return; }
+  if(v===r.dateIso){ closeModal('modal-fc-statut'); return; }
+  var doublon=Object.keys(_frCollectes()).some(function(k){ return k!==id && _frCollectes()[k] && _frCollectes()[k].dateIso===v; });
+  if(doublon){ showToastNew('⚠️ Une collecte existe déjà pour cette date.'); return; }
+
+  var J=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  var M=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var dt=new Date(v+'T12:00:00');
+  var lib=J[dt.getDay()]+' '+dt.getDate()+' '+M[dt.getMonth()]+' '+dt.getFullYear();
+
+  // Même calcul automatique qu'à la création — une collecte "Terminé"
+  // à la main garde ce statut, le changement de date ne la rouvre pas.
+  var maj={};
+  maj['collectes/'+id+'/dateIso']=v;
+  maj['collectes/'+id+'/dateLib']=lib;
+  if(r.statut!=='terminee'){
+    var now2=new Date();
+    var dayOfWeek=now2.getDay();
+    var debutSemaine=new Date(now2);
+    var diffLundi=dayOfWeek===0?-6:1-dayOfWeek;
+    debutSemaine.setDate(now2.getDate()+diffLundi); debutSemaine.setHours(0,0,0,0);
+    var finSemaine=new Date(debutSemaine);
+    finSemaine.setDate(debutSemaine.getDate()+6); finSemaine.setHours(23,59,59,999);
+    maj['collectes/'+id+'/statut']=(dt>=debutSemaine && dt<=finSemaine) ? 'en_cours' : 'a_venir';
+  }
+  closeModal('modal-fc-statut');
+  _frUpdate(maj).then(function(){
+    showToastNew('📅 Date mise à jour : '+lib);
+    _activiteFrance('📅','a changé la date de la collecte en <strong>'+lib+'</strong>');
+    renderFrance();
+  }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
 }
 
 function changerStatutCollecteFr(nouveau){
