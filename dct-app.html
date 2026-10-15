@@ -1868,7 +1868,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.30';
+var APP_VERSION = 'v3.99.31';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6400,13 +6400,19 @@ function estimerKmCamionFrance(){
         }
         if(val) val.textContent='~'+km+' km';
         if(note) note.textContent = _texteConfirmationKm(pts.length, libelleDepart, avecArrivee, echecGeocode);
-        // v3.99.4 : + 20 min par client (Cobey, 13/10/2026 : « avec une
-        // moyenne de 20 min chez le client »), en plus du trajet routier.
-        var dureeArrets = pts.length * 20;
-        var dureeTotale = (dureeMin===null) ? null : (dureeMin + dureeArrets);
+        // v3.99.4 : + 30 min par client, en plus du trajet routier.
+        // v3.99.31 — Cobey, 15/10/2026 : « tu peux rajouter 30 minutes
+        // par client [à la place de 20] et également un battement de 2
+        // heures [...] pauses, déjeuner, pauses café sur la route,
+        // heure de repos [...] par tournée, pour être large. » Les 20
+        // min/client sont passées à 30, et un battement fixe de 2h par
+        // tournée (pas par client) s'ajoute au total.
+        var BATTEMENT_MIN = 120;
+        var dureeArrets = pts.length * 30;
+        var dureeTotale = (dureeMin===null) ? null : (dureeMin + dureeArrets + BATTEMENT_MIN);
         var eDuree=document.getElementById('frc-duree-val');
         if(eDuree) eDuree.textContent = (dureeTotale===null) ? ''
-          : ('⏱️ ≈ '+_frDureeTexte(dureeTotale)+' (trajet '+_frDureeTexte(dureeMin)+' + 20 min × '+pts.length+' client'+(pts.length>1?'s':'')+')');
+          : ('⏱️ ≈ '+_frDureeTexte(dureeTotale)+' (trajet '+_frDureeTexte(dureeMin)+' + 30 min × '+pts.length+' client'+(pts.length>1?'s':'')+' + 2h de battement)');
         _frDerniereEstimation = { km:km, dureeTrajetMin:dureeMin, dureeTotaleMin:dureeTotale, nbArrets:pts.length };
         _frMajHeureArrivee();
         _frMajComparatifCouts();

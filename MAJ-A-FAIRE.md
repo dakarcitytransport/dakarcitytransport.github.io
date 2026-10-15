@@ -3964,3 +3964,17 @@ là-bas) :
    l'enregistrer recalcule le libellé et, sauf collecte déjà « Terminé »,
    le statut En cours/À venir selon la semaine — avec le même garde-fou
    qu'à la création contre deux collectes à la même date.
+
+### Estimation de temps France & Europe : 30 min/client + 2h de battement
+**Fait le 15/10 (v3.99.31).** Cobey : « tu peux rajouter 30 minutes
+par client et également un battement de 2 heures. Ces 2 heures
+correspondraient aux pauses, déjeuner, aux pauses café sur la route,
+heure de repos [...] par tournée [...] pour être large. »
+
+Avant : durée totale = trajet routier (calcul OSRM, voir
+`estimerKmCamionFrance`) + 20 min par client. Changé : 20 min devient
+30 min par client, et un battement fixe de 2h (120 min) s'ajoute une
+seule fois par tournée (pas par client) — pauses, déjeuner, café,
+repos. Le détail affiché sous le kilométrage estimé reflète les trois
+parts séparément : « trajet Xh + 30 min × N clients + 2h de
+battement ».
