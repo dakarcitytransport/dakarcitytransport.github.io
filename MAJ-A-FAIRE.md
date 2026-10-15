@@ -4041,3 +4041,19 @@ Pour corriger la fiche déjà bloquée de Mme Haby Diallo : rouvrir la
 collecte du 14/10, cocher sa carte dans l'onglet Clients et utiliser
 « ✅ Marquer comme ramassés » (qui, lui, écrivait déjà correctement
 les deux en même temps).
+
+### Correction automatique des fiches déjà bloquées (sans rien cocher)
+**Fait le 15/10 (v3.99.34 + départs v2.20.79).** Cobey, juste après le
+correctif ci-dessus : « je veux pas cocher [...] dès que c'est
+collecté, les clients partent de la liste. On va pas toujours appuyer
+sur ceux qui sont partis. »
+
+Plutôt que de demander à Cobey de cocher manuellement chaque fiche
+restée bloquée (comme celle de Mme Haby Diallo), l'application se
+corrige maintenant toute seule : à chaque rendu de l'écran France, si
+un client apparaît déjà validé dans un camion (ce qui fait afficher
+« ✅ Ramassé » côté camion) mais que sa fiche n'a jamais basculé sur
+« ramassé » — vieille divergence d'avant le correctif précédent —,
+elle est corrigée automatiquement, sans aucune action de personne. La
+fiche disparaît alors d'elle-même de la carte et de la liste des
+clients, exactement comme pour un ramassage normal.

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.78';
+var DEP_VERSION = 'v2.20.79';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -15509,6 +15509,40 @@ function _frDateIsoAujourdhui(){
   var p = function(n){ return (n < 10 ? '0' : '') + n; };
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
+// v3.99.34 — Cobey : « je veux pas cocher [...] dès que c'est collecté,
+// les clients partent de la liste », sans action manuelle de sa part.
+// Filet de sécurité, en plus du correctif atomique de
+// _depMarquerRamasseCamionFrance (qui empêche la divergence de se
+// reproduire désormais) : si un client apparaît déjà validé dans un
+// camion (tk.validated, ce qui fait afficher "✅ Ramassé" sur l'écran du
+// camion) alors que sa fiche n'a jamais basculé sur "ramasse" (anciennes
+// divergences d'avant ce correctif), on la corrige ici toute seule, sans
+// que personne n'ait besoin de cocher ou de cliquer quoi que ce soit —
+// elle disparaît alors automatiquement de la carte/liste au rendu suivant
+// (voir _frDansFiltre, dct-app.html).
+var _frReconcilieIds = {};
+function _frReconcilierStatutsRamasses(){
+  var cols = (window.franceData || {}).collectes || {};
+  var cls = (window.franceData || {}).clients || {};
+  var maj = {};
+  Object.keys(cols).forEach(function(colId){
+    var trucks = (cols[colId] && cols[colId].trucks) || {};
+    Object.keys(trucks).forEach(function(tkId){
+      ((trucks[tkId] && trucks[tkId].validated) || []).forEach(function(id){
+        if(_frReconcilieIds[id]) return;
+        var c = cls[id];
+        if(!c || c.statut === 'ramasse' || c.statut === 'parti') return;
+        _frReconcilieIds[id] = true;
+        c.statut = 'ramasse';
+        maj['clients/' + id + '/statut'] = 'ramasse';
+      });
+    });
+  });
+  if(Object.keys(maj).length && window.db && window.firebaseReady && typeof window._frUpdate === 'function'){
+    window._frUpdate(maj);
+  }
+}
+
 // v3.99.32 — garde-fou anti-rafale : sans ça, renderFrance() (appelé à
 // chaque interaction ET à chaque écho Firebase de l'écoute large sur
 // france/) pouvait réécrire le même statut plusieurs fois de suite avant
@@ -17975,6 +18009,7 @@ function greffer(){
     var origRenderFranceSuivi = window.renderFrance;
     window.renderFrance = function(){
       try{ _frAutoDemarrerCollectesDuJour(); }catch(e){ console.error('departs: démarrage auto collectes France', e); }
+      try{ _frReconcilierStatutsRamasses(); }catch(e){ console.error('departs: réconciliation statuts ramassés France', e); }
       if(window.franceTab === 'suivi'){
         try{ _frRenderSuiviEcran(); }catch(e){ console.error('departs: rendu Suivi France', e); }
         return;
