@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.77';
+var DEP_VERSION = 'v2.20.78';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14985,7 +14985,23 @@ function _depMarquerRamasseCamionFrance(id){
   // terminé pour un camion France & Europe.
   tk.finTs = tk.finTs || {};
   tk.finTs[id] = Date.now();
-  if(typeof window._frSauverCollecte === 'function') window._frSauverCollecte(r);
+  // v3.99.33 — Cobey, cas réel sur Mme Haby Diallo (tournée du 14/10) :
+  // l'écran du camion l'affichait "✅ Ramassé" (tk.validated, écrit ici)
+  // mais sa fiche client restait "Planifié" (c.statut, écrit séparément
+  // par _depEcrireFacture dans _depValiderConfirmerFrance). Deux
+  // écritures Firebase indépendantes pour un même geste de validation :
+  // si l'une passe sans l'autre (coupure réseau en tournée), les deux
+  // écrans divergent, sans que personne ne s'en aperçoive. On regroupe
+  // donc ici le statut du client dans le MÊME appel update() atomique
+  // que le camion (via _frSauverCollecte) — les deux passent ensemble,
+  // ou aucun des deux, jamais l'un sans l'autre.
+  var majClient = {};
+  var c = ((window.franceData || {}).clients || {})[id];
+  if(c && c.statut !== 'parti'){
+    c.statut = 'ramasse';
+    majClient['clients/' + id + '/statut'] = 'ramasse';
+  }
+  if(typeof window._frSauverCollecte === 'function') window._frSauverCollecte(r, majClient);
 }
 
 /* ─────────────────────────────────────────────

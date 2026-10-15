@@ -4014,3 +4014,30 @@ Deux correctifs, tous deux sans rien changer au comportement visible :
    fois par collecte (garde-fou en mémoire), au lieu de pouvoir
    réécrire à chaque rendu tant que l'écho Firebase n'était pas encore
    redescendu.
+
+### Un client ramassé restait affiché "Planifié" (carte + fiche)
+**Fait le 15/10 (v3.99.33 + départs v2.20.78).** Cobey, cas réel : Mme
+Haby Diallo, ramassée lors de la tournée du 14/10 (l'écran du camion
+affichait bien « ✅ Ramassé — 790 € »), restait visible sur la carte
+des colis avec le badge « Planifié », alors qu'un client ramassé doit
+en disparaître (voir le correctif du 13/10 à ce sujet).
+
+Cause : le bouton « Valider » de l'écran camion déclenchait DEUX
+écritures Firebase séparées et indépendantes pour le même geste —
+`tk.validated` (qui pilote l'affichage « Ramassé » sur l'écran du
+camion) d'un côté, `c.statut` (qui pilote la carte et la fiche client)
+de l'autre. En tournée, avec une coupure réseau ou un aléa de
+synchronisation, l'une pouvait passer sans l'autre : le camion
+affichait « Ramassé » mais la fiche du client restait bloquée sur
+« Planifié », sans que personne ne s'en rende compte.
+
+Correctif : les deux écritures sont désormais regroupées dans un seul
+appel Firebase atomique — soit les deux passent ensemble, soit aucune
+des deux, jamais l'une sans l'autre. (Reprend le même principe que la
+correction du 15/10 sur la lenteur en tournée : des écritures qui se
+marchent dessus pendant une tournée active.)
+
+Pour corriger la fiche déjà bloquée de Mme Haby Diallo : rouvrir la
+collecte du 14/10, cocher sa carte dans l'onglet Clients et utiliser
+« ✅ Marquer comme ramassés » (qui, lui, écrivait déjà correctement
+les deux en même temps).
