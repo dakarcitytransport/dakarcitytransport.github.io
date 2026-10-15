@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.75';
+var DEP_VERSION = 'v2.20.76';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19491,52 +19491,97 @@ function _depMajBlocDepensesCamion(k){
     if(vieuxR && vieuxR.parentNode) vieuxR.parentNode.removeChild(vieuxR);
   }
 
+  // v3.99.29 — Cobey, 15/10/2026 : « je veux que la présentation du
+  // suivi financier soit comme celle de France Europe, sans les
+  // notions de frais de ramassage qui n'ont pas de sens là. » Les deux
+  // « Gain net » côte à côte (sur le ramassé / sur l'encaissé, depuis
+  // la v1.62.1) faisaient doublon avec la distinction colis/ramassage
+  // propre à France & Europe, qui n'a pas d'équivalent côté Collecte
+  // (c.prix EST déjà le frais de ramassage, pas de part à part) — un
+  // seul « Résultat total après dépenses », basé sur le collecté
+  // (l'argent réellement rentré), comme côté France.
   var rowD = $('dep-finance-depenses');
   var rowN = $('dep-finance-net');
+  var rowNE = $('dep-finance-net-encaisse');
+  if(rowNE && rowNE.parentNode) rowNE.parentNode.removeChild(rowNE);
   if(tot <= 0){
     if(rowD && rowD.parentNode) rowD.parentNode.removeChild(rowD);
     if(rowN && rowN.parentNode) rowN.parentNode.removeChild(rowN);
+  } else {
+    if(!rowD){
+      rowD = document.createElement('div');
+      rowD.id = 'dep-finance-depenses';
+      rowD.className = 'finance-row';
+      rowD.style.cssText = 'margin-top:4px;';
+    }
+    rowD.innerHTML = '<span class="finance-label">&#128176; D&eacute;penses de la tourn&eacute;e</span>'
+      + '<span class="finance-val" style="color:#B3261E;">&minus; ' + _depEuros(tot) + ' &euro;</span>';
+    box.appendChild(rowD);
+
+    var net = depArrondi2(enc - tot);
+    if(!rowN){
+      rowN = document.createElement('div');
+      rowN.id = 'dep-finance-net';
+      rowN.className = 'finance-row';
+      rowN.style.cssText = 'margin-top:4px;padding-top:7px;border-top:1.5px solid var(--border);';
+    }
+    rowN.innerHTML = '<span class="finance-label" style="font-weight:800;">&#9989; R&eacute;sultat total apr&egrave;s d&eacute;penses</span>'
+      + '<span class="finance-val" style="font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">'
+      + _depEuros(net) + ' &euro;</span>';
+    box.appendChild(rowN);
+  }
+
+  // Ventilation espèces/virement de l'encaissé de la tournée — même
+  // ajout que côté France & Europe (v3.99.27).
+  var parMethode = _depEncaisseParMethodeCamion(tk);
+  var rowEsp = $('dep-finance-especes');
+  var rowVir = $('dep-finance-virement');
+  if(enc <= 0){
+    if(rowEsp && rowEsp.parentNode) rowEsp.parentNode.removeChild(rowEsp);
+    if(rowVir && rowVir.parentNode) rowVir.parentNode.removeChild(rowVir);
     return;
   }
-  if(!rowD){
-    rowD = document.createElement('div');
-    rowD.id = 'dep-finance-depenses';
-    rowD.className = 'finance-row';
-    rowD.style.cssText = 'margin-top:4px;';
+  if(!rowEsp){
+    rowEsp = document.createElement('div');
+    rowEsp.id = 'dep-finance-especes';
+    rowEsp.className = 'finance-row';
+    rowEsp.style.cssText = 'margin-top:4px;';
   }
-  rowD.innerHTML = '<span class="finance-label">&#128176; D&eacute;penses de la tourn&eacute;e</span>'
-    + '<span class="finance-val" style="color:#B3261E;">&minus; ' + _depEuros(tot) + ' &euro;</span>';
-  box.appendChild(rowD);
+  rowEsp.innerHTML = '<span class="finance-label">&#128181; Encaiss&eacute; en esp&egrave;ces</span>'
+    + '<span class="finance-val">' + _depEuros(parMethode.especes) + ' &euro;</span>';
+  box.appendChild(rowEsp);
 
-  var net = depArrondi2(ramasse - tot);
-  if(!rowN){
-    rowN = document.createElement('div');
-    rowN.id = 'dep-finance-net';
-    rowN.className = 'finance-row';
-    rowN.style.cssText = 'margin-top:4px;padding-top:7px;border-top:1.5px solid var(--border);';
+  if(!rowVir){
+    rowVir = document.createElement('div');
+    rowVir.id = 'dep-finance-virement';
+    rowVir.className = 'finance-row';
+    rowVir.style.cssText = 'margin-top:4px;';
   }
-  rowN.innerHTML = '<span class="finance-label" style="font-weight:800;">&#9989; Gain net du camion'
-    + '<span style="font-weight:600;color:#999;"> (sur le ramass&eacute;)</span></span>'
-    + '<span class="finance-val" style="font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">'
-    + _depEuros(net) + ' &euro;</span>';
-  box.appendChild(rowN);
+  rowVir.innerHTML = '<span class="finance-label">&#127974; Encaiss&eacute; en virement</span>'
+    + '<span class="finance-val">' + _depEuros(parMethode.virement) + ' &euro;</span>';
+  box.appendChild(rowVir);
+}
 
-  // v1.62.1 : les deux lectures côte à côte, puisque les deux servent —
-  // ce que le camion a produit, et ce qu'il a réellement rapporté
-  // (demande de Cobey du 24/09/2026 : « affiche les deux »).
-  var netEnc = depArrondi2(enc - tot);
-  var rowNE = $('dep-finance-net-encaisse');
-  if(!rowNE){
-    rowNE = document.createElement('div');
-    rowNE.id = 'dep-finance-net-encaisse';
-    rowNE.className = 'finance-row';
-    rowNE.style.cssText = 'margin-top:4px;';
-  }
-  rowNE.innerHTML = '<span class="finance-label" style="font-weight:800;">&#128181; Gain net du camion'
-    + '<span style="font-weight:600;color:#999;"> (sur l\'encaiss&eacute;)</span></span>'
-    + '<span class="finance-val" style="font-weight:800;color:' + (netEnc < 0 ? '#B3261E' : '#006b2d') + ';">'
-    + _depEuros(netEnc) + ' &euro;</span>';
-  box.appendChild(rowNE);
+// Même somme que _depEncaisseDuCamion, répartie par méthode de
+// versement (espèces/virement) — voir _frEncaisseParMethodeCamion,
+// son équivalent France & Europe. Un versement sans méthode
+// enregistrée (ancien, avant l'ajout de ce champ) n'est compté dans
+// aucun des deux, plutôt que deviné.
+function _depEncaisseParMethodeCamion(tk){
+  var out = { especes: 0, virement: 0 };
+  var cls = (window.clientsParCollecte || {})[window.currentCollecteId] || {};
+  (tk && Array.isArray(tk.validated) ? tk.validated : []).forEach(function(id){
+    var c = cls[id];
+    if(!c || !Array.isArray(c.versements)) return;
+    c.versements.forEach(function(v){
+      var m = parseFloat(v && v.montant) || 0;
+      if(v && v.methode === 'virement') out.virement += m;
+      else if(v && v.methode === 'especes') out.especes += m;
+    });
+  });
+  out.especes = depArrondi2(out.especes);
+  out.virement = depArrondi2(out.virement);
+  return out;
 }
 
 // v3.99.0 : src/colId optionnels — Collecte continue d'appeler

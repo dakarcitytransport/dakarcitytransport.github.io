@@ -3918,3 +3918,24 @@ cette date estimée à la place du badge « Étape en cours », qui n'avait
 pas de sens pour une transition qui dure plusieurs jours. Le numéro
 de Mamadou Niass (contact du dépôt), pas encore communiqué jusqu'ici,
 est maintenant renseigné : +221 78 432 36 17.
+
+### Suivi financier du camion Collecte aligné sur France & Europe
+**Fait le 15/10 (v3.99.29 / v2.20.76).** Cobey, après discussion sur
+la case « Dépenses du camion » de France & Europe (capture à
+l'appui) : « ventilation espèces/virement aussi on le met dans le
+parcours Collecte / mais je veux que la présentation du suivi
+financier soit comme celle de France Europe, sans les notions de
+frais de ramassage qui n'ont pas de sens là. »
+
+Avant : le Suivi financier du camion Collecte montrait DEUX lignes
+« Gain net » côte à côte — « sur le ramassé » (facturé − dépenses) et
+« sur l'encaissé » (collecté − dépenses), depuis la v1.62.1. Ce
+dédoublement reflétait la distinction colis/ramassage propre à France
+& Europe (prix du colis vs frais de ramassage, parfois gratuit en
+Île-de-France) — sans équivalent côté Collecte, où `c.prix` EST déjà
+le frais de ramassage, sans part à part. Remplacé par une seule ligne
+« Résultat total après dépenses » basée sur le collecté, exactement
+comme côté France & Europe (voir plus haut, v3.99.27). Ajoutée aussi,
+comme demandé : la ventilation « Encaissé en espèces »/« Encaissé en
+virement » (nouvelle fonction `_depEncaisseParMethodeCamion`, miroir
+de `_frEncaisseParMethodeCamion`), jusque-là absente côté Collecte.
