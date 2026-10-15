@@ -1406,15 +1406,27 @@ function ecouterFrance(){
     franceData.lots     = d.lots     || {};
     franceData.collectes  = d.collectes  || {};
     _franceReady = true;
-    _initPostesFrance();
-    try{ _nettoyerPostes(); }catch(e){}
-    try{ if(typeof renderFrance==='function') renderFrance(); }catch(e){}
-    try{ var sc=document.querySelector('.screen.active');
-         if(sc && sc.id==='s-partenaire' && typeof renderDanny==='function') renderDanny(); }catch(e){}
-    try{ var sc2=document.querySelector('.screen.active');
-         if(sc2 && sc2.id==='s-collecte' && typeof renderCollecteContent==='function') renderCollecteContent();
-         if(sc2 && sc2.id==='s-camion' && typeof currentCamion!=='undefined' && currentCamion) renderCamion(currentCamion); }catch(e){}
-    try{ majBoutonFrance(); }catch(e){}
+    // v3.99.32 — Cobey, "tournée du Nord" : l'appli "buguait", boutons
+    // sans réponse, grosse latence en France & Europe pendant une
+    // tournée active. Cause : cette écoute porte sur TOUT le sous-arbre
+    // france, donc chaque écriture (validation, versement, horodatage
+    // Waze...) par n'importe quel collaborateur, sur n'importe quelle
+    // collecte, redéclenche ici un rendu complet sur CHAQUE appareil
+    // connecté. En pleine tournée, plusieurs écritures rapprochées
+    // multiplient les rendus et bloquent l'interface. On regroupe donc
+    // les événements proches (400ms) en un seul rendu.
+    clearTimeout(_franceTimeout);
+    _franceTimeout = setTimeout(function(){
+      _initPostesFrance();
+      try{ _nettoyerPostes(); }catch(e){}
+      try{ if(typeof renderFrance==='function') renderFrance(); }catch(e){}
+      try{ var sc=document.querySelector('.screen.active');
+           if(sc && sc.id==='s-partenaire' && typeof renderDanny==='function') renderDanny(); }catch(e){}
+      try{ var sc2=document.querySelector('.screen.active');
+           if(sc2 && sc2.id==='s-collecte' && typeof renderCollecteContent==='function') renderCollecteContent();
+           if(sc2 && sc2.id==='s-camion' && typeof currentCamion!=='undefined' && currentCamion) renderCamion(currentCamion); }catch(e){}
+      try{ majBoutonFrance(); }catch(e){}
+    }, 400);
   });
 }
 
@@ -1868,7 +1880,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.31';
+var APP_VERSION = 'v3.99.32';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},

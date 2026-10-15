@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.76';
+var DEP_VERSION = 'v2.20.77';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -15493,14 +15493,22 @@ function _frDateIsoAujourdhui(){
   var p = function(n){ return (n < 10 ? '0' : '') + n; };
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
+// v3.99.32 — garde-fou anti-rafale : sans ça, renderFrance() (appelé à
+// chaque interaction ET à chaque écho Firebase de l'écoute large sur
+// france/) pouvait réécrire le même statut plusieurs fois de suite avant
+// que l'écho du premier write ne soit redescendu, entretenant le rendu en
+// boucle pendant une tournée active (plusieurs écritures rapprochées).
+var _frAutoDemarreIds = {};
 function _frAutoDemarrerCollectesDuJour(){
   var cols = (window.franceData || {}).collectes || {};
   var aujourdhui = _frDateIsoAujourdhui();
   Object.keys(cols).forEach(function(id){
     var c = cols[id];
     if(!c || c.statut !== 'a_venir' || !c.dateIso || c.dateIso > aujourdhui) return;
+    if(_frAutoDemarreIds[id]) return;
     c.statut = 'en_cours'; // mirroir local : l'écran reflète déjà le bon statut sans attendre Firebase.
     if(window.db && window.firebaseReady && typeof window._frUpdate === 'function'){
+      _frAutoDemarreIds[id] = true;
       var maj = {}; maj['collectes/' + id + '/statut'] = 'en_cours';
       window._frUpdate(maj);
     }

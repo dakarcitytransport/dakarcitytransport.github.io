@@ -3978,3 +3978,39 @@ seule fois par tournée (pas par client) — pauses, déjeuner, café,
 repos. Le détail affiché sous le kilométrage estimé reflète les trois
 parts séparément : « trajet Xh + 30 min × N clients + 2h de
 battement ».
+
+### Bug réel de lenteur en France & Europe pendant une tournée active
+**Fait le 15/10 (v3.99.32 + départs v2.20.77).** Cobey, après la
+tournée du Nord : « quand je rentrais dans l'espace France-Europe,
+l'application buguait, les boutons ne répondaient pas forcément [...]
+il y avait trop de latence, j'étais obligé de sortir de l'application,
+la fermer, la réouvrir [...] il y avait un réel bug. »
+
+Cause trouvée dans le code : l'écoute Firebase `db.ref('france')
+.on('value', ...)` (fonction `ecouterFrance`) porte sur TOUT le
+sous-arbre France — clients, collectes, tournées, postes, lots.
+N'importe quelle écriture là-dedans (une validation de colis, un
+versement enregistré, un horodatage Waze...), faite par n'importe quel
+collaborateur, sur n'importe quelle collecte, redéclenchait un rendu
+complet de l'écran (liste des clients, grille des collaborateurs,
+cartes...) sur CHAQUE appareil connecté à l'espace France & Europe.
+Pendant une tournée active, avec plusieurs collaborateurs qui
+écrivaient à quelques secondes d'intervalle les uns des autres, ces
+rendus s'enchaînaient et bloquaient l'interface (boutons qui ne
+répondent plus, latence).
+
+Un deuxième mécanisme aggravait ça : à chaque rendu de l'écran France,
+une fonction vérifie si une collecte « À venir » doit démarrer
+automatiquement (passer en « En cours ») et, si oui, réécrit ce statut
+sur Firebase — ce qui redéclenchait l'écoute ci-dessus, qui redéclenchait
+un rendu, qui pouvait retenter la même écriture avant que l'écho du
+premier envoi ne soit redescendu.
+
+Deux correctifs, tous deux sans rien changer au comportement visible :
+1. Les événements Firebase proches (moins de 400ms d'écart, typiques
+   d'une rafale d'écritures pendant une tournée) sont désormais
+   regroupés en un seul rendu, au lieu d'un rendu par événement.
+2. Le démarrage automatique d'une collecte n'écrit plus qu'une seule
+   fois par collecte (garde-fou en mémoire), au lieu de pouvoir
+   réécrire à chaque rendu tant que l'écho Firebase n'était pas encore
+   redescendu.
