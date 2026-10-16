@@ -1416,18 +1416,33 @@ function ecouterFrance(){
     // multiplient les rendus et bloquent l'interface. On regroupe donc
     // les événements proches (400ms) en un seul rendu.
     clearTimeout(_franceTimeout);
-    _franceTimeout = setTimeout(function(){
-      _initPostesFrance();
-      try{ _nettoyerPostes(); }catch(e){}
-      try{ if(typeof renderFrance==='function') renderFrance(); }catch(e){}
-      try{ var sc=document.querySelector('.screen.active');
-           if(sc && sc.id==='s-partenaire' && typeof renderDanny==='function') renderDanny(); }catch(e){}
-      try{ var sc2=document.querySelector('.screen.active');
-           if(sc2 && sc2.id==='s-collecte' && typeof renderCollecteContent==='function') renderCollecteContent();
-           if(sc2 && sc2.id==='s-camion' && typeof currentCamion!=='undefined' && currentCamion) renderCamion(currentCamion); }catch(e){}
-      try{ majBoutonFrance(); }catch(e){}
-    }, 400);
+    _franceTimeout = setTimeout(_franceRedessinerSiLibre, 400);
   });
+}
+
+// v3.99.36 — Cobey : « je clique au moins 5-6 fois avant que le bouton
+// se valide » en France & Europe. C'est très exactement le bug du
+// "garde-doigt" déjà réglé côté Collecte en v3.78.0 (voir son
+// commentaire ci-dessus, _dctRedessinerEcranActif) : un redessin qui
+// tombe pendant qu'un doigt est posé détruit l'élément touché avant
+// que le clic ne soit émis — "l'impression d'appuyer dans le vide,
+// et le réflexe d'appuyer plusieurs fois". Ce garde-doigt (_dctDoigtPose,
+// global à toute l'appli, pas spécifique à la Collecte) n'avait jamais
+// été branché sur l'écoute France & Europe. On le fait ici.
+function _franceRedessinerSiLibre(){
+  if(typeof _dctDoigtPose === 'function' && _dctDoigtPose()){
+    _franceTimeout = setTimeout(_franceRedessinerSiLibre, DCT_GRACE_DOIGT || 350);
+    return;
+  }
+  _initPostesFrance();
+  try{ _nettoyerPostes(); }catch(e){}
+  try{ if(typeof renderFrance==='function') renderFrance(); }catch(e){}
+  try{ var sc=document.querySelector('.screen.active');
+       if(sc && sc.id==='s-partenaire' && typeof renderDanny==='function') renderDanny(); }catch(e){}
+  try{ var sc2=document.querySelector('.screen.active');
+       if(sc2 && sc2.id==='s-collecte' && typeof renderCollecteContent==='function') renderCollecteContent();
+       if(sc2 && sc2.id==='s-camion' && typeof currentCamion!=='undefined' && currentCamion) renderCamion(currentCamion); }catch(e){}
+  try{ majBoutonFrance(); }catch(e){}
 }
 
 // Crée les 4 postes au premier lancement, sans écraser l'existant
@@ -1880,7 +1895,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.35';
+var APP_VERSION = 'v3.99.36';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},

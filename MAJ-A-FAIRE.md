@@ -4092,3 +4092,25 @@ client déjà archivé va rechercher son détail complet à la demande —
 invisible en usage normal, un peu plus long une seule fois sur une
 vieille fiche (y compris sur la facture publique que le client
 consulte via son lien WhatsApp, `facture.html`, corrigée à l'identique).
+
+### Le vrai responsable : le "garde-doigt" jamais branché sur France & Europe
+**Fait le 16/10 (v3.99.36).** Les trois correctifs précédents n'ont pas
+réglé le problème. Cobey a précisé le symptôme exact : « je clique au
+moins 5-6 fois avant que le bouton se valide » — pas un écran vide, pas
+figé en permanence, juste des taps qui ne passent pas.
+
+C'est très exactement un bug déjà rencontré et réglé côté Collecte
+Sénégal en v3.78.0 (voir son commentaire, `_dctRedessinerEcranActif`) :
+quand une synchronisation Firebase redessine l'écran PENDANT qu'un
+doigt est posé dessus, l'élément touché est détruit avant que le
+navigateur n'émette le clic — « l'impression d'appuyer dans le vide, et
+le réflexe d'appuyer plusieurs fois ». Exactement les mots de Cobey,
+un an plus tard, pour France & Europe cette fois.
+
+Ce garde-doigt (`_dctDoigtPose`, qui suit si un doigt est posé sur
+l'écran + une petite marge après le relâchement) est déjà GLOBAL à
+toute l'application — il n'avait simplement jamais été branché sur
+l'écoute Firebase de France & Europe (`ecouterFrance`), qui redessinait
+l'écran sans jamais vérifier si quelqu'un était en train de taper
+dessus. Corrigé en reprenant le même mécanisme : le redessin attend
+que l'écran soit libre avant de reconstruire quoi que ce soit.
