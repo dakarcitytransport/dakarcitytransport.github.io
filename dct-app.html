@@ -1621,6 +1621,7 @@ function ecouterChangements(){
     setTimeout(function(){ _mettreAJourStatuts(); }, 500);
   });
 
+  var _dctRedrawTimeout = null;
   db.ref('dct').on('value', function(snapshot){
     // Ne JAMAIS traiter si on est sur l'écran login
     var activeNow = document.querySelector('.screen.active');
@@ -1729,8 +1730,21 @@ function ecouterChangements(){
     // et il faut réappuyer (retour de Cobey et des collaborateurs du
     // 24/09/2026). On diffère donc le redessin jusqu'à ce que l'écran
     // soit libre.
-    if(_dctDoigtPose()){ _dctRedessinerPlusTard(); return; }
-    _dctRedessinerEcranActif();
+    // v3.99.37 — Cobey, 16/10/2026 : « ça reste lent par moment [...]
+    // des fois ça redonne une fluidité » sur une collecte "en cours"
+    // avec sûrement plusieurs collaborateurs actifs dessus en même
+    // temps. L'empreinte ci-dessus évite les redessins pour rien quand
+    // RIEN n'a changé, mais quand PLUSIEURS collaborateurs écrivent
+    // vraiment coup sur coup (un client ajouté, un versement encaissé...),
+    // chaque écriture redessinait encore l'écran tout de suite, un coup
+    // par écriture — même principe que le correctif de lenteur en
+    // France & Europe. On regroupe donc aussi les écritures rapprochées
+    // (300ms) en un seul redessin.
+    clearTimeout(_dctRedrawTimeout);
+    _dctRedrawTimeout = setTimeout(function(){
+      if(_dctDoigtPose()){ _dctRedessinerPlusTard(); return; }
+      _dctRedessinerEcranActif();
+    }, 300);
   });
 }
 
@@ -1895,7 +1909,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.36';
+var APP_VERSION = 'v3.99.37';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},

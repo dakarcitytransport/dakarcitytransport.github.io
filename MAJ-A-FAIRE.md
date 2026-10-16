@@ -4114,3 +4114,22 @@ l'écoute Firebase de France & Europe (`ecouterFrance`), qui redessinait
 l'écran sans jamais vérifier si quelqu'un était en train de taper
 dessus. Corrigé en reprenant le même mécanisme : le redessin attend
 que l'écran soit libre avant de reconstruire quoi que ce soit.
+
+### La même lenteur, côté Collecte Sénégal cette fois
+**Fait le 16/10 (v3.99.37).** Cobey, juste après le correctif
+précédent : « je retrouve ses lenteur et blocage également dans le
+parcours collecte, quand j'ouvre une collecte, ça répond pas ou ça
+met du temps ! » Précisé ensuite : ça arrive même en wifi (pas un
+souci réseau), pas à chaque fois mais souvent (« des fois ça redonne
+une fluidité mais pas tout le temps »), et très probablement avec
+plusieurs collaborateurs actifs en même temps sur la collecte "en
+cours" testée.
+
+Le garde-doigt de Collecte (v3.78.0) protège déjà le clic lui-même
+(vérifié par test), et l'empreinte déjà en place évite bien les
+redessins quand rien n'a changé. Mais quand PLUSIEURS collaborateurs
+écrivent vraiment coup sur coup (un client ajouté, un versement
+encaissé...), chaque écriture redessinait encore l'écran actif tout de
+suite, une fois par écriture — même défaut que celui corrigé pour
+France & Europe. Corrigé en regroupant aussi les écritures rapprochées
+(300ms) en un seul redessin, avant d'appliquer le garde-doigt.
