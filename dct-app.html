@@ -1417,6 +1417,21 @@ function ecouterFrance(){
     // les événements proches (400ms) en un seul rendu.
     clearTimeout(_franceTimeout);
     _franceTimeout = setTimeout(_franceRedessinerSiLibre, 400);
+  }, function(err){
+    // v3.99.38 — Cobey, cas réel d'Aminata : France & Europe reste
+    // DEFINITIVEMENT vide pour elle (0 clients, 0 collectes, même le
+    // compteur à l'accueil), alors que le reste de l'appli (Collecte)
+    // fonctionne normalement sur le même appareil — persiste même après
+    // un vrai vidage de cache. Cette écoute n'avait JAMAIS de callback
+    // d'erreur : si Firebase refuse la lecture (permission refusée,
+    // règles de sécurité...), ça échouait en silence total, sans la
+    // moindre trace — impossible à distinguer d'un simple "pas encore de
+    // client". On affiche donc maintenant l'erreur réelle, pour remplacer
+    // les suppositions par un message qu'on peut lire et agir dessus.
+    console.error('Erreur écoute France & Europe:', err);
+    try{
+      showToastNew('❌ France & Europe : connexion refusée ('+((err&&err.code)||(err&&err.message)||'inconnue')+'). Montre ce message à Eric.');
+    }catch(e){}
   });
 }
 
@@ -1909,7 +1924,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.37';
+var APP_VERSION = 'v3.99.38';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},

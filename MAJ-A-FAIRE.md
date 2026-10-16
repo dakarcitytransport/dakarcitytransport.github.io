@@ -4133,3 +4133,26 @@ encaissé...), chaque écriture redessinait encore l'écran actif tout de
 suite, une fois par écriture — même défaut que celui corrigé pour
 France & Europe. Corrigé en regroupant aussi les écritures rapprochées
 (300ms) en un seul redessin, avant d'appliquer le garde-doigt.
+
+### France & Europe vide chez Aminata : erreur Firebase rendue visible
+**Fait le 16/10 (v3.99.38).** Cobey : chez Aminata, France & Europe
+affiche 0 clients et 0 collectes — y compris le compteur sur le bouton
+d'accueil, avant même d'entrer dans l'espace. Ça n'a jamais fonctionné
+pour elle depuis qu'elle a l'appli, alors que le reste (Collecte)
+marche normalement sur le même appareil, même après un vrai vidage de
+cache. Elle est bien inscrite comme collaboratrice normale (profil
+"AM", case France incluse) — vérifié dans le code, rien d'anormal sur
+sa fiche.
+
+Cause trouvée : l'écoute Firebase de France & Europe
+(`db.ref('france').on('value', ...)`) n'avait jamais de callback
+d'erreur. Si Firebase refuse la lecture (permission refusée, règles de
+sécurité...), ça échouait en silence TOTAL — aucun message, aucune
+trace, strictement indiscernable d'un simple "elle n'a pas encore de
+client". Impossible à diagnostiquer à distance jusqu'ici.
+
+Un message d'erreur visible (avec le code exact renvoyé par Firebase)
+s'affiche désormais si cette écoute est refusée. La prochaine fois
+qu'Aminata ouvre l'appli, soit le problème a disparu, soit elle verra
+enfin un message précis à transmettre — ce qui dira si c'est un souci
+de règles Firebase (à corriger côté console) ou autre chose.
