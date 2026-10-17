@@ -1924,7 +1924,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.38';
+var APP_VERSION = 'v3.99.39';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -1937,6 +1937,13 @@ var COLLABS = [
   // Client, Collecte, France & Europe, Inscription au dépôt). La liste
   // vit dans departs.js, DEP_CASES_BUREAU.
   {id:'AM',name:'Aminata',   bg:'#FCE7F3',color:'#9D174D'},
+  // v3.99.39 — Cobey, 17/10/2026 : France & Europe reste vide chez
+  // Aminata (voir MAJ-A-FAIRE.md) sans cause identifiée côté profil
+  // "AM" (vérifié : rien d'anormal). Second profil de secours, mêmes
+  // cases Bureau que le sien (voir DEP_CASES_PAR_ID, departs.js) — à
+  // utiliser le temps de retrouver la vraie cause ; pas un remplacement
+  // définitif de "AM".
+  {id:'A2',name:'Aminata 2', bg:'#FFE4F1',color:'#BE185D'},
   // v3.64.0 : les deux profils administrateurs étaient en blanc sur fond
   // sombre. L'avatar passait, mais le fil d'Activité écrit le nom avec
   // cette même couleur sur fond blanc — donc en blanc sur blanc, illisible

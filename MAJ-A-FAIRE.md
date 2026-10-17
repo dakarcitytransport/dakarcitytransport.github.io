@@ -4189,3 +4189,23 @@ a réellement besoin), pas par un identifiant partagé. Reste à faire,
 nécessite d'écrire et de tester ces règles avec Cobey (simulateur de
 la console Firebase) avant de les publier — changement sensible, pas
 fait à l'aveugle.
+
+**Suite (même jour)** : règles testées et publiées par Cobey lui-même
+via le simulateur de la console Firebase (lecture refusée sans le bon
+compte, autorisée pour une facture via lien externe — conforme). La
+connexion staff de `chauffeur.html`/`mamadou.html` (ci-dessus) est donc
+maintenant le vrai mécanisme utilisé en production, plus un simple
+filet de sécurité en option.
+
+### Profil de secours "Aminata 2"
+**Fait le 17/10 (v3.99.39 + départs v2.20.81).** Le problème France &
+Europe sur le profil "AM" n'étant toujours pas expliqué (voir plus
+haut), Cobey a demandé un second profil, mêmes accès que "AM", en
+attendant de retrouver la vraie cause — pas un remplacement définitif.
+
+Nouveau profil `A2` ("Aminata 2") dans `COLLABS`, avec exactement les
+mêmes cases Bureau que "AM" (`DEP_CASES_PAR_ID`), et les mêmes règles
+annexes déjà spécifiques à "AM" reprises à l'identique (exclu du
+calcul de salaire terrain, inclus dans les organisateurs du planning
+— `DEP_IDS_PLANNING`). Première connexion : comme pour tout nouveau
+profil, l'appli demandera de créer un code PIN.
