@@ -4253,3 +4253,8 @@ d'Aminata depuis le début (son appareil perdait systématiquement
 cette course), mais l'ancienne version des règles (plus souple) ne le
 révélait jamais par un échec franc — à confirmer la prochaine fois
 qu'elle se connecte.
+
+**Confirmé (même jour)** : Cobey a appelé Aminata, ça fonctionne.
+Profil "Aminata 2" (A2, voir plus haut) retiré — n'était qu'un
+filet de secours temporaire, plus nécessaire (v3.99.42 + départs
+v2.20.84).

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.83';
+var DEP_VERSION = 'v2.20.84';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2261,10 +2261,7 @@ var DEP_CASES_TERRAIN = ['client','collecte','france','depot','devis','articles'
 var DEP_CASES_BUREAU = ['devis','articles','client','collecte','france','depot','stockage',
                         'qr','archive','stats','planning','annonce','factureManuelle','fidelite','departs'];
 
-// v3.99.39 — "Aminata 2", profil de secours le temps de retrouver la
-// vraie cause du problème France & Europe sur son profil "AM" (voir
-// MAJ-A-FAIRE.md) — mêmes cases que son profil habituel.
-var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU, A2:DEP_CASES_BUREAU };
+var DEP_CASES_PAR_ID = { AM:DEP_CASES_BUREAU };
 
 function _depCasesDe(u){
   u = u || window.currentUser || {};
@@ -16267,11 +16264,7 @@ function greffer(){
 
      Un profil inconnu va au Terrain : c'est là qu'arrive un collecteur,
      le cas de loin le plus fréquent. */
-  // v3.99.40 — "A2" (Aminata 2, profil de secours) manquait ici, donc
-  // retombait par défaut sur 'TER' (Terrain) au lieu de 'BUR' (Bureau),
-  // comme "AM" (Cobey, 17/10/2026 : « le profil Aminata 2 doit être
-  // dans l'espace bureau »).
-  var DEP_ESPACE_PAR_ID = { IS:'DIR', AB:'DIR', AM:'BUR', A2:'BUR', SA:'TER', IB:'TER', BO:'TER' };
+  var DEP_ESPACE_PAR_ID = { IS:'DIR', AB:'DIR', AM:'BUR', SA:'TER', IB:'TER', BO:'TER' };
 
   function _depEspaceDe(c){
     if(!c) return 'TER';
@@ -22346,9 +22339,7 @@ window.depOuvrirRapfinFixes = function(departId){
 // appliquerProfils() a déjà retiré le second profil admin d'Issyaka
 // (id 'AI') de COLLABS au démarrage — pas de doublon de nom à filtrer.
 function _depCollabsPourSalaire(){
-  // v3.99.39 : "A2" (Aminata 2) est un second profil de secours pour la
-  // même personne (voir DEP_CASES_PAR_ID) — exclu au même titre que "AM".
-  return (window.COLLABS || []).filter(function(c){ return c && c.id !== 'AM' && c.id !== 'A2'; });
+  return (window.COLLABS || []).filter(function(c){ return c && c.id !== 'AM'; });
 }
 
 // v1.94.15 : le champ "Nombre de personnes" ne concerne que le poste
@@ -24946,10 +24937,8 @@ window.planningData = window.planningData || {};
 
 /* Organisent et relancent : la direction et Aminata — le Bureau prend les
    appels et connaît les contraintes de chacun. Tous les autres consultent
-   et posent leurs disponibilités.
-   v3.99.39 : "A2" (Aminata 2, profil de secours, voir DEP_CASES_PAR_ID)
-   a le même rôle qu'"AM". */
-var DEP_IDS_PLANNING = ['AM', 'A2'];
+   et posent leurs disponibilités. */
+var DEP_IDS_PLANNING = ['AM'];
 
 /* ═══ v2.5.3 — TOUCHER LA NOTIFICATION MÈNE DIRECTEMENT À PLANNING ═══
 
