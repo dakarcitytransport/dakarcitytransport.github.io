@@ -1779,8 +1779,32 @@ var _dctEmpreinteSync = '';
 
 // Le fil d'Activité, sorti du listener : c'est la seule chose qui doit
 // encore se mettre à jour quand les données, elles, n'ont pas bougé.
+//
+// v3.99.48 — Cobey : « il y a vraiment, vraiment des lenteurs qu'il n'y
+// avait pas avant [...] cherche-moi le problème. » Trouvé : plus aucun
+// code n'écrit dct/activite depuis le passage au "SYSTÈME ACTIVITÉ v2"
+// (addActivity écrit désormais sur activite_items, un nœud à part — voir
+// plus bas ; sauvegarderFirebase exclut explicitement "activite" de ses
+// écritures). data.activite est donc une valeur FIGÉE, toujours la même,
+// un vieux bloc HTML hérité d'avant ce chantier. Et pourtant, cette
+// fonction s'exécute À CHAQUE écho Firebase sur 'dct' — y compris la
+// voie "rien n'a changé" du listener ci-dessus, justement pour la
+// laisser tourner — ce qui veut dire : reconstruire un <div> temporaire,
+// reparser tout le HTML figé, refiltrer et réécrire #activity-list au
+// complet, pour un résultat rigoureusement identique à la fois d'avant —
+// à chaque geste de N'IMPORTE QUEL collaborateur sur Collecte Sénégal,
+// tout au long d'une session. Plus l'équipe est active (donc plus on
+// reste longtemps connecté dans la journée), plus ces échos s'enchaînent
+// et plus ce travail pour rien s'accumule — exactement le profil "ça va
+// mieux à l'ouverture, pire après un moment" décrit par Cobey.
+// Corrigé en mémorisant la dernière valeur traitée : tant que
+// data.activite ne change pas vraiment (jamais, en pratique), on saute
+// tout le travail ci-dessous.
+var _dctDerniereActiviteNative = null;
 function _dctMajActivite(data){
   if(!data || !data.activite) return;
+  if(data.activite === _dctDerniereActiviteNative) return;
+  _dctDerniereActiviteNative = data.activite;
   var al = document.getElementById('activity-list');
   if(!al || data.activite.indexOf('Aucune') !== -1) return;
   // Charger deletedAt depuis Firebase (source de vérité) + localStorage
@@ -1934,7 +1958,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.47';
+var APP_VERSION = 'v3.99.48';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},

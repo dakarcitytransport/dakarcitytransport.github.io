@@ -4337,3 +4337,38 @@ Corrigé (`depRenderPlanning`) : pour qui n'est pas dans
 `_depGensPlanning`, l'onglet disparaît carrément — "L'équipe"
 s'affiche d'office, sans bascule à montrer pour un seul choix
 possible. Aucun changement pour les vrais participants terrain.
+
+**17/10, v3.99.48 — lenteur générale, nouvelle piste trouvée et
+corrigée.** Cobey : « il y a vraiment, vraiment des lenteurs qu'il
+n'y avait pas avant [...] cherche-moi le problème. »
+
+Trouvé : `_dctMajActivite(data)` (appelée par `ecouterChangements()`,
+l'écoute Collecte Sénégal, à CHAQUE écho Firebase sur `dct` — y
+compris la voie "rien n'a changé", délibérément, pour la laisser
+tourner même là) reparse et reconstruit tout `#activity-list` à
+partir de `data.activite`. Or plus aucun code n'écrit ce champ
+Firebase depuis le passage au "SYSTÈME ACTIVITÉ v2" (`addActivity`
+écrit désormais sur `activite_items`, un nœud à part ; le commentaire
+disant "géré séparément via addActivity" ne correspond plus à la
+réalité du code). `data.activite` est donc une valeur FIGÉE, toujours
+identique — et pourtant ce travail (reconstruire un bloc HTML
+temporaire, reparser, refiltrer, réécrire tout `#activity-list`) se
+refaisait en entier à CHAQUE geste de N'IMPORTE QUEL collaborateur
+sur Collecte Sénégal, tout au long de la session, qu'on soit sur
+l'écran Activité ou non.
+
+Exactement le profil décrit par Cobey : plus l'équipe est active
+(donc plus on reste connecté longtemps dans la journée), plus ces
+échos s'enchaînent et plus ce travail inutile s'accumule — « ça va
+mieux à l'ouverture, pire après un moment ».
+
+Corrigé en mémorisant la dernière valeur de `data.activite` traitée :
+le travail est sauté tant qu'elle n'a pas réellement changé (en
+pratique : toujours, aujourd'hui). Testé : 40 échos coup sur coup à
+valeur identique ne déclenchent plus qu'UNE seule reconstruction (la
+toute première), et le mécanisme continue de fonctionner si la valeur
+change un jour pour de vrai.
+
+**Important : cette piste est confirmée et corrigée, mais peut-être
+pas la seule.** À vérifier avec Cobey si la lenteur persiste malgré
+ce correctif.
