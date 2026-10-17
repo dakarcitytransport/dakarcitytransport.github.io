@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.86';
+var DEP_VERSION = 'v2.20.87';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25787,6 +25787,18 @@ window.depRenderPlanning = function(){
   var box = document.getElementById('pl-contenu');
   if(!box) return;
   var dims = _depProchainsDimanches(5);
+  var u = window.currentUser || {};
+  // v3.99.47 — Cobey : « pour Aminata et moi, tu peux enlever l'onglet
+  // "Mes disponibilités". Au final, il ne sert à rien, vu que nous, on
+  // ne participe pas aux collectes. » _depPlanningBlocMien (plus haut)
+  // dit déjà à Eric/Aminata qu'il n'y a rien à remplir ici, mais
+  // l'onglet restait affiché quand même, les obligeant à cliquer
+  // "L'équipe" à chaque fois. Pour qui n'est pas dans _depGensPlanning
+  // (Eric, Aminata — organisateurs, jamais sur le terrain le dimanche),
+  // l'onglet disparaît carrément : seule "L'équipe" reste, affichée
+  // d'office, sans bascule à montrer pour un seul choix possible.
+  var estParticipant = _depGensPlanning().some(function(c){ return c.id === u.id; });
+  if(!estParticipant) _depPlanningOnglet = 'equipe';
 
   var onglet = function(cle, libelle){
     var actif = _depPlanningOnglet === cle;
@@ -25796,10 +25808,12 @@ window.depRenderPlanning = function(){
                  + 'border:1.5px solid var(--border);') + '">' + libelle + '</div>';
   };
 
-  var h = '<div style="display:flex;gap:8px;margin-bottom:14px;">'
-    + onglet('moi', 'Mes disponibilit&eacute;s')
-    + onglet('equipe', 'L\'&eacute;quipe')
-    + '</div>';
+  var h = estParticipant
+    ? ('<div style="display:flex;gap:8px;margin-bottom:14px;">'
+       + onglet('moi', 'Mes disponibilit&eacute;s')
+       + onglet('equipe', 'L\'&eacute;quipe')
+       + '</div>')
+    : '';
 
   if(_depPlanningOnglet === 'moi'){
     h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:11px;'

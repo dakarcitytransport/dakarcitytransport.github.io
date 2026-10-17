@@ -4321,3 +4321,19 @@ l'aperçu PDF large. Corrigé en mettant le RIB DANS `.fac-totaux`
 publique/interne, facture manuelle) : il reste groupé avec les
 chiffres, toujours juste en dessous, quelle que soit la largeur
 d'écran.
+
+**17/10, v3.99.47 — Planning : onglet "Mes disponibilités" retiré pour
+Eric et Aminata.** Cobey : « pour Aminata et moi, tu peux enlever
+l'onglet "Mes disponibilités". Au final, il ne sert à rien, vu que
+nous, on ne participe pas aux collectes. » `_depGensPlanning()`
+excluait déjà Eric (admin) et Aminata (Bureau) de la liste des
+participants depuis la v2.6.3 — eux seuls organisent/relancent
+(`_depPeutOrganiserPlanning`) sans jamais donner de disponibilité —
+et l'onglet "Mes disponibilités" affichait déjà pour eux un message
+("vous n'avez pas de disponibilité à donner ici [...] ouvrez
+L'équipe") au lieu du vrai formulaire. Mais l'onglet restait affiché
+quand même, les obligeant à cliquer "L'équipe" à chaque ouverture.
+Corrigé (`depRenderPlanning`) : pour qui n'est pas dans
+`_depGensPlanning`, l'onglet disparaît carrément — "L'équipe"
+s'affiche d'office, sans bascule à montrer pour un seul choix
+possible. Aucun changement pour les vrais participants terrain.
