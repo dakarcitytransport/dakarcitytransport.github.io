@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.81';
+var DEP_VERSION = 'v2.20.82';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -16267,7 +16267,11 @@ function greffer(){
 
      Un profil inconnu va au Terrain : c'est là qu'arrive un collecteur,
      le cas de loin le plus fréquent. */
-  var DEP_ESPACE_PAR_ID = { IS:'DIR', AB:'DIR', AM:'BUR', SA:'TER', IB:'TER', BO:'TER' };
+  // v3.99.40 — "A2" (Aminata 2, profil de secours) manquait ici, donc
+  // retombait par défaut sur 'TER' (Terrain) au lieu de 'BUR' (Bureau),
+  // comme "AM" (Cobey, 17/10/2026 : « le profil Aminata 2 doit être
+  // dans l'espace bureau »).
+  var DEP_ESPACE_PAR_ID = { IS:'DIR', AB:'DIR', AM:'BUR', A2:'BUR', SA:'TER', IB:'TER', BO:'TER' };
 
   function _depEspaceDe(c){
     if(!c) return 'TER';

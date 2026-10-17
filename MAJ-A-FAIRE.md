@@ -4209,3 +4209,10 @@ annexes déjà spécifiques à "AM" reprises à l'identique (exclu du
 calcul de salaire terrain, inclus dans les organisateurs du planning
 — `DEP_IDS_PLANNING`). Première connexion : comme pour tout nouveau
 profil, l'appli demandera de créer un code PIN.
+
+**Correctif (même jour, v2.20.82)** : Cobey — « le profil Aminata 2 doit
+être dans l'espace bureau. » Un oubli dans la liste qui place chaque
+profil dans son espace de connexion (`DEP_ESPACE_PAR_ID`) : "A2"
+n'y figurait pas, donc retombait par défaut sur l'espace Terrain au
+lieu de Bureau. Ajouté, "A2" apparaît maintenant au bon endroit, comme
+"AM".
