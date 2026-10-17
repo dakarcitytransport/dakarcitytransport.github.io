@@ -4307,3 +4307,17 @@ dans facture.html comme `DEP_ADRESSE_DEPOT` juste au-dessus) +
 sur la facture publique/interne ET la facture manuelle) et
 `_depTexteRib()` (même info en texte brut, ajoutée à la fin de
 `_depTexteRelancePaiement`, juste avant la formule de politesse).
+
+**17/10, v3.99.46 — correctif de placement du RIB (même jour).** Cobey,
+captures d'écran à l'appui : « le RIB est mal placé [...] il devrait
+être en dessous des chiffres total. Pas sur le côté ni au-dessus. »
+Cause : `.fac-bas` est en `flex-wrap:wrap-reverse` (pour que sur
+mobile le bloc "Arrêtée à la somme de", moins important, passe sous
+les totaux) — le RIB, ajouté comme un 3e enfant FRÈRE du bloc
+`.fac-totaux`, se faisait remonter AU-DESSUS des totaux par ce même
+mécanisme sur mobile, et apparaissait comme une colonne à part sur
+l'aperçu PDF large. Corrigé en mettant le RIB DANS `.fac-totaux`
+(son dernier élément, pas un frère) sur les 3 emplacements (facture
+publique/interne, facture manuelle) : il reste groupé avec les
+chiffres, toujours juste en dessous, quelle que soit la largeur
+d'écran.

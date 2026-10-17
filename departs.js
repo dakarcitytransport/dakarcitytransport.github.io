@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.85';
+var DEP_VERSION = 'v2.20.86';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9765,10 +9765,16 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
                    + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Total avec livraison</span><span>'+esc(totalGeneralTxt)+'</span></div>'
                    + '</div>')
                 : '')
-    +       '</div>'
-    // v3.99.45 — Cobey : « le RIB à ajouter sur les factures, juste en
-    // dessous des montants totaux. » Voir DEP_RIB plus haut.
+    // v3.99.46 — Cobey, capture d'écran à l'appui : sur mobile, le RIB
+    // apparaissait AVANT le total au lieu d'après. Cause : .fac-bas est
+    // en flex-wrap:wrap-reverse (pour que sur mobile le bloc "Arrêtée à
+    // la somme de", moins important, passe sous les totaux) — un 3e
+    // enfant FRÈRE du bloc totaux se faisait remonter au-dessus de lui
+    // par ce même mécanisme. Corrigé en mettant le RIB DANS .fac-totaux
+    // (dernier élément du bloc, pas un frère) : il reste groupé avec les
+    // totaux quelle que soit la largeur d'écran.
     +       _depBlocRibFacture()
+    +       '</div>'
     +     '</div>'
 
     +   '</div>' // fac-body
@@ -22992,10 +22998,12 @@ function depRenderFactureManuelleDoc(f){
     +       '<div class="fac-lettres">Arr&ecirc;t&eacute;e la pr&eacute;sente facture &agrave; la somme de&nbsp;: '+esc(_depSommeEnLettres(montant))+'.</div>'
     +       '<div class="fac-totaux">'
     +         '<div class="fac-totaux-ligne fac-totaux-total"><span>TOTAL</span><span>'+montant+' &euro;</span></div>'
-    +       '</div>'
-    // v3.99.45 — Cobey : « le RIB à ajouter sur les factures, juste en
-    // dessous des montants totaux. » Voir DEP_RIB plus haut.
+    // v3.99.46 — voir le commentaire jumeau sur la facture publique
+    // (depRenderFacturePublique, plus haut) : RIB mis DANS .fac-totaux,
+    // pas en frère, sinon flex-wrap:wrap-reverse le fait remonter
+    // au-dessus du total sur mobile.
     +       _depBlocRibFacture()
+    +       '</div>'
     +     '</div>'
 
     +   '</div>' // fac-body

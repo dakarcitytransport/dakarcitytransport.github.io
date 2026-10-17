@@ -783,10 +783,12 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
                    + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Total avec livraison</span><span>'+esc(totalGeneralTxt)+'</span></div>'
                    + '</div>')
                 : '')
-    +       '</div>'
-    // v3.99.45 — Cobey : « le RIB à ajouter sur les factures, juste en
-    // dessous des montants totaux. » Voir DEP_RIB plus haut.
+    // v3.99.46 — voir le commentaire jumeau dans departs.js : RIB mis
+    // DANS .fac-totaux, pas en frère, sinon flex-wrap:wrap-reverse le
+    // fait remonter au-dessus du total sur mobile (retour de Cobey,
+    // capture d'écran à l'appui).
     +       _depBlocRibFacture()
+    +       '</div>'
     +     '</div>'
 
     +   '</div>' // fac-body
