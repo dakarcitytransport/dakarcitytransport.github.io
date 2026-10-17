@@ -1934,7 +1934,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.43';
+var APP_VERSION = 'v3.99.44';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3808,6 +3808,7 @@ function validerTourneeDanny(){
   var tid='T'+Date.now();
   var lib=_libelleDate(_dtDate);
   var reg=_regionDeSelection();
+  var noms=_frListeNoms(dannySel);
   var deps={};
   dannySel.forEach(function(id){ var c=(franceData.clients||{})[id]; if(c&&c.dept) deps[c.dept]=1; });
   var maj={};
@@ -3832,7 +3833,7 @@ function validerTourneeDanny(){
 
   _frUpdate(maj).then(function(){
     showToastNew('✅ Tournée du '+lib+' créée');
-    _activiteFrance('📅', 'a préparé la tournée <strong>'+reg+' · '+lib+'</strong> — '+dannySel.length+' client'+(dannySel.length>1?'s':''));
+    _activiteFrance('📅', 'a préparé la tournée <strong>'+reg+' · '+lib+'</strong> — '+dannySel.length+' client'+(dannySel.length>1?'s':'')+(noms?(' — '+noms):''));
     dannySel=[]; _dtConfirmes=[]; _dtPoste='';
     if(_peutGererFrance()){ switchFranceTab('dispatch'); goTo('s-france'); }
     else { switchDannyTab('tournees'); goTo('s-partenaire'); }
@@ -4308,6 +4309,7 @@ function marquerPartis(){
   ids.forEach(function(id){ var c=franceData.clients[id]; colis+=(c.nb||1); });
   if(!confirm('Déclarer '+ids.length+' client'+(ids.length>1?'s':'')+' · '+colis+' colis partis pour Dakar ?\n\n'
     +'Leurs fiches quitteront le suivi et passeront dans l\'historique.')) return;
+  var noms=_frListeNoms(ids);
   var qui=(currentUser||{}).name||'', now=Date.now(), maj={};
   ids.forEach(function(id){
     var c=franceData.clients[id]||{};
@@ -4321,7 +4323,7 @@ function marquerPartis(){
   _frUpdate(maj).then(function(){
     dannySel=[];
     showToastNew('✈️ '+ids.length+' client'+(ids.length>1?'s':'')+' · '+colis+' colis partis');
-    _activiteFrance('✈️', 'a déclaré <strong>'+colis+' colis</strong> partis pour Dakar ('+ids.length+' client'+(ids.length>1?'s':'')+')');
+    _activiteFrance('✈️', 'a déclaré <strong>'+colis+' colis</strong> partis pour Dakar ('+ids.length+' client'+(ids.length>1?'s':'')+')'+(noms?(' — '+noms):''));
     renderFrance();
   }).catch(function(e){
     showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée'));
@@ -4332,6 +4334,7 @@ function marquerPartis(){
 // d'utilité au quotidien : on le retire pour de bon, jamais autre chose.
 function _supprimerFiches(ids, libelle){
   if(!db || !firebaseReady){ showToastNew('❌ Connexion Firebase indisponible.'); return; }
+  var noms=_frListeNoms(ids); // capturé avant suppression, voir _frListeNoms
   var maj={};
   // La personne rejoint le carnet avant que son dossier disparaisse.
   ids.forEach(function(id){ try{ _versCarnet((franceData.clients||{})[id]); }catch(e){} });
@@ -4341,7 +4344,7 @@ function _supprimerFiches(ids, libelle){
   _frUpdate(maj).then(function(){
     dannySel=[];
     showToastNew('🗑️ '+ids.length+' fiche'+(ids.length>1?'s':'')+' supprimée'+(ids.length>1?'s':''));
-    _activiteFrance('🗑️', 'a supprimé <strong>'+ids.length+' fiche'+(ids.length>1?'s':'')+'</strong> '+libelle);
+    _activiteFrance('🗑️', 'a supprimé <strong>'+ids.length+' fiche'+(ids.length>1?'s':'')+'</strong> '+libelle+(noms?(' — '+noms):''));
     renderFrance();
   }).catch(function(e){
     showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée'));
@@ -5426,11 +5429,12 @@ function _frValiderPick(){
   r.clients=apres;
   maj['collectes/'+r._id+'/clients']=apres;
   var n=apres.length;
+  var noms=_frListeNoms(apres);
   closeModal('modal-fc-pick');
   var p=_frSauverCollecte(r, maj);
   if(p) p.then(function(){
     showToastNew('✅ '+n+' client'+(n>1?'s':'')+' dans la collecte');
-    _activiteFrance('📋','a composé la collecte <strong>'+r.dateLib+'</strong> — '+n+' client'+(n>1?'s':''));
+    _activiteFrance('📋','a composé la collecte <strong>'+r.dateLib+'</strong> — '+n+' client'+(n>1?'s':'')+(noms?(' — '+noms):''));
     renderFrance();
   });
 }
@@ -5668,11 +5672,12 @@ function _affecterSelCamionFrance(k){
     maj['clients/'+id+'/hist']=hist;
   });
   var n=dannySel.length;
+  var noms=_frListeNoms(dannySel);
   closeModal('modal-fr-affect');
   var p=_frSauverCollecte(r, maj);
   if(p) p.then(function(){
     showToastNew('✅ '+n+' client'+(n>1?'s':'')+' dans le camion de '+tk.name);
-    _activiteFrance('📦','a mis <strong>'+n+' client'+(n>1?'s':'')+'</strong> dans le camion de <strong>'+tk.name+'</strong>');
+    _activiteFrance('📦','a mis <strong>'+n+' client'+(n>1?'s':'')+'</strong> dans le camion de <strong>'+tk.name+'</strong>'+(noms?(' — '+noms):''));
     dannySel=[];
     renderFrance();
   });
@@ -5733,10 +5738,11 @@ function marquerRamasseSel(){
     maj['clients/'+id+'/hist']=hist;
   });
   var n=ids.length;
+  var noms=_frListeNoms(ids);
   var p=_frSauverCollecte(r, maj);
   if(p) p.then(function(){
     showToastNew('✅ '+n+' client'+(n>1?'s':'')+' ramassé'+(n>1?'s':''));
-    _activiteFrance('✅','a marqué <strong>'+n+' client'+(n>1?'s':'')+'</strong> comme ramassé'+(n>1?'s':''));
+    _activiteFrance('✅','a marqué <strong>'+n+' client'+(n>1?'s':'')+'</strong> comme ramassé'+(n>1?'s':'')+(noms?(' — '+noms):''));
     dannySel=[]; renderFrance();
   });
 }
@@ -7975,9 +7981,10 @@ function validerDepot(lieu){
     maj['clients/'+id+'/hist']=hist;
   });
   maj['tournees/'+to.id+'/depots']=depots;
+  var nomsActivite=_frListeNoms(_depotSel);
   _frUpdate(maj).then(function(){
     showToastNew('✅ '+_depotSel.length+' colis à Mitry-Mory');
-    _activiteFrance('📍', 'a déposé <strong>'+_depotSel.length+' client'+(_depotSel.length>1?'s':'')+'</strong> à Mitry-Mory');
+    _activiteFrance('📍', 'a déposé <strong>'+_depotSel.length+' client'+(_depotSel.length>1?'s':'')+'</strong> à Mitry-Mory'+(nomsActivite?(' — '+nomsActivite):''));
     _depotSel=[];
     if(_aDeclarer().length){ _renderDepot(); }
     else { renderPosteTournee(); goTo('s-poste-tournee'); }
@@ -13533,6 +13540,26 @@ function _sufColl(colId){
 }
 
 // addActivity(emoji, couleurDeFond, texteHtml, heure)
+// v3.99.44 — Cobey, capture d'écran à l'appui : « on voit qu'Abdoulaye a
+// supprimé une fiche, mais on ne sait pas qui, quoi, où, comment [...]
+// à chaque notification, on sache de quoi ça parle [...] qu'on
+// comprenne bien. » Les actions en lot (suppression, mise en camion,
+// ramassage, dépôt Mitry-Mory, composition/préparation de tournée,
+// départ pour Dakar) n'affichaient qu'un compte ("3 clients"), jamais
+// lesquels — contrairement aux actions sur un seul client, qui
+// affichent déjà le nom (_nomAffiche). Liste les noms (jusqu'à 4), puis
+// "et N autres" au-delà, pour rester lisible même sur un gros lot.
+function _frListeNoms(ids, maxAff){
+  maxAff = maxAff || 4;
+  var noms = (ids||[]).map(function(id){
+    var c=(franceData.clients||{})[id];
+    return c ? _nomAffiche(c) : null;
+  }).filter(Boolean);
+  if(!noms.length) return '';
+  if(noms.length <= maxAff) return noms.join(', ');
+  return noms.slice(0, maxAff).join(', ') + ' et ' + (noms.length - maxAff) + ' autre' + ((noms.length-maxAff)>1?'s':'');
+}
+
 function _activiteFrance(emoji, texte){
   try{
     var u = currentUser || {};
