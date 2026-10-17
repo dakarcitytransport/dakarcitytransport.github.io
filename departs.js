@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.84';
+var DEP_VERSION = 'v2.20.85';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -583,6 +583,31 @@ function depEtapesTransportPour(pays){ return DEP_ETAPES_TRANSPORT[pays] || DEP_
 // Affichés au client une fois l'étape "Arrivée au dépôt" (Sénégal) validée.
 var DEP_ADRESSE_DEPOT = 'Parcelle Assainie, Unité 8, Dakar';
 var DEP_CONTACT_DEPOT = { nom: 'Mamadou Niass', tel: '+221 78 432 36 17' };
+
+// v3.99.45 — Cobey : « le RIB à ajouter sur les factures, juste en
+// dessous des montants totaux, et aussi sur les messages de relance
+// WhatsApp pour les clients qui ont des retards de paiement. » Décision
+// prise avec lui : IBAN + BIC + titulaire seulement (pas tout le RIB
+// détaillé — code banque/agence/compte/clé est redondant avec l'IBAN,
+// qui le contient déjà, et ça alourdit inutilement un message WhatsApp
+// lu sur mobile) ; rien sur le devis, qui n'est qu'indicatif, jamais une
+// demande de paiement. Une seule constante, réutilisée partout — dupliquée
+// à l'identique dans facture.html, comme DEP_ADRESSE_DEPOT ci-dessus.
+var DEP_RIB = { titulaire: 'ISSYAKA DIALLO', iban: 'FR76 2823 3000 0162 9977 8088 356', bic: 'REVOFRP2' };
+// Bloc HTML, affiché juste sous les montants totaux sur une facture.
+function _depBlocRibFacture(){
+  return '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;font-size:10.5px;color:#555;">'
+    + '<div style="font-weight:700;color:#333;margin-bottom:3px;">Coordonn&eacute;es bancaires (virement)</div>'
+    + '<div>IBAN&nbsp;: ' + DEP_RIB.iban + '</div>'
+    + '<div>BIC&nbsp;: ' + DEP_RIB.bic + '</div>'
+    + '<div>Titulaire&nbsp;: ' + esc(DEP_RIB.titulaire) + '</div>'
+    + '</div>';
+}
+// Même bloc, en texte brut, pour un message WhatsApp.
+function _depTexteRib(){
+  return '💳 Vous pouvez régler par virement :\nIBAN : ' + DEP_RIB.iban
+    + '\nBIC : ' + DEP_RIB.bic + '\nTitulaire : ' + DEP_RIB.titulaire;
+}
 
 // Statut de paiement d'une facture — jamais choisi à la main, toujours
 // recalculé à partir des versements enregistrés (voir depCalculerPaiement).
@@ -9741,6 +9766,9 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
                    + '</div>')
                 : '')
     +       '</div>'
+    // v3.99.45 — Cobey : « le RIB à ajouter sur les factures, juste en
+    // dessous des montants totaux. » Voir DEP_RIB plus haut.
+    +       _depBlocRibFacture()
     +     '</div>'
 
     +   '</div>' // fac-body
@@ -9931,9 +9959,15 @@ function _depTexteRelancePaiement(c, d, p, estLiv){
        + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison' + (arrive ? '.' : ', avant l’arrivée.'))
     : ('Pour récupérer votre colis, merci de bien vouloir régler le solde restant de '
        + p.reste + ' € (sur un total de ' + p.total + ' €)' + (arrive ? '.' : ' avant l’arrivée.'));
+  // v3.99.45 — Cobey : « le RIB à ajouter [...] sur les messages de
+  // relance qu'on a mis en place sur les boutons WhatsApp pour les
+  // clients qui ont des retards de paiement [...] il y a des relances
+  // de livraison et des relances de colis » — cette fonction sert déjà
+  // aux deux (estLiv), donc un seul ajout couvre les deux cas.
   return 'Bonjour ' + prenom + ' \u{1F44B}\n\n'
     + intro + '\n\n'
     + demande + '\n\n'
+    + _depTexteRib() + '\n\n'
     + 'Merci de votre confiance !\nL’équipe Dakar City Transport';
 }
 
@@ -22959,6 +22993,9 @@ function depRenderFactureManuelleDoc(f){
     +       '<div class="fac-totaux">'
     +         '<div class="fac-totaux-ligne fac-totaux-total"><span>TOTAL</span><span>'+montant+' &euro;</span></div>'
     +       '</div>'
+    // v3.99.45 — Cobey : « le RIB à ajouter sur les factures, juste en
+    // dessous des montants totaux. » Voir DEP_RIB plus haut.
+    +       _depBlocRibFacture()
     +     '</div>'
 
     +   '</div>' // fac-body

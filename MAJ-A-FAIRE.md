@@ -4288,3 +4288,22 @@ correctif ci-dessus.**
    compris), et le récap par collaborateur a été retiré — ne reste que
    le fil d'Ariane "← Toutes les collectes" + la date. L'inbox global
    (aucune collecte ouverte) n'est pas touché.
+
+**17/10, v3.99.45 — RIB sur les factures et les relances de paiement.**
+
+Cobey, capture d'écran du RIB Revolut à l'appui : « à ajouter sur les
+factures, juste en dessous des montants totaux, et aussi sur les
+messages de relance WhatsApp pour les clients qui ont des retards de
+paiement. » Convenu avec lui : IBAN + BIC + titulaire seulement (pas
+le RIB détaillé — code banque/agence/compte/clé est redondant avec
+l'IBAN, qui le contient déjà, et alourdit inutilement un message
+WhatsApp) ; rien sur le devis, qui n'est qu'indicatif, jamais une
+demande de paiement ; couvre à la fois la relance paiement colis ET
+la relance paiement livraison (même fonction pour les deux).
+
+Nouvelle constante `DEP_RIB` (departs.js, dupliquée à l'identique
+dans facture.html comme `DEP_ADRESSE_DEPOT` juste au-dessus) +
+`_depBlocRibFacture()` (bloc HTML, inséré juste sous "Reste à payer"
+sur la facture publique/interne ET la facture manuelle) et
+`_depTexteRib()` (même info en texte brut, ajoutée à la fin de
+`_depTexteRelancePaiement`, juste avant la formule de politesse).
