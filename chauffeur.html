@@ -171,7 +171,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.6.1';
+var CHAUFFEUR_VERSION = 'v1.6.2';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -220,12 +220,26 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
 
-// Page à part, sans PIN (ouverte via un lien + code WhatsApp) — même
-// principe de connexion anonyme que facture.html : un badge invisible
-// pour passer les règles Firebase resserrées, ne remplace pas le code
-// d'accès qui, lui, reste le vrai contrôle d'accès à cette tournée.
+// Page à part, sans PIN (ouverte via un lien + code WhatsApp). Le vrai
+// contrôle d'accès à cette tournée reste le code d'accès saisi plus
+// bas — ceci ne fait que satisfaire les règles Firebase (auth != null).
+// v3.99.39 — Cobey, alerte Firebase "n'importe quel utilisateur connecté
+// peut lire/écrire toute la base" : une connexion anonyme pure
+// (signInAnonymously) ne demande AUCUN identifiant — n'importe qui sur
+// Internet qui trouve la configuration Firebase de cette page (visible
+// dans son code, ce n'est pas un secret pour Firebase, mais ça l'est
+// pour nos règles trop larges) peut s'authentifier et obtenir, avec la
+// règle actuelle, un accès à TOUTE la base, pas seulement à cette
+// tournée. Même compte "service" que l'appli interne désormais (voir
+// _depConnexionStaff, departs.js) — avec repli sur l'anonyme UNIQUEMENT
+// si cette connexion échoue, pour ne jamais couper l'accès à un vrai
+// chauffeur entre-temps.
 var _connexionAnonyme = firebase.auth
-  ? firebase.auth().signInAnonymously().catch(function(e){ console.error('chauffeur: connexion anonyme', e); })
+  ? firebase.auth().signInWithEmailAndPassword('staff@dakarcitytransport.app', 's46AU54ODQWmLfKEOEg3edm5')
+      .catch(function(e){
+        console.error('chauffeur: connexion staff — repli sur la connexion anonyme', e);
+        return firebase.auth().signInAnonymously().catch(function(e2){ console.error('chauffeur: connexion anonyme (repli)', e2); });
+      })
   : Promise.resolve();
 
 var ctx = null; // { collecteId, camion, nom, code, france }

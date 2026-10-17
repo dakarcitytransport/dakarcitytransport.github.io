@@ -4156,3 +4156,36 @@ s'affiche désormais si cette écoute est refusée. La prochaine fois
 qu'Aminata ouvre l'appli, soit le problème a disparu, soit elle verra
 enfin un message précis à transmettre — ce qui dira si c'est un souci
 de règles Firebase (à corriger côté console) ou autre chose.
+
+### Alerte Firebase « règles non sécurisées » — connexion staff étendue
+**Fait le 17/10 (chauffeur v1.6.2, mamadou v1.13.1).** Cobey a reçu (à
+nouveau) l'alerte automatique de Firebase : « N'importe quel utilisateur
+connecté peut lire l'intégralité de votre base » / « ... peut écrire sur
+votre base ». Vérification faite : règle actuelle `auth != null`,
+identique pour tous les chemins (donc pas la cause du problème
+d'Aminata, qui reste non résolu — voir plus haut).
+
+Le vrai souci : `chauffeur.html` et `mamadou.html` se connectaient en
+anonyme pur (`signInAnonymously`, sans aucun identifiant) — avec la
+règle `auth != null`, n'IMPORTE QUI sur Internet qui trouve la
+configuration Firebase de l'une de ces pages (visible dans leur code,
+ce n'est pas secret pour Firebase mais ça l'est pour des règles aussi
+larges) peut s'authentifier sans rien connaître et obtenir un accès
+en lecture ET écriture à TOUTE la base, pas seulement à son propre
+espace.
+
+Les deux pages utilisent désormais le même compte "service" que
+l'appli interne (`staff@dakarcitytransport.app`, voir
+`_depConnexionStaff`), avec repli sur l'anonyme UNIQUEMENT si cette
+connexion échoue — jamais de coupure d'accès pour un vrai chauffeur ou
+pour Mamadou. Leur contrôle d'accès réel (code tournée / mot de passe
+dédié) ne change pas.
+
+`facture.html` reste volontairement en connexion anonyme (de vrais
+clients externes y accèdent sans aucun compte, juste un lien
+WhatsApp) — son accès doit plutôt être restreint par des règles
+Firebase précises par chemin (lecture seule, sur les chemins dont elle
+a réellement besoin), pas par un identifiant partagé. Reste à faire,
+nécessite d'écrire et de tester ces règles avec Cobey (simulateur de
+la console Firebase) avant de les publier — changement sensible, pas
+fait à l'aveugle.
