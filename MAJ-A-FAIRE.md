@@ -4216,3 +4216,40 @@ profil dans son espace de connexion (`DEP_ESPACE_PAR_ID`) : "A2"
 n'y figurait pas, donc retombait par défaut sur l'espace Terrain au
 lieu de Bureau. Ajouté, "A2" apparaît maintenant au bon endroit, comme
 "AM".
+
+### La vraie cause, enfin trouvée : l'ordre de connexion au démarrage
+**Fait le 17/10 (v3.99.41 + départs v2.20.83).** Le message d'erreur
+ajouté plus tôt (v3.99.38) a payé : Cobey, test décisif sur son 2e
+téléphone, profil Aminata → « France & Europe : connexion refusée
+(PERMISSION_DENIED) » ; même téléphone, même session, un autre profil
+→ aucun souci. Confirmé ensuite : ça arrive à CHAQUE fermeture/
+réouverture de l'appli, sur n'importe quel espace.
+
+Cause réelle : `ecouterFrance()` (et toutes les autres écoutes
+Firebase de l'appli, `ecouterChangements()` comprise) s'attachaient
+AVANT que la connexion sécurisée (`_depConnexionStaff`, compte
+interne) ne soit établie — dans `initFirebase()`, la connexion était
+lancée en DERNIER, après que toutes les écoutes aient déjà démarré.
+Avec les anciennes règles souples (`auth != null`), ce décalage ne se
+voyait jamais : n'importe quel état d'authentification passait. Avec
+les nouvelles règles strictes (compte précis exigé, voir plus haut),
+une écoute qui démarre une fraction de seconde trop tôt — avant que la
+connexion n'aboutisse — se fait refuser, et Firebase RTDB ne revient
+JAMAIS tout seul sur un refus une fois la connexion aboutie : il
+faudrait rappeler `.on()` pour de bon, ce que rien ne faisait. D'où un
+échec qui semblait aléatoire (lié au profil, au téléphone...) alors
+qu'il s'agissait d'une course gagnée ou perdue à chaque démarrage.
+
+Corrigé en réordonnant : `initFirebase()` reste synchrone (elle doit
+rester ainsi — c'est elle qui initialise l'application Firebase,
+sans quoi la connexion n'a encore rien à authentifier), mais
+l'attachement des écoutes elles-mêmes est sorti dans une nouvelle
+fonction `_demarrerEcoutesFirebase()`, qui attend désormais la fin
+réelle de la connexion avant de poser la moindre écoute — France &
+Europe, Collecte, et tout le reste.
+
+C'est probablement aussi la vraie explication du problème persistant
+d'Aminata depuis le début (son appareil perdait systématiquement
+cette course), mais l'ancienne version des règles (plus souple) ne le
+révélait jamais par un échec franc — à confirmer la prochaine fois
+qu'elle se connecte.

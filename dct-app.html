@@ -1347,38 +1347,48 @@ function initFirebase(){
     db = firebase.database();
     firebaseReady = true;
     console.log("Firebase OK");
-    // Charger le message admin dès que Firebase est prêt
-    chargerMessageAdmin();
-    // Migrer les données de l'ancien format si nécessaire
-    _migrerDonneesAncienFormat();
-    // Charger la config (collabs, PIN)
-    chargerConfigFirebase();
-    // Écouter le message admin en temps réel
-    db.ref('dct_config/message').on('value', function(snap){
-      var zone = document.getElementById('admin-message-login');
-      if(!zone) return;
-      var data = snap.val();
-      if(!data || !data.texte){ zone.style.display='none'; return; }
-      var colors = {
-        info:{bg:'#e3f8f5',border:'#00897b',color:'#004d40',icon:'✅'},
-        warning:{bg:'#fff8e1',border:'#f57c00',color:'#e65100',icon:'⚠️'},
-        error:{bg:'#fde0e0',border:'#c0392b',color:'#b71c1c',icon:'🔴'}
-      };
-      var c = colors[data.type] || colors.info;
-      zone.style.cssText = 'background:'+c.bg+';border-left:4px solid '+c.border+';padding:10px 14px;border-radius:8px;margin:0 0 16px;font-size:13px;color:'+c.color+';font-weight:600;display:block;';
-      zone.textContent = c.icon+' '+data.texte;
-    });
-    // Écouter les changements en temps réel
-    ecouterChangements();
-    ecouterFrance();
-    ecouterAlertes();
-    ecouterCodesEspaces();
-    ecouterPassePartout();
-    ecouterStatsPhotos();
+    // v3.99.41 — séparé du reste (voir _demarrerEcoutesFirebase) : ce qui
+    // suit attache de vraies écoutes Firebase (.on('value')), qui doivent
+    // attendre que la connexion sécurisée soit établie (voir le greffe
+    // sur cette fonction, departs.js, section T, et le commentaire détaillé
+    // sur _depConnexionStaff) — jamais avant, sous peine d'un refus
+    // définitif que Firebase ne redonne jamais tout seul.
+    _demarrerEcoutesFirebase();
   } catch(e) {
     console.log("Firebase non disponible:", e);
     firebaseReady = false;
   }
+}
+
+function _demarrerEcoutesFirebase(){
+  // Charger le message admin dès que Firebase est prêt
+  chargerMessageAdmin();
+  // Migrer les données de l'ancien format si nécessaire
+  _migrerDonneesAncienFormat();
+  // Charger la config (collabs, PIN)
+  chargerConfigFirebase();
+  // Écouter le message admin en temps réel
+  db.ref('dct_config/message').on('value', function(snap){
+    var zone = document.getElementById('admin-message-login');
+    if(!zone) return;
+    var data = snap.val();
+    if(!data || !data.texte){ zone.style.display='none'; return; }
+    var colors = {
+      info:{bg:'#e3f8f5',border:'#00897b',color:'#004d40',icon:'✅'},
+      warning:{bg:'#fff8e1',border:'#f57c00',color:'#e65100',icon:'⚠️'},
+      error:{bg:'#fde0e0',border:'#c0392b',color:'#b71c1c',icon:'🔴'}
+    };
+    var c = colors[data.type] || colors.info;
+    zone.style.cssText = 'background:'+c.bg+';border-left:4px solid '+c.border+';padding:10px 14px;border-radius:8px;margin:0 0 16px;font-size:13px;color:'+c.color+';font-weight:600;display:block;';
+    zone.textContent = c.icon+' '+data.texte;
+  });
+  // Écouter les changements en temps réel
+  ecouterChangements();
+  ecouterFrance();
+  ecouterAlertes();
+  ecouterCodesEspaces();
+  ecouterPassePartout();
+  ecouterStatsPhotos();
 }
 
 
@@ -1924,7 +1934,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.40';
+var APP_VERSION = 'v3.99.41';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.82';
+var DEP_VERSION = 'v2.20.83';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -17811,13 +17811,26 @@ function greffer(){
      Le SDK firebase-auth-compat.js est préchargé plus haut dans ce
      fichier (voir _depPrechargerFirebaseAuth), en parallèle du reste,
      pour être prêt le plus tôt possible ici. --- */
-  if(typeof window.initFirebase === 'function' && !window.initFirebase._depPatch){
-    var origInitFirebase = window.initFirebase;
-    window.initFirebase = function(){
-      origInitFirebase.apply(this, arguments);
-      try{ _depConnexionStaff(); }catch(e){ console.error('departs: connexion staff', e); }
+  // v3.99.41 — la connexion doit être établie AVANT que les écoutes
+  // Firebase (ecouterFrance incluse) ne s'attachent, jamais après : voir
+  // le commentaire détaillé sur _depConnexionStaff, plus bas dans ce
+  // fichier. initFirebase() elle-même doit rester synchrone (c'est elle
+  // qui appelle firebase.initializeApp(), sans quoi firebase.auth()
+  // plus bas n'a encore aucune appli à authentifier) — c'est donc
+  // _demarrerEcoutesFirebase() (dct-app.html), qui attache les
+  // `.on('value')`, qui est greffée ici pour attendre la connexion.
+  if(typeof window._demarrerEcoutesFirebase === 'function' && !window._demarrerEcoutesFirebase._depPatch){
+    var origDemarrerEcoutesFirebase = window._demarrerEcoutesFirebase;
+    window._demarrerEcoutesFirebase = function(){
+      var self = this, args = arguments;
+      try{
+        _depConnexionStaff().then(function(){ origDemarrerEcoutesFirebase.apply(self, args); });
+      }catch(e){
+        console.error('departs: connexion staff', e);
+        origDemarrerEcoutesFirebase.apply(self, args); // ne bloque jamais l'appli sur une erreur inattendue ici
+      }
     };
-    window.initFirebase._depPatch = true;
+    window._demarrerEcoutesFirebase._depPatch = true;
   }
 
   /* --- U (v1.20.5). Chauffeur externe — bouton dédié "Ajouter un
@@ -18170,25 +18183,49 @@ var DEP_STAFF_PASSWORD = 's46AU54ODQWmLfKEOEg3edm5';
 // base. Repli automatique sur la connexion anonyme si la connexion
 // staff échoue, pour ne jamais perdre l'accès entre-temps — à retirer
 // une fois le compte confirmé créé et les nouvelles règles en place.
+// v3.99.41 — Cobey, test décisif sur son 2e téléphone (17/10/2026) :
+// même session, même connexion, un profil ouvre France & Europe sans
+// souci, l'autre reçoit PERMISSION_DENIED. Cause trouvée : cette
+// fonction était lancée APRÈS que ecouterFrance() (et les autres
+// écoutes Firebase de initFirebase()) aient déjà attaché leurs
+// `.on('value')` — voir le greffe sur window.initFirebase plus bas.
+// Avec les anciennes règles souples (`auth != null`), ce décalage ne
+// se voyait jamais : n'importe quel état d'authentification passait.
+// Avec les nouvelles règles strictes (compte précis exigé), une écoute
+// qui démarre une fraction de seconde trop tôt — avant que la
+// connexion ne soit établie — se fait refuser, et Firebase RTDB
+// n'y revient JAMAIS tout seul une fois la connexion aboutie : il faut
+// rappeler `.on()` pour de bon. D'où un échec qui semblait aléatoire
+// (parfois ça passe, parfois pas, selon qui gagne la course).
+// _depConnexionStaff() renvoie donc maintenant une promesse, tenue une
+// fois la connexion VRAIMENT établie (compte interne, ou son repli
+// anonyme) — le greffe attend cette promesse avant de laisser
+// initFirebase() attacher la moindre écoute.
 function _depConnexionStaff(){
-  var tentatives = 0;
-  var essayer = function(){
-    tentatives++;
-    if(typeof firebase !== 'undefined' && firebase.auth){
-      firebase.auth().signInWithEmailAndPassword(DEP_STAFF_EMAIL, DEP_STAFF_PASSWORD)
-        .catch(function(e){
-          console.error('departs: connexion staff — repli sur la connexion anonyme', e);
-          firebase.auth().signInAnonymously().catch(function(e2){ console.error('departs: signInAnonymously (repli)', e2); });
-        });
-    } else if(tentatives < 30){
-      // Le SDK firebase-auth-compat.js (préchargé) n'a pas encore fini de
-      // charger — on réessaie brièvement plutôt que d'abandonner.
-      setTimeout(essayer, 250);
-    } else {
-      console.error('departs: firebase-auth-compat.js n\'a jamais chargé');
-    }
-  };
-  essayer();
+  return new Promise(function(resolve){
+    var tentatives = 0;
+    var essayer = function(){
+      tentatives++;
+      if(typeof firebase !== 'undefined' && firebase.auth){
+        firebase.auth().signInWithEmailAndPassword(DEP_STAFF_EMAIL, DEP_STAFF_PASSWORD)
+          .then(function(){ resolve(); })
+          .catch(function(e){
+            console.error('departs: connexion staff — repli sur la connexion anonyme', e);
+            firebase.auth().signInAnonymously()
+              .then(function(){ resolve(); })
+              .catch(function(e2){ console.error('departs: signInAnonymously (repli)', e2); resolve(); });
+          });
+      } else if(tentatives < 30){
+        // Le SDK firebase-auth-compat.js (préchargé) n'a pas encore fini de
+        // charger — on réessaie brièvement plutôt que d'abandonner.
+        setTimeout(essayer, 250);
+      } else {
+        console.error('departs: firebase-auth-compat.js n\'a jamais chargé');
+        resolve(); // ne bloque jamais indéfiniment le reste de l'appli
+      }
+    };
+    essayer();
+  });
 }
 
 /* ─────────────────────────────────────────────
