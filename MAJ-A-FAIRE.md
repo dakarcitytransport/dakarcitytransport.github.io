@@ -4258,3 +4258,33 @@ qu'elle se connecte.
 Profil "Aminata 2" (A2, voir plus haut) retiré — n'était qu'un
 filet de secours temporaire, plus nécessaire (v3.99.42 + départs
 v2.20.84).
+
+**17/10, v3.99.43 — deux retours de Cobey sur France & Europe, après le
+correctif ci-dessus.**
+
+1. Capture d'écran à l'appui : « après plus de 20 secondes où j'ai
+   appuyé sur le bouton collect, la page collect arrive, mais elle est
+   comme ça » — un écran totalement vide (ni liste, ni "Aucune
+   collecte", ni bouton "+ Créer"). Le délai de 20s+ lui-même reste
+   l'attente de connexion/réseau déjà identifiée (téléphone à 9% de
+   batterie et réseau très faible sur la capture) ; mais le VIDE total
+   qui suit était un vrai bug séparé : la moindre exception JS pendant
+   la construction de l'écran Collectes coupait `renderFrance()` avant
+   le `box.innerHTML=...`, sans jamais rien afficher ni journaliser —
+   invisible exactement comme l'était PERMISSION_DENIED avant le
+   correctif sur `ecouterFrance()`. Même remède appliqué : la
+   construction réelle de l'écran est encadrée d'un try/catch — une
+   erreur affiche désormais un message explicite + bouton "Réessayer"
+   au lieu d'un écran mort, et la journalise pour de bon (`renderFrance`
+   / `_frRenderFranceCorps`, dct-app.html).
+
+2. Trois captures d'écran : en ouvrant une collecte précise, l'onglet
+   "Clients" montrait TOUS les clients France & Europe (l'inbox global,
+   22 dans son cas) au lieu des seuls clients DE cette collecte, plus
+   le récap par collaborateur (ajouté en v3.99.25 à sa demande) que
+   Cobey juge maintenant de trop à cet endroit : « je pense pas que ça
+   devrait être là, ça ». Corrigé : l'onglet Clients d'une collecte
+   ouverte ne montre plus que ses propres clients (recherche et filtres
+   compris), et le récap par collaborateur a été retiré — ne reste que
+   le fil d'Ariane "← Toutes les collectes" + la date. L'inbox global
+   (aucune collecte ouverte) n'est pas touché.

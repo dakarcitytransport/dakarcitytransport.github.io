@@ -1934,7 +1934,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.42';
+var APP_VERSION = 'v3.99.43';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4072,15 +4072,56 @@ function _dateFr(ts){
   return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2);
 }
 
+// v3.99.43 — Cobey, capture d'écran à l'appui : après 20s+ d'attente sur
+// le bouton "Collectes" de France & Europe, l'écran arrive bien... mais
+// reste totalement VIDE (ni liste, ni "Aucune collecte", ni bouton "+
+// Créer"). Jusqu'ici, la moindre exception JS pendant la construction du
+// HTML (_frListeCollectes et consorts) empêchait le "box.innerHTML=..."
+// de s'exécuter DU TOUT (l'exception coupe la fonction avant d'y
+// arriver) — sans jamais rien afficher ni journaliser, exactement
+// invisible comme l'était PERMISSION_DENIED avant le correctif sur
+// ecouterFrance(). Même remède ici : la construction réelle de l'écran
+// est isolée dans _frRenderFranceCorps, encadrée d'un try/catch — une
+// erreur affiche désormais un message explicite (avec un bouton
+// Réessayer) au lieu d'un écran vide muet, et la journalise pour de bon.
 function renderFrance(){
   majBoutonFrance();
   var box=document.getElementById('france-content');
   if(!box) return;
+  try{
+    _frRenderFranceCorps(box);
+  }catch(e){
+    console.error('Erreur affichage France & Europe:', e);
+    box.innerHTML = '<div style="text-align:center;color:#992020;padding:36px 20px;font-size:13.5px;line-height:1.6;">'
+      + '<div style="font-size:34px;margin-bottom:10px;">⚠️</div>'
+      + 'Affichage impossible pour le moment.<br>'
+      + '<span style="font-size:11.5px;color:#aaa;">'+(((e&&e.message)||'erreur inconnue')+'').replace(/</g,'&lt;')+'</span><br><br>'
+      + '<button class="btn-sm btn-green-sm" onclick="renderFrance()">🔄 Réessayer</button>'
+      + '</div>';
+    try{ showToastNew('❌ Affichage France & Europe impossible. Montre ce message à Eric.'); }catch(e2){}
+  }
+}
+function _frRenderFranceCorps(box){
   if(franceTab==='collectes'){ box.innerHTML=_frListeCollectes(); _majBarreFrance(); return; }
   if(franceTab==='dispatch'){ box.innerHTML=_frDispatch(); _majBarreFrance(); return; }
 
   var q=(document.getElementById('fr-q')||{}).value||'';
   var tous=_frClients();
+  // v3.99.43 — Cobey, capture d'écran à l'appui : « quand je clique sur
+  // une collecte [...] dans l'onglet client, il me montre déjà tous les
+  // clients de France Europe, alors que de base il devrait y avoir que
+  // les clients de la collecte en question ». _frClients() renvoie TOUT
+  // l'inbox (tous statuts confondus) sans jamais tenir compte de la
+  // collecte ouverte — corrigé ici : dès qu'une collecte précise est
+  // ouverte, l'onglet Clients ne montre plus que SES clients (idsOuv),
+  // recherche et filtres compris, au lieu de l'inbox global.
+  var rOuv = (currentCollecteFrId && _frCollectes()[currentCollecteFrId]) ? _frCollecteActive() : null;
+  var idsOuv = rOuv ? _frClientsDeCollecte(rOuv) : null;
+  if(idsOuv){
+    var idsOuvSet={};
+    idsOuv.forEach(function(id){ idsOuvSet[id]=1; });
+    tous = tous.filter(function(c){ return !!idsOuvSet[c._id]; });
+  }
   var cpt={attente:0,planifie:0,ramasse:0};
   var cptH=0;
   tous.forEach(function(c){
@@ -4093,32 +4134,16 @@ function renderFrance(){
   var html='';
   // v3.99.25 — Cobey, 14/10/2026 : « faudra faire comme le parcours
   // Collecte [...] l'un des deux onglets, les clients sélectionnés
-  // pour la collecte, et l'autre c'est le côté dispatch. » Le récap
-  // par collaborateur (qui a inscrit combien sur CETTE collecte) vit
-  // désormais ici, sur l'onglet Clients — Dispatch (_frDispatchDetail)
-  // ne garde que les camions, comme côté Collecte (renderClientsTab vs
-  // renderDispatchTab). Visible seulement quand une collecte précise
-  // est ouverte (sinon l'onglet Clients est l'inbox global, aucune
-  // collecte à laquelle le rattacher).
-  var rOuv = (currentCollecteFrId && _frCollectes()[currentCollecteFrId]) ? _frCollecteActive() : null;
+  // pour la collecte, et l'autre c'est le côté dispatch. » Visible
+  // seulement quand une collecte précise est ouverte (sinon l'onglet
+  // Clients est l'inbox global, aucune collecte à laquelle le rattacher).
+  // v3.99.43 — Cobey : « il me montre aussi tous les chiffres des
+  // collaborateurs. Je pense pas que ça devrait être là, ça. » Le récap
+  // par collaborateur (introduit en v3.99.25) est retiré d'ici ; ne
+  // reste que le fil d'Ariane vers la collecte ouverte.
   if(rOuv){
-    var idsOuv = _frClientsDeCollecte(rOuv);
     html += '<div onclick="fermerCollecteFrance()" style="display:inline-block;font-size:13px;font-weight:700;color:#1a237e;cursor:pointer;margin:2px 0 10px;">← Toutes les collectes</div>'
-      + '<div style="font-size:12.5px;font-weight:700;color:var(--text3);margin-bottom:8px;">🚛 '+_esc(rOuv.dateLib||'')+'</div>'
-      + '<div class="collab-grid">';
-    COLLABS.forEach(function(co){
-      if(co.admin) return;
-      var myC=idsOuv.map(function(id){ return (franceData.clients||{})[id]; }).filter(function(c){ return c && c.creePar===co.name; });
-      if(co.desactive && !myC.length) return;
-      var tot=myC.reduce(function(s,c){ return s+(parseFloat(c.prix)||0)+(parseFloat(c.prixRamassage)||0); },0);
-      html+='<div class="collab-card" style="border-left:3px solid '+co.color+';">'
-        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
-        +'<div class="av" style="background:'+co.bg+';color:'+co.color+';width:24px;height:24px;font-size:9px;">'+co.id+'</div>'
-        +'<span style="font-size:11px;font-weight:800;color:'+co.color+';">'+co.name+'</span></div>'
-        +'<div class="collab-amount">'+tot+' €</div>'
-        +'<div class="collab-clients">'+myC.length+' client'+(myC.length!==1?'s':'')+'</div></div>';
-    });
-    html += '</div>';
+      + '<div style="font-size:12.5px;font-weight:700;color:var(--text3);margin-bottom:8px;">🚛 '+_esc(rOuv.dateLib||'')+'</div>';
   }
   // Recherche : on ignore les filtres
   if(q){
