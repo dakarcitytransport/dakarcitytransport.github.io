@@ -650,7 +650,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <div class="fg"><label class="fl">Nombre de colis</label><input class="fi" id="fa-nb" type="number" min="1" value="1"></div>
       <div class="fg"><label class="fl">Prix (€)</label><input class="fi" id="fa-prix" type="number" min="0" placeholder="0"></div>
     </div>
-    <div class="fg"><label class="fl">Frais de ramassage (€) <span style="color:#aaa;font-weight:500;">· gratuit en Île-de-France, payant ailleurs</span></label><input class="fi" id="fa-ramassage" type="number" min="0" placeholder="0"></div>
+    <div class="fg"><label class="fl">Frais de déplacement (€) <span style="color:#aaa;font-weight:500;">· gratuit en Île-de-France, payant ailleurs</span></label><input class="fi" id="fa-ramassage" type="number" min="0" placeholder="0"></div>
     <div class="fg"><label class="fl">Description du colis</label><textarea class="fi" id="fa-colis" rows="3" placeholder="ex : 1 valise + 2 cartons" style="resize:none;"></textarea></div>
     <div style="margin-top:10px;">
       <button class="btn btn-green" id="fa-btn" onclick="saveClientFrance()">✅ Enregistrer</button>
@@ -1958,7 +1958,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.48';
+var APP_VERSION = 'v3.99.49';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4725,7 +4725,7 @@ function _majBarreFrance(){
     if(rb){
       if(_montantsVisibles() && totRam>0){
         rb.style.display='block';
-        rb.innerHTML='🛣️ '+totRam+' € de ramassage cumulé';
+        rb.innerHTML='🛣️ '+totRam+' € de déplacement cumulé';
       } else rb.style.display='none';
     }
   }
@@ -4816,7 +4816,7 @@ function _frCarte(c){
     // évidence. » Remplace le petit texte gris en aparté par une vraie
     // pastille, au même traitement visuel que les badges de statut.
     +   (_montantsVisibles() && (parseFloat(c.prixRamassage)||0)>0
-          ? ('<span class="badge" style="background:#D7F1F3;color:#00636b;">🛣️ '+c.prixRamassage+' € ramassage</span>')
+          ? ('<span class="badge" style="background:#D7F1F3;color:#00636b;">🛣️ '+c.prixRamassage+' € déplacement</span>')
           : '')
     + '</div>'
     + '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;">'
@@ -6679,7 +6679,7 @@ function _frMajComparatifCouts(){
       '<div style="display:flex;justify-content:space-between;"><span>⛽ Essence estimée (' + c.km + ' km)</span><b>' + c.essence + ' €</b></div>'
     + '<div style="display:flex;justify-content:space-between;"><span>🛣️ Péage estimé</span><b>' + c.peage + ' €</b></div>'
     + '<div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:4px;margin-top:2px;"><span>Total estimé</span><b style="color:#B3261E;">' + c.totalCouts + ' €</b></div>'
-    + '<div style="display:flex;justify-content:space-between;"><span>Frais de ramassage de ce camion</span><b style="color:#006b2d;">' + c.ramassage + ' €</b></div>';
+    + '<div style="display:flex;justify-content:space-between;"><span>Frais de déplacement de ce camion</span><b style="color:#006b2d;">' + c.ramassage + ' €</b></div>';
   boxVerdict.innerHTML = c.marge>=0
     ? ('✅ Marge estimée : <span style="color:#006b2d;">+' + c.marge + ' €</span> — rentable')
     : ('⚠️ Marge estimée : <span style="color:#B3261E;">' + c.marge + ' €</span> — ne couvre pas les coûts estimés');
@@ -6846,7 +6846,7 @@ function renderCamionFrance(){
       +   '<div class="route-detail-row">'+(tel?('<a href="tel:'+tel+'" style="color:#1a237e;font-weight:700;text-decoration:none;">📞 '+(c.tel||'')+'</a>'):'📞 —')+'</div>'
       +   '<div class="route-detail-row">📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')+'</div>'
       +   '<div class="route-detail-row">💰 <strong style="color:#006b2d;font-size:15px;">'+_frPrixClient(id)+' €</strong>'
-      +     ((parseFloat(c.prixRamassage)||0)>0 ? ('<span style="font-size:11px;color:var(--text3);font-weight:500;"> (dont '+c.prixRamassage+' € de ramassage)</span>') : '')+'</div>'
+      +     ((parseFloat(c.prixRamassage)||0)>0 ? ('<span style="font-size:11px;color:var(--text3);font-weight:500;"> (dont '+c.prixRamassage+' € de déplacement)</span>') : '')+'</div>'
       + '</div>'
       + '<div class="route-actions">';
     if(fige){
@@ -6910,7 +6910,7 @@ function _frMajBlocDepenses(k){
     // le total des frais de ramassage. » Le calcul complet, lisible :
     // frais de ramassage − dépenses = gain net, pas juste le résultat.
     eNet.innerHTML = resume.total>0
-      ? ('Frais de ramassage : <b>'+resume.ramassageTexte+' €</b><br>'
+      ? ('Frais de déplacement : <b>'+resume.ramassageTexte+' €</b><br>'
          + 'Gain net (sur le ramassé) : <b style="color:'+(resume.net<0?'#B3261E':'#006b2d')+';">'+resume.netTexte+' €</b>')
       : 'Aucune dépense enregistrée pour l\'instant.';
   }

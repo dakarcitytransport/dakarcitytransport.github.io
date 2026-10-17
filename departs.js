@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.87';
+var DEP_VERSION = 'v2.20.88';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3996,7 +3996,7 @@ function injecterEcrans(){
   // on pourra mettre un prix. » Même champ que fa-ramassage (inscription
   // France & Europe) — suit le devis s'il est validé vers ce parcours
   // (voir depDevisValiderVers), ignoré sinon (Collecte/Dépôt direct).
-  +     '<div class="fg"><label class="fl">Frais de ramassage (&euro;) <span style="color:#aaa;font-weight:500;">&middot; gratuit en &Icirc;le-de-France, payant ailleurs</span></label>'
+  +     '<div class="fg"><label class="fl">Frais de d&eacute;placement (&euro;) <span style="color:#aaa;font-weight:500;">&middot; gratuit en &Icirc;le-de-France, payant ailleurs</span></label>'
   +       '<input class="fi" id="devis-f-ramassage" type="number" min="0" placeholder="0"></div>'
 
   +     '<div class="dep-sec">Livraison</div>'
@@ -9728,7 +9728,7 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     +       '<thead><tr><th>N&deg;</th><th>Description</th><th>Qt&eacute;</th><th>Unit&eacute;</th><th>Prix unitaire</th><th>Montant</th></tr></thead>'
     +       '<tbody>'
     +         _depLignesFacture(c, prixIndefiniPub)
-    +         (totalRamassagePub > 0 ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Frais de ramassage</td><td>1</td><td>service</td><td>'+totalRamassagePub+' &euro;</td><td>'+totalRamassagePub+' &euro;</td></tr>') : '')
+    +         (totalRamassagePub > 0 ? ('<tr><td>'+(_depLignesColis(c).length+1)+'</td><td>Frais de d&eacute;placement</td><td>1</td><td>service</td><td>'+totalRamassagePub+' &euro;</td><td>'+totalRamassagePub+' &euro;</td></tr>') : '')
     +         (c.livraisonDakar ? ('<tr><td>'+(_depLignesColis(c).length+1+(totalRamassagePub>0?1:0))+'</td><td>Livraison'+((c.livraisonVille||c.livraisonVilleAutre||c.livraisonAdresse) ? (' &mdash; '+_depLivraisonLibelle(c)) : '')+'</td><td>1</td><td>service</td><td>'+totalLivraison+' &euro;</td><td>'+totalLivraison+' &euro;</td></tr>') : '')
     +       '</tbody>'
     +     '</table></div>'
@@ -9743,7 +9743,7 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
     // bien ce total (voir plus haut, totalColisEtRamassage).
     +       '<div class="fac-lettres">Arr&ecirc;t&eacute;e la pr&eacute;sente facture &agrave; la somme de&nbsp;: '+(prixIndefiniPub ? 'prix &agrave; d&eacute;finir sur place' : esc(_depSommeEnLettres(totalColisEtRamassage)))+'.</div>'
     +       '<div class="fac-totaux">'
-    +         '<div class="fac-totaux-ligne"><span>'+(totalRamassagePub>0?'Sous-total colis + ramassage':'Sous-total colis')+'</span><span>'+esc(totalColisTxt)+'</span></div>'
+    +         '<div class="fac-totaux-ligne"><span>'+(totalRamassagePub>0?'Sous-total colis + d&eacute;placement':'Sous-total colis')+'</span><span>'+esc(totalColisTxt)+'</span></div>'
     +         '<div class="fac-totaux-ligne"><span>TVA</span><span>0 &euro;</span></div>'
     +         '<div class="fac-totaux-ligne fac-totaux-total"><span>TOTAL</span><span>'+esc(totalColisTxt)+'</span></div>'
     +         '<div class="fac-totaux-ligne"><span>Montant pay&eacute;</span><span style="'+(pay.paye > 0 ? 'color:#006b2d;font-weight:700;' : '')+'">'+pay.paye+' &euro;</span></div>'
@@ -10955,7 +10955,7 @@ function depRenderFacture(c){
   // window.depCalculerPaiement) — gratuit en Île-de-France, payant
   // ailleurs, affiché en plus du prix du colis.
   if(ctxFact.france && (parseFloat(c.prixRamassage) || 0) > 0){
-    h += kv('Frais de ramassage', (parseFloat(c.prixRamassage) || 0) + '&nbsp;&euro;');
+    h += kv('Frais de d&eacute;placement', (parseFloat(c.prixRamassage) || 0) + '&nbsp;&euro;');
   }
   // v1.37.0 : dire sur la facture elle-même qu'elle réunit plusieurs
   // collectes, et lesquelles — sinon rien ne distingue une facture
@@ -10988,7 +10988,7 @@ function depRenderFacture(c){
   // #s-dep-valider côté collecte, "Modifier la fiche" sinon).
   h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin:16px 0;text-align:center;">'
     + '<div style="font-size:11px;color:var(--text3);font-weight:800;text-transform:uppercase;letter-spacing:0.05em;">'
-    +   ((ctxFact.france && (parseFloat(c.prixRamassage) || 0) > 0) ? 'Total (colis + ramassage)' : 'Total colis') + '</div>'
+    +   ((ctxFact.france && (parseFloat(c.prixRamassage) || 0) > 0) ? 'Total (colis + d&eacute;placement)' : 'Total colis') + '</div>'
     + (prixIndefini
         ? ('<div style="font-size:19px;font-weight:800;color:#856404;margin:6px 0;">&#128337; &Agrave; d&eacute;finir '+(ctxFact.france?'&agrave; la collecte':'sur place')+'</div>'
            // v1.19.64 : côté France & Europe, aucun écran "Valider" en amont
@@ -11720,7 +11720,7 @@ function depRenderFicheLecture(colId, clientId, depot, france){
     // colis — déjà inclus dans "Reste à payer" juste en dessous (voir
     // window.depCalculerPaiement).
     +   (france && (parseFloat(c.prixRamassage) || 0) > 0
-          ? kv('Frais de ramassage', (parseFloat(c.prixRamassage) || 0) + '&nbsp;&euro;')
+          ? kv('Frais de d&eacute;placement', (parseFloat(c.prixRamassage) || 0) + '&nbsp;&euro;')
           : '')
     // v1.19.53 : reste à payer, visible uniquement si le paiement est
     // incomplet (retour de Cobey du 28/08/2026) — € + FCFA arrondi.
@@ -14531,7 +14531,7 @@ window.depOuvrirValidation = function(id, tk, name, prix, opts){
   var pRam = $('dv-prix-ramassage');
   if(pRam){
     var fraisRam = estFrance ? (parseFloat(fiche.prixRamassage) || 0) : 0;
-    pRam.textContent = fraisRam > 0 ? ('+ ' + fraisRam + ' € de ramassage · total ' + ((parseFloat(fiche.prix)||0) + fraisRam) + ' €') : '';
+    pRam.textContent = fraisRam > 0 ? ('+ ' + fraisRam + ' € de déplacement · total ' + ((parseFloat(fiche.prix)||0) + fraisRam) + ' €') : '';
     pRam.style.display = fraisRam > 0 ? 'block' : 'none';
   }
 
@@ -17821,7 +17821,7 @@ function greffer(){
               : '')
             + (ramTxt
               ? ('<div><div style="font-size:24px;font-weight:800;color:#00838F;">'+esc(ramTxt)+'</div>'
-                 + '<div style="font-size:10.5px;color:var(--text3);font-weight:800;text-transform:uppercase;letter-spacing:.03em;">Ramassage</div></div>')
+                 + '<div style="font-size:10.5px;color:var(--text3);font-weight:800;text-transform:uppercase;letter-spacing:.03em;">D&eacute;placement</div></div>')
               : '');
           el.parentNode.replaceChild(carte, el);
           break;
@@ -19882,7 +19882,7 @@ window.depRenderDepenses = function(){
       +   'border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
       + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">'
       +   '<div><div style="font-size:16px;font-weight:800;color:#1a237e;">' + _depEuros(collecte) + ' &euro;</div>'
-      +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">FRAIS DE RAMASSAGE</div></div>'
+      +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">FRAIS DE D&Eacute;PLACEMENT</div></div>'
       +   '<div><div style="font-size:16px;font-weight:800;color:#B3261E;">' + (tot > 0 ? '&minus; ' : '') + _depEuros(tot) + ' &euro;</div>'
       +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">D&Eacute;PENS&Eacute;</div></div>'
       +   '<div><div style="font-size:16px;font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(net) + ' &euro;</div>'
@@ -20764,7 +20764,7 @@ window.depRenderListeDevis = function(){
       +       (d.livraison ? ('<div style="font-size:9.5px;font-weight:700;color:#00838F;margin-top:2px;">+ '+(parseFloat(d.livraisonPrix)||0)+' &euro; livraison</div>') : '')
       // v2.20.36 : frais de ramassage (voir devis-f-ramassage) — même
       // badge que la livraison juste au-dessus, jamais mélangé au montant.
-      +       ((parseFloat(d.prixRamassage)||0) > 0 ? ('<div style="font-size:9.5px;font-weight:700;color:#00838F;margin-top:2px;">+ '+(parseFloat(d.prixRamassage)||0)+' &euro; ramassage</div>') : '')
+      +       ((parseFloat(d.prixRamassage)||0) > 0 ? ('<div style="font-size:9.5px;font-weight:700;color:#00838F;margin-top:2px;">+ '+(parseFloat(d.prixRamassage)||0)+' &euro; d&eacute;placement</div>') : '')
       +     '</div></div>'
       +   '<div class="dep-meta"><span>'+_depLienTel(d.tel, d.tel||'—')+'</span><span>'+pays.nom+'</span></div>'
       +   '<div class="dep-meta" style="margin-top:4px;color:#999;"><span>Par '+esc(d.creeParNom||'—')+'</span><span>Le '+dateHeureFr(d.creeLe)+'</span></div>'
@@ -21091,7 +21091,7 @@ function depRenderDevisDoc(d){
                    + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">'
                    + '<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Montant colis / transport</span><span>'+montantTransport+' &euro;</span></div>'
                    + (d.livraison ? ('<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Livraison'+((d.livraisonVille||d.livraisonVilleAutre||d.livraisonAdresse) ? (' — '+_depLivraisonLibelle(d)) : '')+'</span><span>'+totalLivraison+' &euro;</span></div>') : '')
-                   + (totalRamassage > 0 ? ('<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Frais de ramassage</span><span>'+totalRamassage+' &euro;</span></div>') : '')
+                   + (totalRamassage > 0 ? ('<div class="fac-totaux-ligne" style="font-size:10.5px;color:#888;"><span>Frais de d&eacute;placement</span><span>'+totalRamassage+' &euro;</span></div>') : '')
                    + '</div>')
                 : ('<div class="fac-totaux-ligne fac-totaux-total"><span>MONTANT</span><span>'+montantTransport+' &euro;</span></div>')
               )

@@ -4372,3 +4372,20 @@ change un jour pour de vrai.
 **Important : cette piste est confirmée et corrigée, mais peut-être
 pas la seule.** À vérifier avec Cobey si la lenteur persiste malgré
 ce correctif.
+
+**Suite (même jour) : Cobey a testé sur son 2e téléphone, fluide
+aussi.** La lenteur vient donc de son téléphone précis (batterie/
+stockage/mode basse consommation), pas de l'application — conseils
+donnés (redémarrer, vérifier le stockage et la batterie, fermer les
+apps en arrière-plan), rien à corriger côté code pour ça.
+
+**17/10, v3.99.49 — libellé « Frais de ramassage » renommé en « Frais
+de déplacement ».** Cobey : « c'est plus adéquat ». Renommé partout
+où ce libellé apparaît à l'écran (formulaire d'inscription France &
+Europe, formulaire Devis, facture publique/interne, facture manuelle,
+fiche client, carte-chiffres de l'en-tête France, comparatif coûts/
+ramassage du camion, case "Dépenses du camion") — dans dct-app.html,
+departs.js ET facture.html (copie à l'identique, comme pour le RIB).
+Seul le texte affiché change : le nom interne du champ (`prixRamassage`,
+`fa-ramassage`, `devis-f-ramassage`) reste inchangé, pour ne rien
+casser côté Firebase.
