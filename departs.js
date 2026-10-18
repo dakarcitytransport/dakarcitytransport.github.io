@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.89';
+var DEP_VERSION = 'v2.20.90';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19433,8 +19433,21 @@ function _depDepenseTruck(ctx){
 // reste sur le total colis + ramassage (_frCollecteCamion). Côté
 // Collecte (Sénégal), pas de distinction colis/ramassage : c.prix EST
 // déjà le frais de ramassage, _depCollecteDuCamion reste inchangé.
+// v3.99.51 — Cobey : « au lieu de mettre le prix facturé, faudrait
+// mettre le prix réellement collecté, moins la dépense [...] facturer
+// c'est le prix total, mais les gens ne paient pas forcément tout de
+// suite. » Côté Collecte Sénégal, _depCollecteDuCamion(tk) donnait le
+// total FACTURÉ (prix plein de chaque client ramassé, qu'il ait payé
+// ou non) — remplacé par _depEncaisseDuCamion(tk), l'argent VRAIMENT
+// versé (depCalculerPaiement(c).paye), déjà utilisé ailleurs dans
+// l'appli sous le même nom "✅ Collecté" (voir _depInjecterEncaisseGlobalDispatch).
+// Le Gain net (collecte − dépenses) reflète donc maintenant ce qui
+// reste réellement en poche pour ce camion, pas un chiffre qui suppose
+// à tort que tout le monde a déjà payé. Côté France & Europe, inchangé :
+// _frFraisRamassageCamion reste un forfait de déplacement, pas un
+// montant facturé à encaisser progressivement.
 function _depDepenseCollecteMontant(ctx, tk){
-  return ctx.src === 'france' ? _frFraisRamassageCamion(tk) : _depCollecteDuCamion(tk);
+  return ctx.src === 'france' ? _frFraisRamassageCamion(tk) : _depEncaisseDuCamion(tk);
 }
 // v3.99.0 — departs.js s'exécute dans sa propre fermeture : rien ici
 // n'est visible depuis dct-app.html (autre script) sauf ce qui est posé
@@ -19891,7 +19904,11 @@ window.depRenderDepenses = function(){
     // avait supposé à tort que cette case ne voulait dire qu'une seule
     // chose partout ; elle redevient conditionnelle ici, comme le calcul
     // qui l'alimente.
-    var libelleCollecte = (ctx.src === 'france') ? 'FRAIS DE D&Eacute;PLACEMENT' : 'FACTUR&Eacute;';
+    // v3.99.51 — Cobey : le chiffre Collecte Sénégal est maintenant le
+    // vrai encaissé (voir _depDepenseCollecteMontant ci-dessus), plus le
+    // total facturé — "COLLECTÉ" plutôt que "FACTURÉ", cohérent avec le
+    // reste de l'appli (✅ Collecté).
+    var libelleCollecte = (ctx.src === 'france') ? 'FRAIS DE D&Eacute;PLACEMENT' : 'COLLECT&Eacute;';
     zTot.innerHTML = '<div style="background:#fff;border:1.5px solid var(--border);'
       +   'border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
       + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">'

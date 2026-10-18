@@ -4407,3 +4407,19 @@ DÉPLACEMENT" pour France, "FACTURÉ" pour Collecte Sénégal (comme
 l'écran s'appelait avant le v3.99.23, cohérent avec ce que ce chiffre
 représente réellement). Testé sur les deux contextes du même écran
 partagé.
+
+**18/10, v3.99.51 — même écran, Cobey va plus loin : "FACTURÉ" devient
+"COLLECTÉ" (le vrai encaissé).** « Au lieu de mettre le prix facturé,
+faudrait mettre le prix réellement collecté, moins la dépense [...]
+facturer c'est le prix total, mais les gens ne paient pas forcément
+tout de suite. » `_depDepenseCollecteMontant` utilisait
+`_depCollecteDuCamion` (le prix plein de chaque client ramassé, payé
+ou non) côté Collecte Sénégal — remplacé par `_depEncaisseDuCamion`
+(l'argent VRAIMENT versé, `depCalculerPaiement(c).paye`), déjà utilisé
+ailleurs dans l'appli sous le même nom "✅ Collecté". Le Gain net
+(collecte − dépenses) reflète donc maintenant ce qui reste vraiment en
+poche pour ce camion, pas un chiffre qui suppose à tort que tout le
+monde a déjà payé. France & Europe inchangé (le frais de déplacement
+reste un forfait, pas un montant encaissé progressivement). Testé
+avec un client facturé 1670 € mais seulement 600 € réellement versés
+: l'écran affiche bien 600 € / "COLLECTÉ", pas 1670 € / "FACTURÉ".
