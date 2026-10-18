@@ -4389,3 +4389,21 @@ departs.js ET facture.html (copie à l'identique, comme pour le RIB).
 Seul le texte affiché change : le nom interne du champ (`prixRamassage`,
 `fa-ramassage`, `devis-f-ramassage`) reste inchangé, pour ne rien
 casser côté Firebase.
+
+**18/10, v3.99.50 — correctif : "Frais de déplacement" ne devait PAS
+s'appliquer à l'écran Dépenses du parcours Collecte Sénégal.** Cobey,
+capture d'écran à l'appui (Dépenses du camion d'Abdoulaye, Collecte
+Sénégal) : « il y a marqué frais de déplacement [...] c'est pas ça,
+c'est les frais réels après facturation. » Cause : l'écran Dépenses
+(`depRenderDepenses`) est PARTAGÉ entre France & Europe et Collecte
+Sénégal via `_depDepenseCollecteMontant(ctx, tk)` — côté France, ce
+chiffre est bien un vrai frais de déplacement payé par client
+(`_frFraisRamassageCamion`) ; côté Collecte Sénégal, c'est le total
+FACTURÉ/collecté par ce camion (`_depCollecteDuCamion`), une notion
+différente. Le renommage de la veille (v3.99.49) avait rendu le
+libellé universel par erreur sur cette case précise. Corrigé : le
+libellé redevient conditionnel selon `ctx.src` — "FRAIS DE
+DÉPLACEMENT" pour France, "FACTURÉ" pour Collecte Sénégal (comme
+l'écran s'appelait avant le v3.99.23, cohérent avec ce que ce chiffre
+représente réellement). Testé sur les deux contextes du même écran
+partagé.

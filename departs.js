@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.88';
+var DEP_VERSION = 'v2.20.89';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19878,11 +19878,25 @@ window.depRenderDepenses = function(){
     // toujours, le total FACTURÉ/ramassage (collecte, pas l'encaissé
     // réel) — exactement le chiffre redemandé ici. Remise, avec le
     // bon nom cette fois : Frais de ramassage / Dépensé / Gain net.
+    //
+    // v3.99.50 — Cobey, capture d'écran à l'appui (écran Dépenses du
+    // parcours Collecte Sénégal) : « il y a marqué frais de déplacement
+    // [...] c'est pas ça, c'est les frais réels après facturation. »
+    // Cet écran est PARTAGÉ entre France (où `collecte` vient de
+    // _frFraisRamassageCamion — un vrai frais de déplacement payé par
+    // client) et Collecte Sénégal (où `collecte` vient de
+    // _depCollecteDuCamion — le total FACTURÉ/collecté par ce camion,
+    // pas un frais de trajet) — voir _depDepenseCollecteMontant. Le
+    // renommage v3.99.49 ("Frais de ramassage" → "Frais de déplacement")
+    // avait supposé à tort que cette case ne voulait dire qu'une seule
+    // chose partout ; elle redevient conditionnelle ici, comme le calcul
+    // qui l'alimente.
+    var libelleCollecte = (ctx.src === 'france') ? 'FRAIS DE D&Eacute;PLACEMENT' : 'FACTUR&Eacute;';
     zTot.innerHTML = '<div style="background:#fff;border:1.5px solid var(--border);'
       +   'border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
       + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">'
       +   '<div><div style="font-size:16px;font-weight:800;color:#1a237e;">' + _depEuros(collecte) + ' &euro;</div>'
-      +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">FRAIS DE D&Eacute;PLACEMENT</div></div>'
+      +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">' + libelleCollecte + '</div></div>'
       +   '<div><div style="font-size:16px;font-weight:800;color:#B3261E;">' + (tot > 0 ? '&minus; ' : '') + _depEuros(tot) + ' &euro;</div>'
       +     '<div style="font-size:9.5px;color:var(--text3);font-weight:800;">D&Eacute;PENS&Eacute;</div></div>'
       +   '<div><div style="font-size:16px;font-weight:800;color:' + (net < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(net) + ' &euro;</div>'
