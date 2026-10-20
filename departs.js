@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.94';
+var DEP_VERSION = 'v2.20.95';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9895,11 +9895,25 @@ window.depPartagerWhatsapp = function(){
 // par "vos colis" » — "container" ne veut rien dire pour un client
 // (jargon interne, le mot que l'équipe utilise entre elle pour désigner
 // le chargement groupé), ce qu'il attend c'est son/ses colis.
+// v3.99.57 — Cobey : « l'adresse est souvent différente car le
+// destinataire n'est pas l'expéditeur pour les livraisons » — ce
+// message part à l'EXPÉDITEUR (souvent en France), pas au destinataire
+// qui réceptionne à Dakar. Pour un retrait au dépôt, donner l'adresse
+// et le contact sur place est utile (même infos déjà affichées sur le
+// suivi, voir DEP_ADRESSE_DEPOT/DEP_CONTACT_DEPOT). Pour une livraison
+// à domicile (c.livraisonDakar), l'adresse qui compte est celle du
+// destinataire, pas celle de l'expéditeur qui lit ce message — jamais
+// "votre adresse", qui laisserait croire le contraire.
 function _depTexteMessageArriveeExpediteur(c){
   var prenom = (c.prenom || c.name || '').trim() || 'bonjour';
+  var suite = c.livraisonDakar
+    ? 'Ils sont prévus en livraison chez votre destinataire. Notre équipe le contactera prochainement pour l’organiser.'
+    : ('Vous pouvez prévenir votre contact sur place pour qu’il vienne récupérer son colis à notre dépôt :\n'
+      + '📍 ' + DEP_ADRESSE_DEPOT + '\n'
+      + '☎️ ' + DEP_CONTACT_DEPOT.nom + (DEP_CONTACT_DEPOT.tel ? ' — ' + DEP_CONTACT_DEPOT.tel : ''));
   return 'Bonjour ' + prenom + ' \u{1F44B}\n\n'
     + '\u{1F4E6} Vos colis sont bien arrivés à Dakar !\n\n'
-    + 'Vous pouvez prévenir votre contact sur place pour qu’il vienne récupérer son colis.\n\n'
+    + suite + '\n\n'
     + 'Merci de votre confiance !\nL’équipe Dakar City Transport';
 }
 

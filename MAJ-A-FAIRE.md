@@ -4606,3 +4606,21 @@ confirmation (même style que les autres, pas de confirm() natif) :
 `remisAuClient` à vide ensemble (les deux posés ensemble par
 `mnExecuterValidationLivraison`, v3.99.56), pour rester cohérent entre
 les deux champs.
+
+**20/10, v3.99.57 — le message d'arrivée distingue retrait au dépôt et
+livraison à domicile.** Cobey, message collé en exemple : « tu peux
+également ajouter les coordonnées de la personne gérante là-bas,
+Mamadou Niass, avec son numéro ainsi que l'adresse du dépôt, et aussi
+pour les clients qui ont une livraison, mettre un message différent. »
+Puis, sur mon premier brouillon ("vos colis sont prévus en livraison à
+votre adresse") : « l'adresse est souvent différente car le
+destinataire n'est pas l'expéditeur pour les livraisons » — ce message
+part à l'expéditeur (souvent en France), jamais à l'adresse du
+destinataire qui réceptionne à Dakar ; "votre adresse" laissait croire
+le contraire. Corrigé en "chez votre destinataire" (sa suggestion).
+`_depTexteMessageArriveeExpediteur` distingue désormais les deux cas
+(`c.livraisonDakar`) : retrait au dépôt → adresse (`DEP_ADRESSE_DEPOT`)
++ contact sur place (`DEP_CONTACT_DEPOT`, déjà utilisés sur l'écran de
+suivi public, repris ici pour rester cohérent) ; livraison à domicile →
+"Ils sont prévus en livraison chez votre destinataire. Notre équipe le
+contactera prochainement pour l'organiser.", sans aucune adresse.
