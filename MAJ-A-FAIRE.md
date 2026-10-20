@@ -4500,3 +4500,16 @@ statut visé est déjà le bon), elle rattrape silencieusement tout
 container resté bloqué par l'ancien bug, "Chargement DKR" compris,
 dès la prochaine fois que quelqu'un l'ouvre — plus besoin d'y
 toucher à la main.
+
+**20/10, v3.99.55 — le bouton "Marquer remis au client" (mamadou.html)
+devient une bascule.** Cobey, capture d'écran à l'appui : « il faut un
+autre bouton pour annuler ! ou alors faire en sorte que si on réappuie
+ça annule. » Un tap par erreur (mauvais client, faux clic) doit
+pouvoir se rattraper. `mnMarquerRemisAuClient` bascule désormais : un
+second tap sur le même bouton annule la remise (`remisAuClient` repasse
+à `null`, qui supprime bien le champ côté Firebase via `.update()`) au
+lieu d'ajouter un bouton "Annuler" séparé — même esprit que les autres
+boutons à bascule de l'appli. Rien à changer côté affichage du badge
+(mamadou.html et `_depBadgeLivraison` côté appli principale) : les deux
+se basent déjà sur la simple présence du champ, absent = "en attente
+de retrait" comme avant la remise.

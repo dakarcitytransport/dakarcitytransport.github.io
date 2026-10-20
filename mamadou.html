@@ -437,7 +437,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.0';
+var MAMADOU_VERSION = 'v1.14.1';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1263,14 +1263,25 @@ function mnCopierMessageDestinataire(src, collecteId, clientId){
 // exigée — la remise se fait en personne, devant Mamadou, contrairement
 // à une livraison à distance). Même mécanique que
 // _mnMarquerDestinatairePrevenu ci-dessus (champ dédié + historique).
+// v3.99.55 — Cobey : « le bouton là il faut un autre bouton pour
+// annuler ! ou alors faire en sorte que si on réappuie ça annule le
+// bouton "remettre au client". » Un tap par erreur (mauvais client,
+// faux clic) doit pouvoir se rattraper — bascule désormais : un
+// second tap sur le même bouton annule la remise, plutôt que d'ajouter
+// un bouton "Annuler" séparé.
 function mnMarquerRemisAuClient(src, collecteId, clientId){
   var ref = { src: src, collecteId: collecteId||'', clientId: clientId };
   var c = clientActuel(ref);
   if(!c){ alert('Client introuvable.'); return; }
+  var annule = !!c.remisAuClient;
   var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
-  hist.push({ q: ACTEUR_NOM, a: 'a remis le colis au <strong>client</strong>', ts: Date.now(), type: 'remis' });
+  hist.push({
+    q: ACTEUR_NOM,
+    a: annule ? 'a annul&eacute; la remise du colis au <strong>client</strong>' : 'a remis le colis au <strong>client</strong>',
+    ts: Date.now(), type: 'remis'
+  });
   c.hist = hist;
-  c.remisAuClient = { ts: Date.now(), par: ACTEUR_NOM };
+  c.remisAuClient = annule ? null : { ts: Date.now(), par: ACTEUR_NOM };
   ecrireClient(ref, { hist: hist, remisAuClient: c.remisAuClient }).catch(function(e){
     console.error('mamadou: échec enregistrement remise au client', e);
   });
