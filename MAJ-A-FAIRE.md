@@ -4441,3 +4441,44 @@ l'écran d'un camion ; dans le titre de "Choisir des clients pour
 cette collecte" — un seul format partagé (`_frTitreCollecte`) :
 "Nom — date" si un nom est renseigné, sinon juste la date comme
 avant (aucun changement visuel pour une collecte sans nom).
+
+**20/10, v3.99.53 — root cause trouvée : les boutons "Prévenir" du
+container n'apparaissaient jamais côté appli principale.** Cobey,
+capture d'écran à l'appui (container "Chargement DKR" affichant
+"Parti" alors que "Suivi transport : Arrivée au dépôt · 4/4") : « le
+container est arrivé au dépôt, Mamadou Niass a bien validé, par
+contre j'avais demandé d'avoir des boutons [...] pour prévenir les
+clients [...] mais là je ne vois rien [...] je veux aussi un statut
+pour qu'on voie quel client a été délivré par Mamadou Niass. »
+
+**Cause réelle** : les boutons "Prévenir (arrivé)" de l'écran Départ
+(appli principale, `depDetail`) dépendent de `departs/<id>/statut
+=== 'arrive'` — jamais de l'étape elle-même. Dans l'appli principale,
+valider une étape fait passer ce statut automatiquement
+(`_depMajStatutDepuisEtapes`) — mais `mamadou.html` est une page à
+part, sans cette synchronisation : `validerArriveeDepot()` n'écrivait
+QUE `etapesTransport/arrivee_depot`, jamais `statut`. Résultat : le
+container restait affiché "Parti" indéfiniment côté appli principale
+même une fois l'arrivée bien validée par Mamadou — alors que SA
+propre page affichait déjà ses boutons WhatsApp "Prévenir le
+destinataire" correctement (elle se base directement sur l'étape, pas
+sur `statut`). D'où la confusion : Mamadou voyait ses boutons, Cobey
+non. Corrigé : `validerArriveeDepot()` écrit maintenant aussi
+`statut: 'arrive'` (sauf si déjà clôturé administrativement, même
+règle que `_depStatutSelonEtapes`). **Le container "Chargement DKR"
+déjà bloqué doit être corrigé à la main cette fois** (bouton
+"Modifier" en haut de son écran Départ, changer le statut en
+"Arrivé") — le correctif ne s'applique qu'aux prochaines validations.
+
+**Statut "remis au client", étendu à tout le monde.** Jusqu'ici,
+`livraisonValidee` (remis/pas remis) ne couvrait que les clients en
+livraison à domicile (`livraisonDakar`) — un client qui vient chercher
+son colis en personne au dépôt n'avait aucun statut du tout, ni côté
+Mamadou ni côté appli principale. Nouveau champ `remisAuClient`
+(posé par Mamadou, nouveau bouton "📦 Marquer remis au client" sur son
+écran container, sans exigence de photo contrairement à
+`livraisonValidee` — la remise se fait en personne, devant lui, pas à
+distance) ; affiché comme badge "✅ Remis au client" / "⏳ En attente
+de retrait" aussi bien sur l'écran container de Mamadou que sur
+l'écran Départ de l'appli principale (`_depBadgeLivraison`, étendue
+pour couvrir ce cas en plus de la livraison à domicile).

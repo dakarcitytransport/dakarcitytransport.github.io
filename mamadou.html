@@ -437,7 +437,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.13.1';
+var MAMADOU_VERSION = 'v1.14.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1119,8 +1119,22 @@ function validerArriveeDepot(){
   if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT) return;
   var d = departsData[_cdDepartId] || {};
   var nom = d.nom || _cdDepartId;
-  db.ref('departs/' + _cdDepartId + '/etapesTransport/arrivee_depot')
-    .set({ fait:true, ts:Date.now(), par:ACTEUR_NOM })
+  // v3.99.53 — Cobey, après coup : « le container est arrivé au dépôt,
+  // Mamadou Niass a bien validé [...] mais là je ne vois rien » (les
+  // boutons "Prévenir" côté appli principale, écran Départ). Cause :
+  // ces boutons dépendent de departs/<id>/statut === 'arrive' (voir
+  // depDetail, departs.js), jamais de l'étape elle-même. Dans l'appli
+  // principale, valider une étape fait passer ce statut automatiquement
+  // (_depMajStatutDepuisEtapes) — mais mamadou.html est une page à part,
+  // sans cette synchronisation : valider ici ne touchait que l'étape, le
+  // statut restait figé sur une valeur antérieure ("Parti"), et les
+  // boutons ne s'affichaient jamais côté appli principale, même une fois
+  // l'arrivée bien validée ici. Même règle que _depStatutSelonEtapes
+  // (departs.js) : jamais si déjà clôturé administrativement.
+  var maj = {};
+  maj['departs/' + _cdDepartId + '/etapesTransport/arrivee_depot'] = { fait:true, ts:Date.now(), par:ACTEUR_NOM };
+  if(d.statut !== 'cloture') maj['departs/' + _cdDepartId + '/statut'] = 'arrive';
+  db.ref().update(maj)
     .then(function(){
       activiteExterne('📦', '<strong>' + esc(ACTEUR_NOM) + '</strong> a validé l’arrivée au dépôt du container <strong>' + esc(nom) + '</strong>');
       _cdMajBlocArrivee();
@@ -1239,6 +1253,30 @@ function mnCopierMessageDestinataire(src, collecteId, clientId){
   _mnMarquerDestinatairePrevenu(c, r.ref, 'a copié le message');
 }
 
+// v3.99.53 — Cobey : « je veux aussi un statut pour qu'on voie quel
+// client a été délivré par Mamadou Niass. » Jusqu'ici, seuls les clients
+// en livraison à domicile (c.livraisonDakar) avaient un statut
+// remis/pas remis (livraisonValidee, plus haut — payé + photo exigés,
+// cohérent avec une livraison faite loin, sans témoin). Un client qui
+// vient chercher son colis en personne au dépôt n'avait AUCUN statut :
+// remisAuClient couvre ce cas, en plus simple (un tap, pas de photo
+// exigée — la remise se fait en personne, devant Mamadou, contrairement
+// à une livraison à distance). Même mécanique que
+// _mnMarquerDestinatairePrevenu ci-dessus (champ dédié + historique).
+function mnMarquerRemisAuClient(src, collecteId, clientId){
+  var ref = { src: src, collecteId: collecteId||'', clientId: clientId };
+  var c = clientActuel(ref);
+  if(!c){ alert('Client introuvable.'); return; }
+  var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+  hist.push({ q: ACTEUR_NOM, a: 'a remis le colis au <strong>client</strong>', ts: Date.now(), type: 'remis' });
+  c.hist = hist;
+  c.remisAuClient = { ts: Date.now(), par: ACTEUR_NOM };
+  ecrireClient(ref, { hist: hist, remisAuClient: c.remisAuClient }).catch(function(e){
+    console.error('mamadou: échec enregistrement remise au client', e);
+  });
+  cdAppliquerFiltres();
+}
+
 // v1.2.0 — Cobey : « le système de filtre est plutôt chaotique, il y a
 // trop d'informations » (capture : jusqu'à 16 régions, une pastille
 // chacune). Seul payé/reste à payer/soldé reste en pastilles (3 choix,
@@ -1348,6 +1386,15 @@ function cdAppliquerFiltres(){
               // v1.12.0 — Cobey : « un bouton copier-coller au cas où si
               // le client n'a pas WhatsApp. »
               + '<button type="button" class="cli-btn-copier" onclick="event.stopPropagation();mnCopierMessageDestinataire(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">&#128203; Copier</button>'
+              + '</div>')
+            : '')
+      // v3.99.53 — Cobey : statut remis/pas remis pour un client qui
+      // vient chercher son colis en personne (pas de livraison à
+      // domicile — ceux-là ont déjà livraisonValidee, voir la fiche).
+      +   (dejaArrivee && !c.livraisonDakar
+            ? ('<div class="cli-btn-row">'
+              + '<button type="button" class="cli-btn-whatsapp'+(c.remisAuClient?' cli-btn-whatsapp-fait':'')+'" onclick="event.stopPropagation();mnMarquerRemisAuClient(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">'
+              +(c.remisAuClient?('✅ Remis au client — '+esc(_mnDateHeureCourte(c.remisAuClient.ts))):'📦 Marquer remis au client')+'</button>'
               + '</div>')
             : '')
       + '</div>';

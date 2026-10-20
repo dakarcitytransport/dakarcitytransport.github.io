@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.90';
+var DEP_VERSION = 'v2.20.91';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -12298,8 +12298,31 @@ function _depEncaissePar(c){
 // client suffit à annoncer l'intention. `arrive` = d.statut==='arrive'
 // (voir _depListeDepotDakar) du départ de ce client ; absent par
 // défaut (compat anciens appels), traité comme "pas encore arrivé".
+// v3.99.53 — Cobey : « je veux aussi un statut pour qu'on voie quel
+// client a été délivré par Mamadou Niass [...] je ne vois rien » côté
+// appli principale. Jusqu'ici ce badge ne couvrait QUE les clients en
+// livraison à domicile (c.livraisonDakar) — un client qui vient
+// chercher son colis en personne au dépôt n'avait aucun statut du
+// tout. remisAuClient (posé depuis mamadou.html, voir
+// mnMarquerRemisAuClient) comble ce trou, sans exiger de photo comme
+// livraisonValidee (la remise se fait en personne, devant Mamadou,
+// pas de preuve à distance nécessaire).
 function _depBadgeLivraison(c, arrive){
-  if(!c || !c.livraisonDakar) return '';
+  if(!c) return '';
+  if(!c.livraisonDakar){
+    if(!arrive) return '';
+    var rc = c.remisAuClient;
+    if(rc){
+      return '<div style="display:inline-flex;align-items:center;gap:6px;background:#EAF7EE;'
+        + 'border:1.5px solid #BFE6C8;border-radius:20px;padding:5px 11px;font-size:11.5px;'
+        + 'font-weight:800;color:#006b2d;margin:6px 0;">&#9989; Remis au client'
+        + (rc.ts ? (' &middot; ' + esc(dateHeureFr(rc.ts))) : '') + '</div>'
+        + (rc.par ? ('<div style="font-size:10.5px;color:#999;margin-bottom:4px;">par ' + esc(rc.par) + '</div>') : '');
+    }
+    return '<div style="display:inline-flex;align-items:center;gap:6px;background:#FFF3E0;'
+      + 'border:1.5px solid #F0C36D;border-radius:20px;padding:5px 11px;font-size:11.5px;'
+      + 'font-weight:800;color:#8A5200;margin:6px 0;">&#9203; En attente de retrait</div>';
+  }
   var lv = c.livraisonValidee;
   if(lv && lv.fait){
     return '<div style="display:inline-flex;align-items:center;gap:6px;background:#EAF7EE;'
