@@ -437,7 +437,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.1';
+var MAMADOU_VERSION = 'v1.14.2';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1787,13 +1787,29 @@ function mnAnnulerConfirmationLivraison(){
   $('modal-confirm-livraison').classList.remove('open');
 }
 
+// v3.99.56 — Cobey, après avoir vu le bouton "Marquer remis au
+// client" (pour le retrait au dépôt) : « on va plutôt faire comme ça,
+// quand il appuie sur le bouton valider ça valide également le
+// bouton remis au client et nous aussi de notre côté. » Un seul champ
+// "remis au client" pour tout le monde — livraison à domicile ET
+// retrait au dépôt — plutôt que deux statuts séparés à suivre selon
+// le type de client. Valider la livraison pose donc désormais les
+// deux champs d'un coup ; remisAuClient reste, lui, le SEUL champ posé
+// par mnMarquerRemisAuClient pour un client qui vient chercher au
+// dépôt (pas de livraisonValidee pour ceux-là, le champ n'a de sens
+// qu'en livraison à domicile).
 function mnExecuterValidationLivraison(){
   $('modal-confirm-livraison').classList.remove('open');
   var c = clientActuel(_ficheCtx);
   if(!c){ alert('Client introuvable.'); return; }
-  var champ = { livraisonValidee: { fait:true, ts:Date.now(), par:ACTEUR_NOM } };
+  var maintenant = Date.now();
+  var champ = {
+    livraisonValidee: { fait:true, ts:maintenant, par:ACTEUR_NOM },
+    remisAuClient: { ts:maintenant, par:ACTEUR_NOM }
+  };
   ecrireClient(_ficheCtx, champ).then(function(){
     c.livraisonValidee = champ.livraisonValidee;
+    c.remisAuClient = champ.remisAuClient;
     activiteExterne('✅', '<strong>' + esc(ACTEUR_NOM) + '</strong> a validé la livraison de <strong>' + esc(c.name || '') + '</strong>');
     // v1.7.0 — Cobey : « une fois qui valide la livraison, l'écran
     // revient dans le container [...] si il passe par le QR code [...]

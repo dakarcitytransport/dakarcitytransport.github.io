@@ -4526,3 +4526,20 @@ qui avait exactement la même tournure) : "Votre container est/arrive"
 → "Vos colis sont/arrivent". Le message équivalent de mamadou.html
 (`_mnTexteArriveeDestinataire`, "Prévenir le destinataire") disait déjà
 "colis", rien à y changer.
+
+**20/10, mamadou.html v1.14.2 — "Valider la livraison" pose aussi
+"remis au client".** Cobey, après avoir vu le nouveau bouton
+"Marquer remis au client" (retrait au dépôt) à côté du bouton existant
+"Valider la livraison" (livraison à domicile) sur la fiche d'un client
+en livraison : « on va plutôt faire comme ça, quand il appuie sur le
+bouton valider ça valide également le bouton remis au client et nous
+aussi de notre côté. » Plutôt que deux statuts à suivre séparément
+selon le type de client, `mnExecuterValidationLivraison` pose
+désormais `remisAuClient` EN PLUS de `livraisonValidee` au moment de
+la validation — un seul champ "remis au client", vrai pour tout le
+monde une fois le colis effectivement remis, quel que soit le chemin
+(livraison à domicile ou retrait au dépôt). Rien ne change côté
+affichage (le badge "Délivré au client" en livraison à domicile reste
+celui qui s'affiche, `_depBadgeLivraison` côté appli principale) —
+seule la donnée devient cohérente pour un usage futur (rapport,
+filtre...) qui voudrait compter "remis" sans distinguer le type.
