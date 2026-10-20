@@ -394,7 +394,9 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
       </div>
 
       <button class="btn btn-green" id="f-btn-valider" style="margin-top:16px;" onclick="mnDemanderConfirmationLivraison()">&#9989; Valider la livraison</button>
-      <div id="f-valide-note" hidden style="text-align:center;font-size:12.5px;font-weight:700;color:#006b2d;margin-top:10px;">&#9989; Livraison valid&eacute;e</div>
+      <div id="f-valide-note" hidden style="text-align:center;font-size:12.5px;font-weight:700;color:#006b2d;margin-top:10px;">&#9989; Livraison valid&eacute;e
+        <span onclick="mnDemanderAnnulationLivraison()" style="display:block;margin-top:6px;font-size:11.5px;font-weight:600;color:#999;text-decoration:underline;cursor:pointer;">Annuler</span>
+      </div>
     </div>
   </div>
 
@@ -414,6 +416,16 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
       <div class="modal-confirm-photo"><img id="mcl-photo" src="" alt=""></div>
       <button type="button" class="btn btn-green" style="margin-bottom:9px;" onclick="mnExecuterValidationLivraison()">&#9989; Confirmer la livraison</button>
       <button type="button" class="btn btn-gray" style="margin-bottom:0;" onclick="mnAnnulerConfirmationLivraison()">Annuler</button>
+    </div>
+  </div>
+
+  <div id="modal-annuler-livraison" class="modal-confirm-overlay">
+    <div class="modal-confirm-sheet">
+      <div class="modal-confirm-emoji">&#9888;&#65039;</div>
+      <div class="modal-confirm-titre">Annuler la validation de cette livraison ?</div>
+      <div class="modal-confirm-sub">Le client repasse en attente de livraison. &Agrave; refaire s&rsquo;il s&rsquo;agit d&rsquo;une vraie remise.</div>
+      <button type="button" class="btn btn-gray" style="margin-bottom:9px;background:#C0392B;border-color:#922B21;color:#fff;" onclick="mnExecuterAnnulationLivraison()">Oui, annuler</button>
+      <button type="button" class="btn btn-gray" style="margin-bottom:0;" onclick="mnFermerAnnulationLivraison()">Non</button>
     </div>
   </div>
 
@@ -437,7 +449,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.4';
+var MAMADOU_VERSION = 'v1.14.5';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1847,6 +1859,39 @@ function mnExecuterValidationLivraison(){
     fermerFiche();
   }).catch(function(e){
     console.error('mamadou: échec validation livraison', e);
+    alert('Échec de l’enregistrement, réessayez (vérifiez la connexion).');
+  });
+}
+
+// v3.99.58 — Cobey, après un test sur un vrai client (Boubacar DIOP) :
+// « je voudrais revenir en arrière, mais je vois que je n'ai pas de
+// bouton. » Jusqu'ici volontairement sans retour en arrière (voir le
+// texte du modal de confirmation : « elle ne se défait pas ») — mais
+// un test fait par erreur sur un vrai client doit pouvoir se rattraper.
+// Annule les deux champs posés ensemble par mnExecuterValidationLivraison
+// (livraisonValidee ET remisAuClient, v3.99.56) pour rester cohérent.
+function mnDemanderAnnulationLivraison(){
+  $('modal-annuler-livraison').classList.add('open');
+}
+
+function mnFermerAnnulationLivraison(){
+  $('modal-annuler-livraison').classList.remove('open');
+}
+
+function mnExecuterAnnulationLivraison(){
+  $('modal-annuler-livraison').classList.remove('open');
+  var c = clientActuel(_ficheCtx);
+  if(!c){ alert('Client introuvable.'); return; }
+  var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+  hist.push({ q: ACTEUR_NOM, a: 'a annul&eacute; la validation de la <strong>livraison</strong>', ts: Date.now(), type: 'remis' });
+  c.hist = hist;
+  c.livraisonValidee = null;
+  c.remisAuClient = null;
+  ecrireClient(_ficheCtx, { hist: hist, livraisonValidee: null, remisAuClient: null }).then(function(){
+    activiteExterne('↩️', '<strong>' + esc(ACTEUR_NOM) + '</strong> a annulé la validation de livraison de <strong>' + esc(c.name || '') + '</strong>');
+    ouvrirFiche(_ficheCtx);
+  }).catch(function(e){
+    console.error('mamadou: échec annulation validation livraison', e);
     alert('Échec de l’enregistrement, réessayez (vérifiez la connexion).');
   });
 }

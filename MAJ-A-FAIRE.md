@@ -4591,3 +4591,18 @@ exclusivement posés par lui ("Remis au client", "Délivré au client").
 Les horodatages posés par d'autres collaborateurs (ex. "Prévenir le
 destinataire" depuis l'appli) restent inchangés — les forcer à Dakar
 aurait faussé l'origine réelle de l'action.
+
+**20/10, mamadou.html v1.14.5 — un bouton "Annuler" pour une livraison
+validée par erreur.** Cobey, après un test sur un vrai client
+(Boubacar DIOP, fiche) : « je voudrais revenir en arrière, mais je
+vois que je n'ai pas de bouton. » Validation volontairement sans
+retour en arrière jusqu'ici (le modal de confirmation le dit
+explicitement : « elle ne se défait pas ») — mais un test fait par
+erreur sur un vrai client doit pouvoir se rattraper, comme pour
+"Marquer remis au client" (v3.99.55). Ajouté un lien "Annuler" sous le
+message "✅ Livraison validée" sur la fiche, avec sa propre fenêtre de
+confirmation (même style que les autres, pas de confirm() natif) :
+`mnExecuterAnnulationLivraison` remet `livraisonValidee` et
+`remisAuClient` à vide ensemble (les deux posés ensemble par
+`mnExecuterValidationLivraison`, v3.99.56), pour rester cohérent entre
+les deux champs.
