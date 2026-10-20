@@ -4423,3 +4423,21 @@ monde a déjà payé. France & Europe inchangé (le frais de déplacement
 reste un forfait, pas un montant encaissé progressivement). Testé
 avec un client facturé 1670 € mais seulement 600 € réellement versés
 : l'écran affiche bien 600 € / "COLLECTÉ", pas 1670 € / "FACTURÉ".
+
+**20/10, v3.99.52 — collectes France & Europe : possibilité de leur
+donner un nom.** Cobey : « mets la possibilité de mettre un nom pour
+les collectes France Europe type (Marseille, Bordeaux, région du
+nord), comme ça on peut savoir et préparer des camions à l'avance. »
+Un champ "Nom" facultatif, à la création (écran "Nouvelle collecte")
+et modifiable après coup (même modale "Modifier la collecte" que la
+date, nouveau bouton "🏷️ Enregistrer ce nom") — nouveau champ Firebase
+`nom` sur la collecte, vide par défaut.
+
+Affiché partout où la collecte apparaît : en titre de la carte (le
+nom passe devant, la date en sous-titre) sur la liste "Collectes" ;
+dans le fil d'Ariane "← Toutes les collectes" une fois la collecte
+ouverte ; dans l'en-tête de l'écran Dispatch ; dans le sous-titre de
+l'écran d'un camion ; dans le titre de "Choisir des clients pour
+cette collecte" — un seul format partagé (`_frTitreCollecte`) :
+"Nom — date" si un nom est renseigné, sinon juste la date comme
+avant (aucun changement visuel pour une collecte sans nom).

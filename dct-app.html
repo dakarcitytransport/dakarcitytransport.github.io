@@ -614,6 +614,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
          la grille de dimanches + le mode "jour exceptionnel" (qui
          n'était qu'un détour pour arriver au même résultat). -->
     <div class="fg"><label class="fl">Date de la collecte</label><input class="fi" type="date" id="fr-date-collecte"></div>
+    <!-- v3.99.52 — Cobey : « mets la possibilité de mettre un nom pour
+         les collectes France Europe type (Marseille, Bordeaux, région
+         du nord) comme ça on peut savoir et préparer des camions à
+         l'avance. » Facultatif : une collecte sans nom garde l'ancien
+         affichage (juste la date). -->
+    <div class="fg"><label class="fl">Nom <span style="color:#aaa;font-weight:500;">(optionnel) · ex. Marseille, Bordeaux, Région du Nord</span></label><input class="fi" type="text" id="fr-nom-collecte" placeholder="Zone ou ville"></div>
     <div style="margin-top:20px;">
       <button class="btn btn-green" onclick="creerCollecteFrance()">✅ Créer cette collecte</button>
       <button class="btn btn-gray" onclick="goTo('s-france')">✕ Annuler</button>
@@ -1958,7 +1964,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.51';
+var APP_VERSION = 'v3.99.52';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4168,7 +4174,7 @@ function _frRenderFranceCorps(box){
   // reste que le fil d'Ariane vers la collecte ouverte.
   if(rOuv){
     html += '<div onclick="fermerCollecteFrance()" style="display:inline-block;font-size:13px;font-weight:700;color:#1a237e;cursor:pointer;margin:2px 0 10px;">← Toutes les collectes</div>'
-      + '<div style="font-size:12.5px;font-weight:700;color:var(--text3);margin-bottom:8px;">🚛 '+_esc(rOuv.dateLib||'')+'</div>';
+      + '<div style="font-size:12.5px;font-weight:700;color:var(--text3);margin-bottom:8px;">🚛 '+_esc(_frTitreCollecte(rOuv))+'</div>';
   }
   // Recherche : on ignore les filtres
   if(q){
@@ -5120,6 +5126,7 @@ function nouvelleCollecteFrance(){
     var d=new Date(); d.setDate(d.getDate() + ((7-d.getDay())%7||7));
     dInp.value=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
   }
+  var nInp=document.getElementById('fr-nom-collecte'); if(nInp) nInp.value='';
   goTo('s-new-france');
 }
 
@@ -5148,16 +5155,18 @@ function creerCollecteFrance(){
   var dateCollecte=new Date(v+'T12:00:00');
   var statut=(dateCollecte>=debutSemaine && dateCollecte<=finSemaine) ? 'en_cours' : 'a_venir';
 
+  var nom=((document.getElementById('fr-nom-collecte')||{}).value||'').trim();
+
   var rid='fr_'+Date.now();
   var maj={};
   maj['collectes/'+rid]={
-    id:rid, dateIso:v, dateLib:lib, statut:statut,
+    id:rid, dateIso:v, dateLib:lib, nom:nom, statut:statut,
     creePar:(currentUser||{}).name||'', creeTs:Date.now(),
     clients:[], trucks:{}, assigned:{}
   };
   _frUpdate(maj).then(function(){
-    showToastNew('✅ Collecte du '+lib+' créé');
-    _activiteFrance('🚛','a créé la collecte <strong>'+lib+'</strong>');
+    showToastNew('✅ Collecte '+(nom?(nom+' — '):'')+'du '+lib+' créée');
+    _activiteFrance('🚛','a créé la collecte <strong>'+(nom?(nom+' — '):'')+lib+'</strong>');
     currentCollecteFrId=rid;
     // v3.95.4 : "Nouvelle collecte" est désormais un écran à part
     // (s-new-france), pas une fenêtre par-dessus s-france — il faut donc
@@ -5196,12 +5205,20 @@ function ouvrirStatutCollecteFr(id){
       + '<div class="fg" style="text-align:left;"><label class="fl">Date</label>'
       +   '<input class="fi" type="date" id="fc-date-input"></div>'
       + '<button class="btn btn-gray" style="margin:0 0 14px;" onclick="changerDateCollecteFr()">📅 Enregistrer cette date</button>'
+      // v3.99.52 — Cobey : « mets la possibilité de mettre un nom pour
+      // les collectes France Europe [...] comme ça on peut savoir et
+      // préparer des camions à l'avance. » Même geste que la date
+      // ci-dessus : modifiable après coup, pas seulement à la création.
+      + '<div class="fg" style="text-align:left;"><label class="fl">Nom <span style="color:#aaa;font-weight:500;">(optionnel)</span></label>'
+      +   '<input class="fi" type="text" id="fc-nom-input" placeholder="Zone ou ville"></div>'
+      + '<button class="btn btn-gray" style="margin:0 0 14px;" onclick="changerNomCollecteFr()">🏷️ Enregistrer ce nom</button>'
       + '<div class="slabel" style="text-align:left;margin:0 0 8px;">Statut</div>'
       + '<div id="fc-statut-options"></div>'
       + '<button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal(\'modal-fc-statut\')">✕ Fermer</button></div>';
     document.body.appendChild(modal);
   }
   var di=document.getElementById('fc-date-input'); if(di) di.value=r.dateIso||'';
+  var ni=document.getElementById('fc-nom-input'); if(ni) ni.value=r.nom||'';
   var h='';
   [['en_cours','🟢','En cours'],['a_venir','🔵','À venir'],['terminee','⚫','Terminé']].forEach(function(s){
     var on=(r.statut||'en_cours')===s[0];
@@ -5245,6 +5262,26 @@ function changerDateCollecteFr(){
   _frUpdate(maj).then(function(){
     showToastNew('📅 Date mise à jour : '+lib);
     _activiteFrance('📅','a changé la date de la collecte en <strong>'+lib+'</strong>');
+    renderFrance();
+  }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
+}
+
+// v3.99.52 — Cobey : « mets la possibilité de mettre un nom pour les
+// collectes France Europe type (Marseille, Bordeaux, région du nord)
+// comme ça on peut savoir et préparer des camions à l'avance. » Même
+// geste que changerDateCollecteFr ci-dessus, pour le nom.
+function changerNomCollecteFr(){
+  var id=_fcStatutId, r=_frCollectes()[id];
+  if(!r){ closeModal('modal-fc-statut'); return; }
+  var nom=((document.getElementById('fc-nom-input')||{}).value||'').trim();
+  if(nom===(r.nom||'')){ closeModal('modal-fc-statut'); return; }
+  closeModal('modal-fc-statut');
+  var majNom={}; majNom['collectes/'+id+'/nom']=nom;
+  _frUpdate(majNom).then(function(){
+    showToastNew(nom ? ('🏷️ Nom mis à jour : '+nom) : '🏷️ Nom retiré');
+    _activiteFrance('🏷️', nom
+      ? ('a nommé la collecte du '+r.dateLib+' <strong>'+nom+'</strong>')
+      : ('a retiré le nom de la collecte du <strong>'+r.dateLib+'</strong>'));
     renderFrance();
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
 }
@@ -5368,7 +5405,7 @@ function ouvrirPickClientsFrance(rid){
       + '</div>';
     document.body.appendChild(modal);
   }
-  var t=document.getElementById('fc-pick-titre'); if(t) t.textContent='Collecte du '+r.dateLib;
+  var t=document.getElementById('fc-pick-titre'); if(t) t.textContent=r.nom ? ('Collecte '+_frTitreCollecte(r)) : ('Collecte du '+r.dateLib);
   var q=document.getElementById('fc-pick-q'); if(q) q.value='';
   _frRenderPick();
   openModal('modal-fc-pick');
@@ -5837,15 +5874,35 @@ function _frToggleHistCollectes(){
   try{ localStorage.setItem('dct_frc_hist_open', ouvert?'0':'1'); }catch(e){}
 }
 
+// v3.99.52 — Cobey : « mets la possibilité de mettre un nom pour les
+// collectes France Europe [...] comme ça on peut savoir et préparer
+// des camions à l'avance. » Un seul format partagé par tous les
+// en-têtes de collecte ouverte (fil d'Ariane Clients, en-tête
+// Dispatch, sous-titre de l'écran Camion) : "Nom — date" si un nom
+// est renseigné, sinon juste la date comme avant.
+function _frTitreCollecte(r){
+  return (r && r.nom) ? (r.nom+' — '+(r.dateLib||'')) : ((r&&r.dateLib)||'');
+}
+
 function _frCarteCollecte(r){
   var t=_frTotauxCollecte(r);
   var gere=_peutGererFrance();
   var cadre = r.statut==='en_cours' ? 'border-green' : (r.statut==='a_venir' ? 'border-blue' : 'locked');
   var badge = r.statut==='en_cours' ? 'badge-green' : (r.statut==='a_venir' ? 'badge-blue' : 'badge-gray');
   var lib   = r.statut==='en_cours' ? 'En cours' : (r.statut==='a_venir' ? 'À venir' : 'Terminé');
+  // v3.99.52 — Cobey : « mets la possibilité de mettre un nom pour les
+  // collectes France Europe [...] comme ça on peut savoir et préparer
+  // des camions à l'avance. » Quand un nom est renseigné, il devient le
+  // titre de la carte (ce qu'on cherche au premier coup d'œil pour
+  // préparer un camion), la date passe en sous-titre — sans nom, la
+  // carte garde exactement son ancien affichage (juste la date).
+  var carteTitre = r.nom
+    ? ('<div class="collecte-card-date">'+_esc(r.nom)+(r.statut==='terminee'?' 🔒':'')+'</div>'
+       + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:2px;">'+r.dateLib+'</div>')
+    : ('<div class="collecte-card-date">'+r.dateLib+(r.statut==='terminee'?' 🔒':'')+'</div>');
   return '<div class="collecte-card '+cadre+'">'
     + '<div class="collecte-card-top" onclick="ouvrirCollecteFrance(\''+r._id+'\')">'
-    +   '<div class="collecte-card-date">'+r.dateLib+(r.statut==='terminee'?' 🔒':'')+'</div>'
+    +   '<div>'+carteTitre+'</div>'
     +   '<div style="display:flex;align-items:center;gap:7px;">'
     +     '<span class="badge '+badge+'">'+lib+'</span>'
     +     (gere?('<button onclick="event.stopPropagation();ouvrirStatutCollecteFr(\''+r._id+'\')" style="background:#f0f0f0;border:1.5px solid #ccc;border-radius:6px;padding:3px 8px;font-size:11px;color:#555;cursor:pointer;font-weight:700;">✏️</button>'
@@ -5932,7 +5989,7 @@ function _frDispatchDetail(r){
   var lib   = r.statut==='en_cours' ? 'En cours' : (r.statut==='a_venir' ? 'À venir' : 'Terminé');
   h+='<div style="background:#e8eaf6;border:2px solid #1a237e;border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
-    +   '<div style="font-size:15px;font-weight:800;color:#1a237e;">🚛 '+r.dateLib+'</div>'
+    +   '<div style="font-size:15px;font-weight:800;color:#1a237e;">🚛 '+_esc(_frTitreCollecte(r))+'</div>'
     +   '<span class="badge '+badge+'">'+lib+'</span></div></div>';
 
   if(nb){
@@ -6791,7 +6848,7 @@ function renderCamionFrance(){
 
   var e;
   e=document.getElementById('frc-title');   if(e) e.textContent='🚛 '+tk.name;
-  e=document.getElementById('frc-sous');    if(e) e.textContent=r.dateLib;
+  e=document.getElementById('frc-sous');    if(e) e.textContent=_frTitreCollecte(r);
   e=document.getElementById('frc-count');   if(e) e.textContent=validated.length+'/'+nCl+' client'+(nCl>1?'s':'')+(refused.length?(' · '+refused.length+' non ramassé'+(refused.length>1?'s':'')):'');
   e=document.getElementById('frc-bar');     if(e){ e.style.width=pct+'%'; e.style.background=tc.bar; }
   e=document.getElementById('frc-pct');     if(e) e.textContent=pct+'%';
