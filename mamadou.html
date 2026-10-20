@@ -437,7 +437,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.2';
+var MAMADOU_VERSION = 'v1.14.3';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1372,6 +1372,17 @@ function cdAppliquerFiltres(){
       // été payé et ce qui reste. »
       liv = '<div class="cli-liv ' + (payLiv.reste > 0 ? 'cli-liv-reste' : 'cli-liv-soldee') + '">🚚 Livraison : ' + payLiv.total + ' €'
         + (payLiv.reste > 0 ? ' (reste ' + payLiv.reste + ' €)' : ' — soldée') + '</div>';
+      // v3.99.57 — Cobey, capture d'écran à l'appui : « pk il a rien le
+      // client 43 » — rien sur la carte ne disait si un client en
+      // livraison à domicile avait déjà été remis ou pas (contrairement
+      // au retrait au dépôt, qui a son propre bouton juste ici). En
+      // lecture seule — pas de bouton : valider exige une photo, qui ne
+      // se fait que depuis la fiche (voir mnExecuterValidationLivraison).
+      if(dejaArrivee){
+        liv += c.remisAuClient
+          ? ('<div class="cli-liv cli-liv-soldee">✅ Remis au client — ' + esc(_mnDateHeureCourte(c.remisAuClient.ts)) + '</div>')
+          : '<div class="cli-liv cli-liv-reste">⏳ Pas encore remis — ouvrir la fiche</div>';
+      }
     }
     h += '<div class="cli-item" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'},false,\'ecran-container-detail\')">'
       +   '<div class="cli-top"><div class="cli-nom">'+rang+esc(c.name||'')+'</div></div>'

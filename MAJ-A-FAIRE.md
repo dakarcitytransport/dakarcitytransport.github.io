@@ -4543,3 +4543,16 @@ affichage (le badge "Délivré au client" en livraison à domicile reste
 celui qui s'affiche, `_depBadgeLivraison` côté appli principale) —
 seule la donnée devient cohérente pour un usage futur (rapport,
 filtre...) qui voudrait compter "remis" sans distinguer le type.
+
+**20/10, mamadou.html v1.14.3 — statut "remis" visible sur la carte
+pour les clients en livraison à domicile aussi.** Cobey, capture
+d'écran à l'appui : « pk il a rien le client 43 » — N°43 est en
+livraison à domicile (badge "🚚 Livraison ... soldée" visible), mais
+rien sur sa carte ne disait s'il avait déjà été remis ou pas,
+contrairement aux clients du retrait au dépôt (N°46, N°36, un bouton
+dédié juste sous leur carte). Il fallait ouvrir la fiche pour le
+savoir. Ajouté : un badge en lecture seule (pas un bouton — valider
+exige une photo, qui ne se fait que depuis la fiche) juste sous la
+ligne "Livraison" : "✅ Remis au client — date" ou "⏳ Pas encore remis
+— ouvrir la fiche", visible dès que le container est arrivé — même
+langage visuel (vert/orange) que le statut du retrait au dépôt.
