@@ -4482,3 +4482,21 @@ distance) ; affiché comme badge "✅ Remis au client" / "⏳ En attente
 de retrait" aussi bien sur l'écran container de Mamadou que sur
 l'écran Départ de l'appli principale (`_depBadgeLivraison`, étendue
 pour couvrir ce cas en plus de la livraison à domicile).
+
+**20/10, v3.99.54 — "Chargement DKR" toujours bloqué : auto-réparation
+ajoutée, aucune case pour corriger à la main.** Cobey est allé
+vérifier : les 4 étapes de suivi sont bien toutes validées (capture à
+l'appui), mais "Modifier le départ" n'a AUCUNE case "statut" (« ya
+rien ») — logique, le statut n'a jamais été qu'une déduction
+automatique des étapes (`_depStatutSelonEtapes`), jamais un champ
+choisi à la main. Un container resté désynchronisé à cause de
+l'ancien bug (mamadou.html, voir plus haut) n'avait donc strictement
+AUCUN moyen de se corriger, ni automatique ni manuel.
+
+Corrigé : `depDetail` (ouverture de l'écran Départ d'un container)
+appelle désormais `_depMajStatutDepuisEtapes` à chaque ouverture —
+sans coût pour un container déjà synchronisé (ne réécrit rien si le
+statut visé est déjà le bon), elle rattrape silencieusement tout
+container resté bloqué par l'ancien bug, "Chargement DKR" compris,
+dès la prochaine fois que quelqu'un l'ouvre — plus besoin d'y
+toucher à la main.

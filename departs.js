@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.91';
+var DEP_VERSION = 'v2.20.92';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8053,6 +8053,24 @@ window.depDetail = function(id, gardeFiltres){
   var d = (window.departsData||{})[id];
   if(!d){ toast('⚠️ Départ introuvable.'); return; }
   var estDepot = (id === DEP_ID_DEPOT); // v1.19.44
+
+  // v3.99.54 — Cobey, capture d'écran à l'appui : container "Chargement
+  // DKR" affiché "Parti" alors que ses 4 étapes de suivi (dont "Arrivée
+  // au dépôt") sont déjà toutes validées — et pas de case "statut" dans
+  // "Modifier le départ" pour le corriger à la main (« ya rien »), le
+  // statut n'étant JAMAIS qu'une déduction automatique des étapes
+  // (_depStatutSelonEtapes). Cause du blocage : avant le correctif
+  // précédent sur mamadou.html (validerArriveeDepot), valider la
+  // dernière étape depuis SA page n'appelait jamais
+  // _depMajStatutDepuisEtapes — un container resté "Parti" malgré ça
+  // n'avait donc aucun moyen de se corriger tout seul, ni aucun bouton
+  // pour le faire à la main. Auto-réparation ici, à chaque ouverture de
+  // l'écran Départ : sans coût pour un container déjà synchronisé
+  // (_depMajStatutDepuisEtapes ne réécrit rien si le statut visé est
+  // déjà le bon), elle rattrape silencieusement tout container resté
+  // bloqué par cet ancien bug — y compris "Chargement DKR", dès la
+  // prochaine fois que quelqu'un l'ouvre.
+  if(!estDepot){ try{ _depMajStatutDepuisEtapes(id); }catch(e){ console.error('departs: auto-correction statut/étapes', e); } }
 
   var t = $('dep-d-nom'); if(t) t.textContent = d.nom || 'Départ';
   var s = $('dep-d-sub');
