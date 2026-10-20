@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.92';
+var DEP_VERSION = 'v2.20.93';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9890,10 +9890,15 @@ window.depPartagerWhatsapp = function(){
 // (c.tel) que son container est arrivé — à lui de prévenir son contact
 // sur place. Voir mnPrevenirDestinataire dans mamadou.html, pendant
 // symétrique côté destinataire.
+// v3.99.56 — Cobey, message reçu par un client collé en exemple : « voici
+// le message que les clients reçoivent [...] remplace "votre container"
+// par "vos colis" » — "container" ne veut rien dire pour un client
+// (jargon interne, le mot que l'équipe utilise entre elle pour désigner
+// le chargement groupé), ce qu'il attend c'est son/ses colis.
 function _depTexteMessageArriveeExpediteur(c){
   var prenom = (c.prenom || c.name || '').trim() || 'bonjour';
   return 'Bonjour ' + prenom + ' \u{1F44B}\n\n'
-    + '\u{1F4E6} Votre container est bien arrivé à Dakar !\n\n'
+    + '\u{1F4E6} Vos colis sont bien arrivés à Dakar !\n\n'
     + 'Vous pouvez prévenir votre contact sur place pour qu’il vienne récupérer son colis.\n\n'
     + 'Merci de votre confiance !\nL’équipe Dakar City Transport';
 }
@@ -9975,9 +9980,12 @@ function _depTexteRelancePaiement(c, d, p, estLiv){
   var trajet = 'France-' + (DEP_PAYS_NOM_PLAIN[pays] || 'Sénégal');
   var ville = (pays === 'ML') ? 'Bamako' : 'Dakar';
   var arrive = !!(d && d.statut === 'arrive');
+  // v3.99.56 — Cobey : « remplace "votre container" par "vos colis" »
+  // (retour sur le message de _depTexteMessageArriveeExpediteur,
+  // ci-dessus — même tournure ici, même correction).
   var intro = arrive
-    ? ('📦 Votre container ' + trajet + ' est arrivé à ' + ville + '.')
-    : ('📦 Votre container ' + trajet + ' arrive bientôt à ' + ville + '.');
+    ? ('📦 Vos colis ' + trajet + ' sont bien arrivés à ' + ville + '.')
+    : ('📦 Vos colis ' + trajet + ' arrivent bientôt à ' + ville + '.');
   var demande = estLiv
     ? ('Pour que nous puissions vous livrer votre colis, merci de bien vouloir régler le solde restant de '
        + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison' + (arrive ? '.' : ', avant l’arrivée.'))

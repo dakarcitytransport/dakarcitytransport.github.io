@@ -4513,3 +4513,16 @@ boutons à bascule de l'appli. Rien à changer côté affichage du badge
 (mamadou.html et `_depBadgeLivraison` côté appli principale) : les deux
 se basent déjà sur la simple présence du champ, absent = "en attente
 de retrait" comme avant la remise.
+
+**20/10, v3.99.55 — "container" remplacé par "colis" dans les messages
+envoyés aux clients.** Cobey, message collé en exemple : « voici le
+message que les clients reçoivent pour être prévenus, remplace "votre
+container" par "vos colis". » "Container" est le mot interne de
+l'équipe pour désigner le chargement groupé — un client ne sait pas ce
+que c'est, lui pense en "colis". Corrigé dans les deux messages
+WhatsApp/copier concernés (`_depTexteMessageArriveeExpediteur`, le
+message "Prévenir (arrivé)" que Cobey a cité, et `_depTexteRelancePaiement`,
+qui avait exactement la même tournure) : "Votre container est/arrive"
+→ "Vos colis sont/arrivent". Le message équivalent de mamadou.html
+(`_mnTexteArriveeDestinataire`, "Prévenir le destinataire") disait déjà
+"colis", rien à y changer.
