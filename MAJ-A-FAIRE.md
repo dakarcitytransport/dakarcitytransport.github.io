@@ -4556,3 +4556,38 @@ exige une photo, qui ne se fait que depuis la fiche) juste sous la
 ligne "Livraison" : "✅ Remis au client — date" ou "⏳ Pas encore remis
 — ouvrir la fiche", visible dès que le container est arrivé — même
 langage visuel (vert/orange) que le statut du retrait au dépôt.
+
+**20/10, v3.99.56/v2.20.94 — les photos de remise de Mamadou Niass
+apparaissent enfin dans l'appli principale.** Cobey, 3 captures
+d'écran à l'appui : « Mamadou Niass a validé une photo pour une
+cliente mais nous de notre côté on ne la voit pas. » La cliente (Anita
+Ly, retrait sur place) avait une photo dans son bloc "VOS PHOTOS DE
+REMISE" sur mamadou.html, mais l'accès rapide "Photos" de l'appli
+principale (`_depChargerPhotosFiche`, utilisé par le bouton photo sur
+la fiche et sur la liste des clients d'un container) ne lisait que
+`france_photos/`/`dct_photos_colis/` — jamais `dct_photos_livraison/`,
+le nœud où `mnPhotoLivraisonChoisie` (mamadou.html) écrit ces photos
+de preuve de remise. Un nœud entier, jamais lu côté appli, pour
+n'importe quel client, pas seulement Anita Ly. Corrigé : ces photos
+sont désormais fusionnées avec les photos du colis (triées par date),
+marquées pour qu'on les distingue (nom de Mamadou affiché comme
+auteur, comme pour les photos classiques).
+
+**20/10, même lot — horodatage "heure de Dakar" pour tout ce que
+Mamadou Niass écrit.** Cobey : « l'horodatage, tu peux la faire à
+l'heure et à la date de Dakar et le préciser s'il te plaît pour les
+infos de Mamadou Niass, que ça soit sur les activités ou sur les
+photos qu'il prend. » Les horaires affichés étaient recalculés dans le
+fuseau de l'appareil qui regarde l'écran, sans jamais préciser lequel
+— un horaire posé par Mamadou à Dakar pouvait s'afficher décalé et
+sans étiquette pour quelqu'un qui consulte depuis la France. Corrigé à
+deux endroits : à la source, dans `activiteExterne` (mamadou.html,
+désormais figée sur le fuseau Africa/Dakar au moment de l'écriture,
+pour les entrées du fil d'activité) et à l'affichage, avec une nouvelle
+fonction `_depDateHeureDakar` (departs.js, fuseau Africa/Dakar figé via
+`Intl.DateTimeFormat`, toujours suivie de "(heure de Dakar)") utilisée
+pour les photos de remise ci-dessus et pour les deux badges
+exclusivement posés par lui ("Remis au client", "Délivré au client").
+Les horodatages posés par d'autres collaborateurs (ex. "Prévenir le
+destinataire" depuis l'appli) restent inchangés — les forcer à Dakar
+aurait faussé l'origine réelle de l'action.

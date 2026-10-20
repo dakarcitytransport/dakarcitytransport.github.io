@@ -437,7 +437,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.3';
+var MAMADOU_VERSION = 'v1.14.4';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -665,14 +665,30 @@ var ACTEUR_NOM = 'Mamadou Niass';
 // principale (activite_items), même forme : mamadou.html n’a pas accès
 // aux fonctions natives (page à part). Cobey : « tout ce qu’il fera
 // devra être notifié dans les notifications. »
+// v3.99.57 — Cobey : « l'horodatage, tu peux la faire à l'heure et à la
+// date de Dakar et le préciser [...] pour les infos de Mamadou Niass,
+// que ça soit sur les activités ou sur les photos qu'il prend. » Le
+// libellé stocké ici (timeLabel) est affiché TEL QUEL par le fil
+// d'Activité, sans être recalculé selon qui regarde — il était jusqu'ici
+// composé avec le fuseau du téléphone de Mamadou, en principe déjà Dakar,
+// mais sans jamais le dire : un collaborateur ailleurs pouvait lire une
+// heure sans savoir à quel fuseau elle correspond. Fixé explicitement sur
+// Africa/Dakar (fiable même si l'appareil était mal réglé) et précisé en
+// toutes lettres.
 function activiteExterne(emoji, texte){
   try{
     var now = new Date();
-    var dateStr = now.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
-    var heureStr = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    var f = new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'Africa/Dakar', day:'2-digit', month:'2-digit', year:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    });
+    var parts = {};
+    f.formatToParts(now).forEach(function(p){ parts[p.type] = p.value; });
+    var dateStr = parts.day + '/' + parts.month + '/' + parts.year;
+    var heureStr = parts.hour + ':' + parts.minute;
     db.ref('activite_items').push({
       ts: Date.now(), emoji: emoji, bg: '#FBE9D0', text: texte,
-      timeLabel: dateStr + ' à ' + heureStr
+      timeLabel: dateStr + ' à ' + heureStr + ' (heure de Dakar)'
     });
   }catch(e){ console.error('mamadou: écriture activité', e); }
 }

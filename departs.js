@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.93';
+var DEP_VERSION = 'v2.20.94';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10379,6 +10379,29 @@ function dateHeureFr(ts){
   return jj+'/'+mm+'/'+d.getFullYear()+' '+hh+':'+mi;
 }
 
+// v3.99.57 — Cobey : « l'horodatage, tu peux la faire à l'heure et à la
+// date de Dakar et le préciser [...] pour les infos de Mamadou Niass,
+// que ça soit sur les activités ou sur les photos qu'il prend. » Jusqu'ici
+// dateHeureFr() (ci-dessus) recalcule l'heure dans le FUSEAU DU TÉLÉPHONE
+// QUI REGARDE — un collaborateur en France voit l'heure d'une photo de
+// Mamadou (lui à Dakar, UTC+0 toute l'année, sans heure d'été) décalée
+// vers l'heure française, sans aucune mention de quel fuseau c'est : deux
+// personnes dans deux pays peuvent lire deux heures différentes pour le
+// même instant, sans le savoir. _depDateHeureDakar fige le fuseau à
+// Africa/Dakar (via Intl, fiable même si l'appareil qui affiche est
+// ailleurs) et le précise en toutes lettres, pour les infos qui viennent
+// spécifiquement de lui (dct_photos_livraison — voir _depChargerPhotosFiche).
+function _depDateHeureDakar(ts){
+  if(!ts) return '—';
+  try{
+    var f = new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'Africa/Dakar', day:'2-digit', month:'2-digit', year:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    });
+    return f.format(new Date(ts)) + ' (heure de Dakar)';
+  }catch(e){ return dateHeureFr(ts) + ' (heure de Dakar)'; }
+}
+
 // v2.20.55 — Cobey : « faudrait heure et date à côté de la case, comme
 // ça on sait quand le client a été prévenu. » Version courte de
 // dateHeureFr (sans l'année — contexte récent) pour tenir à côté d'un
@@ -12339,10 +12362,12 @@ function _depBadgeLivraison(c, arrive){
     if(!arrive) return '';
     var rc = c.remisAuClient;
     if(rc){
+      // v3.99.57 — Cobey : heure de Dakar précisée pour les infos de
+      // Mamadou Niass — seul auteur possible de remisAuClient.
       return '<div style="display:inline-flex;align-items:center;gap:6px;background:#EAF7EE;'
         + 'border:1.5px solid #BFE6C8;border-radius:20px;padding:5px 11px;font-size:11.5px;'
         + 'font-weight:800;color:#006b2d;margin:6px 0;">&#9989; Remis au client'
-        + (rc.ts ? (' &middot; ' + esc(dateHeureFr(rc.ts))) : '') + '</div>'
+        + (rc.ts ? (' &middot; ' + esc(_depDateHeureDakar(rc.ts))) : '') + '</div>'
         + (rc.par ? ('<div style="font-size:10.5px;color:#999;margin-bottom:4px;">par ' + esc(rc.par) + '</div>') : '');
     }
     return '<div style="display:inline-flex;align-items:center;gap:6px;background:#FFF3E0;'
@@ -12351,10 +12376,12 @@ function _depBadgeLivraison(c, arrive){
   }
   var lv = c.livraisonValidee;
   if(lv && lv.fait){
+    // v3.99.57 — Cobey : heure de Dakar précisée pour les infos de
+    // Mamadou Niass — seul auteur possible de livraisonValidee.
     return '<div style="display:inline-flex;align-items:center;gap:6px;background:#EAF7EE;'
       + 'border:1.5px solid #BFE6C8;border-radius:20px;padding:5px 11px;font-size:11.5px;'
       + 'font-weight:800;color:#006b2d;margin:6px 0;">&#9989; D&eacute;livr&eacute; au client'
-      + (lv.ts ? (' &middot; ' + esc(dateHeureFr(lv.ts))) : '') + '</div>'
+      + (lv.ts ? (' &middot; ' + esc(_depDateHeureDakar(lv.ts))) : '') + '</div>'
       + (lv.par ? ('<div style="font-size:10.5px;color:#999;margin-bottom:4px;">par ' + esc(lv.par) + '</div>') : '');
   }
   if(!arrive) return '';
@@ -12904,19 +12931,37 @@ function _depChargerPhotosFiche(clientId, c, boxId, estFrance){
   // simplement toutes (voir _depIdsPhotosFacture).
   var ids = _depIdsPhotosFacture(clientId, c);
   var chemin = estFrance ? 'france_photos/' : 'dct_photos_colis/';
-  Promise.all(ids.map(function(pid){
+  var requetes = ids.map(function(pid){
     return db.ref(chemin+pid).once('value')
       .then(function(sn){ return sn.val() || {}; })
       .catch(function(){ return {}; });
-  })).then(function(lots){
+  });
+  // v3.99.57 — Cobey, captures d'écran à l'appui : « Mamadou Niass a
+  // validé une photo pour une cliente mais nous de notre côté on ne la
+  // voit pas. » Les photos de remise (preuve de livraison, prises par
+  // Mamadou depuis mamadou.html — voir mnPhotoLivraisonChoisie) vivent
+  // sous dct_photos_livraison/<clientId>, un nœud à part jamais lu par
+  // cet accès rapide jusqu'ici — fusionnées ici avec les photos du
+  // colis, marquées pour s'en distinguer (voir _depRenderPhotosLecture).
+  var idxRemise = requetes.length;
+  requetes.push(
+    db.ref('dct_photos_livraison/'+clientId).once('value')
+      .then(function(sn){ return sn.val() || {}; })
+      .catch(function(){ return {}; })
+  );
+  Promise.all(requetes).then(function(lots){
     // le client a pu changer d'écran / rouvrir une autre fiche entretemps
     // — uniquement pertinent pour l'affichage sur la fiche elle-même,
     // l'accès rapide (modale) n'est pas concerné par currentClientId.
     if(idBox === 'e-photos-box' && window.currentClientId && window.currentClientId !== clientId) return;
     box = $(idBox); if(!box) return; // la modale a pu être fermée entretemps
     var arr = [];
-    lots.forEach(function(v){
-      Object.keys(v).forEach(function(k){ if(v[k] && v[k].d) arr.push(v[k]); });
+    lots.forEach(function(v, i){
+      var estRemise = (i === idxRemise);
+      Object.keys(v).forEach(function(k){
+        if(!v[k] || !v[k].d) return;
+        arr.push(estRemise ? Object.assign({}, v[k], { q: v[k].par, remise: true }) : v[k]);
+      });
     });
     arr.sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
     _depRenderPhotosLecture(box, arr);
@@ -12940,7 +12985,11 @@ function _depRenderPhotosLecture(box, photos){
       // enregistré à la prise) — Cobey : « c'est possible de mettre le nom
       // de la personne qui a pris la photo ? ».
       +   (p.q ? '<div style="font-size:9.5px;color:var(--text2);text-align:center;padding:3px 2px 0;line-height:1.3;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(p.q) + '</div>' : '')
-      +   '<div style="font-size:9.5px;color:var(--text3);text-align:center;padding:1px 2px 3px;line-height:1.3;">' + esc(dateHeureFr(p.ts||0)) + '</div>'
+      // v3.99.57 — Cobey : heure de Dakar, précisée comme telle, pour les
+      // infos qui viennent de Mamadou Niass (ici : ses photos de remise,
+      // voir p.remise posé par _depChargerPhotosFiche) — jamais recalculée
+      // dans le fuseau de qui regarde, contrairement aux autres photos.
+      +   '<div style="font-size:9.5px;color:var(--text3);text-align:center;padding:1px 2px 3px;line-height:1.3;">' + esc(p.remise ? _depDateHeureDakar(p.ts||0) : dateHeureFr(p.ts||0)) + '</div>'
       + '</div>';
   });
   h += '</div>';
