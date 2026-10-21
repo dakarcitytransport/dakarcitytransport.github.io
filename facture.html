@@ -335,11 +335,14 @@ function depRenderSuiviTransportPublic(c){
         + '&#9742;&#65039; <b>Contact sur place</b> : ' + esc(DEP_CONTACT_DEPOT.nom)
         + (DEP_CONTACT_DEPOT.tel ? ' &mdash; ' + _depLienTel(DEP_CONTACT_DEPOT.tel, DEP_CONTACT_DEPOT.tel) : ' (num&eacute;ro &agrave; venir)')
         + '</div>'
-        // v1.19.74 : mention frais de stationnement, sous le contact de
+        // v1.19.74 : mention frais de gardiennage, sous le contact de
         // Niass — sur fond orange pour qu'elle saute aux yeux (retour de
         // Cobey du 29/08/2026 : "il faut vraiment quelque chose qui
         // percute").
-        + '<div class="fac-suivi-alerte">&#9200; Merci de r&eacute;cup&eacute;rer votre colis rapidement. Pass&eacute; 48h ouvr&eacute;es apr&egrave;s l\'arriv&eacute;e, des frais de stationnement seront appliqu&eacute;s.</div>';
+        // v3.99.61 — Cobey : « gardiennage c'est mieux » (que
+        // "stationnement") — même texte que departs.js, dupliqué ici
+        // (voir DEP_ADRESSE_DEPOT ci-dessus), aligné avec lui.
+        + '<div class="fac-suivi-alerte">&#9200; Merci de r&eacute;cup&eacute;rer votre colis rapidement. Pass&eacute; 48h ouvr&eacute;es apr&egrave;s l\'arriv&eacute;e, des frais de gardiennage seront appliqu&eacute;s.</div>';
     }
     h += '<div class="fac-suivi-etape ' + cls + '">'
       +   '<div class="fac-suivi-ligne"></div>'

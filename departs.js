@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.97';
+var DEP_VERSION = 'v2.20.98';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9588,11 +9588,14 @@ function depRenderSuiviTransportPublic(c){
         + '&#9742;&#65039; <b>Contact sur place</b> : ' + esc(DEP_CONTACT_DEPOT.nom)
         + (DEP_CONTACT_DEPOT.tel ? ' &mdash; ' + _depLienTel(DEP_CONTACT_DEPOT.tel, DEP_CONTACT_DEPOT.tel) : ' (num&eacute;ro &agrave; venir)')
         + '</div>'
-        // v1.19.74 : mention frais de stationnement, sous le contact de
+        // v1.19.74 : mention frais de gardiennage, sous le contact de
         // Niass — sur fond orange pour qu'elle saute aux yeux (retour de
         // Cobey du 29/08/2026 : "il faut vraiment quelque chose qui
         // percute").
-        + '<div class="fac-suivi-alerte">&#9200; Merci de r&eacute;cup&eacute;rer votre colis rapidement. Pass&eacute; 48h ouvr&eacute;es apr&egrave;s l\'arriv&eacute;e, des frais de stationnement seront appliqu&eacute;s.</div>';
+        // v3.99.61 — Cobey : « gardiennage c'est mieux » (que
+        // "stationnement", le mot utilisé jusqu'ici) — aligné sur le même
+        // mot que le message WhatsApp d'arrivée (_depTexteMessageArriveeExpediteur).
+        + '<div class="fac-suivi-alerte">&#9200; Merci de r&eacute;cup&eacute;rer votre colis rapidement. Pass&eacute; 48h ouvr&eacute;es apr&egrave;s l\'arriv&eacute;e, des frais de gardiennage seront appliqu&eacute;s.</div>';
     }
     h += '<div class="fac-suivi-etape ' + cls + '">'
       +   '<div class="fac-suivi-ligne"></div>'
@@ -9917,13 +9920,22 @@ window.depPartagerWhatsapp = function(){
 // à domicile (c.livraisonDakar), l'adresse qui compte est celle du
 // destinataire, pas celle de l'expéditeur qui lit ce message — jamais
 // "votre adresse", qui laisserait croire le contraire.
+// v3.99.61 — Cobey : « ajoute le fait qu'ils ont 48h pour venir
+// chercher leurs colis, sinon des frais de gardiennage seront
+// appliqués » — même délai et même mot ("gardiennage", choisi par
+// Cobey, à la place de "stationnement") que l'avertissement déjà
+// affiché sur l'écran de suivi public (fac-suivi-alerte ci-dessous),
+// aligné ici pour dire la même chose des deux côtés. Un client en
+// livraison n'a pas à venir chercher son colis — cet ajout ne
+// concerne donc que le retrait au dépôt.
 function _depTexteMessageArriveeExpediteur(c){
   var prenom = (c.prenom || c.name || '').trim() || 'bonjour';
   var suite = c.livraisonDakar
     ? 'Ils sont prévus en livraison chez votre destinataire. Notre équipe le contactera prochainement pour l’organiser.'
     : ('Vous pouvez prévenir votre contact sur place pour qu’il vienne récupérer son colis à notre dépôt :\n'
       + '📍 ' + DEP_ADRESSE_DEPOT + '\n'
-      + '☎️ ' + DEP_CONTACT_DEPOT.nom + (DEP_CONTACT_DEPOT.tel ? ' — ' + DEP_CONTACT_DEPOT.tel : ''));
+      + '☎️ ' + DEP_CONTACT_DEPOT.nom + (DEP_CONTACT_DEPOT.tel ? ' — ' + DEP_CONTACT_DEPOT.tel : '')
+      + '\n\n⏰ Merci de récupérer le colis dans les 48h ouvrées. Passé ce délai, des frais de gardiennage seront appliqués.');
   return 'Bonjour ' + prenom + ' \u{1F44B}\n\n'
     + '\u{1F4E6} Vos colis sont bien arrivés à Dakar !\n\n'
     + suite + '\n\n'

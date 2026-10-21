@@ -4683,3 +4683,16 @@ teintes de base que les deux cartes) passent en fond blanc — nouveau
 3ᵉ paramètre `fondBlanc` sur `_depBadgeLivraison`, optionnel, les 3
 autres appels (facture, kv) restent inchangés en fond blanc de toute
 façon.
+
+**21/10, v3.99.61 — délai de 48h + frais de gardiennage dans le
+message d'arrivée.** Cobey, sur le message WhatsApp d'arrivée (retrait
+au dépôt) : « ajoute le fait qu'ils ont 48h pour venir chercher leurs
+colis, sinon des frais de gardiennage seront appliqués. » Puis, sur le
+choix du mot (l'écran de suivi public utilisait déjà "frais de
+stationnement" pour le même avertissement) : « gardiennage c'est
+mieux. » `_depTexteMessageArriveeExpediteur` ajoute la phrase (retrait
+uniquement — un client en livraison ne vient pas chercher son colis),
+avec le même délai "48h ouvrées" déjà en vigueur sur le suivi public.
+Et "stationnement" → "gardiennage" aligné aux 2 endroits qui
+l'utilisaient (`fac-suivi-alerte`, departs.js ET sa copie dans
+facture.html).
