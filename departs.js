@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.95';
+var DEP_VERSION = 'v2.20.96';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8298,8 +8298,18 @@ window.depDetail = function(id, gardeFiltres){
           + 'border:1.5px solid #E58A00;border-radius:20px;padding:2px 8px;white-space:nowrap;">'
           + '&#128279; ' + _nbFact + ' factures</span>';
       }
-      h += '<div class="dep-cli" style="cursor:pointer;'
-        +     (_nbFus ? 'border-left:4px solid #00b34e;' : (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : ''))
+      // v3.99.59 — Cobey, 21/10/2026 : « idem pour notre côté DCT, code
+      // couleur pour avoir un visu facile de qui a été délivré et qui
+      // est en cours [...] un visuel plus fort. » Une fois le container
+      // arrivé, la bordure signale en priorité le statut remis/pas remis
+      // (remisAuClient, posé par Mamadou Niass pour les deux types de
+      // client — voir mamadou.html v3.99.59) — avant l'arrivée, ce
+      // statut n'a pas encore de sens, la bordure fusion/double-facture
+      // ci-dessus reste donc l'info affichée.
+      var _bordureCli = (d.statut === 'arrive')
+        ? (c.remisAuClient ? 'border-left:4px solid #009A44;' : 'border-left:4px solid #E58A00;')
+        : (_nbFus ? 'border-left:4px solid #00b34e;' : (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : ''));
+      h += '<div class="dep-cli" style="cursor:pointer;' + _bordureCli
         +     '" onclick="'+clic+'">'
         +   '<div class="dep-cli-n">'+_depPastilleRang(c, id)
         +     esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))+' '+drapeauCli+_pastilleDouble

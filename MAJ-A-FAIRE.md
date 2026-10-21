@@ -4643,3 +4643,25 @@ sort le client de son camion ET de la collecte elle-même (y compris
 `collectes/.../clients`, le tableau que lit `_frClientsDeCollecte` —
 sans ça le client restait visible malgré `collecteId` vidé), avec
 confirmation avant d'agir.
+
+**21/10, mamadou.html v1.14.6 / v3.99.59 — retrait du bouton "Marquer
+remis au client" + code couleur plus visible (Mamadou et DCT).**
+Cobey : « on a vu qu'il appuyait sur ce bouton sans passer par l'étape
+photo et validation avant de remettre le colis » — le bouton ajouté en
+v3.99.53/55 pour le retrait au dépôt (un tap, aucune preuve) permettait
+de sauter exactement la vérification que la fiche impose déjà à tout
+le monde (photo + "Valider la livraison"). Retiré (et
+`mnMarquerRemisAuClient`, devenu mort, supprimé avec lui) : la fiche
+reste désormais l'UNIQUE chemin pour marquer "remis", pour un client
+retrait comme pour un client livraison. Remplacé sur la liste par un
+badge en lecture seule (déjà utilisé pour la livraison depuis v3.99.57,
+étendu ici au retrait) — et, suite à « on va plutôt mettre un code
+couleur [...] un visuel plus fort » : une bordure de carte (vert si
+remis, orange sinon, dès que le container est arrivé), plus facile à
+repérer en défilant vite que le texte du badge seul. Même code couleur
+ajouté côté DCT (`depDetail`, l'écran Départ où l'équipe voit la liste
+des clients d'un container) : la bordure de chaque carte reflète
+désormais aussi remisAuClient une fois le container arrivé, en
+priorité sur la bordure "facture regroupée/double" déjà en place
+(celle-ci reste affichée avant l'arrivée, le statut remis n'ayant pas
+encore de sens).

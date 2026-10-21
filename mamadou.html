@@ -449,7 +449,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.5';
+var MAMADOU_VERSION = 'v1.14.6';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1281,41 +1281,6 @@ function mnCopierMessageDestinataire(src, collecteId, clientId){
   _mnMarquerDestinatairePrevenu(c, r.ref, 'a copié le message');
 }
 
-// v3.99.53 — Cobey : « je veux aussi un statut pour qu'on voie quel
-// client a été délivré par Mamadou Niass. » Jusqu'ici, seuls les clients
-// en livraison à domicile (c.livraisonDakar) avaient un statut
-// remis/pas remis (livraisonValidee, plus haut — payé + photo exigés,
-// cohérent avec une livraison faite loin, sans témoin). Un client qui
-// vient chercher son colis en personne au dépôt n'avait AUCUN statut :
-// remisAuClient couvre ce cas, en plus simple (un tap, pas de photo
-// exigée — la remise se fait en personne, devant Mamadou, contrairement
-// à une livraison à distance). Même mécanique que
-// _mnMarquerDestinatairePrevenu ci-dessus (champ dédié + historique).
-// v3.99.55 — Cobey : « le bouton là il faut un autre bouton pour
-// annuler ! ou alors faire en sorte que si on réappuie ça annule le
-// bouton "remettre au client". » Un tap par erreur (mauvais client,
-// faux clic) doit pouvoir se rattraper — bascule désormais : un
-// second tap sur le même bouton annule la remise, plutôt que d'ajouter
-// un bouton "Annuler" séparé.
-function mnMarquerRemisAuClient(src, collecteId, clientId){
-  var ref = { src: src, collecteId: collecteId||'', clientId: clientId };
-  var c = clientActuel(ref);
-  if(!c){ alert('Client introuvable.'); return; }
-  var annule = !!c.remisAuClient;
-  var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
-  hist.push({
-    q: ACTEUR_NOM,
-    a: annule ? 'a annul&eacute; la remise du colis au <strong>client</strong>' : 'a remis le colis au <strong>client</strong>',
-    ts: Date.now(), type: 'remis'
-  });
-  c.hist = hist;
-  c.remisAuClient = annule ? null : { ts: Date.now(), par: ACTEUR_NOM };
-  ecrireClient(ref, { hist: hist, remisAuClient: c.remisAuClient }).catch(function(e){
-    console.error('mamadou: échec enregistrement remise au client', e);
-  });
-  cdAppliquerFiltres();
-}
-
 // v1.2.0 — Cobey : « le système de filtre est plutôt chaotique, il y a
 // trop d'informations » (capture : jusqu'à 16 régions, une pastille
 // chacune). Seul payé/reste à payer/soldé reste en pastilles (3 choix,
@@ -1400,19 +1365,30 @@ function cdAppliquerFiltres(){
       // été payé et ce qui reste. »
       liv = '<div class="cli-liv ' + (payLiv.reste > 0 ? 'cli-liv-reste' : 'cli-liv-soldee') + '">🚚 Livraison : ' + payLiv.total + ' €'
         + (payLiv.reste > 0 ? ' (reste ' + payLiv.reste + ' €)' : ' — soldée') + '</div>';
-      // v3.99.57 — Cobey, capture d'écran à l'appui : « pk il a rien le
-      // client 43 » — rien sur la carte ne disait si un client en
-      // livraison à domicile avait déjà été remis ou pas (contrairement
-      // au retrait au dépôt, qui a son propre bouton juste ici). En
-      // lecture seule — pas de bouton : valider exige une photo, qui ne
-      // se fait que depuis la fiche (voir mnExecuterValidationLivraison).
-      if(dejaArrivee){
-        liv += c.remisAuClient
-          ? ('<div class="cli-liv cli-liv-soldee">✅ Remis au client — ' + esc(_mnDateHeureCourte(c.remisAuClient.ts)) + '</div>')
-          : '<div class="cli-liv cli-liv-reste">⏳ Pas encore remis — ouvrir la fiche</div>';
-      }
     }
-    h += '<div class="cli-item" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'},false,\'ecran-container-detail\')">'
+    // v3.99.59 — Cobey, 21/10/2026 : « on va retirer le bouton "remettre
+    // au client" car on a vu qu'il appuyait sur ce bouton sans passer
+    // par l'étape photo et validation avant de remettre le colis. » Le
+    // bouton pickup-only ci-dessous (un tap, aucune preuve) sautait
+    // exactement l'étape que la fiche impose déjà à tout le monde (photo
+    // + "Valider la livraison", voir mnExecuterValidationLivraison) —
+    // retiré. Ce badge, en lecture seule, le remplace et vaut désormais
+    // pour les deux types de client (retrait ET livraison, auparavant
+    // affiché seulement pour la livraison, v3.99.57) : la seule façon de
+    // le faire passer au vert reste d'ouvrir la fiche.
+    var remisBadge = '';
+    if(dejaArrivee){
+      remisBadge = c.remisAuClient
+        ? ('<div class="cli-liv cli-liv-soldee">✅ Remis au client — ' + esc(_mnDateHeureCourte(c.remisAuClient.ts)) + '</div>')
+        : '<div class="cli-liv cli-liv-reste">⏳ Pas encore remis — ouvrir la fiche</div>';
+    }
+    // v3.99.59 — Cobey : « on va plutôt mettre un code couleur [...] un
+    // visuel plus fort. » Une bordure de carte se repère en défilant
+    // vite, sans avoir à lire le badge texte ci-dessus.
+    var cadreRemis = dejaArrivee
+      ? (c.remisAuClient ? 'border-left:5px solid #009A44;' : 'border-left:5px solid #E58A00;')
+      : '';
+    h += '<div class="cli-item" style="' + cadreRemis + '" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'},false,\'ecran-container-detail\')">'
       +   '<div class="cli-top"><div class="cli-nom">'+rang+esc(c.name||'')+'</div></div>'
       +   '<div class="cli-sub">'+esc(c.colis || '—')+'</div>'
       // v1.0.0 — Cobey : « sa case container, lui ne doit voir uniquement
@@ -1422,6 +1398,7 @@ function cdAppliquerFiltres(){
             ? ('<div class="cli-reste">Reste à payer : '+pay.reste+' €</div>')
             : '<div class="cli-paye">✅ Soldé</div>')
       +   liv
+      +   remisBadge
       // v1.9.0 — Cobey : « qu'il y ait un changement sur le bouton [...]
       // un autre collaborateur voit ceux qui ont été prévenus ou pas en
       // défilant sur les clients. » Reste cliquable après (relance
@@ -1436,15 +1413,6 @@ function cdAppliquerFiltres(){
               // v1.12.0 — Cobey : « un bouton copier-coller au cas où si
               // le client n'a pas WhatsApp. »
               + '<button type="button" class="cli-btn-copier" onclick="event.stopPropagation();mnCopierMessageDestinataire(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">&#128203; Copier</button>'
-              + '</div>')
-            : '')
-      // v3.99.53 — Cobey : statut remis/pas remis pour un client qui
-      // vient chercher son colis en personne (pas de livraison à
-      // domicile — ceux-là ont déjà livraisonValidee, voir la fiche).
-      +   (dejaArrivee && !c.livraisonDakar
-            ? ('<div class="cli-btn-row">'
-              + '<button type="button" class="cli-btn-whatsapp'+(c.remisAuClient?' cli-btn-whatsapp-fait':'')+'" onclick="event.stopPropagation();mnMarquerRemisAuClient(\''+x.src+'\',\''+esc(x.collecteId)+'\',\''+esc(x.clientId)+'\')">'
-              +(c.remisAuClient?('✅ Remis au client — '+esc(_mnDateHeureCourte(c.remisAuClient.ts))):'📦 Marquer remis au client')+'</button>'
               + '</div>')
             : '')
       + '</div>';
@@ -1827,16 +1795,16 @@ function mnAnnulerConfirmationLivraison(){
 }
 
 // v3.99.56 — Cobey, après avoir vu le bouton "Marquer remis au
-// client" (pour le retrait au dépôt) : « on va plutôt faire comme ça,
-// quand il appuie sur le bouton valider ça valide également le
-// bouton remis au client et nous aussi de notre côté. » Un seul champ
-// "remis au client" pour tout le monde — livraison à domicile ET
-// retrait au dépôt — plutôt que deux statuts séparés à suivre selon
-// le type de client. Valider la livraison pose donc désormais les
-// deux champs d'un coup ; remisAuClient reste, lui, le SEUL champ posé
-// par mnMarquerRemisAuClient pour un client qui vient chercher au
-// dépôt (pas de livraisonValidee pour ceux-là, le champ n'a de sens
-// qu'en livraison à domicile).
+// client" d'alors (un tap, pour le retrait au dépôt, retiré depuis en
+// v3.99.59) : « on va plutôt faire comme ça, quand il appuie sur le
+// bouton valider ça valide également le bouton remis au client et
+// nous aussi de notre côté. » Un seul champ "remis au client" pour
+// tout le monde — livraison à domicile ET retrait au dépôt — plutôt
+// que deux statuts séparés à suivre selon le type de client. Valider
+// la livraison pose donc les deux champs d'un coup ; depuis le retrait
+// du bouton pickup-only (v3.99.59, Mamadou l'utilisait sans passer par
+// la photo), c'est désormais l'UNIQUE façon d'écrire remisAuClient,
+// pour les deux types de client.
 function mnExecuterValidationLivraison(){
   $('modal-confirm-livraison').classList.remove('open');
   var c = clientActuel(_ficheCtx);
