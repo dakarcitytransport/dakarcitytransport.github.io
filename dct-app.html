@@ -1964,7 +1964,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.57';
+var APP_VERSION = 'v3.99.58';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4808,11 +4808,20 @@ function _frCarte(c){
   var btnSuppr = (c.statut==='attente' && _peutGererFrance())
     ? '<button type="button" onclick="event.stopPropagation();supprimerClientFranceListe(\''+c._id+'\')" style="background:#fde0e0;color:#992020;border:1.5px solid #c0392b;border-radius:7px;width:26px;height:26px;flex-shrink:0;font-size:13px;cursor:pointer;line-height:1;">🗑️</button>'
     : '';
+  // v3.99.58 — Cobey : « je peux pas retirer des clients que je veux
+  // plus de la tournée » — un client déjà "Planifié" (dans la collecte
+  // ouverte, pas encore ramassé) n'avait aucun moyen de ressortir de la
+  // tournée depuis cette liste : la case à cocher ne sert qu'à EN
+  // ajouter à un camion, jamais à en enlever de la collecte elle-même.
+  // Même garde que _frPickVerrouille (déjà ramassé = verrouillé).
+  var btnRetirer = (currentCollecteFrId && c.collecteId===currentCollecteFrId && c.statut==='planifie' && !_frEstRamasse(c) && _peutGererFrance())
+    ? '<button type="button" onclick="event.stopPropagation();retirerClientCollecteFrance(\''+c._id+'\')" style="background:#fde0e0;color:#992020;border:1.5px solid #c0392b;border-radius:7px;width:26px;height:26px;flex-shrink:0;font-size:13px;cursor:pointer;line-height:1;">✕</button>'
+    : '';
   return '<div onclick="'+act+'" style="'+cadre+'border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;">'
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
     +   '<div style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
     +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
-    +   '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+'</div></div>'
+    +   '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+btnRetirer+'</div></div>'
     + '<div style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
     + '<div style="font-size:11.5px;color:#555;margin-top:5px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'
     +   '<span>📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')
@@ -5759,6 +5768,45 @@ function retirerClientCamionFrance(id){
   maj['clients/'+id+'/camionId']='';
   var p=_frSauverCollecte(r, maj);
   if(p) p.then(function(){ showToastNew('↩️ Client sorti du camion'); renderFrance(); });
+}
+
+// v3.99.58 — Cobey : « je peux pas retirer des clients que je veux
+// plus de la tournée » — contrairement à retirerClientCamionFrance
+// ci-dessus (qui ne fait que sortir du camion, le client reste
+// "Planifié" sur la collecte), celle-ci le fait ressortir de la
+// collecte ENTIÈREMENT : il repart au vivier ("attente"), exactement
+// ce que fait déjà _frValiderPick (modale "Clients de la collecte")
+// pour un client décoché — mais accessible directement depuis la
+// carte, sans passer par cette modale.
+function retirerClientCollecteFrance(id){
+  var r=_frCollecteActive(); if(!r) return;
+  var c=(franceData.clients||{})[id]; if(!c) return;
+  if(_frEstRamasse(c)){ showToastNew('✅ Déjà ramassé — impossible de le retirer.'); return; }
+  if(!confirm((_nomAffiche(c))+' sort de la tournée du '+r.dateLib+' et repart au vivier. Continuer ?')) return;
+  var maj={};
+  Object.keys(r.trucks||{}).forEach(function(k){
+    var tk=r.trucks[k];
+    var i=(tk.clients||[]).indexOf(id); if(i>=0) tk.clients.splice(i,1);
+    var j=(tk.validated||[]).indexOf(id); if(j>=0) tk.validated.splice(j,1);
+  });
+  if(r.assigned) delete r.assigned[id];
+  // v3.99.58 : _frClientsDeCollecte lit r.clients en priorité (voir
+  // _frValiderPick, ligne ~5499) — sans ça, le client resterait affiché
+  // dans la liste "Clients" de la collecte malgré collecteId vidé.
+  if(r.clients){
+    var m=r.clients.indexOf(id); if(m>=0) r.clients.splice(m,1);
+    maj['collectes/'+r._id+'/clients']=r.clients;
+  }
+  var hist=(c.hist||[]).slice();
+  hist.push({q:(currentUser||{}).name||'', a:'a retiré le client de la tournée du '+r.dateLib, ts:Date.now()});
+  maj['clients/'+id+'/statut']='attente';
+  maj['clients/'+id+'/collecteId']='';
+  maj['clients/'+id+'/camionId']='';
+  maj['clients/'+id+'/dateLib']='';
+  maj['clients/'+id+'/hist']=hist;
+  var iSel=dannySel.indexOf(id); if(iSel>=0) dannySel.splice(iSel,1);
+  var p=_frSauverCollecte(r, maj);
+  if(p) p.then(function(){ showToastNew('↩️ Client retiré de la tournée'); renderFrance(); });
 }
 
 // ── Collecte effectif ──

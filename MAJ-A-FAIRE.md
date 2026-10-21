@@ -4624,3 +4624,22 @@ le contraire. Corrigé en "chez votre destinataire" (sa suggestion).
 suivi public, repris ici pour rester cohérent) ; livraison à domicile →
 "Ils sont prévus en livraison chez votre destinataire. Notre équipe le
 contactera prochainement pour l'organiser.", sans aucune adresse.
+
+**21/10, v3.99.58 — retirer un client "Planifié" d'une tournée France
+& Europe.** Cobey, capture d'écran à l'appui (écran Clients d'une
+collecte ouverte, un client coché par erreur) : « je peux pas retirer
+des clients que je veux plus de la tournée. » Un client déjà
+"Planifié" sur une collecte n'avait aucun moyen de ressortir
+entièrement de celle-ci (repartir au vivier, "attente") depuis cette
+liste : la case à cocher ne sert qu'à EN ajouter à un camion (voir
+`toggleSelAdmin`/`dannySel`), et `retirerClientCamionFrance` (existant)
+ne fait que sortir du camion sans quitter la collecte. Seule la modale
+"Clients de la collecte" (`_frValiderPick`, ouverte autrement, pas
+depuis cet écran) permettait de décocher un client pour l'en faire
+sortir complètement. Ajouté un bouton "✕" directement sur la carte de
+chaque client "Planifié" de la collecte ouverte (verrouillé, comme
+`_frPickVerrouille`, si déjà ramassé) : `retirerClientCollecteFrance`
+sort le client de son camion ET de la collecte elle-même (y compris
+`collectes/.../clients`, le tableau que lit `_frClientsDeCollecte` —
+sans ça le client restait visible malgré `collecteId` vidé), avec
+confirmation avant d'agir.
