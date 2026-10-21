@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.96';
+var DEP_VERSION = 'v2.20.97';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8298,16 +8298,19 @@ window.depDetail = function(id, gardeFiltres){
           + 'border:1.5px solid #E58A00;border-radius:20px;padding:2px 8px;white-space:nowrap;">'
           + '&#128279; ' + _nbFact + ' factures</span>';
       }
-      // v3.99.59 — Cobey, 21/10/2026 : « idem pour notre côté DCT, code
-      // couleur pour avoir un visu facile de qui a été délivré et qui
-      // est en cours [...] un visuel plus fort. » Une fois le container
-      // arrivé, la bordure signale en priorité le statut remis/pas remis
-      // (remisAuClient, posé par Mamadou Niass pour les deux types de
-      // client — voir mamadou.html v3.99.59) — avant l'arrivée, ce
+      // v3.99.60 — Cobey, 21/10/2026 : « idem pour notre côté DCT, code
+      // couleur [...] un visuel plus fort [...] c'est pas assez voyant
+      // [...] tu remplis la case de la couleur entièrement » — une
+      // bordure passait inaperçue, toute la carte prend désormais un
+      // fond pastel une fois le container arrivé (vert si remisAuClient
+      // posé par Mamadou Niass, orange sinon — avant l'arrivée, ce
       // statut n'a pas encore de sens, la bordure fusion/double-facture
-      // ci-dessus reste donc l'info affichée.
-      var _bordureCli = (d.statut === 'arrive')
-        ? (c.remisAuClient ? 'border-left:4px solid #009A44;' : 'border-left:4px solid #E58A00;')
+      // ci-dessus reste donc affichée). Le badge et le bouton Facture,
+      // ci-dessous, passent en fond blanc sur une carte colorée, sinon
+      // ils s'y fondraient (même teintes #EAF7EE/#FFF3E0).
+      var _cliColoree = (d.statut === 'arrive');
+      var _bordureCli = _cliColoree
+        ? (c.remisAuClient ? 'background:#EAF7EE;' : 'background:#FFF3E0;')
         : (_nbFus ? 'border-left:4px solid #00b34e;' : (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : ''));
       h += '<div class="dep-cli" style="cursor:pointer;' + _bordureCli
         +     '" onclick="'+clic+'">'
@@ -8321,9 +8324,9 @@ window.depDetail = function(id, gardeFiltres){
         +       '</span>'
         +     _depLienTelIcone(c.tel)
         +   '</div>'
-        +   _depBadgeLivraison(c, d.statut === 'arrive')
+        +   _depBadgeLivraison(c, d.statut === 'arrive', _cliColoree)
         +   '<div class="dep-cli-btns" style="margin-top:12px;">'
-              + '<button class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
+              + '<button class="dep-cli-btn" style="background:' + (_cliColoree ? '#fff' : '#EAF7EE') + ';border-color:#C8E6D0;color:#006b2d;" '
                 + (x.france
                   ? 'onclick="event.stopPropagation();depOuvrirFactureFrance(\''+x.clientId+'\')"'
                   : 'onclick="event.stopPropagation();depOuvrirFacture(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+')"')
@@ -12380,21 +12383,30 @@ function _depEncaissePar(c){
 // mnMarquerRemisAuClient) comble ce trou, sans exiger de photo comme
 // livraisonValidee (la remise se fait en personne, devant Mamadou,
 // pas de preuve à distance nécessaire).
-function _depBadgeLivraison(c, arrive){
+// v3.99.60 — fondBlanc (optionnel) : depDetail colore désormais toute
+// la carte client en pastel (voir _bordureCli), dans les mêmes teintes
+// que ce badge (#EAF7EE/#FFF3E0) — sans ça, ce badge s'y fondrait
+// (même couleur que ce qu'il repose dessus). Fond blanc forcé pour
+// rester visible ; les autres appels (facture, kv) sont sur fond
+// blanc de toute façon, donc inchangés (fondBlanc omis = comportement
+// d'avant).
+function _depBadgeLivraison(c, arrive, fondBlanc){
   if(!c) return '';
+  var fondFait = fondBlanc ? '#fff' : '#EAF7EE';
+  var fondAttente = fondBlanc ? '#fff' : '#FFF3E0';
   if(!c.livraisonDakar){
     if(!arrive) return '';
     var rc = c.remisAuClient;
     if(rc){
       // v3.99.57 — Cobey : heure de Dakar précisée pour les infos de
       // Mamadou Niass — seul auteur possible de remisAuClient.
-      return '<div style="display:inline-flex;align-items:center;gap:6px;background:#EAF7EE;'
+      return '<div style="display:inline-flex;align-items:center;gap:6px;background:' + fondFait + ';'
         + 'border:1.5px solid #BFE6C8;border-radius:20px;padding:5px 11px;font-size:11.5px;'
         + 'font-weight:800;color:#006b2d;margin:6px 0;">&#9989; Remis au client'
         + (rc.ts ? (' &middot; ' + esc(_depDateHeureDakar(rc.ts))) : '') + '</div>'
         + (rc.par ? ('<div style="font-size:10.5px;color:#999;margin-bottom:4px;">par ' + esc(rc.par) + '</div>') : '');
     }
-    return '<div style="display:inline-flex;align-items:center;gap:6px;background:#FFF3E0;'
+    return '<div style="display:inline-flex;align-items:center;gap:6px;background:' + fondAttente + ';'
       + 'border:1.5px solid #F0C36D;border-radius:20px;padding:5px 11px;font-size:11.5px;'
       + 'font-weight:800;color:#8A5200;margin:6px 0;">&#9203; En attente de retrait</div>';
   }
@@ -12402,14 +12414,14 @@ function _depBadgeLivraison(c, arrive){
   if(lv && lv.fait){
     // v3.99.57 — Cobey : heure de Dakar précisée pour les infos de
     // Mamadou Niass — seul auteur possible de livraisonValidee.
-    return '<div style="display:inline-flex;align-items:center;gap:6px;background:#EAF7EE;'
+    return '<div style="display:inline-flex;align-items:center;gap:6px;background:' + fondFait + ';'
       + 'border:1.5px solid #BFE6C8;border-radius:20px;padding:5px 11px;font-size:11.5px;'
       + 'font-weight:800;color:#006b2d;margin:6px 0;">&#9989; D&eacute;livr&eacute; au client'
       + (lv.ts ? (' &middot; ' + esc(_depDateHeureDakar(lv.ts))) : '') + '</div>'
       + (lv.par ? ('<div style="font-size:10.5px;color:#999;margin-bottom:4px;">par ' + esc(lv.par) + '</div>') : '');
   }
   if(!arrive) return '';
-  return '<div style="display:inline-flex;align-items:center;gap:6px;background:#FFF3E0;'
+  return '<div style="display:inline-flex;align-items:center;gap:6px;background:' + fondAttente + ';'
     + 'border:1.5px solid #F0C36D;border-radius:20px;padding:5px 11px;font-size:11.5px;'
     + 'font-weight:800;color:#8A5200;margin:6px 0;">&#9203; En attente de livraison</div>';
 }

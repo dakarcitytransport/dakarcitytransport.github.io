@@ -4665,3 +4665,21 @@ désormais aussi remisAuClient une fois le container arrivé, en
 priorité sur la bordure "facture regroupée/double" déjà en place
 (celle-ci reste affichée avant l'arrivée, le statut remis n'ayant pas
 encore de sens).
+
+**21/10, v3.99.60 / mamadou.html v1.14.7 — couleur plus voyante : toute
+la carte, pas juste le bord.** Cobey, sur la bordure ci-dessus : « c'est
+pas assez voyant les couleurs, sinon tu remplis la case de la couleur
+entièrement. » Puis, confirmant le choix de teinte : « oui pastel c'est
+bien » et rappelant la règle déjà en place : « ces couleurs ne
+s'affichent que à la validation de l'étape où le container est arrivé
+au dépôt de Dakar, avant tu peux laisser blanc » (déjà le cas,
+inchangé). La bordure de 4-5px devient un fond pastel sur toute la
+carte (vert si remis, orange sinon), côté Mamadou (mêmes teintes que
+les badges .cli-liv-soldee/.cli-liv-reste existants) et côté DCT (écran
+Départ, mêmes teintes que les badges existants de `_depBadgeLivraison`
+et la pastille "facture regroupée"). Pour rester lisibles sur une carte
+désormais colorée, le badge de statut et le bouton "Facture" (mêmes
+teintes de base que les deux cartes) passent en fond blanc — nouveau
+3ᵉ paramètre `fondBlanc` sur `_depBadgeLivraison`, optionnel, les 3
+autres appels (facture, kv) restent inchangés en fond blanc de toute
+façon.

@@ -449,7 +449,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.6';
+var MAMADOU_VERSION = 'v1.14.7';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1378,15 +1378,23 @@ function cdAppliquerFiltres(){
     // le faire passer au vert reste d'ouvrir la fiche.
     var remisBadge = '';
     if(dejaArrivee){
+      // v3.99.60 : la carte entière prend maintenant le même fond
+      // pastel (voir cadreRemis plus bas) — ce badge garde un fond
+      // blanc en dur pour rester visible dessus, sinon il se fond dans
+      // la carte (même couleur que .cli-liv-soldee/.cli-liv-reste).
       remisBadge = c.remisAuClient
-        ? ('<div class="cli-liv cli-liv-soldee">✅ Remis au client — ' + esc(_mnDateHeureCourte(c.remisAuClient.ts)) + '</div>')
-        : '<div class="cli-liv cli-liv-reste">⏳ Pas encore remis — ouvrir la fiche</div>';
+        ? ('<div class="cli-liv cli-liv-soldee" style="background:#fff;">✅ Remis au client — ' + esc(_mnDateHeureCourte(c.remisAuClient.ts)) + '</div>')
+        : '<div class="cli-liv cli-liv-reste" style="background:#fff;">⏳ Pas encore remis — ouvrir la fiche</div>';
     }
-    // v3.99.59 — Cobey : « on va plutôt mettre un code couleur [...] un
-    // visuel plus fort. » Une bordure de carte se repère en défilant
-    // vite, sans avoir à lire le badge texte ci-dessus.
+    // v3.99.60 — Cobey : « c'est pas assez voyant les couleurs, sinon tu
+    // remplis la case de la couleur entièrement » — une simple bordure
+    // passait inaperçue en défilant vite ; toute la carte prend
+    // désormais un fond pastel (même teintes que les badges
+    // .cli-liv-soldee/.cli-liv-reste ci-dessus, juste étendues). «
+    // avant [l'arrivée au dépôt de Dakar] tu peux laisser blanc » —
+    // inchangé, dejaArrivee gardait déjà cette règle.
     var cadreRemis = dejaArrivee
-      ? (c.remisAuClient ? 'border-left:5px solid #009A44;' : 'border-left:5px solid #E58A00;')
+      ? (c.remisAuClient ? 'background:#D4F0E0;' : 'background:#FFF4E0;')
       : '';
     h += '<div class="cli-item" style="' + cadreRemis + '" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'},false,\'ecran-container-detail\')">'
       +   '<div class="cli-top"><div class="cli-nom">'+rang+esc(c.name||'')+'</div></div>'
