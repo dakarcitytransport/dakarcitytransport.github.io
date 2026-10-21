@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.98';
+var DEP_VERSION = 'v2.20.99';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8364,19 +8364,32 @@ window.depDetail = function(id, gardeFiltres){
               // ajoutée directement dans le bouton (comme le badge
               // "Délivré au client", _depBadgeLivraison, qui fait déjà
               // pareil juste au-dessus).
-              + (d.statut === 'arrive'
-                ? ('<button class="dep-cli-btn" style="'+(c.arriveeExpediteurPrevenu ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#FFF4E0;border-color:#E58A00;color:#A04800;')+'" '
-                  + 'onclick="event.stopPropagation();depPrevenirArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
-                  + (c.arriveeExpediteurPrevenu ? ('&#9989; Pr&eacute;venu &mdash; '+esc(_depDateHeureCourte(c.arriveeExpediteurPrevenu.ts))) : '&#128172; Pr&eacute;venir (arriv&eacute;)')
+              // v3.99.62 — Cobey : « le bouton prévenir peut disparaître
+              // une fois que le colis est remis, nan ? » — une fois
+              // remisAuClient posé, prévenir que le container est
+              // arrivé n'a plus d'objet (déjà remis) : remplacé par la
+              // demande d'avis, voir _depTexteMessageAvisExpediteur.
+              + (c.remisAuClient
+                ? ('<button class="dep-cli-btn" style="'+(c.avisDemande ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#FFF4E0;border-color:#E58A00;color:#A04800;')+'" '
+                  + 'onclick="event.stopPropagation();depDemanderAvisExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
+                  + (c.avisDemande ? ('&#9989; Avis demand&eacute; &mdash; '+esc(_depDateHeureCourte(c.avisDemande.ts))) : '&#11088; Demander un avis')
                   + '</button>'
-                  // v2.20.57 — Cobey : « un bouton copier-coller au cas
-                  // où si le client n'a pas WhatsApp » — même bouton que
-                  // celui déjà en place pour le rappel de ramasse
-                  // (_depAjouterWhatsappCamion).
                   + '<button class="dep-cli-btn" style="background:#1a237e;border-color:#1a237e;color:#fff;" '
-                  + 'onclick="event.stopPropagation();depCopierArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
+                  + 'onclick="event.stopPropagation();depCopierAvisExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
                   + '&#128203; Copier</button>')
-                : '')
+                : (d.statut === 'arrive'
+                  ? ('<button class="dep-cli-btn" style="'+(c.arriveeExpediteurPrevenu ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;' : 'background:#FFF4E0;border-color:#E58A00;color:#A04800;')+'" '
+                    + 'onclick="event.stopPropagation();depPrevenirArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
+                    + (c.arriveeExpediteurPrevenu ? ('&#9989; Pr&eacute;venu &mdash; '+esc(_depDateHeureCourte(c.arriveeExpediteurPrevenu.ts))) : '&#128172; Pr&eacute;venir (arriv&eacute;)')
+                    + '</button>'
+                    // v2.20.57 — Cobey : « un bouton copier-coller au cas
+                    // où si le client n'a pas WhatsApp » — même bouton que
+                    // celui déjà en place pour le rappel de ramasse
+                    // (_depAjouterWhatsappCamion).
+                    + '<button class="dep-cli-btn" style="background:#1a237e;border-color:#1a237e;color:#fff;" '
+                    + 'onclick="event.stopPropagation();depCopierArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
+                    + '&#128203; Copier</button>')
+                  : ''))
             + '</div>'
         + '</div>';
     });
@@ -9996,6 +10009,53 @@ window.depCopierArriveeExpediteur = function(collecteId, clientId, depot, france
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   _depCopierTexteRelance(_depTexteMessageArriveeExpediteur(c));
   _depMarquerArriveeExpediteurPrevenu(c, 'a copié le message', collecteId, clientId, depot, france);
+};
+
+// v3.99.62 — Cobey : « pour chaque client dont le statut est passé en
+// délivré, on voudrait un système de message WhatsApp ou copier [...]
+// ce message lui demandera de donner un avis sur son expérience avec
+// Dakar City Transport. » Même mécanique que "Prévenir (arrivé)"
+// ci-dessus (champ dédié + historique + bouton qui change une fois
+// fait) — mais au destinataire du message initial (« le message part à
+// l'expéditeur », confirmé par Cobey), pas au destinataire du colis.
+// Une fois remisAuClient posé, "Prévenir (arrivé)" n'a plus d'utilité
+// (déjà remis) : remplacé à cet endroit par ce nouveau bouton, voir
+// depDetail.
+function _depTexteMessageAvisExpediteur(c){
+  var prenom = (c.prenom || c.name || '').trim() || 'bonjour';
+  return 'Bonjour ' + prenom + ' \u{1F44B}\n\n'
+    + '\u{1F4E6} Vos colis sont bien arrivés à votre destinataire ! \u{1F389}\n\n'
+    + 'On espère que tout s’est bien passé de votre côté. Ça nous ferait très plaisir d’avoir votre avis sur votre expérience avec Dakar City Transport, qu’est-ce que vous en avez pensé ?\n\n'
+    + 'Merci infiniment pour votre confiance, à bientôt !\nL’équipe Dakar City Transport';
+}
+
+function _depMarquerAvisDemande(c, action, collecteId, clientId, depot, france){
+  var u = window.currentUser || {};
+  var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+  hist.push({ q: u.name || u.id || '', a: action + ' pour demander un avis à l’<strong>expéditeur</strong>', ts: Date.now(), type: 'avis' });
+  c.hist = hist;
+  c.avisDemande = { ts: Date.now(), par: u.name || u.id || '' };
+  _depEcrireFacture({ depot: depot, france: france, collecteId: collecteId || '', clientId: clientId },
+    { hist: hist, avisDemande: c.avisDemande });
+  if($('s-depart-detail') && $('s-depart-detail').classList.contains('active') && _depDetailId){
+    depDetail(_depDetailId, true);
+  }
+}
+
+window.depDemanderAvisExpediteur = function(collecteId, clientId, depot, france){
+  var c = _depClientArriveeExpediteur(collecteId, clientId, depot, france);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  var tel = _depTelIntlRelance(c.tel);
+  if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteMessageAvisExpediteur(c)), '_blank');
+  _depMarquerAvisDemande(c, 'a ouvert WhatsApp', collecteId, clientId, depot, france);
+};
+
+window.depCopierAvisExpediteur = function(collecteId, clientId, depot, france){
+  var c = _depClientArriveeExpediteur(collecteId, clientId, depot, france);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  _depCopierTexteRelance(_depTexteMessageAvisExpediteur(c));
+  _depMarquerAvisDemande(c, 'a copié le message', collecteId, clientId, depot, france);
 };
 
 // v2.20.56 — Cobey, 12/10/2026 : « ajouter un bouton de relance pour

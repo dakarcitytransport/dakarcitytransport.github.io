@@ -4696,3 +4696,20 @@ avec le même délai "48h ouvrées" déjà en vigueur sur le suivi public.
 Et "stationnement" → "gardiennage" aligné aux 2 endroits qui
 l'utilisaient (`fac-suivi-alerte`, departs.js ET sa copie dans
 facture.html).
+
+**21/10, v3.99.62 — demander un avis client une fois le colis remis.**
+Cobey : « pour chaque client dont le statut est passé en délivré, on
+voudrait un système de message WhatsApp ou copier [...] ce message lui
+demandera de donner un avis sur son expérience avec Dakar City
+Transport. » Discuté avant de coder (message sans tirets, plus
+humain ; parti à l'expéditeur, pas au destinataire ; juste une réponse
+WhatsApp, pas de lien Google pour l'instant — pas encore de page).
+Puis, sa propre remarque : « le bouton prévenir peut disparaître une
+fois que le colis est remis, nan ? » — effectivement, une fois
+remisAuClient posé, prévenir que le container est arrivé n'a plus
+d'objet. Ajouté `depDemanderAvisExpediteur`/`depCopierAvisExpediteur`
+(même mécanique que "Prévenir (arrivé)" : champ dédié `avisDemande`,
+historique, bouton qui change une fois fait) : sur la carte client de
+l'écran Départ, "💬 Prévenir (arrivé)" / "📋 Copier" restent affichés
+tant que le client n'est pas remis, remplacés par "⭐ Demander un
+avis" / "📋 Copier" une fois qu'il l'est.
