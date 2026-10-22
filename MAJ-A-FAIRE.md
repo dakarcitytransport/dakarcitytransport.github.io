@@ -4829,3 +4829,23 @@ date se renseigne plus tard par le ✏️ de la carte (déjà existant) : la
 tournée passe alors dans « En cours »/« À venir » selon sa semaine, et
 entre toute seule au Planning (qui ignore les collectes sans date). Le
 refus d'une deuxième collecte à la même date est inchangé.
+
+**22/10, v3.99.68 (departs.js v2.21.3) — Planning : bandeau de chargement, plus
+de « Jour exceptionnel », retrait de la date d'une collecte France.**
+Cobey, captures d'écran à l'appui : « j'ai essayé de retirer la date, ça
+ne marche pas » — `changerDateCollecteFr` refusait un champ vide
+(« Veuillez sélectionner une date ») ; vide veut maintenant dire « retirer
+la date » : la tournée repasse en « À organiser » (statut « À venir », sauf
+si elle est terminée) et quitte le Planning. « Pour jour exceptionnel [...]
+tu peux retirer, vu que c'est en adéquation avec les collectes » :
+bouton, formulaire, notification, suppression, branche Firebase
+`dct_planning_jours` et tout le code associé retirés — les collectes
+France & Europe font déjà entrer leurs jours au Planning. « La mention de
+chargement, c'est pas assez lisible [...] mettre la mention jour de
+chargement vers Dakar en majuscule » : la petite pastille devient un
+bandeau jaune pleine largeur « 📦 JOUR DE CHARGEMENT VERS DAKAR » avec le
+nom du container dessous (« VERS BAMAKO » pour un container du Mali).
+Corrigé au passage : une collecte France hors dimanche affichait à tort
+« Dernier délai : jeudi 22h » (le verrou, lui, était bien désactivé).
+Si un jour exceptionnel avait été créé en base pendant l'essai, il est
+simplement ignoré.

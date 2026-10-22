@@ -1989,7 +1989,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.67';
+var APP_VERSION = 'v3.99.68';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5237,9 +5237,9 @@ function ouvrirStatutCollecteFr(id){
     // Même fenêtre que le statut (déjà réservée à la direction, déjà
     // sur chaque carte) plutôt qu'un bouton de plus.
     modal.innerHTML='<div class="modal-sheet"><div class="modal-title">Modifier la collecte</div>'
-      + '<div class="fg" style="text-align:left;"><label class="fl">Date <span style="color:#aaa;font-weight:500;">(à renseigner quand la tournée est organisée)</span></label>'
+      + '<div class="fg" style="text-align:left;"><label class="fl">Date <span style="color:#aaa;font-weight:500;">(laissez vide puis enregistrez pour retirer la date)</span></label>'
       +   '<input class="fi" type="date" id="fc-date-input"></div>'
-      + '<button class="btn btn-gray" style="margin:0 0 14px;" onclick="changerDateCollecteFr()">📅 Enregistrer cette date</button>'
+      + '<button class="btn btn-gray" style="margin:0 0 14px;" onclick="changerDateCollecteFr()">📅 Enregistrer la date</button>'
       // v3.99.52 — Cobey : « mets la possibilité de mettre un nom pour
       // les collectes France Europe [...] comme ça on peut savoir et
       // préparer des camions à l'avance. » Même geste que la date
@@ -5268,7 +5268,23 @@ function changerDateCollecteFr(){
   var id=_fcStatutId, r=_frCollectes()[id];
   if(!r){ closeModal('modal-fc-statut'); return; }
   var v=((document.getElementById('fc-date-input')||{}).value)||'';
-  if(!v){ showToastNew('⚠️ Veuillez sélectionner une date.'); return; }
+  // v3.99.68 — Cobey : « j'ai essayé de retirer la date, ça ne marche
+  // pas. » Une date vide veut dire « retirer la date » : la tournée
+  // repasse dans « À organiser » (sauf si elle est terminée).
+  if(!v){
+    if(!r.dateIso){ closeModal('modal-fc-statut'); return; }
+    var majSans={};
+    majSans['collectes/'+id+'/dateIso']='';
+    majSans['collectes/'+id+'/dateLib']='date à fixer';
+    if(r.statut!=='terminee') majSans['collectes/'+id+'/statut']='a_venir';
+    closeModal('modal-fc-statut');
+    _frUpdate(majSans).then(function(){
+      showToastNew('📅 Date retirée : la tournée repasse dans « À organiser »');
+      _activiteFrance('📅','a retiré la date de la collecte <strong>'+(r.nom?(r.nom+' — '):'')+r.dateLib+'</strong>');
+      renderFrance();
+    }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
+    return;
+  }
   if(v===r.dateIso){ closeModal('modal-fc-statut'); return; }
   var doublon=Object.keys(_frCollectes()).some(function(k){ return k!==id && _frCollectes()[k] && _frCollectes()[k].dateIso===v; });
   if(doublon){ showToastNew('⚠️ Une collecte existe déjà pour cette date.'); return; }
