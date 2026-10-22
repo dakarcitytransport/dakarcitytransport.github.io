@@ -1467,7 +1467,22 @@ function _franceRedessinerSiLibre(){
   }
   _initPostesFrance();
   try{ _nettoyerPostes(); }catch(e){}
-  try{ if(typeof renderFrance==='function') renderFrance(); }catch(e){}
+  // v3.99.63 — Cobey : « ta toujours de grosse lenteur quand je vais
+  // dans la partie France Europe, y même dans la partie collecte aussi
+  // par moment » — renderFrance() tournait ici SANS AUCUNE garde,
+  // contrairement aux 3 autres blocs juste en dessous (s-partenaire/
+  // s-collecte/s-camion, eux bien gardés) et au même principe déjà
+  // appliqué côté Collecte depuis v3.78.0 (_dctRedessinerEcranActif,
+  // qui ne redessine que l'écran réellement affiché). Résultat : CHAQUE
+  // écriture n'importe où dans france/ (par n'importe quel
+  // collaborateur) reconstruisait tout l'écran France & Europe — y
+  // compris sa liste de clients, potentiellement longue — sur CHAQUE
+  // appareil connecté, même ceux qui n'étaient même pas sur cet écran,
+  // bloquant le fil principal (donc aussi visible en pleine utilisation
+  // de Collecte, par exemple). Gardé comme les autres : ne redessine
+  // que si s-france est vraiment affiché.
+  try{ var scFr=document.querySelector('.screen.active');
+       if(scFr && scFr.id==='s-france' && typeof renderFrance==='function') renderFrance(); }catch(e){}
   try{ var sc=document.querySelector('.screen.active');
        if(sc && sc.id==='s-partenaire' && typeof renderDanny==='function') renderDanny(); }catch(e){}
   try{ var sc2=document.querySelector('.screen.active');
@@ -1964,7 +1979,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.62';
+var APP_VERSION = 'v3.99.63';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},

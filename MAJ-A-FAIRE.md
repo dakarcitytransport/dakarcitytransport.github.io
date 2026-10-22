@@ -4713,3 +4713,25 @@ historique, bouton qui change une fois fait) : sur la carte client de
 l'écran Départ, "💬 Prévenir (arrivé)" / "📋 Copier" restent affichés
 tant que le client n'est pas remis, remplacés par "⭐ Demander un
 avis" / "📋 Copier" une fois qu'il l'est.
+
+**22/10, v3.99.63 — trouvé la vraie cause de la lenteur persistante
+en France & Europe (et parfois en Collecte).** Cobey : « t'as toujours
+de grosses lenteurs quand je vais dans la partie France Europe, et même
+dans la partie Collecte aussi par moment, recherche bien la raison. »
+Cause trouvée : `_franceRedessinerSiLibre` (la fonction qui redessine
+l'écran après chaque écriture sur le nœud `france/` Firebase)
+appelait `renderFrance()` SANS AUCUNE garde d'écran actif —
+contrairement aux 3 autres blocs juste à côté dans la même fonction
+(s-partenaire/s-collecte/s-camion, eux bien gardés) et au même principe
+déjà appliqué côté Collecte depuis la v3.78.0
+(`_dctRedessinerEcranActif`, qui ne redessine que l'écran réellement
+affiché). Résultat concret : CHAQUE écriture n'importe où dans `france/`
+par N'IMPORTE QUEL collaborateur (un versement, une validation, un
+horodatage Waze...) reconstruisait tout l'écran France & Europe — liste
+de clients comprise, potentiellement longue — sur CHAQUE appareil
+connecté, même ceux restés sur un tout autre écran. Ce travail bloque
+le fil principal de l'appli le temps de tourner, ce qui explique le
+ralentissement ressenti même en pleine utilisation de Collecte, "par
+moment" (au hasard des écritures des autres). Corrigé : `renderFrance()`
+ne tourne plus désormais que si `s-france` est vraiment l'écran affiché
+— exactement la même garde que les 3 blocs voisins.
