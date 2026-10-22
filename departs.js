@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.8';
+var DEP_VERSION = 'v2.21.9';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25588,10 +25588,191 @@ function _depHtmlOutils(){
     + '<div style="height:22px;"></div>';
 }
 
+
+/* ─────────────────────────────────────────────
+   RELEVÉ DE LENTEUR (v3.99.74) — Cobey : « l'appli a beaucoup de latence
+   [...] tu n'arrives pas à trouver le problème. » Impossible à reproduire
+   hors du téléphone : l'appli note donc elle-même, discrètement, ce qui la
+   ralentit, pour qu'on lise la vraie cause au lieu de la deviner.
+   Notés (80 derniers événements, gardés dans le téléphone) :
+   · chaque réponse d'une écoute Firebase qui a mis plus de 40 ms à être
+     traitée, avec le nom de la donnée ;
+   · chaque « pause » de l'appli (écran figé plus de 300 ms), avec l'écran
+     affiché et les écoutes qui venaient de répondre ;
+   · chaque appui qui a mis plus de 150 ms à produire un effet visible ;
+   · chaque démarrage de la page, avec son type (rechargement complet
+     d'un retour sur l'appli, ou simple reprise).
+   Rien n'est envoyé nulle part. Lecture : Réglages > Outils.
+   ───────────────────────────────────────────── */
+var _depReleve = [];
+var _depReleveEcoutes = {};     // chemin -> { n, max, total }
+var _depReleveRecent = [];      // [ts, chemin] des dernières réponses
+var _depReleveSauveTimer = null;
+
+function _depReleveCharger(){
+  try{ var v = JSON.parse(localStorage.getItem('dct_releve_lenteur') || '[]'); if(Array.isArray(v)) _depReleve = v.slice(-80); }catch(e){}
+}
+function _depReleveSauver(){
+  clearTimeout(_depReleveSauveTimer);
+  _depReleveSauveTimer = setTimeout(function(){
+    try{ localStorage.setItem('dct_releve_lenteur', JSON.stringify(_depReleve.slice(-80))); }catch(e){}
+  }, 2000);
+}
+function _depReleveNoter(type, detail, ms){
+  _depReleve.push({ t: Date.now(), type: type, d: detail || '', ms: Math.round(ms || 0) });
+  if(_depReleve.length > 80) _depReleve.splice(0, _depReleve.length - 80);
+  _depReleveSauver();
+}
+function _depEcranActifId(){
+  var a = document.querySelector('.screen.active');
+  return a ? a.id : '';
+}
+
+// Chronomètre chaque réponse d'écoute Firebase (le callback est enveloppé,
+// jamais modifié : mêmes arguments, même retour).
+function _depReleveInstallerFirebase(){
+  try{
+    var fb = window.firebase;
+    var Q = fb && fb.database && (fb.database.Query || fb.database.Reference);
+    if(!Q || !Q.prototype || typeof Q.prototype.on !== 'function') return false;
+    if(Q.prototype.on.__releve) return true;
+    var orig = Q.prototype.on;
+    var neuf = function(evt, cb){
+      if(evt === 'value' && typeof cb === 'function'){
+        var chemin = '';
+        try{ chemin = String(this).replace(/^https?:\/\/[^\/]+/, '').split('?')[0] || '/'; }catch(e){}
+        var args = Array.prototype.slice.call(arguments);
+        args[1] = function(snap){
+          var t0 = performance.now();
+          var r = cb.apply(this, arguments);
+          var ms = performance.now() - t0;
+          var st = _depReleveEcoutes[chemin] || (_depReleveEcoutes[chemin] = { n:0, max:0, total:0 });
+          st.n++; st.total += ms; if(ms > st.max) st.max = ms;
+          _depReleveRecent.push([Date.now(), chemin]);
+          if(_depReleveRecent.length > 40) _depReleveRecent.shift();
+          if(ms > 40){
+            var nb = 0; try{ nb = snap && snap.numChildren ? snap.numChildren() : 0; }catch(e){}
+            _depReleveNoter('ecoute', chemin + (nb ? ' (' + nb + ' éléments)' : '') + ' · écran ' + _depEcranActifId(), ms);
+          }
+          return r;
+        };
+        return orig.apply(this, args);
+      }
+      return orig.apply(this, arguments);
+    };
+    neuf.__releve = true;
+    Q.prototype.on = neuf;
+    return true;
+  }catch(e){ return false; }
+}
+window._depReleveInstallerFirebase = _depReleveInstallerFirebase;
+
+(function _depReleveDemarrer(){
+  _depReleveCharger();
+  // Type de démarrage : « reload » / « back_forward » = la page a été
+  // rechargée en entier (par ex. au retour d'une autre page) ; « navigate »
+  // = ouverture normale.
+  try{
+    var nav = performance.getEntriesByType('navigation')[0];
+    _depReleveNoter('demarrage', 'page chargée (' + ((nav && nav.type) || 'inconnu') + ') · ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''), 0);
+  }catch(e){}
+  var essais = 0;
+  (function tenter(){
+    if(_depReleveInstallerFirebase() || ++essais > 40) return;
+    setTimeout(tenter, 250);
+  })();
+
+  // Pauses : un minuteur de 200 ms qui arrive en retard = écran figé.
+  var dernier = Date.now();
+  setInterval(function(){
+    var maintenant = Date.now(), retard = maintenant - dernier - 200;
+    dernier = maintenant;
+    if(document.hidden || retard < 300) return;
+    var recents = _depReleveRecent.filter(function(x){ return maintenant - x[0] < 2500; })
+      .map(function(x){ return x[1]; });
+    var uniques = recents.filter(function(x, i){ return recents.indexOf(x) === i; });
+    _depReleveNoter('pause', 'écran ' + _depEcranActifId() + (uniques.length ? ' · après : ' + uniques.slice(0, 6).join(', ') : ''), retard);
+  }, 200);
+  document.addEventListener('visibilitychange', function(){
+    dernier = Date.now();
+    _depReleveNoter(document.hidden ? 'fond' : 'retour', document.hidden ? 'appli passée en arrière-plan' : 'retour au premier plan · écran ' + _depEcranActifId(), 0);
+  });
+
+  // Appuis : délai entre le toucher et le prochain affichage.
+  document.addEventListener('pointerdown', function(ev){
+    var t0 = performance.now();
+    var cible = ev.target && ev.target.closest ? ev.target.closest('[onclick],button,.dep-case,.dep-cli') : null;
+    var nom = cible ? ((cible.id ? '#' + cible.id + ' ' : '') + String(cible.getAttribute('onclick') || cible.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40)) : '';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        var ms = performance.now() - t0;
+        if(ms > 150) _depReleveNoter('appui', (nom || 'zone sans bouton') + ' · écran ' + _depEcranActifId(), ms);
+      });
+    });
+  }, true);
+})();
+
+var _DEP_RELEVE_LIB = { ecoute:'📡 Réponse Firebase lente', pause:'🧊 Écran figé', appui:'👆 Appui lent', demarrage:'🔄 Démarrage', retour:'↩️ Retour dans l\'appli', fond:'⏸️ Arrière-plan' };
+
+function _depReleveTexte(){
+  var l = ['RELEVÉ DE LENTEUR — ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '') + ' / ' + DEP_VERSION, ''];
+  var ec = Object.keys(_depReleveEcoutes).map(function(k){ return [k, _depReleveEcoutes[k]]; })
+    .sort(function(a, b){ return b[1].total - a[1].total; }).slice(0, 8);
+  l.push('Écoutes (depuis l\'ouverture) : chemin · réponses · max · total');
+  ec.forEach(function(x){ l.push(' ' + x[0] + ' · ' + x[1].n + ' · ' + Math.round(x[1].max) + ' ms · ' + Math.round(x[1].total) + ' ms'); });
+  l.push('', 'Événements (récents en premier) :');
+  _depReleve.slice().reverse().forEach(function(e){
+    var d = new Date(e.t);
+    var h = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+    l.push(h + ' ' + (e.type) + (e.ms ? ' ' + e.ms + ' ms' : '') + ' — ' + e.d);
+  });
+  return l.join('\n');
+}
+
+function _depHtmlReleveLenteur(){
+  var ec = Object.keys(_depReleveEcoutes).map(function(k){ return [k, _depReleveEcoutes[k]]; })
+    .sort(function(a, b){ return b[1].total - a[1].total; }).slice(0, 6);
+  var h = '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#9201;&#65039; Rel&eacute;v&eacute; de lenteur</div>'
+    + '<div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.5;">L\'appli note toute seule ce qui la ralentit (sur ce t&eacute;l&eacute;phone seulement, rien n\'est envoy&eacute;). Quand &ccedil;a lag, ouvre cet &eacute;cran puis fais une capture ou copie le texte.</div>'
+    + '<button type="button" class="btn btn-gray" onclick="renderAdminOutils()">&#128260; Actualiser</button>'
+    + '<button type="button" class="btn btn-gray" style="margin-top:8px;color:#1a237e;border:1.5px solid #1a237e;" onclick="depCopierReleveLenteur()">&#128203; Copier le rel&eacute;v&eacute;</button>'
+    + '<button type="button" class="btn btn-gray" style="margin-top:8px;color:#992020;border:1.5px solid #992020;" onclick="depEffacerReleveLenteur()">&#128465;&#65039; Effacer</button>';
+  h += '<div style="font-size:11.5px;font-weight:800;color:#999;letter-spacing:.03em;margin:14px 0 6px;">DONN&Eacute;ES LES PLUS LOURDES</div>';
+  h += ec.length ? ec.map(function(x){
+    return '<div style="font-size:12px;border-bottom:1px dashed #ddd;padding:5px 0;"><b>' + esc(x[0]) + '</b> &middot; ' + x[1].n + ' r&eacute;ponse' + (x[1].n > 1 ? 's' : '') + ' &middot; max ' + Math.round(x[1].max) + ' ms &middot; total ' + Math.round(x[1].total) + ' ms</div>';
+  }).join('') : '<div style="font-size:12px;color:#999;">Rien not&eacute; pour l\'instant.</div>';
+  h += '<div style="font-size:11.5px;font-weight:800;color:#999;letter-spacing:.03em;margin:14px 0 6px;">&Eacute;V&Eacute;NEMENTS (r&eacute;cents en premier)</div>';
+  var ev = _depReleve.slice().reverse().slice(0, 40);
+  h += ev.length ? ev.map(function(e){
+    var d = new Date(e.t);
+    var hh = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+    var grave = e.ms >= 500;
+    return '<div style="font-size:12px;border-bottom:1px dashed #ddd;padding:5px 0;' + (grave ? 'background:#FDECEC;' : '') + '">'
+      + '<span style="color:#999;">' + hh + '</span> ' + (_DEP_RELEVE_LIB[e.type] || esc(e.type))
+      + (e.ms ? ' <b style="color:' + (grave ? '#B3261E' : '#8A5200') + ';">' + e.ms + ' ms</b>' : '')
+      + '<div style="color:#555;">' + esc(e.d) + '</div></div>';
+  }).join('') : '<div style="font-size:12px;color:#999;">Aucun &eacute;v&eacute;nement.</div>';
+  return h + '<div style="height:22px;"></div>';
+}
+
+window.depCopierReleveLenteur = function(){
+  var texte = _depReleveTexte();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texte).then(function(){ toast('📋 Relevé copié'); }).catch(function(){ toast('⚠️ Copie impossible : faites une capture.'); });
+  } else toast('⚠️ Copie impossible : faites une capture.');
+};
+window.depEffacerReleveLenteur = function(){
+  _depReleve = []; _depReleveEcoutes = {}; _depReleveRecent = [];
+  try{ localStorage.removeItem('dct_releve_lenteur'); }catch(e){}
+  window.renderAdminOutils();
+};
+window._depReleveNoter = _depReleveNoter;
+window._depReleveTexte = _depReleveTexte;
+
 window.renderAdminOutils = function(){
   var sec = document.getElementById('admin-section-outils');
   if(!sec) return;
-  sec.innerHTML = _depHtmlOutils();
+  sec.innerHTML = _depHtmlOutils() + _depHtmlReleveLenteur();
 };
 
 // v1.21.9 : les 4 sous-carrés qui remplacent l'ancien carré unique

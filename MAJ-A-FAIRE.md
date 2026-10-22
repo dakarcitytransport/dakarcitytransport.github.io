@@ -4952,3 +4952,19 @@ l'écran n'est plus affiché. 12 réponses de suite → 1 redessin (testé).
 Appliqué à : accueil des espaces (5 écoutes), Planning (2), liste des
 départs, détail d'un container (écoute dépôt). Non prouvé sur le vrai
 téléphone : si la latence revient, il faudra un relevé réel (voir échange).
+
+**22/10, v3.99.74 (departs.js v2.21.9) — Relevé de lenteur (Réglages >
+Outils).** Cobey : « oui fais ça » (après « l'appli a beaucoup de latence [...]
+tu n'arrives pas à trouver le problème »). La latence ne se reproduit pas
+hors du téléphone ; l'appli note désormais elle-même, dans le téléphone
+(rien n'est envoyé), les 80 derniers événements : réponses d'écoute
+Firebase de plus de 40 ms (nom de la donnée, nombre d'éléments, écran),
+« pauses » de plus de 300 ms avec l'écran et les écoutes qui venaient de
+répondre, appuis de plus de 150 ms (bouton touché), passages en
+arrière-plan / retours, et chaque démarrage de page avec son type
+(`navigate` / `reload` / `back_forward` : permet de voir si l'appli est
+rechargée en entier au retour de la page de Mamadou). Lecture, copie et
+effacement dans Réglages > Outils > « Relevé de lenteur ». Le chronométrage
+enveloppe `Query.prototype.on` sans toucher aux données (callback d'origine
+inchangé). Non vérifié avec le vrai SDK Firebase (indisponible ici : testé
+avec un faux).
