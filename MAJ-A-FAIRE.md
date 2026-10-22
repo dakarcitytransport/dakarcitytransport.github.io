@@ -4993,3 +4993,18 @@ maintenant, à l'ouverture : nombre d'éléments de la page et des 5 plus gros
 écrans, images intégrées (nombre, Ko), poids en Ko de chaque jeu de données
 (franceData, clientsParCollecte…), fiche France la plus lourde et médiane ;
 chaque « pause » note aussi le nombre d'éléments de la page.
+
+**22/10, v3.99.77 (departs.js v2.21.12) — Relevé : stockage du raccourci.**
+Cobey : « quand je vais sur le site depuis Safari ou depuis mon ordinateur,
+il n'y a pas de lenteur. C'est que sur le raccourci. J'avais supprimé le
+raccourci, ça avait été réglé, mais c'est revenu. » Indice décisif : seul le
+raccourci de l'écran d'accueil rame. Il a son propre stockage (séparé de
+Safari) et seul lui exécute le code des notifications (service worker,
+abonnement push). `sauvegarder()` y recopie en synchrone les collectes, tous
+les clients, le dispatch, l'activité et les contacts dans localStorage
+(`dct_v3_*`). Le relevé chronomètre désormais chaque lecture/écriture du
+stockage local de plus de 30 ms (clé et taille) et affiche : taille totale
+du stockage local et des 5 plus grosses clés (quota iOS ≈ 5 Mo), mode
+(raccourci / navigateur), espace utilisé par l'appli, caches du navigateur,
+services en arrière-plan, bases locales. Pas de correctif tant que la cause
+n'est pas confirmée par un relevé pris dans le raccourci.

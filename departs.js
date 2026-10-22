@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.11';
+var DEP_VERSION = 'v2.21.12';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25728,6 +25728,27 @@ window._depReleveInstallerFirebase = _depReleveInstallerFirebase;
       return _setT.apply(window, args);
     };
   }catch(e){}
+  // v3.99.77 — Cobey : « sur Safari ou l'ordinateur, aucune lenteur ; c'est
+  // que sur le raccourci [écran d'accueil] [...] supprimer le raccourci
+  // avait réglé, mais c'est revenu. » Ce qui est propre au raccourci, c'est
+  // son stockage local (séparé de Safari) : l'appli y recopie les clients
+  // à chaque sauvegarde (localStorage, écriture synchrone sur le disque du
+  // téléphone). On chronomètre ces lectures/écritures.
+  try{
+    ['setItem','getItem','removeItem'].forEach(function(nom){
+      var orig = Storage.prototype[nom];
+      Storage.prototype[nom] = function(cle, val){
+        var t0 = performance.now();
+        try{ return orig.apply(this, arguments); }
+        finally{
+          var ms = performance.now() - t0;
+          if(ms > 30 && String(cle).indexOf('dct_releve_lenteur') !== 0){
+            _depReleveNoter('stockage', nom + ' « ' + cle + ' »' + (val != null ? ' · ' + Math.round(String(val).length / 1024) + ' Ko' : '') + ' · écran ' + _depEcranActifId(), ms);
+          }
+        }
+      };
+    });
+  }catch(e){}
   try{
     var _jp = JSON.parse, _js = JSON.stringify;
     JSON.parse = function(txt){
@@ -25775,7 +25796,7 @@ window._depReleveInstallerFirebase = _depReleveInstallerFirebase;
   }, true);
 })();
 
-var _DEP_RELEVE_LIB = { minuteur:'⏲️ Minuteur long', fonction:'🧩 Affichage lent', json:'📦 Gros JSON', ecoute:'📡 Réponse Firebase lente', pause:'🧊 Écran figé', appui:'👆 Appui lent', demarrage:'🔄 Démarrage', retour:'↩️ Retour dans l\'appli', fond:'⏸️ Arrière-plan' };
+var _DEP_RELEVE_LIB = { stockage:'💾 Stockage du téléphone lent', minuteur:'⏲️ Minuteur long', fonction:'🧩 Affichage lent', json:'📦 Gros JSON', ecoute:'📡 Réponse Firebase lente', pause:'🧊 Écran figé', appui:'👆 Appui lent', demarrage:'🔄 Démarrage', retour:'↩️ Retour dans l\'appli', fond:'⏸️ Arrière-plan' };
 
 function _depReleveTexte(){
   var l = ['RELEVÉ DE LENTEUR — ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '') + ' / ' + DEP_VERSION, ''];
@@ -25808,6 +25829,17 @@ function _depReleveStructure(){
     for(var i = 0; i < imgs.length; i++){ var src = imgs[i].getAttribute('src') || ''; if(src.indexOf('data:') === 0){ lourdes++; ko += src.length / 1024; } }
     l.push('Images dans la page : ' + imgs.length + ' (dont ' + lourdes + ' intégrées, ' + Math.round(ko) + ' Ko)');
   }catch(e){}
+  try{
+    var tot = 0, cles = [];
+    for(var i = 0; i < localStorage.length; i++){
+      var k = localStorage.key(i), n = (localStorage.getItem(k) || '').length + k.length;
+      tot += n; cles.push([k, n]);
+    }
+    cles.sort(function(a, b){ return b[1] - a[1]; });
+    l.push('Stockage local du téléphone : ' + Math.round(tot * 2 / 1024) + ' Ko (' + cles.length + ' clés, quota ~5 000 Ko)');
+    cles.slice(0, 5).forEach(function(x){ l.push(' ' + x[0] + ' : ' + Math.round(x[1] * 2 / 1024) + ' Ko'); });
+    l.push('Mode : ' + (_depAppInstallee() ? 'raccourci écran d\'accueil' : 'navigateur'));
+  }catch(e){}
   var sources = [['franceData', window.franceData], ['clientsParCollecte', window.clientsParCollecte], ['depotClients', window.depotClients],
                  ['departsData', window.departsData], ['dispatchParCollecte', window.dispatchParCollecte], ['dctContacts', window.dctContacts]];
   sources.forEach(function(x){
@@ -25836,7 +25868,8 @@ function _depHtmlReleveLenteur(){
     + '<button type="button" class="btn btn-gray" style="margin-top:8px;color:#1a237e;border:1.5px solid #1a237e;" onclick="depCopierReleveLenteur()">&#128203; Copier le rel&eacute;v&eacute;</button>'
     + '<button type="button" class="btn btn-gray" style="margin-top:8px;color:#992020;border:1.5px solid #992020;" onclick="depEffacerReleveLenteur()">&#128465;&#65039; Effacer</button>';
   h += '<div style="font-size:11.5px;font-weight:800;color:#999;letter-spacing:.03em;margin:14px 0 6px;">POIDS DE LA PAGE ET DES DONN&Eacute;ES</div>'
-    + '<div style="font-size:12px;border-bottom:1px dashed #ddd;padding:5px 0;line-height:1.55;">' + _depReleveStructure().map(esc).join('<br>') + '</div>';
+    + '<div style="font-size:12px;border-bottom:1px dashed #ddd;padding:5px 0;line-height:1.55;">' + _depReleveStructure().map(esc).join('<br>') + '<div id="dep-releve-async" style="margin-top:4px;"></div></div>';
+  setTimeout(_depReleveStructureAsync, 50);
   h += '<div style="font-size:11.5px;font-weight:800;color:#999;letter-spacing:.03em;margin:14px 0 6px;">DONN&Eacute;ES LES PLUS LOURDES</div>';
   h += ec.length ? ec.map(function(x){
     return '<div style="font-size:12px;border-bottom:1px dashed #ddd;padding:5px 0;"><b>' + esc(x[0]) + '</b> &middot; ' + x[1].n + ' r&eacute;ponse' + (x[1].n > 1 ? 's' : '') + ' &middot; max ' + Math.round(x[1].max) + ' ms &middot; total ' + Math.round(x[1].total) + ' ms</div>';
@@ -25855,8 +25888,30 @@ function _depHtmlReleveLenteur(){
   return h + '<div style="height:22px;"></div>';
 }
 
+// Stockage du navigateur (cache, base locale) — asynchrone, rempli après
+// l'affichage.
+function _depReleveStructureAsync(){
+  var cible = document.getElementById('dep-releve-async');
+  if(!cible) return;
+  var l = [];
+  var fin = function(){ cible.innerHTML = l.map(esc).join('<br>'); };
+  var taches = [];
+  try{
+    if(navigator.storage && navigator.storage.estimate) taches.push(navigator.storage.estimate().then(function(e){
+      l.push('Espace utilisé par l\'appli : ' + Math.round((e.usage || 0) / 1024) + ' Ko sur ' + Math.round((e.quota || 0) / 1048576) + ' Mo');
+    }));
+    if(window.caches && caches.keys) taches.push(caches.keys().then(function(k){ l.push('Caches du navigateur : ' + k.length + (k.length ? ' (' + k.join(', ') + ')' : '')); }));
+    if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations) taches.push(navigator.serviceWorker.getRegistrations().then(function(r){ l.push('Services en arrière-plan : ' + r.length); }));
+    if(window.indexedDB && indexedDB.databases) taches.push(indexedDB.databases().then(function(d){ l.push('Bases locales : ' + d.map(function(x){ return x.name; }).join(', ')); }));
+  }catch(e){}
+  Promise.all(taches.map(function(t){ return t.catch(function(){}); })).then(fin);
+}
+window._depReleveStructureAsync = _depReleveStructureAsync;
+
 window.depCopierReleveLenteur = function(){
   var texte = _depReleveTexte();
+  var as = document.getElementById('dep-releve-async');
+  if(as && as.innerText) texte = texte.replace('\nÉcoutes (depuis', '\n' + as.innerText + '\nÉcoutes (depuis');
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(texte).then(function(){ toast('📋 Relevé copié'); }).catch(function(){ toast('⚠️ Copie impossible : faites une capture.'); });
   } else toast('⚠️ Copie impossible : faites une capture.');
