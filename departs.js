@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.4';
+var DEP_VERSION = 'v2.21.5';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -12634,7 +12634,12 @@ window.depDepotDakarFiltrer = function(){
 };
 
 function depRenderDepotDakar(){
-  var tous = _depListeDepotDakar();
+  // v2.21.5 — Cobey : « il ne doit rester que les colis qui sont présents
+  // dans le stock [...] ceux qui ne sont plus là, ça ne sert à rien de les
+  // laisser. » Un colis livré (livraisonValidee.fait) sort de la liste.
+  var tous = _depListeDepotDakar().filter(function(x){
+    return !(x.c.livraisonValidee && x.c.livraisonValidee.fait);
+  });
   var q = _depDdRecherche;
   var liste = !q ? tous : tous.filter(function(x){
     var nom = (x.c.name || ((x.c.prenom||'')+' '+(x.c.nom||''))).toLowerCase();
@@ -12645,7 +12650,6 @@ function depRenderDepotDakar(){
   if(recap){
     var nAttente = 0, nGardiennage = 0, n60 = 0;
     tous.forEach(function(x){
-      if(x.c.livraisonValidee && x.c.livraisonValidee.fait) return;
       var info = _depInfoGardiennage(x.tsArrivee);
       if(info.alerte60) n60++;
       else if(info.enRetard) nGardiennage++;
@@ -12659,12 +12663,8 @@ function depRenderDepotDakar(){
       + '</div>';
   }
 
-  // Non livrés d'abord (les plus anciens en premier, les plus urgents),
-  // livrés ensuite, pour référence.
+  // Les plus anciens en premier (les plus urgents).
   liste = liste.slice().sort(function(a, b){
-    var aFait = !!(a.c.livraisonValidee && a.c.livraisonValidee.fait);
-    var bFait = !!(b.c.livraisonValidee && b.c.livraisonValidee.fait);
-    if(aFait !== bFait) return aFait ? 1 : -1;
     return (a.tsArrivee||0) - (b.tsArrivee||0);
   });
 
@@ -12687,7 +12687,7 @@ function depRenderDepotDakar(){
     var info = _depInfoGardiennage(x.tsArrivee);
     h += '<div class="dep-cli" style="cursor:pointer;'
       + (info.alerte60 ? 'background:#FDECEC;border-color:#F3B8B8;' : '') + 'border-left:4px solid '
-      + (info.alerte60 ? '#B3261E' : (info.enRetard ? '#E0A030' : (c.livraisonValidee&&c.livraisonValidee.fait ? '#009A44' : '#E0E0E0')))
+      + (info.alerte60 ? '#B3261E' : (info.enRetard ? '#E0A030' : '#E0E0E0'))
       + ';" onclick="'+clic+'">'
       +   '<div class="dep-cli-n">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
       +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')

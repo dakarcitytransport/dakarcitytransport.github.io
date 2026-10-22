@@ -4865,3 +4865,13 @@ type « dakar », facture, facture France, écran Documents, bouton
 « Enregistrer » de la fiche native) : tous ramènent à « ← Dépôt Dakar ».
 Mitry (Stockage > Mitry) revenait déjà à sa propre liste (vérifié) ; seul
 son libellé « ← Départ » sur la facture devient « ← Mitry ».
+
+**22/10, v3.99.70 (departs.js v2.21.5) — Dépôt Dakar : seulement les colis
+encore au dépôt.** Cobey : « il ne doit rester que les colis qui sont
+présents dans le stock. Le but de cette case est de savoir quel colis est
+encore dans le dépôt. Ceux qui ne sont plus là, ça ne sert à rien de les
+laisser dedans. » Un colis dont la livraison est validée
+(`livraisonValidee.fait`) disparaît de la liste Stockage > Dépôt Dakar ;
+le compteur « À livrer » ne compte plus que ce qui reste (il est
+désormais égal à < 48H + Gardiennage + 60J+, et à celui de l'écran
+Stockage). Le client reste évidemment consultable depuis son container.
