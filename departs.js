@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.20.99';
+var DEP_VERSION = 'v2.21.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4292,6 +4292,18 @@ function injecterEcrans(){
   +   '<div class="content"><div id="dep-rf-c-contenu"></div></div>'
   + '</div>'
 
+  /* ---- ÉCRAN (v3.99.64) : le bilan d'un container, ouvert depuis
+     l'écran Départ — réservé à la direction (voir depOuvrirBilanContainer). ---- */
+  + '<div class="screen" id="s-dep-bilan">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="depBilanContainerRetour()">&larr; Container</button>'
+  +     '<div><div class="h-title">Bilan du container</div>'
+  +     '<div class="h-sub" id="dep-bl-sous"></div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="dep-bl-contenu"></div></div>'
+  + '</div>'
+
   /* ---- ÉCRAN (v2.16.0) : le détail d'un client, pour y renseigner la
      taxe du partenaire Mali — ouvert en tapant sur un client dans la
      liste de _depHtmlListeTaxesContainer. Reprend les informations de
@@ -8126,6 +8138,17 @@ window.depDetail = function(id, gardeFiltres){
   // uniquement pour un vrai container — le Dépôt (DEP_ID_DEPOT) est un
   // simple stockage en attente, sans parcours à suivre.
   if(!estDepot) h += depRenderEtapesTransportResume(d, id);
+
+  // v3.99.64 — Cobey : « je veux un bilan par container [...] dans les
+  // départs [...] visible uniquement par Issyaka, Abdoulaye et moi » —
+  // même règle que Rapport financier (estDirection : IS, AB, AD), les
+  // montants n'apparaissent jamais sur cet écran-ci lui-même.
+  if(!estDepot && estDirection()){
+    h += '<button type="button" onclick="depOuvrirBilanContainer(\'' + id + '\')" '
+      +   'style="width:100%;margin:0 0 14px;padding:13px;border-radius:12px;cursor:pointer;'
+      +   'background:#1a237e;border:2px solid #0d1444;color:#fff;font-size:14px;font-weight:800;'
+      +   'font-family:inherit;">&#128202; Bilan de ce container</button>';
+  }
 
   // Les clients rattachés : ceux venus d'une collecte + ceux inscrits
   // directement au dépôt (hors collecte)
@@ -22025,6 +22048,624 @@ window.depRapfinContainer = function(id){
   var box = $('dep-rf-c-contenu');
   if(box) box.innerHTML = h;
   goTo('s-rapfin-container');
+};
+
+/* ═══════════════════════════════════════════════════════════
+   BILAN D'UN CONTAINER (v3.99.64)
+
+   Cobey, 22/10/2026 : « un bilan par container [...] qui a ramené
+   combien, qui a travaillé, quand, qui a été absent, les dépenses »,
+   puis le détail espèces/virement (colis ET livraison), les frais de
+   déplacement, les présences collecte par collecte et des graphiques
+   (camembert, courbe, barres), avec un export PDF. Ouvert depuis l'écran
+   Départ, réservé à la direction (estDirection : Issyaka, Abdoulaye,
+   Eric). Aucun chiffre n'est recalculé autrement qu'ailleurs : la caisse
+   vient de compteursDepart, les dépenses et le résultat des mêmes
+   fonctions que Rapport financier > Containers, les présences du
+   Planning (dct_planning).
+   ═══════════════════════════════════════════════════════════ */
+var _depBilanId = null;
+
+window.depOuvrirBilanContainer = function(id){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  if(!id || id === DEP_ID_DEPOT || !(window.departsData || {})[id]){ toast('⚠️ Container introuvable.'); return; }
+  _depBilanId = id;
+  goTo('s-dep-bilan');
+  depRenderBilanContainer();
+  try{ var zone = document.querySelector('#s-dep-bilan .content'); if(zone) zone.scrollTop = 0; }catch(e){}
+};
+
+window.depBilanContainerRetour = function(){
+  if(_depBilanId && (window.departsData || {})[_depBilanId]){ depDetail(_depBilanId, true); return; }
+  goTo('s-departs');
+};
+
+function _depBlFiches(id){
+  return _depToutesLesFiches().filter(function(x){
+    return x.c && x.c.departId === id && !_depEstFusionnee(x.c);
+  });
+}
+
+// Versements d'une caisse ('versements' = colis, 'versementsLivraison'),
+// par mode de paiement. Un versement ancien sans mode reste "non précisé"
+// plutôt que d'être rangé d'office dans l'un des deux.
+function _depBlMethodes(fiches, champ){
+  var r = { especes: 0, virement: 0, autre: 0 };
+  fiches.forEach(function(x){
+    (Array.isArray(x.c[champ]) ? x.c[champ] : []).forEach(function(v){
+      var m = parseFloat(v && v.montant) || 0;
+      if(!m) return;
+      if(v.methode === 'especes') r.especes += m;
+      else if(v.methode === 'virement') r.virement += m;
+      else r.autre += m;
+    });
+  });
+  r.especes = depArrondi2(r.especes); r.virement = depArrondi2(r.virement); r.autre = depArrondi2(r.autre);
+  return r;
+}
+
+// Date de la collecte qui a amené ce client (ou son inscription, pour
+// un dépôt direct) — point de départ du délai jusqu'à la remise.
+function _depBlDateCollecte(x){
+  var c = x.c;
+  if(x.src === 'col'){
+    var col = (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0];
+    var dc = col ? _depParseDateSure(col.date) : null;
+    return (dc && !isNaN(dc.getTime())) ? dc : null;
+  }
+  if(x.src === 'france'){
+    var r = ((window.franceData || {}).collectes || {})[c.collecteId];
+    return (r && r.dateIso) ? new Date(r.dateIso + 'T12:00:00') : null;
+  }
+  return c.creeLe ? new Date(c.creeLe) : null;
+}
+
+function _depBlJour(d){
+  return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2);
+}
+
+function _depBlDuree(ms){
+  if(!ms) return '';
+  var m = Math.round(ms / 60000), h = Math.floor(m / 60), r = m % 60;
+  return h ? (h + 'h' + ('0' + r).slice(-2)) : (r + ' min');
+}
+
+function _depBlArrondiHaut(v){
+  if(!(v > 0)) return 1;
+  var p = Math.pow(10, Math.floor(Math.log(v) / Math.LN10));
+  var n = v / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+}
+
+function _depBlCarte(titre, corps){
+  return '<div class="dep-bl-bloc" style="background:#fff;border:1.5px solid var(--border);'
+    +   'border-radius:var(--radius);padding:14px;margin-bottom:12px;">'
+    + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;margin-bottom:10px;">'
+    +   titre + '</div>'
+    + corps
+    + '</div>';
+}
+
+function _depBlLigne(libelle, valeur, couleur, sousTitre){
+  return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:4px 0;">'
+    + '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">' + libelle
+    +   (sousTitre ? '<br><span style="font-size:11px;">' + sousTitre + '</span>' : '') + '</span>'
+    + '<b style="font-size:14px;white-space:nowrap;color:' + (couleur || 'var(--text)') + ';">' + valeur + '</b>'
+    + '</div>';
+}
+
+function _depBlVide(txt){
+  return '<div style="font-size:12px;color:var(--text3);font-weight:600;">' + txt + '</div>';
+}
+
+// Camembert (en anneau) : parts = [{ label, montant, couleur }].
+function _depBlCamembert(parts, aria){
+  parts = parts.filter(function(p){ return p.montant > 0; });
+  var total = parts.reduce(function(s, p){ return s + p.montant; }, 0);
+  if(total <= 0) return _depBlVide('Aucun encaissement pour l\'instant.');
+  var C = 2 * Math.PI * 40, cumul = 0;
+  var arcs = parts.map(function(p){
+    var l = C * p.montant / total;
+    var s = '<circle cx="50" cy="50" r="40" fill="none" stroke="' + p.couleur + '" stroke-width="16" '
+      + 'stroke-dasharray="' + l.toFixed(2) + ' ' + C.toFixed(2) + '" stroke-dashoffset="' + (-cumul).toFixed(2) + '" '
+      + 'transform="rotate(-90 50 50)"></circle>';
+    cumul += l;
+    return s;
+  }).join('');
+  var leg = parts.map(function(p){
+    return '<div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--text);">'
+      + '<span style="width:10px;height:10px;border-radius:3px;background:' + p.couleur + ';flex-shrink:0;"></span>'
+      + '<span style="flex:1;">' + p.label + '</span>'
+      + '<span style="white-space:nowrap;">' + _depEuros(p.montant) + ' &euro; &middot; '
+      +   Math.round(p.montant * 100 / total) + ' %</span>'
+      + '</div>';
+  }).join('');
+  return '<div style="display:flex;align-items:center;gap:16px;margin-top:10px;padding-top:12px;border-top:1px solid #F0F0F2;">'
+    + '<svg width="96" height="96" viewBox="0 0 100 100" role="img" aria-label="' + esc(aria) + '" style="flex-shrink:0;">'
+    +   '<circle cx="50" cy="50" r="40" fill="none" stroke="#EEEEF0" stroke-width="16"></circle>' + arcs
+    + '</svg>'
+    + '<div style="display:flex;flex-direction:column;gap:9px;flex:1;min-width:0;">' + leg + '</div>'
+    + '</div>';
+}
+
+function _depBlPartsPaiement(m){
+  return [
+    { label: 'Esp&egrave;ces',        montant: m.especes,  couleur: '#009A44' },
+    { label: 'Virement',              montant: m.virement, couleur: '#1a237e' },
+    { label: 'Mode non pr&eacute;cis&eacute;', montant: m.autre, couleur: '#9E9EA6' }
+  ];
+}
+
+// Barres horizontales : rows = [{ label (déjà échappé), valeur, texte }].
+function _depBlBarres(rows, couleur){
+  var max = rows.reduce(function(m, r){ return Math.max(m, r.valeur); }, 0);
+  if(max <= 0) return '';
+  return rows.map(function(r){
+    var pct = Math.max(2, Math.round(r.valeur * 100 / max));
+    return '<div style="margin-bottom:8px;">'
+      + '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;">'
+      +   '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + r.label + '</span>'
+      +   '<span style="white-space:nowrap;">' + r.texte + '</span>'
+      + '</div>'
+      + '<div style="height:8px;border-radius:4px;background:#EEEEF0;overflow:hidden;">'
+      +   '<div style="height:100%;width:' + pct + '%;background:' + couleur + ';"></div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// Courbe de l'encaissé cumulé, jour par jour — colis, et livraison à part
+// quand il y en a. L'axe du temps est proportionnel aux dates.
+function _depBlCourbe(fiches){
+  var jours = {};
+  fiches.forEach(function(x){
+    ['versements', 'versementsLivraison'].forEach(function(champ){
+      (Array.isArray(x.c[champ]) ? x.c[champ] : []).forEach(function(v){
+        var m = parseFloat(v && v.montant) || 0;
+        var dt = (v && v.le) ? new Date(v.le) : null;
+        if(!m || !dt || isNaN(dt.getTime())) return;
+        var k = dt.getFullYear() * 10000 + (dt.getMonth() + 1) * 100 + dt.getDate();
+        if(!jours[k]) jours[k] = { d: new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()), colis: 0, liv: 0 };
+        if(champ === 'versements') jours[k].colis += m; else jours[k].liv += m;
+      });
+    });
+  });
+  var cles = Object.keys(jours).map(Number).sort(function(a, b){ return a - b; });
+  if(!cles.length) return _depBlVide('Aucun versement dat&eacute; pour l\'instant.');
+  var pts = [], cc = 0, cl = 0;
+  cles.forEach(function(k){
+    cc += jours[k].colis; cl += jours[k].liv;
+    pts.push({ d: jours[k].d, colis: cc, liv: cl });
+  });
+  var avecLiv = cl > 0;
+  var haut = _depBlArrondiHaut(Math.max(cc, cl));
+  var t0 = pts[0].d.getTime(), t1 = pts[pts.length - 1].d.getTime();
+  var X = function(d){ return t1 === t0 ? 174 : 40 + (d.getTime() - t0) * 270 / (t1 - t0); };
+  var Y = function(v){ return 104 - v * 92 / haut; };
+  var trace = function(cle, couleur){
+    var p = pts.map(function(q){ return X(q.d).toFixed(1) + ',' + Y(q[cle]).toFixed(1); }).join(' ');
+    var s = pts.length > 1
+      ? '<polyline points="' + p + '" fill="none" stroke="' + couleur + '" stroke-width="2.5" stroke-linejoin="round"></polyline>'
+      : '';
+    var points = pts.length <= 15 ? pts : [pts[pts.length - 1]];
+    points.forEach(function(q){
+      s += '<circle cx="' + X(q.d).toFixed(1) + '" cy="' + Y(q[cle]).toFixed(1) + '" r="3" fill="' + couleur + '"></circle>';
+    });
+    return s;
+  };
+  var axe = '';
+  [haut, haut / 2, 0].forEach(function(v){
+    var y = Y(v).toFixed(1);
+    axe += '<line x1="40" y1="' + y + '" x2="312" y2="' + y + '" stroke="' + (v ? '#EEEEF0' : '#D7D7DA') + '" stroke-width="1"></line>'
+      + '<text x="34" y="' + (Y(v) + 3.5).toFixed(1) + '" font-size="9.5" fill="#6b6b70" text-anchor="end">' + _depEuros(v) + '</text>';
+  });
+  var dates = '<text x="' + X(pts[0].d).toFixed(1) + '" y="122" font-size="9.5" fill="#6b6b70" text-anchor="' + (pts.length > 1 ? 'start' : 'middle') + '">'
+    + _depBlJour(pts[0].d) + '</text>';
+  if(pts.length > 1){
+    dates += '<text x="' + X(pts[pts.length - 1].d).toFixed(1) + '" y="122" font-size="9.5" fill="#6b6b70" text-anchor="end">'
+      + _depBlJour(pts[pts.length - 1].d) + '</text>';
+  }
+  var aria = 'Encaissé cumulé : ' + _depEuros(cc) + ' € colis' + (avecLiv ? ', ' + _depEuros(cl) + ' € livraison' : '')
+    + ', du ' + _depBlJour(pts[0].d) + ' au ' + _depBlJour(pts[pts.length - 1].d);
+  return '<svg viewBox="0 0 320 130" role="img" aria-label="' + esc(aria) + '" style="width:100%;height:auto;display:block;">'
+    + axe + trace('colis', '#009A44') + (avecLiv ? trace('liv', '#0b5d78') : '') + dates
+    + '</svg>'
+    + '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--text);">'
+    +   '<span><span style="display:inline-block;width:10px;height:3px;background:#009A44;vertical-align:middle;margin-right:5px;"></span>'
+    +     'Colis &middot; ' + _depEuros(cc) + ' &euro;</span>'
+    +   (avecLiv ? '<span><span style="display:inline-block;width:10px;height:3px;background:#0b5d78;vertical-align:middle;margin-right:5px;"></span>'
+    +     'Livraison &middot; ' + _depEuros(cl) + ' &euro;</span>' : '')
+    + '</div>';
+}
+
+// Par collaborateur, sur CE container : les clients qu'il a inscrits
+// (et leur montant facturé), l'argent qu'il a encaissé (colis +
+// livraison, par mode), et — repris du classement des Statistiques,
+// _depStatsCalculer en mode conteneur — sa durée de tournée et ses
+// jours de collecte. Mamadou Niass y figure aussi : il encaisse à Dakar.
+function _depBlCollaborateurs(id, fiches){
+  var valides = {};
+  (window.COLLABS || []).forEach(function(c){
+    if(c && c.name && DEP_STATS_EXCLUS.indexOf(c.name) === -1) valides[c.name] = true;
+  });
+  valides[DEP_CONTACT_DEPOT.nom] = true;
+  var t = {};
+  var L = function(n){
+    if(!n || !valides[n]) return null;
+    if(!t[n]) t[n] = { nom: n, clients: 0, apporte: 0, especes: 0, virement: 0, autre: 0, duree: null, jours: [] };
+    return t[n];
+  };
+  fiches.forEach(function(x){
+    var c = x.c;
+    var l = L(c.by || c.creePar);
+    if(l){ l.clients++; l.apporte += depCalculerPaiement(c).total; }
+    ['versements', 'versementsLivraison'].forEach(function(champ){
+      (Array.isArray(c[champ]) ? c[champ] : []).forEach(function(v){
+        var lv = L(v && v.par);
+        if(!lv) return;
+        var m = parseFloat(v.montant) || 0;
+        if(v.methode === 'especes') lv.especes += m;
+        else if(v.methode === 'virement') lv.virement += m;
+        else lv.autre += m;
+      });
+    });
+  });
+  try{
+    _depStatsCalculer({ conteneurId: id }).forEach(function(s){
+      var l = L(s.nom);
+      if(!l) return;
+      l.duree = s.dureeTourneeMoyenneMs;
+      l.jours = s.joursCollecte || [];
+    });
+  }catch(e){ console.error('departs: bilan, stats collaborateurs', e); }
+  return Object.keys(t).map(function(k){ return t[k]; })
+    .filter(function(l){ return l.clients || (l.especes + l.virement + l.autre) || l.jours.length; })
+    .sort(function(a, b){ return (b.clients - a.clients) || (b.apporte - a.apporte); });
+}
+
+// Présences : chaque collecte du dimanche qui a rempli ce container,
+// croisée avec les réponses du Planning de la même date.
+function _depBlPresences(fiches){
+  var ids = {};
+  fiches.forEach(function(x){ if(x.src === 'col' && x.collecteId) ids[x.collecteId] = true; });
+  var cols = (window.collectes || []).filter(function(k){ return k && ids[k.id]; })
+    .map(function(k){ return { d: _depParseDateSure(k.date) }; })
+    .filter(function(k){ return k.d && !isNaN(k.d.getTime()); })
+    .sort(function(a, b){ return a.d - b.d; });
+  if(!cols.length) return _depBlVide('Aucune collecte du dimanche dans ce container : pas de planning &agrave; croiser.');
+  var gens = _depGensPlanning();
+  if(!gens.length) return _depBlVide('Personne dans le planning.');
+  var iso = function(d){ return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+  var th = 'style="padding:4px 3px;font-size:10px;font-weight:800;color:var(--text3);text-align:center;white-space:nowrap;"';
+  var h = '<div style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;">'
+    + '<thead><tr><th ' + th.replace('center', 'left') + '></th>'
+    + cols.map(function(k){ return '<th ' + th + '>' + _depBlJour(k.d) + '</th>'; }).join('')
+    + '<th ' + th.replace('center', 'right') + '>Pr&eacute;sent</th></tr></thead><tbody>';
+  gens.forEach(function(p){
+    var oui = 0;
+    var cases = cols.map(function(k){
+      var r = _depDispoDe(iso(k.d), p.id);
+      var fond, coul, sym, titre;
+      if(!r){ fond = '#EEEEF0'; coul = '#5f5f66'; sym = '?'; titre = 'pas de r&eacute;ponse'; }
+      else if(r.dispo){ fond = '#D4F0E0'; coul = '#006b2d'; sym = '&#10003;'; titre = 'pr&eacute;sent'; oui++; }
+      else if(r.auto){ fond = '#FFE9CC'; coul = '#8A4600'; sym = '&#10005;'; titre = 'absent d\'office'; }
+      else { fond = '#FDE0E0'; coul = '#992020'; sym = '&#10005;'; titre = 'absent'; }
+      return '<td style="padding:3px;text-align:center;"><span title="' + titre + '" style="display:inline-flex;'
+        + 'width:28px;height:24px;border-radius:6px;align-items:center;justify-content:center;font-size:11px;'
+        + 'font-weight:800;background:' + fond + ';color:' + coul + ';">' + sym + '</span></td>';
+    }).join('');
+    h += '<tr style="border-top:1px solid #F4F4F6;">'
+      + '<td style="padding:4px 3px;font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;">' + esc(p.name) + '</td>'
+      + cases
+      + '<td style="padding:4px 3px;text-align:right;font-size:12px;font-weight:800;color:'
+      +   (oui === cols.length ? '#006b2d' : (oui === 0 ? '#992020' : 'var(--text)')) + ';">' + oui + '/' + cols.length + '</td>'
+      + '</tr>';
+  });
+  h += '</tbody></table></div>'
+    + '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:9px;font-size:11px;color:var(--text3);font-weight:600;">'
+    +   '<span><b style="color:#006b2d;">&#10003;</b> pr&eacute;sent</span>'
+    +   '<span><b style="color:#992020;">&#10005;</b> absent</span>'
+    +   '<span><b style="color:#8A4600;">&#10005;</b> absent d\'office (pas r&eacute;pondu &agrave; temps)</span>'
+    +   '<span><b>?</b> pas de r&eacute;ponse</span>'
+    + '</div>';
+  return h;
+}
+
+// Le container précédent du même pays (date de départ juste avant).
+function _depBlPrecedent(id){
+  var d = (window.departsData || {})[id];
+  var pays = depPaysDepart(d), ref = String((d && d.dateDepart) || '');
+  if(!ref) return null;
+  var best = null;
+  Object.keys(window.departsData || {}).forEach(function(k){
+    if(k === id || k === DEP_ID_DEPOT) return;
+    var o = window.departsData[k];
+    if(!o || depPaysDepart(o) !== pays) return;
+    var dd = String(o.dateDepart || '');
+    if(!dd || dd >= ref) return;
+    if(!best || dd > String(window.departsData[best].dateDepart || '')) best = k;
+  });
+  return best;
+}
+
+function _depBlEcart(actuel, avant, estArgent){
+  var txt = estArgent ? (_depEuros(avant) + ' &euro;') : String(avant);
+  if(!avant) return '<span style="color:var(--text3);font-size:11.5px;">(avant : ' + txt + ')</span>';
+  var pct = Math.round((actuel - avant) * 100 / Math.abs(avant));
+  if(pct === 0) return '<span style="color:var(--text3);font-size:11.5px;">= (' + txt + ')</span>';
+  return '<span style="color:' + (pct > 0 ? '#006b2d' : '#8A4600') + ';font-size:11.5px;">'
+    + (pct > 0 ? '&#8593; ' : '&#8595; ') + Math.abs(pct) + ' % (' + txt + ')</span>';
+}
+
+window.depRenderBilanContainer = function(){
+  var box = $('dep-bl-contenu');
+  if(!box) return;
+  var id = _depBilanId;
+  var d = (window.departsData || {})[id];
+  if(!d){ box.innerHTML = _depBlVide('Container introuvable.'); return; }
+  var sous = $('dep-bl-sous'); if(sous) sous.textContent = d.nom || 'Container';
+
+  var fiches = _depBlFiches(id);
+  var cp = compteursDepart(id);
+  var estMali = (depPaysDepart(d) === 'ML');
+  var h = '';
+
+  // ── En-tête (aussi l'en-tête du PDF) ──
+  h += '<div id="dep-bl-entete" style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    +   'padding:14px;margin-bottom:12px;text-align:center;">'
+    + '<div style="font-size:17px;font-weight:800;color:var(--text);">&#128202; Bilan &middot; ' + esc(d.nom || 'Container') + '</div>'
+    + '<div style="font-size:12px;font-weight:700;color:#1a237e;margin-top:4px;">'
+    +   esc(DEP_PAYS_NOM_PLAIN[depPaysDepart(d)] || '') + ' &middot; part le ' + esc(dateFr(d.dateDepart))
+    +   ' &middot; ' + cp.clients + ' client' + (cp.clients > 1 ? 's' : '') + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:4px;">Arr&ecirc;t&eacute; au '
+    +   esc(dateHeureFr(Date.now())) + '</div>'
+    + '</div>';
+
+  // ── 1. Caisse colis ──
+  var mC = _depBlMethodes(fiches, 'versements');
+  h += _depBlCarte('&#128230; CAISSE COLIS',
+    _depBlLigne('Total factur&eacute;', _depEuros(cp.colisTotal) + ' &euro;', null, 'pay&eacute; et non pay&eacute;')
+    + _depBlLigne('Encaiss&eacute;', _depEuros(cp.colisPaye) + ' &euro;', '#006b2d')
+    + _depBlLigne('Reste &agrave; encaisser', _depEuros(cp.colisDu) + ' &euro;', cp.colisDu > 0 ? '#B3261E' : null)
+    + (cp.sansPrix ? _depBlVide('&#10067; ' + cp.sansPrix + ' fiche' + (cp.sansPrix > 1 ? 's' : '') + ' sans prix fix&eacute;, compt&eacute;e' + (cp.sansPrix > 1 ? 's' : '') + ' nulle part.') : '')
+    + _depBlCamembert(_depBlPartsPaiement(mC), 'Encaissé colis par mode de paiement'));
+
+  // ── 2. Caisse livraison ──
+  var mL = _depBlMethodes(fiches, 'versementsLivraison');
+  h += _depBlCarte('&#128666; LIVRAISON &middot; CAISSE S&Eacute;PAR&Eacute;E',
+    (cp.livTotal > 0 || cp.livPaye > 0)
+      ? _depBlLigne('Total factur&eacute;', _depEuros(cp.livTotal) + ' &euro;', null,
+          cp.livClients + ' client' + (cp.livClients > 1 ? 's' : '') + ' en livraison')
+        + _depBlLigne('Encaiss&eacute;', _depEuros(cp.livPaye) + ' &euro;', '#006b2d')
+        + _depBlLigne('Reste &agrave; encaisser', _depEuros(cp.livDu) + ' &euro;', cp.livDu > 0 ? '#B3261E' : null)
+        + _depBlCamembert(_depBlPartsPaiement(mL), 'Encaissé livraison par mode de paiement')
+      : _depBlVide('Aucune livraison sur ce container.'));
+
+  // ── 3. Courbe des encaissements ──
+  h += _depBlCarte('&#128200; ENCAISSEMENTS AU FIL DU TEMPS', _depBlCourbe(fiches));
+
+  // ── 4. Dépenses ──
+  if(estMali){
+    h += _depBlCarte('&#127991;&#65039; D&Eacute;PENSES',
+      _depBlLigne('&#129309; Taxe prestataire', '&minus;' + _depEuros(cp.taxePrestataire || 0) + ' &euro;', '#B3261E',
+        'pr&eacute;lev&eacute;e par le partenaire Mali')
+      + _depBlVide('Le partenaire g&egrave;re lui-m&ecirc;me les d&eacute;penses de ce container.'));
+  } else {
+    var totFix = _depTotalFixesDe(id), totCam = _depTotalCamionsDe(id);
+    var postes = _depRepartitionFixes(id).concat(_depRepartitionDepensesContainer(id))
+      .sort(function(a, b){ return b.montant - a.montant; })
+      .map(function(r){ return { label: r.icone + ' ' + r.label, valeur: r.montant, texte: _depEuros(r.montant) + ' &euro;' }; });
+    h += _depBlCarte('&#127991;&#65039; D&Eacute;PENSES DE CE CONTAINER',
+      _depBlLigne('&#127968; D&eacute;penses fixes', _depEuros(totFix) + ' &euro;', '#B3261E')
+      + _depBlLigne('&#128666; Tourn&eacute;es des camions', _depEuros(totCam) + ' &euro;', '#B3261E')
+      + _depBlLigne('<b style="color:var(--text);">Total</b>', _depEuros(depArrondi2(totFix + totCam)) + ' &euro;', '#B3261E')
+      + (postes.length
+        ? '<div style="margin-top:10px;padding-top:12px;border-top:1px solid #F0F0F2;">' + _depBlBarres(postes, '#B3261E') + '</div>'
+        : _depBlVide('Aucune d&eacute;pense enregistr&eacute;e.')));
+  }
+
+  // ── 5. Frais de déplacement (clients France & Europe) ──
+  var depl = {}, totDepl = 0;
+  fiches.forEach(function(x){
+    if(x.src !== 'france') return;
+    var m = parseFloat(x.c.prixRamassage) || 0;
+    if(m <= 0) return;
+    var k = x.c.collecteId || '';
+    if(!depl[k]) depl[k] = { montant: 0, nb: 0 };
+    depl[k].montant += m; depl[k].nb++; totDepl += m;
+  });
+  var cleDepl = Object.keys(depl);
+  if(cleDepl.length){
+    var rowsDepl = cleDepl.map(function(k){
+      var r = ((window.franceData || {}).collectes || {})[k];
+      var lib = r ? ((typeof _frTitreCollecte === 'function') ? _frTitreCollecte(r) : (r.dateLib || '')) : 'Sans collecte';
+      return { label: esc(lib) + ' &middot; ' + depl[k].nb + ' client' + (depl[k].nb > 1 ? 's' : ''),
+               valeur: depl[k].montant, texte: _depEuros(depl[k].montant) + ' &euro;' };
+    }).sort(function(a, b){ return b.valeur - a.valeur; });
+    h += _depBlCarte('&#128739;&#65039; FRAIS DE D&Eacute;PLACEMENT FACTUR&Eacute;S',
+      _depBlLigne('Total (clients France &amp; Europe)', _depEuros(depArrondi2(totDepl)) + ' &euro;', '#00636b')
+      + '<div style="margin-top:10px;padding-top:12px;border-top:1px solid #F0F0F2;">' + _depBlBarres(rowsDepl, '#00838F') + '</div>');
+  }
+
+  // ── 6. Résultat ──
+  var res = _depResultatColis(id, cp);
+  h += _depBlCarte('&#127937; R&Eacute;SULTAT',
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">'
+    + '<span style="font-size:13.5px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice net (colis)</span>'
+    + '<b style="font-size:24px;color:' + (res < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(res) + ' &euro;</b></div>'
+    + _depBlVide('encaiss&eacute; colis &minus; d&eacute;penses' + (estMali ? ' &minus; taxe prestataire' : '')
+      + (cp.clients ? ' &middot; environ ' + _depEuros(depArrondi2(res / cp.clients)) + ' &euro; par client' : '')
+      + (cp.livPaye ? ' &middot; la livraison (' + _depEuros(cp.livPaye) + ' &euro;) reste &agrave; part' : '')));
+
+  // ── 7. Qui a travaillé dessus ──
+  var collabs = _depBlCollaborateurs(id, fiches);
+  if(collabs.length){
+    var barresC = _depBlBarres(collabs.filter(function(l){ return l.clients > 0; }).map(function(l){
+      return { label: esc(l.nom), valeur: l.clients, texte: l.clients + ' client' + (l.clients > 1 ? 's' : '') };
+    }), '#009A44');
+    var detail = collabs.map(function(l){
+      var enc = depArrondi2(l.especes + l.virement + l.autre);
+      var morceaux = [];
+      if(l.especes) morceaux.push(_depEuros(l.especes) + ' &euro; esp&egrave;ces');
+      if(l.virement) morceaux.push(_depEuros(l.virement) + ' &euro; virement');
+      if(l.autre) morceaux.push(_depEuros(l.autre) + ' &euro; non pr&eacute;cis&eacute;');
+      var tournee = [];
+      if(l.duree) tournee.push('tourn&eacute;e moyenne ' + _depBlDuree(l.duree));
+      if(l.jours.length) tournee.push('collecte' + (l.jours.length > 1 ? 's' : '') + ' du ' + l.jours.join(', '));
+      return '<div style="padding:9px 0;border-top:1px solid #F0F0F2;">'
+        + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;">'
+        +   '<b style="font-size:13.5px;color:var(--text);">' + esc(l.nom) + '</b>'
+        +   '<span style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;">'
+        +     l.clients + ' client' + (l.clients > 1 ? 's' : '') + ' &middot; ' + _depEuros(depArrondi2(l.apporte)) + ' &euro;</span>'
+        + '</div>'
+        + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:3px;line-height:1.45;">'
+        +   'Encaiss&eacute; : <b style="color:#006b2d;">' + _depEuros(enc) + ' &euro;</b>'
+        +   (morceaux.length ? ' (' + morceaux.join(' &middot; ') + ')' : '')
+        + '</div>'
+        + (tournee.length ? '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:2px;">' + tournee.join(' &middot; ') + '</div>' : '')
+        + '</div>';
+    }).join('');
+    h += _depBlCarte('&#128101; QUI A TRAVAILL&Eacute; DESSUS',
+      (barresC ? '<div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px;">Clients apport&eacute;s</div>' + barresC : '')
+      + '<div style="margin-top:6px;">' + detail + '</div>');
+  } else {
+    h += _depBlCarte('&#128101; QUI A TRAVAILL&Eacute; DESSUS', _depBlVide('Aucune activit&eacute; enregistr&eacute;e.'));
+  }
+
+  // ── 8. Présences ──
+  h += _depBlCarte('&#128197; PR&Eacute;SENCES SUR LES COLLECTES', _depBlPresences(fiches));
+
+  // ── 9. Clients soldés + relances ──
+  var avecPrix = fiches.filter(function(x){ return !_depSansPrix(x.c); });
+  var soldes = avecPrix.filter(function(x){ return depCalculerPaiementCombine(x.c).reste <= 0; }).length;
+  var relances = fiches.filter(function(x){ return x.c.relancePaiementColis || x.c.relancePaiementLivraison; }).length;
+  var pctSol = avecPrix.length ? Math.round(soldes * 100 / avecPrix.length) : 0;
+  h += _depBlCarte('&#9989; CLIENTS SOLD&Eacute;S',
+    avecPrix.length
+      ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;">'
+        + '<span style="font-size:13.5px;font-weight:800;color:var(--text);">' + soldes + ' / ' + avecPrix.length + ' clients</span>'
+        + '<span style="font-size:17px;font-weight:800;color:#006b2d;">' + pctSol + ' %</span></div>'
+        + '<div style="height:9px;border-radius:5px;background:#EEEEF0;overflow:hidden;">'
+        +   '<div style="height:100%;width:' + pctSol + '%;background:#009A44;"></div></div>'
+        + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:7px;">'
+        +   (avecPrix.length - soldes) + ' avec un reste &agrave; payer (colis ou livraison) &middot; '
+        +   relances + ' relance' + (relances > 1 ? 's' : '') + ' de paiement envoy&eacute;e' + (relances > 1 ? 's' : '') + '</div>'
+      : _depBlVide('Aucun client avec un prix fix&eacute;.'));
+
+  // ── 10. Délai moyen + avis ──
+  var delais = [];
+  fiches.forEach(function(x){
+    var rc = x.c.remisAuClient;
+    if(!rc || !rc.ts) return;
+    var d0 = _depBlDateCollecte(x);
+    if(!d0) return;
+    var j = (rc.ts - d0.getTime()) / 86400000;
+    if(j >= 0) delais.push(j);
+  });
+  var remis = fiches.filter(function(x){ return !!x.c.remisAuClient; });
+  var avis = remis.filter(function(x){ return !!x.c.avisDemande; }).length;
+  var pctAvis = remis.length ? Math.round(avis * 100 / remis.length) : 0;
+  h += _depBlCarte('&#9201;&#65039; D&Eacute;LAI COLLECTE &rarr; REMIS AU CLIENT',
+    (delais.length
+      ? '<div style="font-size:24px;font-weight:800;color:var(--text);">'
+        + Math.round(delais.reduce(function(a, b){ return a + b; }, 0) / delais.length) + ' jours</div>'
+        + _depBlVide('en moyenne, sur ' + delais.length + ' client' + (delais.length > 1 ? 's' : '') + ' remis ('
+          + remis.length + ' / ' + fiches.length + ' remis au total)')
+      : _depBlVide('Aucun client remis pour l\'instant.'))
+    + '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #F0F0F2;">'
+    +   '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;">'
+    +     '<span style="font-size:12.5px;font-weight:700;color:var(--text);">&#11088; Avis demand&eacute;s &middot; '
+    +       avis + ' / ' + remis.length + ' remis</span>'
+    +     '<span style="font-size:15px;font-weight:800;color:#1a237e;">' + pctAvis + ' %</span></div>'
+    +   '<div style="height:9px;border-radius:5px;background:#EEEEF0;overflow:hidden;">'
+    +     '<div style="height:100%;width:' + pctAvis + '%;background:#1a237e;"></div></div>'
+    + '</div>');
+
+  // ── 11. Répartition géographique ──
+  var geo = {};
+  fiches.forEach(function(x){
+    var k = x.src === 'col' ? '&Icirc;le-de-France (collectes)'
+      : x.src === 'depot' ? 'D&eacute;p&ocirc;t direct'
+      : esc(x.c.region || 'France &amp; Europe (autre)');
+    geo[k] = (geo[k] || 0) + 1;
+  });
+  var rowsGeo = Object.keys(geo).map(function(k){ return { label: k, valeur: geo[k] }; })
+    .sort(function(a, b){ return b.valeur - a.valeur; });
+  if(rowsGeo.length > 5){
+    var reste = rowsGeo.slice(4).reduce(function(s, r){ return s + r.valeur; }, 0);
+    rowsGeo = rowsGeo.slice(0, 4).concat([{ label: 'Autres', valeur: reste }]);
+  }
+  rowsGeo.forEach(function(r){
+    r.texte = r.valeur + ' &middot; ' + (fiches.length ? Math.round(r.valeur * 100 / fiches.length) : 0) + ' %';
+  });
+  h += _depBlCarte('&#128506;&#65039; R&Eacute;PARTITION G&Eacute;OGRAPHIQUE',
+    rowsGeo.length ? _depBlBarres(rowsGeo, '#1a237e') : _depBlVide('Aucun client.'));
+
+  // ── 12. Durée de chaque étape du trajet ──
+  var fait = d.etapesTransport || {}, tPrec = null;
+  var etapesH = depEtapesTransportPour(depPaysDepart(d)).map(function(e, i, arr){
+    var f = fait[e.key];
+    var ok = !!(f && f.fait && f.ts);
+    var quand = ok ? _depBlJour(new Date(f.ts)) : '&mdash;';
+    var ecart = '';
+    if(ok && tPrec){
+      var j = Math.round((f.ts - tPrec) / 86400000);
+      ecart = ' <span style="color:var(--text3);font-weight:600;">(+' + j + ' j)</span>';
+    }
+    if(ok) tPrec = f.ts;
+    var dernier = (i === arr.length - 1);
+    return '<div style="display:flex;gap:11px;">'
+      + '<div style="font-size:11px;color:var(--text3);font-weight:700;width:40px;flex-shrink:0;">' + quand + '</div>'
+      + '<div style="width:11px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">'
+      +   '<div style="width:11px;height:11px;border-radius:50%;background:' + (ok ? '#009A44' : '#D7D7DA') + ';"></div>'
+      +   (dernier ? '' : '<div style="width:2px;flex:1;background:#D7D7DA;min-height:20px;"></div>')
+      + '</div>'
+      + '<div style="flex:1;' + (dernier ? '' : 'padding-bottom:12px;') + 'font-size:12.5px;font-weight:800;color:'
+      +   (ok ? 'var(--text)' : 'var(--text3)') + ';">' + esc(e.label) + ecart + '</div>'
+      + '</div>';
+  }).join('');
+  h += _depBlCarte('&#128674; DUR&Eacute;E DE CHAQUE &Eacute;TAPE', etapesH);
+
+  // ── 13. Comparaison avec le container précédent ──
+  var prevId = _depBlPrecedent(id);
+  if(prevId){
+    var dp = window.departsData[prevId];
+    var cpP = compteursDepart(prevId);
+    var resP = _depResultatColis(prevId, cpP);
+    var mCP = _depBlMethodes(_depBlFiches(prevId), 'versements');
+    var lig = function(lib, a, b, argent){
+      return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;">'
+        + '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">' + lib + '</span>'
+        + '<span style="white-space:nowrap;"><b style="font-size:13.5px;color:var(--text);">'
+        +   (argent ? _depEuros(a) + ' &euro;' : a) + '</b> ' + _depBlEcart(a, b, argent) + '</span>'
+        + '</div>';
+    };
+    h += _depBlCarte('&#128200; COMPAR&Eacute; AU CONTAINER PR&Eacute;C&Eacute;DENT',
+      _depBlVide(esc(dp.nom || 'Container') + ' &middot; parti le ' + esc(dateFr(dp.dateDepart)))
+      + '<div style="margin-top:6px;">'
+      + lig('B&eacute;n&eacute;fice net', res, resP, true)
+      + lig('Clients', cp.clients, cpP.clients, false)
+      + lig('Encaiss&eacute; colis', cp.colisPaye, cpP.colisPaye, true)
+      + lig('dont esp&egrave;ces', mC.especes, mCP.especes, true)
+      + lig('Encaiss&eacute; livraison', cp.livPaye, cpP.livPaye, true)
+      + '</div>');
+  }
+
+  h += '<button type="button" onclick="depExporterBilanContainerPDF()" style="width:100%;margin:4px 0 18px;padding:14px;'
+    +   'border-radius:12px;cursor:pointer;background:#1a237e;border:2px solid #0d1444;color:#fff;font-size:14.5px;'
+    +   'font-weight:800;font-family:inherit;">&#128196; Exporter en PDF</button>';
+
+  box.innerHTML = h;
+};
+
+window.depExporterBilanContainerPDF = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  var d = (window.departsData || {})[_depBilanId];
+  var entete = $('dep-bl-entete');
+  if(!d || !entete){ toast('⚠️ Bilan introuvable.'); return; }
+  var blocs = [].slice.call(document.querySelectorAll('#dep-bl-contenu .dep-bl-bloc'));
+  var nom = String(d.nom || 'container').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'container';
+  depGenererPDFParBlocs(entete, blocs, 'Bilan-' + nom + '-' + (d.dateDepart || '') + '.pdf');
 };
 
 /* ─────────────────────────────────────────────

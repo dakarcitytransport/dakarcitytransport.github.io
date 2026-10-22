@@ -4735,3 +4735,30 @@ ralentissement ressenti même en pleine utilisation de Collecte, "par
 moment" (au hasard des écritures des autres). Corrigé : `renderFrance()`
 ne tourne plus désormais que si `s-france` est vraiment l'écran affiché
 — exactement la même garde que les 3 blocs voisins.
+
+**22/10, v3.99.64 (departs.js v2.21.0) — Bilan d'un container.**
+Cobey : « je veux un bilan par container [...] dans les départs [...]
+visible uniquement par Issyaka, Abdoulaye et moi », avec « qui a ramené
+combien, qui a travaillé, quand, qui a été absent, les dépenses », puis
+« les montants encaissés en virement et en espèces, pareil pour les
+livraisons, le détail des frais de déplacement [...] des graphiques
+(camembert, courbe, barres) » et un export PDF. Maquette validée avant
+de coder. Nouveau bouton "📊 Bilan de ce container" sur l'écran Départ
+(même règle d'accès que Rapport financier : `estDirection()` — IS, AB,
+AD), qui ouvre l'écran `s-dep-bilan` : caisse colis et caisse livraison
+avec camembert espèces / virement / non précisé, courbe de l'encaissé
+cumulé, dépenses par poste (Mali : taxe prestataire), frais de
+déplacement par collecte France & Europe, résultat (même calcul que
+`_depResultatColis`), qui a travaillé dessus (clients apportés,
+encaissé par mode, durée de tournée et jours de collecte repris de
+`_depStatsCalculer` en mode conteneur — Mamadou Niass compris, il
+encaisse à Dakar), présences collecte par collecte croisées avec le
+Planning (présent / absent / absent d'office / pas de réponse), clients
+soldés et relances, délai moyen collecte → remis, avis demandés,
+répartition géographique, durée de chaque étape du trajet, comparaison
+avec le container précédent du même pays. Export PDF via
+`depGenererPDFParBlocs` (un bloc jamais coupé entre deux pages).
+"Photos manquantes", prévu dans la maquette, n'a PAS été ajouté : le
+repère des photos sur la fiche peut mentir (voir v2.20.10,
+`_depChargerPhotosFiche`), et le compter juste demanderait de lire
+toutes les photos de chaque client dans Firebase — trop lourd.
