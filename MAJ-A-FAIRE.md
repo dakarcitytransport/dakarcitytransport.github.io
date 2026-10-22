@@ -4875,3 +4875,20 @@ laisser dedans. » Un colis dont la livraison est validée
 le compteur « À livrer » ne compte plus que ce qui reste (il est
 désormais égal à < 48H + Gardiennage + 60J+, et à celui de l'écran
 Stockage). Le client reste évidemment consultable depuis son container.
+
+**22/10, v3.99.71 (departs.js v2.21.6) — Dépôt Dakar : tous les clients non
+remis + tarif et paiement.** Cobey : « il reste 70 clients qui n'ont pas
+encore récupéré leur colis, mais dans le stockage je vois 12 colis [...]
+théoriquement ça ne devrait pas être le même chiffre » puis « tu peux
+également mettre le tarif, voir s'ils ont payé ou pas, si ça a été soldé ou
+pas, comme ça on a une visio rapide ». Cause : `_depListeDepotDakar` ne
+retenait que les clients avec livraison à Dakar (`livraisonDakar`) ; les
+clients qui viennent chercher leur colis (retrait) n'y étaient pas, alors
+que ce sont eux que concerne le gardiennage 48h. Désormais tous les clients
+d'un container « Arrivé » y figurent jusqu'à ce qu'ils soient remis
+(`_depColisRemis` : `livraisonValidee.fait` ou `remisAuClient`), avec une
+pastille « 🚚 Livraison » / « 🏪 Retrait » et l'état de paiement (soldé /
+reste X € sur Y € / non payé, colis + livraison, comme le badge de la
+facture). Récap : « au dépôt », « X soldés sur N », total encore à
+encaisser. Les cartes orange du container utilisent la même règle, donc
+même chiffre des deux côtés. Écran Stockage : « N clients encore au dépôt ».

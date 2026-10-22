@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.5';
+var DEP_VERSION = 'v2.21.6';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3492,7 +3492,7 @@ function injecterEcrans(){
   +   '</div>'
   +   '<div class="content">'
   +     '<div style="font-size:11.5px;color:#4A2E8A;background:#F0EAFB;border:1.5px solid #C9B8E8;border-radius:10px;padding:11px 13px;margin-bottom:14px;line-height:1.5;">'
-  +       '&#8505;&#65039; Automatique : d&egrave;s qu\'un d&eacute;part passe en statut <b>Arriv&eacute;</b>, tous ses clients avec livraison &agrave; Dakar apparaissent ici.</div>'
+  +       '&#8505;&#65039; Automatique : d&egrave;s qu\'un d&eacute;part passe en statut <b>Arriv&eacute;</b>, tous ses clients (livraison ou retrait) apparaissent ici, jusqu\'&agrave; ce qu\'ils soient remis.</div>'
   +     '<div id="dep-dd-recap" style="margin-bottom:14px;"></div>'
   +     '<input class="fi" id="dep-dd-recherche" placeholder="&#128269; Rechercher un client" style="margin-bottom:14px;" oninput="depDepotDakarFiltrer()">'
   +     '<div id="dep-dd-liste"></div>'
@@ -5749,10 +5749,10 @@ window.depRenderEspaces = function(){
   if(sdd){
     var nbMitry = compteursDepart(DEP_ID_DEPOT).clients;
     var nbDd = (typeof _depListeDepotDakar === 'function') ? _depListeDepotDakar().filter(function(x){
-      return !(x.c.livraisonValidee && x.c.livraisonValidee.fait);
+      return !_depColisRemis(x.c);
     }).length : 0;
     sdd.innerHTML = (nbMitry + nbDd) === 0 ? 'Rien en stock'
-      : '<b style="color:#B8720C;">'+nbMitry+'</b> Mitry<br><b style="color:#B8720C;">'+nbDd+'</b> &agrave; livrer Dakar';
+      : '<b style="color:#B8720C;">'+nbMitry+'</b> Mitry<br><b style="color:#B8720C;">'+nbDd+'</b> au d&eacute;p&ocirc;t Dakar';
   }
 
   // Case DEVIS (v1.19.85)
@@ -5870,7 +5870,7 @@ function depRenderStockageChoix(){
   if(!box) return;
   var nbMitry = compteursDepart(DEP_ID_DEPOT).clients;
   var nbDakar = (typeof _depListeDepotDakar === 'function') ? _depListeDepotDakar().filter(function(x){
-    return !(x.c.livraisonValidee && x.c.livraisonValidee.fait);
+    return !_depColisRemis(x.c);
   }).length : 0;
   var h = '';
   h += '<div class="dep-card" style="border-left-color:#B8860B;cursor:pointer;" onclick="depDetail(\''+DEP_ID_DEPOT+'\')">'
@@ -5883,7 +5883,7 @@ function depRenderStockageChoix(){
     +   '<div class="dep-card-top">'
     +     '<div class="dep-nom">&#127970; D&eacute;p&ocirc;t Dakar</div>'
     +   '</div>'
-    +   '<div class="dep-meta"><span>'+nbDakar+' colis encore &agrave; livrer</span></div>'
+    +   '<div class="dep-meta"><span>'+nbDakar+' client'+(nbDakar>1?'s':'')+' encore au d&eacute;p&ocirc;t</span></div>'
     + '</div>';
   box.innerHTML = h;
 }
@@ -8338,7 +8338,7 @@ window.depDetail = function(id, gardeFiltres){
       // ils s'y fondraient (même teintes #EAF7EE/#FFF3E0).
       var _cliColoree = (d.statut === 'arrive');
       var _bordureCli = _cliColoree
-        ? (c.remisAuClient ? 'background:#EAF7EE;' : 'background:#FFF3E0;')
+        ? (_depColisRemis(c) ? 'background:#EAF7EE;' : 'background:#FFF3E0;')
         : (_nbFus ? 'border-left:4px solid #00b34e;' : (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : ''));
       h += '<div class="dep-cli" style="cursor:pointer;' + _bordureCli
         +     '" onclick="'+clic+'">'
@@ -12559,6 +12559,14 @@ function _depBadgeLivraison(c, arrive, fondBlanc){
    depEtapeValider côté DCT), rien de neuf à saisir pour ça.
    ───────────────────────────────────────────── */
 
+// v2.21.6 — un colis a quitté le dépôt dès qu'il est remis au client :
+// livraison validée par Mamadou Niass (livraisonValidee.fait) ou remise en
+// main propre (remisAuClient). Les deux sont posés ensemble par sa
+// validation ; on teste les deux pour couvrir aussi les anciennes fiches.
+function _depColisRemis(c){
+  return !!(c && ((c.livraisonValidee && c.livraisonValidee.fait) || c.remisAuClient));
+}
+
 function _depListeDepotDakar(){
   var out = [];
   var departs = window.departsData || {};
@@ -12575,7 +12583,11 @@ function _depListeDepotDakar(){
         .filter(function(k){ return (window.franceData.clients[k]||{}).departId === did; })
         .map(function(k){ return { france:true, clientId:k, c: window.franceData.clients[k] }; }));
     clients.forEach(function(x){
-      if(!x.c || !x.c.livraisonDakar) return;
+      // v2.21.6 — Cobey : « il reste 70 clients [...] dans le stockage je
+      // vois 12 colis, théoriquement ça devrait être le même chiffre ».
+      // La liste ne prenait que les clients en livraison à Dakar : ceux
+      // qui viennent chercher leur colis (retrait) en étaient absents.
+      if(!x.c) return;
       if(_depEstFusionnee(x.c)) return;
       out.push({ depart:d, departId:did, tsArrivee:tsArrivee, collecteId:x.collecteId||'',
                  clientId:x.clientId, depot:!!x.depot, france:!!x.france, c:x.c });
@@ -12619,6 +12631,20 @@ function _depBadgeDepotDakar(c, tsArrivee){
     + '&#128337; Au d&eacute;p&ocirc;t depuis ' + Math.max(0, Math.floor(info.heures)) + 'h &middot; encore ' + restant + 'h avant gardiennage</div>';
 }
 
+// v2.21.6 — Cobey : « mettre le tarif, voir s'ils ont payé ou pas [...]
+// si ça a été soldé ou pas, comme ça on a une visio rapide. » Total
+// colis + livraison (même calcul que le badge global de la facture).
+function _depPastillePaiementDakar(c){
+  if(c && c.prixADefinir) return '<span style="font-size:11.5px;font-weight:800;color:#666;background:#F4F4F5;border:1.5px solid #E0E0E0;border-radius:20px;padding:5px 11px;margin:6px 0;">Prix &agrave; d&eacute;finir</span>';
+  var p = depCalculerPaiementCombine(c);
+  var st, txt;
+  if(p.total <= 0){ st = ['#F4F4F5','#E0E0E0','#666']; txt = 'Aucun tarif'; }
+  else if(p.statut === 'paye'){ st = ['#EAF7EE','#BFE6C8','#006b2d']; txt = '&#9989; Sold&eacute; &middot; ' + p.total + ' &euro;'; }
+  else if(p.statut === 'partiel'){ st = ['#FFF3E0','#F0C36D','#8A5200']; txt = '&#9680; Reste ' + p.reste + ' &euro; &middot; sur ' + p.total + ' &euro;'; }
+  else { st = ['#FDECEC','#F3B8B8','#B3261E']; txt = '&#10060; Non pay&eacute; &middot; ' + p.total + ' &euro;'; }
+  return '<span style="font-size:11.5px;font-weight:800;background:'+st[0]+';border:1.5px solid '+st[1]+';color:'+st[2]+';border-radius:20px;padding:5px 11px;margin:6px 0;white-space:nowrap;">'+txt+'</span>';
+}
+
 var _depDdRecherche = '';
 
 window.depOuvrirEspaceDepotDakar = function(){
@@ -12638,7 +12664,7 @@ function depRenderDepotDakar(){
   // dans le stock [...] ceux qui ne sont plus là, ça ne sert à rien de les
   // laisser. » Un colis livré (livraisonValidee.fait) sort de la liste.
   var tous = _depListeDepotDakar().filter(function(x){
-    return !(x.c.livraisonValidee && x.c.livraisonValidee.fait);
+    return !_depColisRemis(x.c);
   });
   var q = _depDdRecherche;
   var liste = !q ? tous : tous.filter(function(x){
@@ -12655,12 +12681,20 @@ function depRenderDepotDakar(){
       else if(info.enRetard) nGardiennage++;
       else nAttente++;
     });
+    var nSolde = 0, resteTot = 0;
+    tous.forEach(function(x){
+      var pp = depCalculerPaiementCombine(x.c);
+      if(pp.total > 0 && pp.statut === 'paye') nSolde++;
+      resteTot += pp.reste;
+    });
+    resteTot = depArrondi2(resteTot);
     recap.innerHTML = '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;text-align:center;">'
-      + '<div><div style="font-size:19px;font-weight:800;color:#252599;">'+tous.length+'</div><div style="font-size:9px;font-weight:700;color:#888;">&Agrave; LIVRER</div></div>'
+      + '<div><div style="font-size:19px;font-weight:800;color:#252599;">'+tous.length+'</div><div style="font-size:9px;font-weight:700;color:#888;">AU D&Eacute;P&Ocirc;T</div></div>'
       + '<div><div style="font-size:19px;font-weight:800;color:#555;">'+nAttente+'</div><div style="font-size:9px;font-weight:700;color:#888;">&lt; 48H</div></div>'
       + '<div><div style="font-size:19px;font-weight:800;color:#B45309;">'+nGardiennage+'</div><div style="font-size:9px;font-weight:700;color:#888;">GARDIENNAGE</div></div>'
       + '<div><div style="font-size:19px;font-weight:800;color:#B3261E;">'+n60+'</div><div style="font-size:9px;font-weight:700;color:#888;">&Agrave; 60J+</div></div>'
-      + '</div>';
+      + '</div>'
+      + '<div style="margin-top:8px;font-size:11.5px;color:#555;text-align:center;">&#9989; <b>'+nSolde+'</b> sold&eacute;'+(nSolde>1?'s':'')+' sur '+tous.length+' &middot; <b style="color:'+(resteTot>0?'#B3261E':'#006b2d')+';">'+resteTot+' &euro;</b> encore &agrave; encaisser</div>';
   }
 
   // Les plus anciens en premier (les plus urgents).
@@ -12691,10 +12725,16 @@ function depRenderDepotDakar(){
       + ';" onclick="'+clic+'">'
       +   '<div class="dep-cli-n">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
       +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
-      +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')+'</div>'
+      +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')
+      +     (c.livraisonDakar
+              ? ' <span style="font-size:10.5px;font-weight:700;color:#4A2E8A;">&#128666; Livraison</span>'
+              : ' <span style="font-size:10.5px;font-weight:700;color:#8A5200;">&#127978; Retrait</span>')+'</div>'
       +   '<div style="font-size:11px;color:#999;margin:2px 0 6px;">Venu de <b style="color:#555;">'+esc(nomDepart(x.departId)||'—')+'</b>'
       +     (x.tsArrivee ? (' &middot; arriv&eacute; le '+esc(dateHeureFr(x.tsArrivee))) : '') + '</div>'
-      +   _depBadgeDepotDakar(c, x.tsArrivee)
+      +   '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">'
+      +     _depBadgeDepotDakar(c, x.tsArrivee)
+      +     _depPastillePaiementDakar(c)
+      +   '</div>'
       +   '<div class="dep-cli-btns" style="margin-top:10px;">'
       +     '<button class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
       +       (x.france
