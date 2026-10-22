@@ -4849,3 +4849,19 @@ Corrigé au passage : une collecte France hors dimanche affichait à tort
 « Dernier délai : jeudi 22h » (le verrou, lui, était bien désactivé).
 Si un jour exceptionnel avait été créé en base pendant l'essai, il est
 simplement ignoré.
+
+**22/10, v3.99.69 (departs.js v2.21.4) — « retour » depuis le Dépôt Dakar
+(case Stockage).** Cobey : « quand je vais dans la case Stockage et que je
+regarde le stock de Dakar, quand je clique sur un client, je vois ces
+infos, mais quand j'appuie sur retour, je me retrouve dans le conteneur de
+la case Départ. Je t'avais dit pour chaque bouton retour de revenir à la
+page précédente de son interface. » Cause : la liste du Dépôt Dakar
+ouvrait la fiche, la facture et le formulaire du client avec les mêmes
+fonctions que l'écran Départ, dont le « retour » est figé sur
+`depDetail(_depDetailId)` — le dernier container ouvert dans Départs, sans
+rapport avec cette liste. Nouveau paramètre `viaDakar` (fiche collecte,
+fiche et formulaire dépôt direct, fiche France via `_depFicheFranceRetour`
+type « dakar », facture, facture France, écran Documents, bouton
+« Enregistrer » de la fiche native) : tous ramènent à « ← Dépôt Dakar ».
+Mitry (Stockage > Mitry) revenait déjà à sa propre liste (vérifié) ; seul
+son libellé « ← Départ » sur la facture devient « ← Mitry ».

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.3';
+var DEP_VERSION = 'v2.21.4';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5029,6 +5029,9 @@ window._depDepotDepartPublic = function(){ return _depDepotDepart; };
 // Annuler/Supprimer (sinon on revient au carré Départs, comportement
 // d'origine quand on édite un client dépôt depuis là-bas).
 var _depDepotViaCarre = false;
+// v3.99.69 : fiche/formulaire d'un client dépôt direct ouvert depuis la liste
+// du Dépôt Dakar (case Stockage) — « retour » doit y ramener.
+var _depDepotViaDakar = false;
 
 window.depCarreDepotOuvrir = function(){
   goTo('s-depot-carre-liste');
@@ -5189,7 +5192,8 @@ function _depDepotCarreRenderListe(filtre){
 // Retour/Annuler du formulaire dp-* : vers le carré Dépôt si on en
 // vient, sinon comportement d'origine (retour au carré Départs).
 window.depDepotFormRetour = function(){
-  if(_depDepotViaCarre) depCarreDepotContainer(_depDepotDepart);
+  if(_depDepotViaDakar) depOuvrirEspaceDepotDakar();
+  else if(_depDepotViaCarre) depCarreDepotContainer(_depDepotDepart);
   else depDetail(_depDepotDepart);
 };
 
@@ -8593,7 +8597,7 @@ function _depTruckEtStatut(collecteId, clientId){
   return null;
 }
 
-window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, viaScan, viaHistorique, carreDepartId, viaFidelite){
+window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, viaScan, viaHistorique, carreDepartId, viaFidelite, viaDakar){
   var c = depot
     ? (window.depotClients || {})[clientId]
     : (((window.clientsParCollecte || {})[collecteId]) || {})[clientId];
@@ -8607,7 +8611,8 @@ window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, vi
   // bouton "Retour" (retour de Cobey du 24/08/2026 : "je suis dans le
   // carré départ [...] je veux retourner dans les départs et pas dans
   // les collectes").
-  window._depDocVientDepart = !depot && !viaScan && !retourCamion && !viaHistorique;
+  window._depDocVientDepart = !depot && !viaScan && !retourCamion && !viaHistorique && !viaDakar;
+  window._depDocVientDakar = !!viaDakar;
 
   // v1.19.23 : tant que la collecte n'est pas validée pour de vrai (voir
   // depValiderFactureFinale), la facture ne sert qu'au paiement — le
@@ -8659,13 +8664,19 @@ window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, vi
       // posé si on n'est jamais passé par le formulaire).
       btnRetour.textContent = '← Dépôt';
       btnRetour.onclick = function(){ depCarreDepotContainer(carreDepartId); };
+    } else if(viaDakar){
+      // v3.99.69 : ouverte depuis la liste du Dépôt Dakar (case Stockage).
+      btnRetour.textContent = '← Dépôt Dakar';
+      btnRetour.onclick = function(){ depOuvrirEspaceDepotDakar(); };
     } else if(depot && _depDepotViaCarre){
       // v1.19.50 : client dépôt inscrit depuis le carré Dépôt (pas le
       // carré Départs) — _depDetailId n'a jamais été posé dans ce cas.
       btnRetour.textContent = '← Dépôt';
       btnRetour.onclick = function(){ depCarreDepotContainer(_depDepotDepart); };
     } else {
-      btnRetour.textContent = '← Départ';
+      // v3.99.69 : le Dépôt Mitry vit dans la case Stockage — « ← Départ »
+      // y serait trompeur.
+      btnRetour.textContent = (_depDetailIdPublic() === DEP_ID_DEPOT) ? '← Mitry' : '← Départ';
       btnRetour.onclick = function(){ depDetail(_depDetailIdPublic()); };
     }
   }
@@ -8684,7 +8695,7 @@ window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, vi
 // `retourCamion` : même paramètre que depOuvrirFacture côté Collecte
 // (voir "← Camion" ci-dessus) — posé par le bouton "🧾" sur la carte
 // d'un client déjà validé (_depAjouterFactureCamionValide).
-window.depOuvrirFactureFrance = function(clientId, viaFidelite, retourCamion){
+window.depOuvrirFactureFrance = function(clientId, viaFidelite, retourCamion, viaDakar){
   var c = ((window.franceData||{}).clients||{})[clientId];
   if(!c){ toast('⚠️ Facture introuvable.'); return; }
   // v3.99.35 — client "Parti" archivé : voir le même correctif sur
@@ -8695,9 +8706,13 @@ window.depOuvrirFactureFrance = function(clientId, viaFidelite, retourCamion){
   }
   _depFactureCtx = { collecteId: '', clientId: clientId, depot: false, france: true };
   window._depDocVientDepart = false;
+  window._depDocVientDakar = !!viaDakar;
   var btnRetour = $('dep-fact-retour');
   if(btnRetour){
-    if(retourCamion){
+    if(viaDakar){
+      btnRetour.textContent = '← Dépôt Dakar';
+      btnRetour.onclick = function(){ depOuvrirEspaceDepotDakar(); };
+    } else if(retourCamion){
       btnRetour.textContent = '← Camion';
       btnRetour.onclick = function(){ goTo('s-fr-camion'); try{ renderCamionFrance(); }catch(e){} };
     } else if(viaFidelite){
@@ -8723,6 +8738,10 @@ window.depOuvrirFicheFranceDepuisDepart = function(clientId, departId){
   _depFicheFranceRetour = { type: 'depart', id: departId };
   ouvrirFicheFrance(clientId);
 };
+window.depOuvrirFicheFranceDepuisDakar = function(clientId){
+  _depFicheFranceRetour = { type: 'dakar' };
+  ouvrirFicheFrance(clientId);
+};
 window.depOuvrirFicheFranceDepuisCarre = function(clientId, departId){
   _depFicheFranceRetour = { type: 'carre', id: departId };
   ouvrirFicheFrance(clientId);
@@ -8742,20 +8761,23 @@ window.depOuvrirFicheFranceDepuisCarre = function(clientId, departId){
 // déjà utilisé pour cet onglet côté Collecte (voir switchSubtab).
 function _depAfficherEcranDocuments(){
   var btn = $('dep-doc-retour');
-  if(btn) btn.innerHTML = window._depDocVientDepart
-    ? '&#128230; Retour au d&eacute;part'
-    : '&#128666; Retour &agrave; la dispatch';
+  if(btn) btn.innerHTML = window._depDocVientDakar
+    ? '&#127970; Retour au D&eacute;p&ocirc;t Dakar'
+    : (window._depDocVientDepart
+      ? '&#128230; Retour au d&eacute;part'
+      : '&#128666; Retour &agrave; la dispatch');
   // v1.20.29 : voir le commentaire sur le bouton lui-même plus haut.
   var btnTournee = $('dep-doc-retour-tournee');
   if(btnTournee){
     var ctx = _depFactureCtx;
-    var venuDeTournee = !window._depDocVientDepart && !(ctx && ctx.depot);
+    var venuDeTournee = !window._depDocVientDepart && !window._depDocVientDakar && !(ctx && ctx.depot);
     btnTournee.style.display = venuDeTournee ? '' : 'none';
   }
   goTo('s-dep-impression');
 }
 
 window.depRetourDocuments = function(){
+  if(window._depDocVientDakar){ depOuvrirEspaceDepotDakar(); return; }
   if(window._depDocVientDepart){ depDetail(_depDetailIdPublic()); return; }
   goTo('s-camion');
 };
@@ -11828,7 +11850,8 @@ function depRenderFicheLecture(colId, clientId, depot, france){
   // v1.20.13 : mémorisé pour les boutons d'action plus bas (Modifier/
   // Photo/Note) — voir _depFicheLectureCtx.
   _depFicheLectureCtx = { colId: colId, clientId: clientId, depot: !!depot, france: !!france,
-    departId: (depot||france) ? c.departId : null, viaCarre: !!_depDepotViaCarre };
+    departId: (depot||france) ? c.departId : null, viaCarre: !!_depDepotViaCarre,
+    viaDakar: !!(depot && _depDepotViaDakar) };
   // v2.20.28 : un client France & Europe n'a pas de champ "name" tout fait
   // (civilit&eacute;+pr&eacute;nom+nom séparés) — même repli que
   // depRenderFacture, sinon le titre et l'avatar restaient vides pour ce
@@ -12071,7 +12094,7 @@ window.depConfirmerSuppressionFrance = function(){
 window.depModifierFicheActuelle = function(force){
   var ctx = _depFicheLectureCtx;
   if(ctx && ctx.depot){
-    depOuvrirDepotForm(ctx.departId, ctx.clientId, ctx.viaCarre);
+    depOuvrirDepotForm(ctx.departId, ctx.clientId, ctx.viaCarre, ctx.viaDakar);
     return;
   }
   // v2.20.28 : France & Europe garde son propre formulaire d'édition
@@ -12655,11 +12678,12 @@ function depRenderDepotDakar(){
   var h = '';
   liste.forEach(function(x){
     var c = x.c;
+    // v3.99.69 : « retour » ramène à cette liste, pas au container du Départ.
     var clic = x.depot
-      ? "depOuvrirFicheDepot('"+x.departId+"','"+x.clientId+"')"
+      ? "depOuvrirFicheDepot('"+x.departId+"','"+x.clientId+"',false,true)"
       : (x.france
-        ? "depOuvrirFicheFranceDepuisDepart('"+x.clientId+"','"+x.departId+"')"
-        : "depOuvrirFicheClient('"+x.collecteId+"','"+x.clientId+"')");
+        ? "depOuvrirFicheFranceDepuisDakar('"+x.clientId+"')"
+        : "depOuvrirFicheClient('"+x.collecteId+"','"+x.clientId+"',false,true)");
     var info = _depInfoGardiennage(x.tsArrivee);
     h += '<div class="dep-cli" style="cursor:pointer;'
       + (info.alerte60 ? 'background:#FDECEC;border-color:#F3B8B8;' : '') + 'border-left:4px solid '
@@ -12674,8 +12698,8 @@ function depRenderDepotDakar(){
       +   '<div class="dep-cli-btns" style="margin-top:10px;">'
       +     '<button class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
       +       (x.france
-          ? 'onclick="event.stopPropagation();depOuvrirFactureFrance(\''+x.clientId+'\')"'
-          : 'onclick="event.stopPropagation();depOuvrirFacture(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+')"')
+          ? 'onclick="event.stopPropagation();depOuvrirFactureFrance(\''+x.clientId+'\',false,false,true)"'
+          : 'onclick="event.stopPropagation();depOuvrirFacture(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+',false,false,false,\'\',false,true)"')
       +       '>&#129534; Facture</button>'
       +     '<button class="dep-cli-btn" style="background:#F3EFFF;border-color:#D9C8F5;color:#6d28d9;" '
       +       'onclick="event.stopPropagation();depOuvrirPhotosRapide(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">&#128247; Photos</button>'
@@ -12826,7 +12850,12 @@ window.depOuvrirPhotosRapide = function(collecteId, clientId, depot, france){
    10ter. OUVRIR LA FICHE D'UN CLIENT DEPUIS LE DÉPART
    ───────────────────────────────────────────── */
 
-window.depOuvrirFicheClient = function(collecteId, clientId, viaCarreDepot){
+// v3.99.69 — Cobey : « quand je vais dans la case Stockage et que je regarde
+// le stock de Dakar, quand je clique sur un client [...] et que j'appuie sur
+// retour, je me retrouve dans le conteneur de la case Départ. Je t'avais dit
+// pour chaque bouton retour de revenir à la page précédente de son
+// interface. » `viaDakar` : ouvert depuis la liste du Dépôt Dakar.
+window.depOuvrirFicheClient = function(collecteId, clientId, viaCarreDepot, viaDakar){
   if(typeof openClientFiche !== 'function'){ toast('⚠️ Fonction indisponible.'); return; }
   var cls = (window.clientsParCollecte||{})[collecteId] || {};
   if(!cls[clientId]){ toast('⚠️ Client introuvable.'); return; }
@@ -12842,11 +12871,15 @@ window.depOuvrirFicheClient = function(collecteId, clientId, viaCarreDepot){
   // pour re-render l'écran du départ (compteurs et liste à jour après édition).
   // v1.19.55 : vers le carré Dépôt si on y consultait ce client, sinon
   // comportement d'origine (carré Départs).
-  var retourDepart = viaCarreDepot
-    ? function(){ depCarreDepotContainer(departIdSnapshot); }
-    : function(){ depDetail(_depDetailId); };
+  var retourDepart = viaDakar
+    ? function(){ depOuvrirEspaceDepotDakar(); }
+    : (viaCarreDepot
+      ? function(){ depCarreDepotContainer(departIdSnapshot); }
+      : function(){ depDetail(_depDetailId); });
   var bk = $('client-back'); if(bk) bk.onclick = retourDepart;
   var cn = $('client-cancel'); if(cn) cn.onclick = retourDepart;
+  // v3.99.69 : « Enregistrer » ramène aussi à la liste d'où on vient.
+  if(viaDakar) window.clientRetour = 's-dep-depot-dakar';
 };
 
 // v1.20.13 : ouvre la fiche en LECTURE SEULE d'un client Dépôt direct
@@ -12856,14 +12889,17 @@ window.depOuvrirFicheClient = function(collecteId, clientId, viaCarreDepot){
 // y ouvre ensuite le vrai formulaire (depOuvrirDepotForm, plus bas).
 // Retour de Cobey du 03/09/2026, valable pour le carré Départ ET le
 // carré Dépôt.
-window.depOuvrirFicheDepot = function(departId, clientId, viaCarre){
+window.depOuvrirFicheDepot = function(departId, clientId, viaCarre, viaDakar){
   var c = (window.depotClients||{})[clientId];
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   _depDepotViaCarre = !!viaCarre;
+  _depDepotViaDakar = !!viaDakar;
   _depDepotDepart = departId;
-  var retour = viaCarre
-    ? function(){ depCarreDepotContainer(departId); }
-    : function(){ depDetail(departId); };
+  var retour = viaDakar
+    ? function(){ depOuvrirEspaceDepotDakar(); }
+    : (viaCarre
+      ? function(){ depCarreDepotContainer(departId); }
+      : function(){ depDetail(departId); });
   var bk = $('client-back'); if(bk) bk.onclick = retour;
   depRenderFicheLecture('', clientId, true);
   goTo('s-dep-fiche-lecture');
@@ -12903,11 +12939,12 @@ function _depDepotLignesMaj(total, nbColis, lignes){
   var note = $('dp-prix-note'); if(note) note.style.display = 'block';
 }
 
-window.depOuvrirDepotForm = function(departId, clientId, viaCarre){
+window.depOuvrirDepotForm = function(departId, clientId, viaCarre, viaDakar){
   // v1.19.50 : ouvert à toute l'équipe (plus réservé à la direction) —
   // voir le carré Dépôt (depCarreDepotOuvrir). "Supprimer" reste réservé
   // à la direction, plus bas.
   _depDepotViaCarre = !!viaCarre;
+  _depDepotViaDakar = !!viaDakar;
   _depDepotDepart = departId;
   _depDepotEditId = clientId || null;
   window._depDepotPhotos = [];
@@ -17505,6 +17542,9 @@ function greffer(){
             var depIdM2 = retourM.id;
             btnM.textContent = '← Dépôt';
             btnM.onclick = function(){ depCarreDepotContainer(depIdM2); };
+          } else if(retourM && retourM.type === 'dakar'){
+            btnM.textContent = '← Dépôt Dakar';
+            btnM.onclick = function(){ depOuvrirEspaceDepotDakar(); };
           } else {
             btnM.textContent = '← Retour';
             btnM.onclick = function(){ goTo('s-france'); };
@@ -17650,6 +17690,8 @@ function greffer(){
           } else if(retour && retour.type === 'carre'){
             var depId2 = retour.id;
             btn.onclick = function(){ depCarreDepotContainer(depId2); };
+          } else if(retour && retour.type === 'dakar'){
+            btn.onclick = function(){ depOuvrirEspaceDepotDakar(); };
           } else if(retour && retour.type === 'rapfin'){
             // v1.74.0 : on vient de la liste des impayés du rapport
             // financier — on y retourne, pas dans le carré Départ.
