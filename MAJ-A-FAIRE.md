@@ -5075,3 +5075,12 @@ le détail (clients, minutes, km depuis le centre, colis, montant, bouton
 recalcule. Calcul inchangé (OSRM, 3 clients minimum, clients « En
 attente »). Testé avec faux OSRM et Leaflet local ; rendu vérifié par
 capture. À valider avec les vraies adresses.
+
+**22/10, v3.99.81 (departs.js v2.21.14) — dernier « Europe » visible.** Cobey :
+« il y a toujours le titre France et Europe dans la case. » Le titre de la
+case sur l'écran d'accueil des espaces (« FRANCE &amp; EUROPE », en
+majuscules, donc raté par le remplacement de la v3.99.79 qui cherchait
+« Europe » avec la casse) et la pastille « COLLECTE FRANCE & EUROPE » du
+Planning deviennent « FRANCE » / « COLLECTE FRANCE ». Contrôle fait sur
+toute la page (texte, titres, placeholders) : plus aucun « Europe » visible.
+Texte des CGV inchangé volontairement.

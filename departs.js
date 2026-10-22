@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.13';
+var DEP_VERSION = 'v2.21.14';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3070,7 +3070,7 @@ function injecterEcrans(){
   +       '</div>'
   +       '<div class="dep-case" id="dep-case-france" style="background:#E1E2EE;" onclick="ouvrirFrance()">'
   +         '<div class="dep-case-ico">&#127757;</div>'
-  +         '<div class="dep-case-tit" style="color:#1a237e;">FRANCE &amp; EUROPE</div>'
+  +         '<div class="dep-case-tit" style="color:#1a237e;">FRANCE</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-fr">—</div>'
   +       '</div>'
   // v1.19.50 : carré à part, ouvert à tout le monde (retour de Cobey du
@@ -26900,7 +26900,7 @@ function _depPlTitreJour(dim, taille){
   }).join('');
   return '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">'
     + '<div style="font-size:' + (taille || 15.5) + 'px;font-weight:800;color:var(--text);margin-right:2px;">' + esc(base) + '</div>'
-    + (fr.length ? pastille('&#127466;&#127482; COLLECTE FRANCE &amp; EUROPE', '#E3E7FA', '#1a237e') : '')
+    + (fr.length ? pastille('&#127467;&#127479; COLLECTE FRANCE', '#E3E7FA', '#1a237e') : '')
     + '</div>'
     + (noms.length
         ? '<div style="font-size:12.5px;font-weight:700;color:#1a237e;margin-top:2px;">'
