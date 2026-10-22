@@ -4762,3 +4762,32 @@ avec le container précédent du même pays. Export PDF via
 repère des photos sur la fiche peut mentir (voir v2.20.10,
 `_depChargerPhotosFiche`), et le compter juste demanderait de lire
 toutes les photos de chaque client dans Firebase — trop lourd.
+
+**22/10, v3.99.65 (departs.js v2.21.1) — Planning : jours exceptionnels et
+disponibilités d'Eric.** Cobey : « ajoute-moi aussi pour mettre mes
+disponibilités, parce que maintenant je vais essayer de les aider [...]
+tu rajoutes une case jour exceptionnel [...] pour les ramassages
+France-Europe, un jour exceptionnel pour demander qui est disponible à
+Bordeaux ou à Lyon », puis « pas de délai automatique » et « oui, les
+jours exceptionnels doivent compter » (bilan d'un container), « Aminata
+doit l'avoir aussi » (le bouton). **Jour exceptionnel** : bouton
+« + Jour exceptionnel » en haut du Planning (Direction + Aminata, comme
+la relance), avec une date (n'importe quel jour sauf un dimanche déjà au
+planning), un motif (« Tournée Bordeaux ») et les personnes à qui on
+demande (équipe fixe cochée d'office, Eric/Aminata cochables). Méta dans
+`dct_planning_jours/<date>`, réponses dans `dct_planning/<date>/<id>` comme
+un dimanche — donc relance, corrections par l'admin et intervenants
+ponctuels marchent tels quels. Jamais de verrou du jeudi 22h ni d'absence
+d'office (le Worker Cloudflare ne parcourt que les dimanches). Les
+personnes cochées reçoivent la notification Planning ; un jour passé
+quitte la liste mais reste en base (le bilan en a besoin) ; suppression
+possible depuis « Modifier ce jour ». **Eric** retrouve l'onglet « Mes
+disponibilités » (`DEP_IDS_PLANNING_VOLONTAIRES`) sans entrer dans
+`_depGensPlanning` — sinon il serait relancé et marqué absent d'office
+chaque dimanche ; ses réponses apparaissent dans « L'équipe ». Aminata a
+l'onglet dès qu'un jour exceptionnel la vise. **Bilan d'un container** :
+le tableau des présences ajoute les tournées France & Europe tombant un
+jour exceptionnel (colonne marquée « except. »), « – » pour qui n'est
+pas concerné ce jour-là. À noter : la nouvelle branche Firebase
+`dct_planning_jours` doit être autorisée en écriture par les règles de la
+base (comme `dct_planning`) — sinon « Échec, réessayez ».

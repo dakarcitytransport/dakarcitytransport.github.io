@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.0';
+var DEP_VERSION = 'v2.21.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5459,6 +5459,15 @@ function ecouterDeparts(){
     setTimeout(appliquerProfils, 400);
   });
 
+  // v3.99.65 : les jours exceptionnels du Planning (date, motif, personnes
+  // concernées) — leurs réponses vivent dans dct_planning comme celles des
+  // dimanches, sous la même clé « date ».
+  db.ref('dct_planning_jours').on('value', function(snap){
+    window.planningJoursData = snap.val() || {};
+    try{ if($('s-planning') && $('s-planning').classList.contains('active')) depRenderPlanning(); }catch(e){}
+    try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+  });
+
   /* v2.4.0 : les demandes de disponibilité. En écoute permanente, pour
      que Issyaka voie les réponses arriver sans rien rafraîchir, et que la
      pastille de la case Planning soit juste à tout moment. */
@@ -5816,12 +5825,12 @@ window.depRenderEspaces = function(){
       ? _depDimanchesSansMaReponse() : 0;
     var _organise = (typeof _depPeutOrganiserPlanning === 'function') && _depPeutOrganiserPlanning();
     if(_amoi){
-      spl.innerHTML = '<b style="color:#E65100;">' + _amoi + '</b> dimanche'
+      spl.innerHTML = '<b style="color:#E65100;">' + _amoi + '</b> jour'
         + (_amoi > 1 ? 's' : '') + '<br>&agrave; renseigner';
     } else if(_organise){
       var _muets = 0;
       try{
-        _depProchainsDimanches(2).forEach(function(d){ _muets += _depCompteDispo(d.iso).muets.length; });
+        _depPlanningJours().slice(0, 3).forEach(function(d){ _muets += _depCompteDispo(d.iso).muets.length; });
       }catch(e){}
       spl.innerHTML = _muets
         ? '<b style="color:#E65100;">' + _muets + '</b> sans r&eacute;ponse<br>&agrave; venir'
@@ -22323,28 +22332,54 @@ function _depBlCollaborateurs(id, fiches){
     .sort(function(a, b){ return (b.clients - a.clients) || (b.apporte - a.apporte); });
 }
 
-// Présences : chaque collecte du dimanche qui a rempli ce container,
-// croisée avec les réponses du Planning de la même date.
+// Présences : chaque jour de collecte qui a rempli ce container, croisé
+// avec les réponses du Planning de la même date. Les collectes Paris
+// (dimanches), et — v3.99.65 — les tournées France & Europe qui tombent un
+// dimanche ou un JOUR EXCEPTIONNEL du Planning (Cobey : « oui, les jours
+// exceptionnels doivent compter »). Une tournée sans jour au Planning n'a
+// rien à croiser : elle n'apparaît pas.
 function _depBlPresences(fiches){
-  var ids = {};
-  fiches.forEach(function(x){ if(x.src === 'col' && x.collecteId) ids[x.collecteId] = true; });
-  var cols = (window.collectes || []).filter(function(k){ return k && ids[k.id]; })
-    .map(function(k){ return { d: _depParseDateSure(k.date) }; })
-    .filter(function(k){ return k.d && !isNaN(k.d.getTime()); })
-    .sort(function(a, b){ return a.d - b.d; });
-  if(!cols.length) return _depBlVide('Aucune collecte du dimanche dans ce container : pas de planning &agrave; croiser.');
-  var gens = _depGensPlanning();
-  if(!gens.length) return _depBlVide('Personne dans le planning.');
   var iso = function(d){ return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+  var jours = {};
+  fiches.forEach(function(x){
+    var d = null;
+    if(x.src === 'col' && x.collecteId){
+      var col = (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0];
+      d = col ? _depParseDateSure(col.date) : null;
+      if(d && isNaN(d.getTime())) d = null;
+    } else if(x.src === 'france' && x.c.collecteId){
+      var r = ((window.franceData || {}).collectes || {})[x.c.collecteId];
+      d = (r && r.dateIso) ? new Date(r.dateIso + 'T12:00:00') : null;
+    }
+    if(!d) return;
+    var k = iso(d);
+    if(x.src === 'france' && d.getDay() !== 0 && !_depPlEstExceptionnel(k)) return;
+    jours[k] = { iso: k, d: d, exc: _depPlEstExceptionnel(k) };
+  });
+  var cols = Object.keys(jours).sort().map(function(k){ return jours[k]; });
+  if(!cols.length) return _depBlVide('Aucun jour de collecte du Planning dans ce container : rien &agrave; croiser.');
+  var ordre = {}, personnes = [];
+  var ajouter = function(c){ if(c && !ordre[c.id]){ ordre[c.id] = true; personnes.push(c); } };
+  _depGensPlanning().forEach(ajouter);
+  cols.forEach(function(k){ _depGensPourJour(k.iso).forEach(ajouter); });
+  if(!personnes.length) return _depBlVide('Personne dans le planning.');
   var th = 'style="padding:4px 3px;font-size:10px;font-weight:800;color:var(--text3);text-align:center;white-space:nowrap;"';
   var h = '<div style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;">'
     + '<thead><tr><th ' + th.replace('center', 'left') + '></th>'
-    + cols.map(function(k){ return '<th ' + th + '>' + _depBlJour(k.d) + '</th>'; }).join('')
+    + cols.map(function(k){
+        return '<th ' + th + '>' + _depBlJour(k.d)
+          + (k.exc ? '<br><span style="color:#E65100;font-size:9px;">except.</span>' : '') + '</th>';
+      }).join('')
     + '<th ' + th.replace('center', 'right') + '>Pr&eacute;sent</th></tr></thead><tbody>';
-  gens.forEach(function(p){
-    var oui = 0;
+  personnes.forEach(function(p){
+    var oui = 0, concerne = 0;
     var cases = cols.map(function(k){
-      var r = _depDispoDe(iso(k.d), p.id);
+      var vise = _depGensPourJour(k.iso).some(function(c){ return c.id === p.id; });
+      if(!vise){
+        return '<td style="padding:3px;text-align:center;color:#bbb;font-size:12px;" title="non concern&eacute;">&ndash;</td>';
+      }
+      concerne++;
+      var r = _depDispoDe(k.iso, p.id);
       var fond, coul, sym, titre;
       if(!r){ fond = '#EEEEF0'; coul = '#5f5f66'; sym = '?'; titre = 'pas de r&eacute;ponse'; }
       else if(r.dispo){ fond = '#D4F0E0'; coul = '#006b2d'; sym = '&#10003;'; titre = 'pr&eacute;sent'; oui++; }
@@ -22358,7 +22393,8 @@ function _depBlPresences(fiches){
       + '<td style="padding:4px 3px;font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;">' + esc(p.name) + '</td>'
       + cases
       + '<td style="padding:4px 3px;text-align:right;font-size:12px;font-weight:800;color:'
-      +   (oui === cols.length ? '#006b2d' : (oui === 0 ? '#992020' : 'var(--text)')) + ';">' + oui + '/' + cols.length + '</td>'
+      +   (concerne && oui === concerne ? '#006b2d' : (oui === 0 ? '#992020' : 'var(--text)')) + ';">'
+      +   oui + '/' + concerne + '</td>'
       + '</tr>';
   });
   h += '</tbody></table></div>'
@@ -22367,6 +22403,7 @@ function _depBlPresences(fiches){
     +   '<span><b style="color:#992020;">&#10005;</b> absent</span>'
     +   '<span><b style="color:#8A4600;">&#10005;</b> absent d\'office (pas r&eacute;pondu &agrave; temps)</span>'
     +   '<span><b>?</b> pas de r&eacute;ponse</span>'
+    +   '<span><b>&ndash;</b> non concern&eacute;</span>'
     + '</div>';
   return h;
 }
@@ -25949,6 +25986,72 @@ function _depProchainsDimanches(n){
   return out;
 }
 
+/* ═══ v3.99.65 — LES JOURS EXCEPTIONNELS ═══
+
+   Cobey, 22/10/2026 : « une case jour exceptionnel. Par exemple, pour les
+   ramassages France-Europe, je pourrais rajouter un jour exceptionnel
+   pour demander qui est disponible ce jour-là pour aller faire la
+   tournée, à Bordeaux ou à Lyon » — puis : « pas de délai automatique »,
+   « oui, les jours exceptionnels doivent compter » (dans le bilan d'un
+   container), « Aminata doit l'avoir aussi » (le bouton).
+
+   Un jour exceptionnel = une date quelconque + un motif + la liste des
+   personnes à qui on demande. Méta dans dct_planning_jours/<date> ; les
+   réponses dans dct_planning/<date>/<id>, exactement comme un dimanche
+   (donc relance, correction par l'admin, intervenants ponctuels, et
+   croisement avec le bilan fonctionnent sans rien de plus). Jamais de
+   verrouillage du jeudi 22h ni d'absence d'office : le Worker Cloudflare
+   ne parcourt que les dimanches. */
+var DEP_PL_JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+// Eric : organise, mais veut aussi donner ses disponibilités (« je vais
+// essayer de les aider »). Absent de _depGensPlanning exprès — ça le
+// ferait relancer et marquer absent d'office chaque dimanche par le Worker.
+var DEP_IDS_PLANNING_VOLONTAIRES = ['AD'];
+
+function _depPlInfoJour(iso){
+  return ((window.planningJoursData || {})[iso]) || null;
+}
+function _depPlEstExceptionnel(iso){ return !!_depPlInfoJour(iso); }
+
+function _depPlIsoAujourdhui(){
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// « samedi 4 octobre » — pour nommer n'importe quel jour du planning.
+function _depPlLibelleJour(iso){
+  var d = new Date(iso + 'T12:00:00');
+  return DEP_PL_JOURS[d.getDay()] + ' ' + d.getDate() + ' ' + DEP_PL_MOIS[d.getMonth()];
+}
+
+// Les jours à venir, dimanches ET exceptionnels, dans l'ordre. Un jour
+// exceptionnel passé quitte la liste (sa fiche reste en base : le bilan
+// d'un container en a besoin).
+function _depPlanningJours(){
+  var liste = _depProchainsDimanches(5);
+  var vus = {};
+  liste.forEach(function(j){ vus[j.iso] = true; });
+  var auj = _depPlIsoAujourdhui();
+  Object.keys(window.planningJoursData || {}).forEach(function(iso){
+    var inf = window.planningJoursData[iso];
+    if(!inf || iso < auj || vus[iso]) return;
+    var d = new Date(iso + 'T12:00:00');
+    liste.push({ iso: iso, libelle: d.getDate() + ' ' + DEP_PL_MOIS[d.getMonth()], annee: d.getFullYear() });
+  });
+  liste.forEach(function(j){
+    var inf = _depPlInfoJour(j.iso);
+    if(inf){ j.exceptionnel = true; j.motif = inf.motif || ''; }
+  });
+  return liste.sort(function(a, b){ return a.iso < b.iso ? -1 : (a.iso > b.iso ? 1 : 0); });
+}
+
+// Le nom d'un jour dans une phrase du fil Activité / d'une notification.
+function _depPlNomJourPhrase(iso){
+  var inf = _depPlInfoJour(iso);
+  if(inf) return 'le jour exceptionnel <strong>' + esc(inf.motif || '') + ' (' + _depPlLibelleJour(iso) + ')</strong>';
+  return 'le dimanche <strong>' + _depActiviteDate(iso) + '</strong>';
+}
+
 /* ═══ v2.6.0 — LE DÉLAI DE RÉPONSE : JEUDI 22H ═══
 
    Cobey, le 26/09/2026 : « si le collaborateur n'a pas répondu avant le
@@ -25970,6 +26073,8 @@ function _depPlEcheance(iso){
 }
 
 function _depPlVerrouille(iso){
+  // v3.99.65 : jamais de délai automatique sur un jour exceptionnel.
+  if(_depPlEstExceptionnel(iso)) return false;
   return Date.now() >= _depPlEcheance(iso).getTime();
 }
 window._depPlVerrouille = _depPlVerrouille;
@@ -26018,8 +26123,50 @@ function _depDispoDe(iso, id){
   return ((window.planningData || {})[iso] || {})[id] || null;
 }
 
+/* Les personnes concernées par un jour précis. Dimanche : l'équipe fixe,
+   plus ceux qui n'en font pas partie (Eric, Aminata) mais ont répondu de
+   leur plein gré. Jour exceptionnel : celles choisies à sa création. */
+function _depGensPourJour(iso){
+  var tous = (window.COLLABS || []).filter(function(c){ return c && !c.desactive; });
+  var inf = _depPlInfoJour(iso);
+  if(inf){
+    var cibles = Array.isArray(inf.cibles) ? inf.cibles : null;
+    return cibles ? tous.filter(function(c){ return cibles.indexOf(c.id) >= 0; }) : _depGensPlanning();
+  }
+  var base = _depGensPlanning();
+  var extra = tous.filter(function(c){
+    return !base.some(function(b){ return b.id === c.id; }) && _depDispoDe(iso, c.id);
+  });
+  return base.concat(extra);
+}
+window._depGensPourJour = _depGensPourJour;
+
+// Peut-il répondre à des disponibilités ? L'équipe fixe, les volontaires
+// (Eric), et quiconque est visé par un jour exceptionnel à venir (Aminata
+// si on lui demande).
+function _depPeutRepondrePlanning(){
+  var u = window.currentUser || {};
+  if(!u.id) return false;
+  if(_depGensPlanning().some(function(c){ return c.id === u.id; })) return true;
+  if(DEP_IDS_PLANNING_VOLONTAIRES.indexOf(u.id) >= 0) return true;
+  return _depPlanningJours().some(function(j){
+    return j.exceptionnel && _depGensPourJour(j.iso).some(function(c){ return c.id === u.id; });
+  });
+}
+
+// Les jours que CETTE personne doit voir dans « Mes disponibilités ».
+function _depJoursPourMoi(){
+  var u = window.currentUser || {};
+  var fixe = _depGensPlanning().some(function(c){ return c.id === u.id; });
+  var volontaire = DEP_IDS_PLANNING_VOLONTAIRES.indexOf(u.id) >= 0;
+  return _depPlanningJours().filter(function(j){
+    if(j.exceptionnel) return _depGensPourJour(j.iso).some(function(c){ return c.id === u.id; });
+    return fixe || volontaire;
+  });
+}
+
 function _depCompteDispo(iso){
-  var gens = _depGensPlanning(), oui = 0, non = 0, muets = [];
+  var gens = _depGensPourJour(iso), oui = 0, non = 0, muets = [];
   gens.forEach(function(c){
     var r = _depDispoDe(iso, c.id);
     if(!r) muets.push(c);
@@ -26036,9 +26183,13 @@ function _depCompteDispo(iso){
 function _depDimanchesSansMaReponse(){
   var u = window.currentUser || {};
   if(!u.id) return 0;
-  if(!_depGensPlanning().some(function(c){ return c.id === u.id; })) return 0;
-  return _depProchainsDimanches(5).filter(function(d){
-    return !_depDispoDe(d.iso, u.id);
+  var fixe = _depGensPlanning().some(function(c){ return c.id === u.id; });
+  // v3.99.65 : compte les dimanches (équipe fixe seulement — un volontaire
+  // n'a rien d'obligatoire) et les jours exceptionnels qui me visent.
+  return _depPlanningJours().filter(function(j){
+    if(_depDispoDe(j.iso, u.id)) return false;
+    if(j.exceptionnel) return _depGensPourJour(j.iso).some(function(c){ return c.id === u.id; });
+    return fixe;
   }).length;
 }
 window._depDimanchesSansMaReponse = _depDimanchesSansMaReponse;
@@ -26073,7 +26224,7 @@ window.depPlanningPoser = function(iso, dispo){
       addActivity(dispo ? '✅' : '❌', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> '
         + (dispo ? 'se dit disponible' : 'se dit pas disponible')
-        + ' pour le dimanche <strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+        + ' pour ' + _depPlNomJourPhrase(iso), "À l'instant");
     }catch(e){}
   }).catch(function(e){
     console.error('departs: pose disponibilité', e);
@@ -26099,7 +26250,7 @@ window.depPlanningRetirer = function(iso){
     try{
       addActivity('↩️', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a retiré sa réponse '
-        + 'pour le dimanche <strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+        + 'pour ' + _depPlNomJourPhrase(iso), "À l'instant");
     }catch(e){}
   }).catch(function(e){
     console.error('departs: retrait disponibilité', e);
@@ -26176,7 +26327,7 @@ window.depPlanningForcer = function(iso, id, dispo, nomExterne){
       addActivity('✏️', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a corrigé la réponse '
         + 'de <strong>' + nom + '</strong> (' + (dispo ? 'disponible' : 'pas disponible') + ') '
-        + 'pour le dimanche <strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+        + 'pour ' + _depPlNomJourPhrase(iso), "À l'instant");
     }catch(e){}
   }).catch(function(e){
     console.error('departs: forcer disponibilité', e);
@@ -26198,7 +26349,7 @@ window.depPlanningForcerRetirer = function(iso, id){
     try{
       addActivity('↩️', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a effacé la réponse '
-        + 'de <strong>' + nom + '</strong> pour le dimanche <strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+        + 'de <strong>' + nom + '</strong> pour ' + _depPlNomJourPhrase(iso), "À l'instant");
     }catch(e){}
   }).catch(function(e){
     console.error('departs: retrait (admin) disponibilité', e);
@@ -26278,14 +26429,166 @@ window.depPlanningExterneAjouter = function(iso, dispo){
     try{
       addActivity('➕', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a ajouté '
-        + '<strong>' + nom + '</strong> (intervenant ponctuel) pour le dimanche '
-        + '<strong>' + _depActiviteDate(iso) + '</strong>', "À l'instant");
+        + '<strong>' + nom + '</strong> (intervenant ponctuel) pour '
+        + _depPlNomJourPhrase(iso), "À l'instant");
     }catch(e){}
   }).catch(function(e){
     console.error('departs: ajout intervenant ponctuel', e);
     toast('❌ Échec, réessayez.');
   });
 };
+
+/* ─── Créer / supprimer un jour exceptionnel (v3.99.65) ─── */
+
+var _depPlJourFormOuvert = false;
+// Ce qui est déjà tapé dans le formulaire : une réponse qui arrive pendant
+// qu'on le remplit redessine l'écran — sans ça, tout serait effacé.
+var _depPlJourBrouillon = null;
+function _depPlJourSauverBrouillon(){
+  var d = document.getElementById('pl-jx-date');
+  if(!d){ return; }
+  _depPlJourBrouillon = {
+    date: d.value,
+    motif: (document.getElementById('pl-jx-motif') || {}).value || '',
+    cibles: [].slice.call(document.querySelectorAll('.pl-jx-cible:checked')).map(function(i){ return i.value; })
+  };
+}
+
+window.depPlanningJourOuvrir = function(){
+  if(!_depPeutOrganiserPlanning()) return;
+  _depPlJourBrouillon = null;
+  _depPlJourFormOuvert = true;
+  depRenderPlanning();
+};
+window.depPlanningJourFermer = function(){
+  _depPlJourFormOuvert = false;
+  depRenderPlanning();
+};
+
+function _depPlFormJour(){
+  var fixes = _depGensPlanning().map(function(c){ return c.id; });
+  var br = _depPlJourBrouillon;
+  if(br) fixes = br.cibles;
+  var vus = {};
+  var cases = (window.COLLABS || []).filter(function(c){
+    if(!c || c.desactive || vus[c.name]) return false;
+    vus[c.name] = true; return true;
+  }).map(function(c){
+    return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;'
+      + 'color:var(--text);padding:5px 10px;border:1.5px solid var(--border);border-radius:20px;'
+      + 'background:#fff;cursor:pointer;">'
+      + '<input type="checkbox" class="pl-jx-cible" value="' + esc(c.id) + '"'
+      + (fixes.indexOf(c.id) >= 0 ? ' checked' : '') + ' style="margin:0;"> ' + esc(c.name) + '</label>';
+  }).join('');
+  return '<div style="background:#FFF8F2;border:1.5px solid #E65100;border-radius:13px;'
+    +   'padding:13px 14px;margin-bottom:12px;">'
+    + '<div style="font-size:14.5px;font-weight:800;color:#E65100;margin-bottom:10px;">'
+    +   '&#128197; Nouveau jour exceptionnel</div>'
+    + '<input class="fi" id="pl-jx-date" type="date" min="' + _depPlIsoAujourdhui() + '" '
+    +   'value="' + esc(br ? br.date : '') + '" style="margin:0 0 8px;font-size:14px;">'
+    + '<input class="fi" id="pl-jx-motif" maxlength="60" value="' + esc(br ? br.motif : '') + '" '
+    +   'placeholder="Motif (ex : Tourn&eacute;e Bordeaux)" style="margin:0 0 10px;font-size:13.5px;">'
+    + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;margin-bottom:6px;">'
+    +   'QUI DOIT R&Eacute;PONDRE</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px;">' + cases + '</div>'
+    + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:11px;line-height:1.45;">'
+    +   'Chacun r&eacute;pond quand il veut : aucun d&eacute;lai, personne n\'est marqu&eacute; absent d\'office. '
+    +   'Les personnes coch&eacute;es re&ccedil;oivent une notification.</div>'
+    + '<div style="display:flex;gap:8px;">'
+    +   '<div onclick="depPlanningJourCreer()" style="flex:1;text-align:center;background:#E65100;color:#fff;'
+    +     'border:2px solid #B34700;border-radius:10px;padding:11px;font-size:13.5px;font-weight:800;cursor:pointer;">'
+    +     'Cr&eacute;er et pr&eacute;venir</div>'
+    +   '<div onclick="depPlanningJourFermer()" style="padding:11px 16px;border-radius:10px;font-size:13px;'
+    +     'font-weight:700;color:var(--text3);border:1.5px solid var(--border);background:#fff;cursor:pointer;">Annuler</div>'
+    + '</div>'
+    + '</div>';
+}
+
+window.depPlanningJourCreer = function(){
+  if(!_depPeutOrganiserPlanning()){ toast('⛔ Réservé à la direction.'); return; }
+  if(!window.db){ toast('❌ Pas de connexion.'); return; }
+  var iso = ((document.getElementById('pl-jx-date') || {}).value || '').trim();
+  var motif = ((document.getElementById('pl-jx-motif') || {}).value || '').trim().slice(0, 60);
+  var cibles = [].slice.call(document.querySelectorAll('.pl-jx-cible:checked')).map(function(i){ return i.value; });
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)){ toast('✏️ Choisissez une date.'); return; }
+  if(iso < _depPlIsoAujourdhui()){ toast('⚠️ Cette date est déjà passée.'); return; }
+  if(new Date(iso + 'T12:00:00').getDay() === 0){ toast('⚠️ C\'est un dimanche : il est déjà dans le planning.'); return; }
+  if(_depPlEstExceptionnel(iso)){ toast('⚠️ Ce jour exceptionnel existe déjà.'); return; }
+  if(!motif){ toast('✏️ Indiquez un motif (ex : Tournée Bordeaux).'); return; }
+  if(!cibles.length){ toast('✏️ Cochez au moins une personne.'); return; }
+  var u = window.currentUser || {};
+  db.ref('dct_planning_jours/' + iso).set({
+    motif: motif, cibles: cibles,
+    creePar: u.id || '', creeParNom: u.name || '', creeLe: Date.now()
+  }).then(function(){
+    toast('✅ Jour exceptionnel créé.');
+    _depPlJourFormOuvert = false; _depPlJourBrouillon = null;
+    depRenderPlanning();
+    var aPrevenir = cibles.filter(function(id){ return id !== u.id; });
+    if(aPrevenir.length){
+      try{
+        db.ref('dct_file_push').push({
+          titre  : 'Planning',
+          corps  : 'Jour exceptionnel : ' + motif + ', le ' + _depPlLibelleJour(iso) + '. Êtes-vous disponible ? Merci de répondre dans Planning.',
+          sujet  : 'planning-' + iso,
+          url    : './dct-app.html?ouvrir=planning',
+          cibles : aPrevenir,
+          par    : u.id || '',
+          creeLe : Date.now(),
+          envoye : false
+        });
+      }catch(e){ console.error('departs: notification jour exceptionnel', e); }
+    }
+    try{
+      addActivity('📅', u.bg,
+        '<strong style="color:' + u.color + '">' + u.name + '</strong> a créé le jour exceptionnel '
+        + '<strong>' + esc(motif) + '</strong> (' + _depPlLibelleJour(iso) + ')', "À l'instant");
+    }catch(e){}
+  }).catch(function(e){
+    console.error('departs: création jour exceptionnel', e);
+    toast('❌ Échec, réessayez.');
+  });
+};
+
+window.depPlanningJourSupprimer = function(iso){
+  if(!_depPeutOrganiserPlanning()){ toast('⛔ Réservé à la direction.'); return; }
+  var inf = _depPlInfoJour(iso);
+  if(!inf || !window.db) return;
+  if(!confirm('Supprimer le jour exceptionnel « ' + (inf.motif || '') + ' » (' + _depPlLibelleJour(iso) + ') et toutes les réponses déjà données ?')) return;
+  var u = window.currentUser || {};
+  var maj = {};
+  maj['dct_planning_jours/' + iso] = null;
+  maj['dct_planning/' + iso] = null;
+  db.ref().update(maj).then(function(){
+    toast('🗑️ Jour exceptionnel supprimé.');
+    _depPlanningModifIso = '';
+    depRenderPlanning();
+    try{
+      addActivity('🗑️', u.bg,
+        '<strong style="color:' + u.color + '">' + u.name + '</strong> a supprimé le jour exceptionnel '
+        + '<strong>' + esc(inf.motif || '') + '</strong> (' + _depPlLibelleJour(iso) + ')', "À l'instant");
+    }catch(e){}
+  }).catch(function(e){
+    console.error('departs: suppression jour exceptionnel', e);
+    toast('❌ Échec, réessayez.');
+  });
+};
+
+// Le titre d'un jour : « Dimanche 4 octobre », ou « Samedi 4 octobre » +
+// pastille EXCEPTIONNEL + motif.
+function _depPlTitreJour(dim, taille){
+  var base = dim.exceptionnel ? _depPlLibelleJour(dim.iso) : ('dimanche ' + dim.libelle);
+  base = base.charAt(0).toUpperCase() + base.slice(1);
+  return '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">'
+    + '<div style="font-size:' + (taille || 15.5) + 'px;font-weight:800;color:var(--text);">' + esc(base) + '</div>'
+    + (dim.exceptionnel
+        ? '<span style="font-size:9.5px;font-weight:800;color:#E65100;background:#FFE9D6;'
+          + 'padding:2px 8px;border-radius:20px;letter-spacing:.03em;">EXCEPTIONNEL</span>' : '')
+    + '</div>'
+    + (dim.exceptionnel && dim.motif
+        ? '<div style="font-size:12.5px;font-weight:700;color:#E65100;margin-top:2px;">'
+          + esc(dim.motif) + '</div>' : '');
+}
 
 /* Les trois petits boutons de correction — mêmes réglages pour un
    collaborateur du planning et pour un intervenant ponctuel, puisque la
@@ -26347,7 +26650,10 @@ window.depPlanningRelancer = function(iso){
   var aRelancer = c.muets.filter(function(x){ return x.id !== moi; });
   if(!aRelancer.length){ toast('✅ Tout le monde a déjà répondu.'); return; }
   var dim = _depProchainsDimanches(8).filter(function(d){ return d.iso === iso; })[0];
-  var quand = dim ? dim.libelle : iso;
+  var inf = _depPlInfoJour(iso);
+  // v3.99.65 : un jour exceptionnel se nomme par son jour + son motif.
+  var quand = inf ? (_depPlLibelleJour(iso) + (inf.motif ? ' (' + inf.motif + ')' : ''))
+                  : (dim ? dim.libelle : iso);
   var u = window.currentUser || {};
   // v1.94.25 : Cobey : « je voulais m'inclure dans les personnes qui
   // reçoivent, pour vérifier » — il n'est jamais parmi les muets (voir
@@ -26357,7 +26663,7 @@ window.depPlanningRelancer = function(iso){
   if(moi && cibles.indexOf(moi) < 0) cibles.push(moi);
   db.ref('dct_file_push').push({
     titre  : 'Planning',
-    corps  : 'Êtes-vous disponible dimanche ' + quand + ' ? Merci de répondre dans Planning.',
+    corps  : 'Êtes-vous disponible ' + (inf ? 'le ' : 'dimanche ') + quand + ' ? Merci de répondre dans Planning.',
     sujet  : 'planning-' + iso,
     // v2.5.3 : toucher la notification doit mener droit à Planning, pas
     // juste rouvrir l'application — sinon la personne doit encore
@@ -26374,7 +26680,7 @@ window.depPlanningRelancer = function(iso){
       addActivity('🔔', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a relancé '
         + aRelancer.length + ' personne' + (aRelancer.length > 1 ? 's' : '')
-        + ' pour le dimanche <strong>' + quand + '</strong>', "À l'instant");
+        + ' pour ' + (inf ? 'le ' : 'le dimanche ') + '<strong>' + esc(quand) + '</strong>', "À l'instant");
     }catch(e){}
     // v1.94.24 : Cobey : « il faudrait inscrire aussi les rappels [...]
     // et à qui ils ont été envoyés » — même trace que les rappels
@@ -26382,7 +26688,7 @@ window.depPlanningRelancer = function(iso){
     // cette relance manuelle aussi.
     try{
       db.ref('dct_annonces').push({
-        texte  : 'Rappel Planning envoyé pour dimanche ' + quand + '.',
+        texte  : 'Rappel Planning envoyé pour ' + (inf ? 'le ' : 'dimanche ') + quand + '.',
         par    : u.id || '',
         parNom : u.name || '',
         destinataires: aRelancer.map(function(x){ return x.name; }),
@@ -26412,16 +26718,13 @@ function _depPlanningBlocMien(dim){
   // ni l'autre ne donne de disponibilité — ils organisent, sans rouler
   // le dimanche (déjà exclus de _depGensPlanning). Cet onglet n'a jamais
   // rien à leur demander, verrouillé ou non.
-  var estParticipant = _depGensPlanning().some(function(c){ return c.id === u.id; });
+  var estParticipant = _depPeutRepondrePlanning();
   if(!estParticipant){
     return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:13px;'
       +   'padding:13px 14px;margin-bottom:10px;">'
-      + '<div style="display:flex;align-items:baseline;gap:8px;">'
-      +   '<div style="font-size:15.5px;font-weight:800;color:var(--text);">Dimanche '
-      +     esc(dim.libelle) + '</div>'
-      +   (col ? '<span style="font-size:10.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
+      + _depPlTitreJour(dim)
+      + (col ? '<span style="font-size:10.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
       +     'padding:2px 8px;border-radius:20px;">collecte créée</span>' : '')
-      + '</div>'
       + '<div style="margin-top:9px;font-size:12px;color:var(--text3);font-weight:600;">'
       +   'Vous organisez Planning — vous n\'avez pas de disponibilité à donner ici. '
       +   'Ouvrez « L\'équipe » pour suivre les réponses.'
@@ -26481,19 +26784,16 @@ function _depPlanningBlocMien(dim){
           + 'text-decoration:underline;">&#8617; Retirer ma r&eacute;ponse</div>') : '')
       // v2.6.0 : le rappel du délai, tant qu'il n'a pas encore répondu —
       // pour ne pas le laisser découvrir la règle une fois trop tard.
-      + (!r ? ('<div style="text-align:center;margin-top:9px;font-size:11px;'
+      + (!r && !dim.exceptionnel ? ('<div style="text-align:center;margin-top:9px;font-size:11px;'
           + 'color:#8a5a00;font-weight:700;">&#9203; Dernier d&eacute;lai : '
           + _depPlLibelleEcheance(dim.iso) + '</div>') : '');
   }
 
-  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:13px;'
-    +   'padding:13px 14px;margin-bottom:10px;">'
-    + '<div style="display:flex;align-items:baseline;gap:8px;">'
-    +   '<div style="font-size:15.5px;font-weight:800;color:var(--text);">Dimanche '
-    +     esc(dim.libelle) + '</div>'
-    +   (col ? '<span style="font-size:10.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
+  return '<div style="background:#fff;border:1.5px solid ' + (dim.exceptionnel ? '#E65100' : 'var(--border)')
+    +   ';border-radius:13px;padding:13px 14px;margin-bottom:10px;">'
+    + _depPlTitreJour(dim)
+    + (col ? '<span style="display:inline-block;margin-top:4px;font-size:10.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
     +     'padding:2px 8px;border-radius:20px;">collecte cr&eacute;&eacute;e</span>' : '')
-    + '</div>'
     + (r && !verrouille ? ('<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;">'
         + (r.mot ? ('&laquo;&nbsp;' + esc(r.mot) + '&nbsp;&raquo; &mdash; ') : '')
         + _depPlQuiEtQuand(r, false) + '</div>') : '')
@@ -26503,7 +26803,7 @@ function _depPlanningBlocMien(dim){
 
 function _depPlanningBlocEquipe(dim){
   var c = _depCompteDispo(dim.iso);
-  var gens = _depGensPlanning();
+  var gens = _depGensPourJour(dim.iso);
   var enModif = _depPlanningModifIso === dim.iso;
   var lignes = gens.map(function(pers){
     var r = _depDispoDe(dim.iso, pers.id);
@@ -26631,13 +26931,19 @@ function _depPlanningBlocEquipe(dim){
       : ('<div onclick="depPlanningModifierJour(\'' + dim.iso + '\')" style="text-align:center;'
           + 'background:#fff;color:#E65100;border:1.5px solid #E65100;border-radius:9px;padding:8px;'
           + 'font-size:12px;font-weight:700;cursor:pointer;margin-bottom:10px;">'
-          + '&#9999;&#65039; Modifier ce dimanche</div>');
+          + '&#9999;&#65039; Modifier ce ' + (dim.exceptionnel ? 'jour' : 'dimanche') + '</div>');
   }
+  // v3.99.65 : supprimer un jour exceptionnel créé par erreur — rangé lui
+  // aussi derrière le mode modification, comme les autres actions.
+  var boutonSuppr = (enModif && dim.exceptionnel && _depPeutOrganiserPlanning())
+    ? '<div onclick="depPlanningJourSupprimer(\'' + dim.iso + '\')" style="text-align:center;margin-top:12px;'
+      + 'background:#fff;color:#992020;border:1.5px solid #c0392b;border-radius:9px;padding:9px;'
+      + 'font-size:12.5px;font-weight:800;cursor:pointer;">&#128465;&#65039; Supprimer ce jour exceptionnel</div>'
+    : '';
 
-  return '<div style="background:#fff;border:1.5px solid ' + (enModif ? '#E65100' : 'var(--border)')
+  return '<div style="background:#fff;border:1.5px solid ' + ((enModif || dim.exceptionnel) ? '#E65100' : 'var(--border)')
     +   ';border-radius:13px;padding:13px 14px;margin-bottom:10px;">'
-    + '<div style="font-size:15px;font-weight:800;color:var(--text);">Dimanche '
-    +   esc(dim.libelle) + '</div>'
+    + _depPlTitreJour(dim, 15)
     + '<div style="display:flex;gap:7px;margin:9px 0 10px;flex-wrap:wrap;">'
     +   '<span style="font-size:11.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
     +     'padding:3px 10px;border-radius:20px;">' + c.oui + ' dispo</span>'
@@ -26655,6 +26961,7 @@ function _depPlanningBlocEquipe(dim){
     + lignes
     + relance
     + blocExternes
+    + boutonSuppr
     + '</div>';
 }
 
@@ -26664,7 +26971,8 @@ window.depPlanningOnglet = function(o){ _depPlanningOnglet = o; depRenderPlannin
 window.depRenderPlanning = function(){
   var box = document.getElementById('pl-contenu');
   if(!box) return;
-  var dims = _depProchainsDimanches(5);
+  if(_depPlJourFormOuvert) _depPlJourSauverBrouillon();
+  var dims = _depPlanningJours();
   var u = window.currentUser || {};
   // v3.99.47 — Cobey : « pour Aminata et moi, tu peux enlever l'onglet
   // "Mes disponibilités". Au final, il ne sert à rien, vu que nous, on
@@ -26675,7 +26983,11 @@ window.depRenderPlanning = function(){
   // (Eric, Aminata — organisateurs, jamais sur le terrain le dimanche),
   // l'onglet disparaît carrément : seule "L'équipe" reste, affichée
   // d'office, sans bascule à montrer pour un seul choix possible.
-  var estParticipant = _depGensPlanning().some(function(c){ return c.id === u.id; });
+  // v3.99.65 — Cobey : « tu me remets l'onglet pour me rendre disponible,
+  // maintenant je vais essayer de les aider » — l'onglet revient pour Eric
+  // (DEP_IDS_PLANNING_VOLONTAIRES) et pour quiconque est visé par un jour
+  // exceptionnel (Aminata, si on le lui demande).
+  var estParticipant = _depPeutRepondrePlanning();
   if(!estParticipant) _depPlanningOnglet = 'equipe';
 
   var onglet = function(cle, libelle){
@@ -26686,7 +26998,17 @@ window.depRenderPlanning = function(){
                  + 'border:1.5px solid var(--border);') + '">' + libelle + '</div>';
   };
 
-  var h = estParticipant
+  var h = '';
+  // v3.99.65 : « Jour exceptionnel » — Direction et Aminata (ceux qui
+  // organisent le planning), comme la relance et les corrections.
+  if(_depPeutOrganiserPlanning()){
+    h += _depPlJourFormOuvert
+      ? _depPlFormJour()
+      : '<div onclick="depPlanningJourOuvrir()" style="text-align:center;background:#FFF8F2;color:#E65100;'
+        + 'border:1.5px dashed #E65100;border-radius:11px;padding:11px;font-size:13.5px;font-weight:800;'
+        + 'cursor:pointer;margin-bottom:12px;">+ Jour exceptionnel</div>';
+  }
+  h += estParticipant
     ? ('<div style="display:flex;gap:8px;margin-bottom:14px;">'
        + onglet('moi', 'Mes disponibilit&eacute;s')
        + onglet('equipe', 'L\'&eacute;quipe')
@@ -26697,7 +27019,9 @@ window.depRenderPlanning = function(){
     h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-bottom:11px;'
       + 'line-height:1.45;">Dites &agrave; l\'avance quand vous pouvez travailler. '
       + 'Vous pouvez changer d\'avis &agrave; tout moment.</div>';
-    h += dims.map(_depPlanningBlocMien).join('');
+    var mesJours = _depJoursPourMoi();
+    h += mesJours.length ? mesJours.map(_depPlanningBlocMien).join('')
+      : '<div style="font-size:12.5px;color:var(--text3);font-weight:600;">Rien &agrave; renseigner pour l\'instant.</div>';
   } else {
     h += dims.map(_depPlanningBlocEquipe).join('');
   }
