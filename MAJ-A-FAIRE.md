@@ -4968,3 +4968,16 @@ effacement dans Réglages > Outils > « Relevé de lenteur ». Le chronométrage
 enveloppe `Query.prototype.on` sans toucher aux données (callback d'origine
 inchangé). Non vérifié avec le vrai SDK Firebase (indisponible ici : testé
 avec un faux).
+
+**22/10, v3.99.75 (departs.js v2.21.10) — Relevé de lenteur : minuteurs,
+affichages et gros JSON chronométrés.** Premier relevé réel de Cobey
+(v3.99.74) : toutes les pauses (de 1,5 s à 13,5 s) et appuis lents (jusqu'à
+21 s) tombent sur l'écran **France & Europe** (onglet Collectes, filtre
+région, ouverture d'une fiche, bouton « Prêt »), alors qu'aucune écoute
+Firebase n'est en cause (toutes ≤ 28 ms, /france : 4 ms). Le blocage vient
+donc de code déclenché après coup (minuteur, redessin) ou d'un traitement
+lourd, pas de la réception des données. Le relevé note maintenant aussi :
+les minuteurs (`setTimeout`) de plus de 100 ms, les fonctions d'affichage
+principales (France, Collecte, fiches, container) de plus de 80 ms, les
+`JSON.parse` / `JSON.stringify` de plus de 40 ms avec leur taille en Ko.
+Prochaine étape : nouveau relevé à la prochaine lenteur en France & Europe.

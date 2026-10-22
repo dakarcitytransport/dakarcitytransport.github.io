@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.9';
+var DEP_VERSION = 'v2.21.10';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25698,6 +25698,63 @@ window._depReleveInstallerFirebase = _depReleveInstallerFirebase;
     _depReleveNoter(document.hidden ? 'fond' : 'retour', document.hidden ? 'appli passée en arrière-plan' : 'retour au premier plan · écran ' + _depEcranActifId(), 0);
   });
 
+  // v3.99.75 — 1er relevé réel de Cobey : toutes les pauses (jusqu'à 13 s)
+  // tombaient sur l'écran France & Europe, sans qu'aucune écoute Firebase
+  // ne soit en cause (toutes sous 30 ms). On chronomètre donc aussi :
+  // · les minuteurs (setTimeout) qui durent plus de 100 ms — le coupable
+  //   probable d'un redessin différé ;
+  // · les fonctions d'affichage principales (France, Collecte, fiches) ;
+  // · les gros JSON.parse / JSON.stringify (une fiche aux photos
+  //   embarquées peut peser des Mo) et les gros envois Firebase.
+  try{
+    var _setT = window.setTimeout;
+    window.setTimeout = function(fn, delai){
+      if(typeof fn !== 'function') return _setT.apply(window, arguments);
+      var args = Array.prototype.slice.call(arguments);
+      args[0] = function(){
+        var t0 = performance.now();
+        try{ return fn.apply(this, arguments); }
+        finally{
+          var ms = performance.now() - t0;
+          if(ms > 100) _depReleveNoter('minuteur', (fn.name || String(fn).replace(/\s+/g, ' ').slice(0, 70)) + ' · écran ' + _depEcranActifId(), ms);
+        }
+      };
+      return _setT.apply(window, args);
+    };
+  }catch(e){}
+  try{
+    var _jp = JSON.parse, _js = JSON.stringify;
+    JSON.parse = function(txt){
+      var t0 = performance.now(), r = _jp.apply(JSON, arguments), ms = performance.now() - t0;
+      if(ms > 40) _depReleveNoter('json', 'lecture de ' + Math.round(String(txt).length / 1024) + ' Ko · écran ' + _depEcranActifId(), ms);
+      return r;
+    };
+    JSON.stringify = function(){
+      var t0 = performance.now(), r = _js.apply(JSON, arguments), ms = performance.now() - t0;
+      if(ms > 40) _depReleveNoter('json', 'écriture de ' + Math.round(String(r || '').length / 1024) + ' Ko · écran ' + _depEcranActifId(), ms);
+      return r;
+    };
+  }catch(e){}
+  setTimeout(function(){
+    ['renderFrance','_frRenderFranceCorps','_frListeCollectes','_frDispatch','switchFranceTab','_frOuvrirFiche','_franceRedessinerSiLibre',
+     'renderCollectesList','renderClientsTab','renderDispatchTab','_dctRedessinerEcranActif','depRenderEspaces','depDetail',
+     'depRenderFicheLecture','ouvrirFicheFrance','renderFrance'].forEach(function(nom){
+      var f = window[nom];
+      if(typeof f !== 'function' || f.__releve) return;
+      var w = function(){
+        var t0 = performance.now();
+        try{ return f.apply(this, arguments); }
+        finally{
+          var ms = performance.now() - t0;
+          if(ms > 80) _depReleveNoter('fonction', nom + ' · écran ' + _depEcranActifId(), ms);
+        }
+      };
+      w.__releve = true;
+      for(var k in f){ try{ w[k] = f[k]; }catch(e){} }
+      window[nom] = w;
+    });
+  }, 4000);
+
   // Appuis : délai entre le toucher et le prochain affichage.
   document.addEventListener('pointerdown', function(ev){
     var t0 = performance.now();
@@ -25712,7 +25769,7 @@ window._depReleveInstallerFirebase = _depReleveInstallerFirebase;
   }, true);
 })();
 
-var _DEP_RELEVE_LIB = { ecoute:'📡 Réponse Firebase lente', pause:'🧊 Écran figé', appui:'👆 Appui lent', demarrage:'🔄 Démarrage', retour:'↩️ Retour dans l\'appli', fond:'⏸️ Arrière-plan' };
+var _DEP_RELEVE_LIB = { minuteur:'⏲️ Minuteur long', fonction:'🧩 Affichage lent', json:'📦 Gros JSON', ecoute:'📡 Réponse Firebase lente', pause:'🧊 Écran figé', appui:'👆 Appui lent', demarrage:'🔄 Démarrage', retour:'↩️ Retour dans l\'appli', fond:'⏸️ Arrière-plan' };
 
 function _depReleveTexte(){
   var l = ['RELEVÉ DE LENTEUR — ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '') + ' / ' + DEP_VERSION, ''];
