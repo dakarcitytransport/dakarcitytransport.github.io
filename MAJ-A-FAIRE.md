@@ -4813,3 +4813,19 @@ les réponses (équipe fixe + volontaires), mais jamais de verrou du jeudi
 tournée France & Europe hors dimanche compte dans les présences si le
 Planning a au moins une réponse ce jour-là (les anciennes collectes,
 sans réponse, n'afficheraient que des « ? »).
+
+**22/10, v3.99.67 — créer une tournée France & Europe sans date.** Cobey :
+« pour les tournées France-Europe, il faudrait avoir la possibilité de
+créer la tournée sans forcément mettre de date au début. Et une fois
+qu'on a bien organisé la tournée, là on met une date. Les tournées
+France-Europe, c'est complexe à organiser. » Le formulaire « Nouvelle
+collecte » accepte désormais une date vide (bouton « Pas encore de date »),
+à condition de donner un nom — sans nom, la tournée serait introuvable
+dans la liste. Une tournée sans date (`dateIso` vide, `dateLib` = « date à
+fixer ») apparaît dans une section « À organiser · date à fixer » de la
+liste des collectes, badge « À organiser », avec « 📅 Date à fixer » ; on
+enchaîne comme d'habitude sur le choix des clients et des camions. La
+date se renseigne plus tard par le ✏️ de la carte (déjà existant) : la
+tournée passe alors dans « En cours »/« À venir » selon sa semaine, et
+entre toute seule au Planning (qui ignore les collectes sans date). Le
+refus d'une deuxième collecte à la même date est inchangé.

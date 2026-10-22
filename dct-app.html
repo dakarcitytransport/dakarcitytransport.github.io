@@ -613,7 +613,14 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
          restreindre ici — un simple sélecteur de date libre remplace
          la grille de dimanches + le mode "jour exceptionnel" (qui
          n'était qu'un détour pour arriver au même résultat). -->
-    <div class="fg"><label class="fl">Date de la collecte</label><input class="fi" type="date" id="fr-date-collecte"></div>
+    <div class="fg"><label class="fl">Date de la collecte <span style="color:#aaa;font-weight:500;">(facultative)</span></label>
+      <input class="fi" type="date" id="fr-date-collecte">
+      <!-- v3.99.67 — Cobey : « pouvoir créer la tournée sans forcément
+           mettre de date au début [...] une fois qu'on a bien organisé la
+           tournée, là on met une date. Les tournées France-Europe, c'est
+           complexe à organiser. » -->
+      <div style="font-size:12px;color:#888;margin-top:6px;line-height:1.45;">Pas encore de date ? Laissez vide et donnez un nom ci-dessous : la tournée apparaît dans « À organiser », vous fixerez la date plus tard.</div>
+      <button type="button" class="btn btn-gray" style="margin:8px 0 0;" onclick="document.getElementById('fr-date-collecte').value=''">📅 Pas encore de date</button></div>
     <!-- v3.99.52 — Cobey : « mets la possibilité de mettre un nom pour
          les collectes France Europe type (Marseille, Bordeaux, région
          du nord) comme ça on peut savoir et préparer des camions à
@@ -1982,7 +1989,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.66';
+var APP_VERSION = 'v3.99.67';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5162,12 +5169,15 @@ function creerCollecteFrance(){
   var J=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
   var M=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   var v=((document.getElementById('fr-date-collecte')||{}).value)||'';
-  if(!v){ showToastNew('⚠️ Veuillez sélectionner une date.'); return; }
-  var dt=new Date(v+'T12:00:00');
-  var lib=J[dt.getDay()]+' '+dt.getDate()+' '+M[dt.getMonth()]+' '+dt.getFullYear();
+  var nom=((document.getElementById('fr-nom-collecte')||{}).value||'').trim();
+  // v3.99.67 : sans date, il faut au moins un nom — sinon impossible de
+  // reconnaître la tournée dans la liste.
+  if(!v && !nom){ showToastNew('⚠️ Choisissez une date, ou donnez un nom à la tournée.'); return; }
+  var dt=v ? new Date(v+'T12:00:00') : null;
+  var lib=v ? (J[dt.getDay()]+' '+dt.getDate()+' '+M[dt.getMonth()]+' '+dt.getFullYear()) : 'date à fixer';
 
   var rs=_frCollectes();
-  var doublon=Object.keys(rs).some(function(k){ return rs[k] && rs[k].dateIso===v; });
+  var doublon=v && Object.keys(rs).some(function(k){ return rs[k] && rs[k].dateIso===v; });
   if(doublon){ showToastNew('⚠️ Une collecte existe déjà pour le '+lib+'.'); return; }
 
   // Statut calculé selon la semaine en cours — jamais choisi à la main,
@@ -5179,10 +5189,8 @@ function creerCollecteFrance(){
   debutSemaine.setDate(now2.getDate()+diffLundi); debutSemaine.setHours(0,0,0,0);
   var finSemaine=new Date(debutSemaine);
   finSemaine.setDate(debutSemaine.getDate()+6); finSemaine.setHours(23,59,59,999);
-  var dateCollecte=new Date(v+'T12:00:00');
-  var statut=(dateCollecte>=debutSemaine && dateCollecte<=finSemaine) ? 'en_cours' : 'a_venir';
-
-  var nom=((document.getElementById('fr-nom-collecte')||{}).value||'').trim();
+  var dateCollecte=v ? new Date(v+'T12:00:00') : null;
+  var statut=(dateCollecte && dateCollecte>=debutSemaine && dateCollecte<=finSemaine) ? 'en_cours' : 'a_venir';
 
   var rid='fr_'+Date.now();
   var maj={};
@@ -5192,7 +5200,7 @@ function creerCollecteFrance(){
     clients:[], trucks:{}, assigned:{}
   };
   _frUpdate(maj).then(function(){
-    showToastNew('✅ Collecte '+(nom?(nom+' — '):'')+'du '+lib+' créée');
+    showToastNew('✅ Collecte '+(nom?(nom+' — '):'')+(v?'du ':'')+lib+' créée');
     _activiteFrance('🚛','a créé la collecte <strong>'+(nom?(nom+' — '):'')+lib+'</strong>');
     currentCollecteFrId=rid;
     // v3.95.4 : "Nouvelle collecte" est désormais un écran à part
@@ -5229,7 +5237,7 @@ function ouvrirStatutCollecteFr(id){
     // Même fenêtre que le statut (déjà réservée à la direction, déjà
     // sur chaque carte) plutôt qu'un bouton de plus.
     modal.innerHTML='<div class="modal-sheet"><div class="modal-title">Modifier la collecte</div>'
-      + '<div class="fg" style="text-align:left;"><label class="fl">Date</label>'
+      + '<div class="fg" style="text-align:left;"><label class="fl">Date <span style="color:#aaa;font-weight:500;">(à renseigner quand la tournée est organisée)</span></label>'
       +   '<input class="fi" type="date" id="fc-date-input"></div>'
       + '<button class="btn btn-gray" style="margin:0 0 14px;" onclick="changerDateCollecteFr()">📅 Enregistrer cette date</button>'
       // v3.99.52 — Cobey : « mets la possibilité de mettre un nom pour
@@ -5913,8 +5921,10 @@ function _frListeCollectes(){
     return s;
   };
   h+=section('En cours', g.enCours);
-  h+=section('À venir',  g.aVenir);
-
+  // v3.99.67 : les tournées encore sans date, à part — celles qu'on est
+  // en train d'organiser.
+  h+=section('À organiser · date à fixer', g.aVenir.filter(function(r){ return !r.dateIso; }));
+  h+=section('À venir',  g.aVenir.filter(function(r){ return !!r.dateIso; }));
   if(g.finis.length){
     var ouvert=(localStorage.getItem('dct_frc_hist_open')==='1');
     h+='<div onclick="_frToggleHistCollectes()" style="display:flex;align-items:center;justify-content:space-between;padding:12px 4px;cursor:pointer;user-select:none;">'
@@ -5955,7 +5965,8 @@ function _frCarteCollecte(r){
   var gere=_peutGererFrance();
   var cadre = r.statut==='en_cours' ? 'border-green' : (r.statut==='a_venir' ? 'border-blue' : 'locked');
   var badge = r.statut==='en_cours' ? 'badge-green' : (r.statut==='a_venir' ? 'badge-blue' : 'badge-gray');
-  var lib   = r.statut==='en_cours' ? 'En cours' : (r.statut==='a_venir' ? 'À venir' : 'Terminé');
+  var lib   = r.statut==='en_cours' ? 'En cours' : (r.statut==='a_venir' ? (r.dateIso ? 'À venir' : 'À organiser') : 'Terminé');
+  var dateAff = r.dateIso ? r.dateLib : '📅 Date à fixer';
   // v3.99.52 — Cobey : « mets la possibilité de mettre un nom pour les
   // collectes France Europe [...] comme ça on peut savoir et préparer
   // des camions à l'avance. » Quand un nom est renseigné, il devient le
@@ -5964,8 +5975,8 @@ function _frCarteCollecte(r){
   // carte garde exactement son ancien affichage (juste la date).
   var carteTitre = r.nom
     ? ('<div class="collecte-card-date">'+_esc(r.nom)+(r.statut==='terminee'?' 🔒':'')+'</div>'
-       + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:2px;">'+r.dateLib+'</div>')
-    : ('<div class="collecte-card-date">'+r.dateLib+(r.statut==='terminee'?' 🔒':'')+'</div>');
+       + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:2px;">'+dateAff+'</div>')
+    : ('<div class="collecte-card-date">'+dateAff+(r.statut==='terminee'?' 🔒':'')+'</div>');
   return '<div class="collecte-card '+cadre+'">'
     + '<div class="collecte-card-top" onclick="ouvrirCollecteFrance(\''+r._id+'\')">'
     +   '<div>'+carteTitre+'</div>'
