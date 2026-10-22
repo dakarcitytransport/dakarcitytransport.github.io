@@ -4901,3 +4901,22 @@ répondu (`_depGensPourJour`). L'onglet « L'équipe » ajoute maintenant les
 volontaires (`DEP_IDS_PLANNING_VOLONTAIRES`) sur chaque jour, en « rien
 mis » tant qu'il n'a pas répondu. Il reste hors des compteurs « sans
 réponse », des relances et du Bilan (`_depGensPourJour` n'est pas modifiée).
+
+**22/10, mamadou.html v1.14.9 — Dépôt Dakar de Mamadou + retour vers DCT.**
+Cobey : « côté Mamadou Niass, on a le même problème que côté DCT pour le
+stockage : il ne montre que les personnes qui restent livrées, et tout en
+bas ceux qui ont récupéré leur colis sont affichés. Il faut refaire la
+même chose. » Même correction que v3.99.70/71 : tous les clients d'un
+container arrivé (livraison + retrait, pastille 🚚/🏪), ceux déjà remis ou
+livrés (`livraisonValidee.fait` ou `remisAuClient`) disparaissent. Compteur
+« N clients encore au dépôt » (il affichait « &agrave; » en toutes lettres :
+`textContent` → `innerHTML`). Paiement, d'après Cobey : « soldé, pas besoin
+de mettre le prix ; pour ceux qui restent à payer, le prix » et, avec
+livraison, « le détail, manque colis et manque livraison » : ✅ Soldé /
+« Reste 60 € » (retrait) / « Reste colis : 40 € · Reste livraison : 15 € » /
+« Non payé · colis X € · livraison Y € » si rien n'est payé.
+Retour : « quand DCT va dans l'interface de Mamadou on ne peut pas revenir
+[...] seulement l'accueil ça suffit » → bouton « ← Retour à DCT » en haut
+de l'accueil de Mamadou, visible uniquement avec l'accès Direction
+(`?direction=`) ; il ferme l'onglet, sinon renvoie vers dct-app.html.
+Non testé sur iPhone (fermeture d'onglet dépend du navigateur).

@@ -218,6 +218,10 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
   <div id="ecran-accueil" hidden class="card">
     <div class="topbar"></div>
     <div class="pad">
+      <!-- v1.14.9 — Cobey : « quand nous, DCT, allons dans l'interface de
+           Mamadou, on ne peut pas revenir en arrière [...] seulement
+           l'accueil ça suffit. » Visible uniquement avec l'accès Direction. -->
+      <div class="retour-haut" id="mn-retour-dct" style="display:none;" onclick="mnRetourDCT()">&larr; Retour &agrave; DCT</div>
       <img class="mn-logo-img" id="mn-logo-accueil" alt="DCT">
       <h1>Mes livraisons</h1>
       <div class="sub">Mamadou Niass &mdash; Dakar City Transport</div>
@@ -238,7 +242,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
              de Dakar, la même que pour DCT, mais il reste dans son appli. » -->
         <div class="case" style="border-color:#C9B8E8;background:#FAF7FF;" onclick="ouvrirDepotDakar()">
           <div class="case-ico">&#127970;</div>
-          <div><div class="case-tit">D&eacute;p&ocirc;t Dakar</div><div class="case-sub">Tout ce qui reste &agrave; livrer, tous containers arriv&eacute;s</div></div>
+          <div><div class="case-tit">D&eacute;p&ocirc;t Dakar</div><div class="case-sub">Tout ce qui est encore au d&eacute;p&ocirc;t, tous containers arriv&eacute;s</div></div>
         </div>
       </div>
       <div class="lien-discret" id="mn-lien-changer-mdp" onclick="mnOuvrirChangerMotDePasse()">Changer mon mot de passe</div>
@@ -449,7 +453,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.7';
+var MAMADOU_VERSION = 'v1.14.9';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -766,6 +770,13 @@ function apresChargement(){
   if(!_modeDirection) activiteExterne('🔓', '<strong>Mamadou Niass</strong> s’est connecté.');
 }
 
+// Ouvert depuis DCT dans un nouvel onglet : on le ferme pour retomber sur
+// DCT ; si le navigateur refuse, on y retourne directement.
+function mnRetourDCT(){
+  try{ window.close(); }catch(e){}
+  setTimeout(function(){ location.href = 'dct-app.html'; }, 350);
+}
+
 function mnAccueilOuvrir(){
   goTo('ecran-chargement');
   demarrerEcoutes();
@@ -999,7 +1010,10 @@ function _mnListeDepotDakar(){
     var etape = d.etapesTransport && d.etapesTransport.arrivee_depot;
     var tsArrivee = (etape && etape.fait && etape.ts) || null;
     clientsDuContainer(did).forEach(function(x){
-      if(!x.c || !x.c.livraisonDakar) return;
+      // v1.14.8 — Cobey : même problème que côté DCT, la liste ne montrait
+      // que les clients en livraison ; ceux qui viennent chercher leur
+      // colis (retrait) en étaient absents.
+      if(!x.c) return;
       out.push({ departId:did, depart:d, tsArrivee:tsArrivee, src:x.src, collecteId:x.collecteId, clientId:x.clientId, c:x.c });
     });
   });
@@ -1015,6 +1029,37 @@ function _mnInfoGardiennage(tsArrivee){
   var joursRetard = enRetard ? Math.max(1, Math.ceil((ms - 48*3600000) / 86400000)) : 0;
   return { heures:heures, joursDepot:joursDepot, enRetard:enRetard, joursRetard:joursRetard,
            montant: joursRetard * 5, alerte60: joursDepot >= 60 };
+}
+
+// Un colis a quitté le dépôt dès qu'il est remis au client : livraison
+// validée ou remise en main propre (posés ensemble par la validation).
+function _mnColisRemis(c){
+  return !!(c && ((c.livraisonValidee && c.livraisonValidee.fait) || c.remisAuClient));
+}
+
+// v1.14.8 — Cobey : « tu mets soldé, pas besoin de mettre le prix [...]
+// pour ceux qui restent à payer, tu mets le prix » et, s'il y a une
+// livraison à payer, « le détail, manque colis et manque livraison ».
+function _mnPastillePaiement(c){
+  if(c && c.prixADefinir) return '<div class="cli-liv cli-liv-reste">Prix &agrave; d&eacute;finir</div>';
+  var pc = depCalculerPaiement(c), pl = depCalculerPaiementLivraison(c);
+  if(pc.total + pl.total <= 0) return '';
+  var resteC = pc.reste, resteL = c.livraisonDakar ? pl.reste : 0;
+  if(resteC <= 0 && resteL <= 0) return '<div class="cli-liv cli-liv-soldee">&#9989; Sold&eacute;</div>';
+  var rienPaye = (pc.paye + pl.paye) <= 0;
+  var lignes;
+  if(!c.livraisonDakar){
+    lignes = [(rienPaye ? 'Non pay&eacute; &middot; ' : 'Reste ') + resteC + ' &euro;'];
+  } else if(rienPaye){
+    lignes = ['Non pay&eacute; &middot; colis ' + pc.total + ' &euro; &middot; livraison ' + pl.total + ' &euro;'];
+  } else {
+    lignes = [];
+    if(resteC > 0) lignes.push('Reste colis : ' + resteC + ' &euro;');
+    if(resteL > 0) lignes.push('Reste livraison : ' + resteL + ' &euro;');
+  }
+  var fond = rienPaye ? 'background:#FDECEC;color:#B3261E;' : '';
+  return '<div class="cli-reste" style="' + fond + (rienPaye ? 'display:inline-block;border-radius:8px;padding:4px 9px;' : '') + '">'
+    + lignes.join('<br>') + '</div>';
 }
 
 function _mnBadgeDepotDakar(c, tsArrivee){
@@ -1038,16 +1083,15 @@ function _mnBadgeDepotDakar(c, tsArrivee){
 
 function _mnRenderDepotDakar(){
   var q = (($('dd-recherche')||{}).value || '').toLowerCase().trim();
-  var tous = _mnListeDepotDakar();
+  // v1.14.8 — Cobey : seuls les colis encore au dépôt ; ceux déjà remis
+  // au client n'ont plus rien à faire dans cette liste.
+  var tous = _mnListeDepotDakar().filter(function(x){ return !_mnColisRemis(x.c); });
   var liste = !q ? tous : tous.filter(function(x){ return String(x.c.name||'').toLowerCase().indexOf(q) !== -1; });
   liste = liste.slice().sort(function(a, b){
-    var aFait = !!(a.c.livraisonValidee && a.c.livraisonValidee.fait);
-    var bFait = !!(b.c.livraisonValidee && b.c.livraisonValidee.fait);
-    if(aFait !== bFait) return aFait ? 1 : -1;
     return (a.tsArrivee||0) - (b.tsArrivee||0);
   });
-  $('dd-compteur').textContent = (tous.length - tous.filter(function(x){ return x.c.livraisonValidee && x.c.livraisonValidee.fait; }).length)
-    + ' colis encore &agrave; livrer';
+  // (innerHTML : les entités &…; s'affichaient en toutes lettres avec textContent)
+  $('dd-compteur').innerHTML = tous.length + ' client' + (tous.length > 1 ? 's' : '') + ' encore au d&eacute;p&ocirc;t';
   if(!liste.length){
     $('dd-liste').innerHTML = '<div class="vide">' + (q ? 'Aucun client ne correspond.' : 'Rien au D&eacute;p&ocirc;t Dakar pour l\'instant.') + '</div>';
     return;
@@ -1057,8 +1101,10 @@ function _mnRenderDepotDakar(){
     var c = x.c;
     h += '<div class="cli-item" onclick="ouvrirFiche({src:\''+x.src+'\',collecteId:\''+esc(x.collecteId)+'\',clientId:\''+esc(x.clientId)+'\'},false,\'ecran-depot-dakar\')">'
       +   '<div class="cli-top"><div class="cli-nom">'+esc(c.name||'')+'</div></div>'
-      +   '<div class="cli-sub">Container '+esc((x.depart||{}).nom||'—')+'</div>'
+      +   '<div class="cli-sub">Container '+esc((x.depart||{}).nom||'—')
+      +     (c.livraisonDakar ? ' &middot; &#128666; Livraison' : ' &middot; &#127978; Retrait') + '</div>'
       +   _mnBadgeDepotDakar(c, x.tsArrivee)
+      +   _mnPastillePaiement(c)
       + '</div>';
   });
   $('dd-liste').innerHTML = h;
@@ -1981,6 +2027,7 @@ function mnValiderChangementMotDePasse(){
       _modeDirection = true;
       ACTEUR_NOM = 'Direction (test)';
       try{ $('mn-lien-changer-mdp').style.display = 'none'; }catch(e){}
+      try{ $('mn-retour-dct').style.display = 'inline-block'; }catch(e){}
       mnAccueilOuvrir();
     }).catch(function(e){
       console.error('mamadou: vérification du lien direction', e);
