@@ -4892,3 +4892,12 @@ reste X € sur Y € / non payé, colis + livraison, comme le badge de la
 facture). Récap : « au dépôt », « X soldés sur N », total encore à
 encaisser. Les cartes orange du container utilisent la même règle, donc
 même chiffre des deux côtés. Écran Stockage : « N clients encore au dépôt ».
+
+**22/10, v3.99.72 (departs.js v2.21.7) — Planning : Eric listé sur tous les
+jours.** Cobey : « pourquoi j'apparais pas sur les autres dates ? Je suis
+que sur les premières dates. » Cause : Eric n'est pas dans l'équipe fixe, il
+n'était donc listé dans « L'équipe » que les jours où il avait déjà
+répondu (`_depGensPourJour`). L'onglet « L'équipe » ajoute maintenant les
+volontaires (`DEP_IDS_PLANNING_VOLONTAIRES`) sur chaque jour, en « rien
+mis » tant qu'il n'a pas répondu. Il reste hors des compteurs « sans
+réponse », des relances et du Bilan (`_depGensPourJour` n'est pas modifiée).

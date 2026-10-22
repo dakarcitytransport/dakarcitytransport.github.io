@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.6';
+var DEP_VERSION = 'v2.21.7';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -26758,7 +26758,17 @@ function _depPlanningBlocMien(dim){
 
 function _depPlanningBlocEquipe(dim){
   var c = _depCompteDispo(dim.iso);
-  var gens = _depGensPourJour(dim.iso);
+  var gens = _depGensPourJour(dim.iso).slice();
+  // v3.99.72 — Cobey : « pourquoi j'apparais pas sur les autres dates ?
+  // Je suis que sur les premières dates. » Un volontaire (Eric) n'était
+  // listé que les jours où il avait déjà répondu. Il figure maintenant sur
+  // chaque jour (« rien mis » tant qu'il n'a pas répondu) ; il reste hors
+  // des compteurs et des relances, seule _depGensPourJour (aussi lue par le
+  // Bilan) n'est pas touchée.
+  (window.COLLABS || []).forEach(function(col){
+    if(col && !col.desactive && DEP_IDS_PLANNING_VOLONTAIRES.indexOf(col.id) >= 0
+       && !gens.some(function(g){ return g.id === col.id; })) gens.push(col);
+  });
   var enModif = _depPlanningModifIso === dim.iso;
   var lignes = gens.map(function(pers){
     var r = _depDispoDe(dim.iso, pers.id);
