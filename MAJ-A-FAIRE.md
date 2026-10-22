@@ -4928,3 +4928,11 @@ Regrouper) ne compte plus nulle part ; mamadou.html n'en tenait pas compte
 et la listait en plus (2 fiches regroupées = l'écart de 2). Désormais
 `clientsDuContainer` ignore ces fiches : Dépôt Dakar, liste des containers,
 compteurs et totaux livraison de Mamadou suivent la même règle que DCT.
+
+**22/10, mamadou.html v1.14.11 — date d'arrivée sur chaque client du Dépôt
+Dakar de Mamadou.** Cobey : « il faudrait qu'il ait la date pour chaque
+client du conteneur auquel il est arrivé. Là on voit Chargement DKR, mais
+pas plus d'infos [...] on sait depuis quand il est là. » Chaque carte
+affiche « 📦 Arrivé au dépôt le 20/10 à 14h46 » (étape « Arrivée au dépôt »
+du container, `_mnDateHeureCourte`), « date inconnue » si l'étape n'a pas
+d'horodatage.

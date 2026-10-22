@@ -453,7 +453,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.10';
+var MAMADOU_VERSION = 'v1.14.11';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1108,6 +1108,11 @@ function _mnRenderDepotDakar(){
       +   '<div class="cli-top"><div class="cli-nom">'+esc(c.name||'')+'</div></div>'
       +   '<div class="cli-sub">Container '+esc((x.depart||{}).nom||'—')
       +     (c.livraisonDakar ? ' &middot; &#128666; Livraison' : ' &middot; &#127978; Retrait') + '</div>'
+      // v1.14.11 — Cobey : « il faudrait qu'il ait la date [...] à laquelle
+      // il est arrivé, [...] on sait depuis quand il est là. » Date et
+      // heure de l'étape « Arrivée au dépôt » du container.
+      +   '<div class="cli-sub">&#128230; Arriv&eacute; au d&eacute;p&ocirc;t le <b>'
+      +     (x.tsArrivee ? esc(_mnDateHeureCourte(x.tsArrivee)) : 'date inconnue') + '</b></div>'
       +   _mnBadgeDepotDakar(c, x.tsArrivee)
       +   _mnPastillePaiement(c)
       + '</div>';
