@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.7';
+var DEP_VERSION = 'v2.21.8';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5451,6 +5451,31 @@ function _depReinitialiserChampsFrance(){
    6. FIREBASE — écoute des départs
    ───────────────────────────────────────────── */
 
+// v3.99.73 — Cobey : « l'appli a beaucoup de latence [...] je suis allé sur
+// Mamadou, je suis revenu [...] je clique sur des cases, ça ne répond pas
+// ou ça met du temps. » Au retour dans l'appli (et à chaque ouverture),
+// une quinzaine d'écoutes Firebase répondent coup sur coup : chacune
+// redessinait aussitôt l'écran affiché (l'accueil des espaces, la liste
+// des départs, un container de 60+ clients...) — autant de redessins
+// complets enchaînés sur le téléphone, et un redessin qui tombe sous le
+// doigt détruit le bouton touché. On regroupe maintenant ces redessins :
+// un seul par écran, 250 ms après la dernière réponse, et jamais pendant
+// qu'un doigt est posé (même garde que la Collecte et France & Europe).
+var _depRedessinTimers = {};
+function _depRedessinerDiffere(cle, idEcran, fn){
+  clearTimeout(_depRedessinTimers[cle]);
+  var essai = function(){
+    var ecran = $(idEcran);
+    if(!ecran || !ecran.classList.contains('active')) return;   // plus à l'écran : rien à refaire
+    if(typeof _dctDoigtPose === 'function' && _dctDoigtPose()){
+      _depRedessinTimers[cle] = setTimeout(essai, 350);
+      return;
+    }
+    try{ fn(); }catch(e){ console.error('departs: redessin différé ' + cle, e); }
+  };
+  _depRedessinTimers[cle] = setTimeout(essai, 250);
+}
+
 function ecouterDeparts(){
   if(!window.db || !window.firebaseReady){
     setTimeout(ecouterDeparts, 400);
@@ -5468,8 +5493,8 @@ function ecouterDeparts(){
      pastille de la case Planning soit juste à tout moment. */
   db.ref('dct_planning').on('value', function(snap){
     window.planningData = snap.val() || {};
-    try{ if($('s-planning') && $('s-planning').classList.contains('active')) depRenderPlanning(); }catch(e){}
-    try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+    _depRedessinerDiffere('planning', 's-planning', function(){ depRenderPlanning(); });
+    _depRedessinerDiffere('espaces', 's-espaces', function(){ depRenderEspaces(); });
   });
 
   // v2.7.0 : l'historique des messages déjà envoyés dans la case
@@ -5514,7 +5539,7 @@ function ecouterDeparts(){
   db.ref('devis').on('value', function(snap){
     window.devisData = snap.val() || {};
     try{ if($('s-devis') && $('s-devis').classList.contains('active')) depRenderListeDevis(); }catch(e){}
-    try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+    _depRedessinerDiffere('espaces', 's-espaces', function(){ depRenderEspaces(); });
   });
 
   // v1.19.96 : factures manuelles — nœud à part (jamais dct/clients,
@@ -5522,7 +5547,7 @@ function ecouterDeparts(){
   db.ref('dct_factures_manuelles').on('value', function(snap){
     window.facturesManuellesData = snap.val() || {};
     try{ if($('s-facture-manuelle') && $('s-facture-manuelle').classList.contains('active')) depRenderListeFacturesManuelles(); }catch(e){}
-    try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+    _depRedessinerDiffere('espaces', 's-espaces', function(){ depRenderEspaces(); });
     try{ if(typeof _depFmRafraichirDetailContainer === 'function') _depFmRafraichirDetailContainer(); }catch(e){}
   });
 
@@ -5540,14 +5565,14 @@ function ecouterDeparts(){
     window.fideliteUsagesData = snap.val() || {};
     try{ if($('s-fidelite-liste') && $('s-fidelite-liste').classList.contains('active')) depRenderFideliteListe(); }catch(e){}
     try{ if($('s-fidelite-contact') && $('s-fidelite-contact').classList.contains('active') && typeof _depFideliteRafraichirEcranContact === 'function') _depFideliteRafraichirEcranContact(); }catch(e){}
-    try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+    _depRedessinerDiffere('espaces', 's-espaces', function(){ depRenderEspaces(); });
   });
 
   // Clients inscrits directement au dépôt, hors collecte
   db.ref('dct_depot').on('value', function(snap){
     window.depotClients = snap.val() || {};
     try{
-      if(_depDetailId && $('s-depart-detail') && $('s-depart-detail').classList.contains('active')) depDetail(_depDetailId);
+      _depRedessinerDiffere('detail', 's-depart-detail', function(){ if(_depDetailId) depDetail(_depDetailId); });
     }catch(e){}
     // v1.20.3 : voir _depBackfillRefsClients — un client dépôt tout juste
     // inscrit doit avoir son numéro sans attendre qu'on ouvre sa fiche.
@@ -7847,10 +7872,10 @@ function _depAppliquerSnapshotDeparts(valeur){
   // v1.19.44 : réinjecté à chaque mise à jour temps réel — voir DEP_ID_DEPOT.
   window.departsData[DEP_ID_DEPOT] = { nom: 'Dépôt (en attente)', statut: 'preparation', special: 'depot' };
   _depPret = true;
-  try{ if($('s-departs') && $('s-departs').classList.contains('active')) depRenderListe(); }catch(e){}
-  try{ if($('s-espaces') && $('s-espaces').classList.contains('active')) depRenderEspaces(); }catch(e){}
+  _depRedessinerDiffere('liste', 's-departs', function(){ depRenderListe(); });
+  _depRedessinerDiffere('espaces', 's-espaces', function(){ depRenderEspaces(); });
   try{ if($('s-add') && $('s-add').classList.contains('active')) depRemplirSelect(); }catch(e){}
-  try{ if($('s-planning') && $('s-planning').classList.contains('active')) depRenderPlanning(); }catch(e){}
+  _depRedessinerDiffere('planning', 's-planning', function(){ depRenderPlanning(); });
   try{ if($('s-dep-etapes') && $('s-dep-etapes').classList.contains('active') && _depDetailId) depRenderEtapesTransportEcran(_depDetailId); }catch(e){}
 }
 window._depAppliquerSnapshotDeparts = _depAppliquerSnapshotDeparts;

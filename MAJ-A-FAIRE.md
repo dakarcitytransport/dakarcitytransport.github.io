@@ -4936,3 +4936,19 @@ pas plus d'infos [...] on sait depuis quand il est là. » Chaque carte
 affiche « 📦 Arrivé au dépôt le 20/10 à 14h46 » (étape « Arrivée au dépôt »
 du container, `_mnDateHeureCourte`), « date inconnue » si l'étape n'a pas
 d'horodatage.
+
+**22/10, v3.99.73 (departs.js v2.21.8) — latence au retour dans l'appli :
+redessins regroupés.** Cobey : « l'appli a beaucoup de latence [...] je suis
+allé sur Mamadou, je suis revenu sur l'appli, je clique sur des cases, ça
+ne répond pas ou ça met du temps. » Constat (profil sur un jeu de ~720
+clients, CPU ralenti) : au retour, ~15 écoutes Firebase répondent coup sur
+coup et chacune redessinait aussitôt l'écran affiché (accueil des espaces,
+liste des départs, Planning, container ouvert) — redessins complets
+enchaînés, et un redessin sous le doigt détruit le bouton touché. Nouveau
+`_depRedessinerDiffere(cle, idEcran, fn)` : un seul redessin par écran,
+250 ms après la dernière réponse, jamais pendant qu'un doigt est posé
+(`_dctDoigtPose`, même garde que Collecte et France & Europe), et rien si
+l'écran n'est plus affiché. 12 réponses de suite → 1 redessin (testé).
+Appliqué à : accueil des espaces (5 écoutes), Planning (2), liste des
+départs, détail d'un container (écoute dépôt). Non prouvé sur le vrai
+téléphone : si la latence revient, il faudra un relevé réel (voir échange).
