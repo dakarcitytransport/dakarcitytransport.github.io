@@ -25732,7 +25732,7 @@ function _depReleveTexte(){
 function _depHtmlReleveLenteur(){
   var ec = Object.keys(_depReleveEcoutes).map(function(k){ return [k, _depReleveEcoutes[k]]; })
     .sort(function(a, b){ return b[1].total - a[1].total; }).slice(0, 6);
-  var h = '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#9201;&#65039; Rel&eacute;v&eacute; de lenteur</div>'
+  var h = '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#9201;&#65039; Relev&eacute; de lenteur</div>'
     + '<div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.5;">L\'appli note toute seule ce qui la ralentit (sur ce t&eacute;l&eacute;phone seulement, rien n\'est envoy&eacute;). Quand &ccedil;a lag, ouvre cet &eacute;cran puis fais une capture ou copie le texte.</div>'
     + '<button type="button" class="btn btn-gray" onclick="renderAdminOutils()">&#128260; Actualiser</button>'
     + '<button type="button" class="btn btn-gray" style="margin-top:8px;color:#1a237e;border:1.5px solid #1a237e;" onclick="depCopierReleveLenteur()">&#128203; Copier le rel&eacute;v&eacute;</button>'
