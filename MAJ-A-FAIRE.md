@@ -5008,3 +5008,24 @@ du stockage local et des 5 plus grosses clés (quota iOS ≈ 5 Mo), mode
 (raccourci / navigateur), espace utilisé par l'appli, caches du navigateur,
 services en arrière-plan, bases locales. Pas de correctif tant que la cause
 n'est pas confirmée par un relevé pris dans le raccourci.
+
+**22/10, v3.99.78 — Fil d'Activité plafonné à 150 lignes (piste n°1 de la
+lenteur du raccourci).** Relevé de lenteur de Cobey (v3.99.77, raccourci
+écran d'accueil) : page de **18 950 éléments** dont **16 170 dans le seul
+écran Activité**, et `dct_v3_activite` = **1 681 Ko** dans le stockage du
+téléphone (sur ~2 480 Ko au total) ; données métier, elles, minuscules
+(clients France 36 Ko, 28 fiches). Aucune écoute, minuteur, fonction ou
+JSON lent. Cause probable : le fil d'Activité accumulait des milliers de
+lignes — `_chargerEtAfficherActivite` relisait TOUT `activite_items`,
+`afficherConnexionsAdmin` TOUTES les connexions, `sauvegarder()` recopiait
+tout le fil (`innerHTML`) dans localStorage et le restaurait au login. Le
+raccourci ayant son stockage propre (qui se remplit avec le temps), ça
+explique « seulement sur le raccourci » et « supprimer le raccourci avait
+réglé, puis c'est revenu ». Correctif : plafond `ACTIVITE_MAX_AFFICHEE =
+150` (affichage, ajout, connexions admin, vieux bloc `data.activite`),
+requêtes en `limitToLast` (300 événements, 100 connexions), 40 lignes
+seulement dans le stockage du téléphone, et un ancien fil > 120 Ko est jeté
+au login (Firebase redonne les récents). Testé : 4 000 événements → 150
+affichés, stockage 8 Ko. Non prouvé comme cause unique : un test Chrome avec
+16 000 éléments cachés ne ralentit pas France ; WebKit iPhone peut réagir
+différemment. À confirmer par un nouveau relevé depuis le raccourci.
