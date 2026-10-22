@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.10';
+var DEP_VERSION = 'v2.21.11';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25691,7 +25691,13 @@ window._depReleveInstallerFirebase = _depReleveInstallerFirebase;
     var recents = _depReleveRecent.filter(function(x){ return maintenant - x[0] < 2500; })
       .map(function(x){ return x[1]; });
     var uniques = recents.filter(function(x, i){ return recents.indexOf(x) === i; });
-    _depReleveNoter('pause', 'écran ' + _depEcranActifId() + (uniques.length ? ' · après : ' + uniques.slice(0, 6).join(', ') : ''), retard);
+    var nbDom = 0, nbEcran = 0;
+    try{
+      nbDom = document.getElementsByTagName('*').length;
+      var ae = document.querySelector('.screen.active');
+      nbEcran = ae ? ae.getElementsByTagName('*').length : 0;
+    }catch(e){}
+    _depReleveNoter('pause', 'écran ' + _depEcranActifId() + ' · page ' + nbDom + ' éléments (écran ' + nbEcran + ')' + (uniques.length ? ' · après : ' + uniques.slice(0, 6).join(', ') : ''), retard);
   }, 200);
   document.addEventListener('visibilitychange', function(){
     dernier = Date.now();
@@ -25775,6 +25781,7 @@ function _depReleveTexte(){
   var l = ['RELEVÉ DE LENTEUR — ' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '') + ' / ' + DEP_VERSION, ''];
   var ec = Object.keys(_depReleveEcoutes).map(function(k){ return [k, _depReleveEcoutes[k]]; })
     .sort(function(a, b){ return b[1].total - a[1].total; }).slice(0, 8);
+  try{ _depReleveStructure().forEach(function(x){ l.push(x); }); l.push(''); }catch(e){}
   l.push('Écoutes (depuis l\'ouverture) : chemin · réponses · max · total');
   ec.forEach(function(x){ l.push(' ' + x[0] + ' · ' + x[1].n + ' · ' + Math.round(x[1].max) + ' ms · ' + Math.round(x[1].total) + ' ms'); });
   l.push('', 'Événements (récents en premier) :');
@@ -25786,6 +25793,40 @@ function _depReleveTexte(){
   return l.join('\n');
 }
 
+// v3.99.76 — Poids de la page et des données, calculé à la demande
+// (quelques centaines de ms, seulement quand on ouvre le relevé).
+function _depReleveStructure(){
+  var l = [];
+  try{
+    var tous = document.getElementsByTagName('*').length;
+    l.push('Page : ' + tous + ' éléments au total');
+    var ecrans = Array.prototype.slice.call(document.querySelectorAll('.screen')).map(function(e){
+      return [e.id, e.getElementsByTagName('*').length];
+    }).sort(function(a, b){ return b[1] - a[1]; }).slice(0, 5);
+    ecrans.forEach(function(x){ l.push(' écran ' + x[0] + ' : ' + x[1] + ' éléments'); });
+    var imgs = document.getElementsByTagName('img'), lourdes = 0, ko = 0;
+    for(var i = 0; i < imgs.length; i++){ var src = imgs[i].getAttribute('src') || ''; if(src.indexOf('data:') === 0){ lourdes++; ko += src.length / 1024; } }
+    l.push('Images dans la page : ' + imgs.length + ' (dont ' + lourdes + ' intégrées, ' + Math.round(ko) + ' Ko)');
+  }catch(e){}
+  var sources = [['franceData', window.franceData], ['clientsParCollecte', window.clientsParCollecte], ['depotClients', window.depotClients],
+                 ['departsData', window.departsData], ['dispatchParCollecte', window.dispatchParCollecte], ['dctContacts', window.dctContacts]];
+  sources.forEach(function(x){
+    try{
+      var n = JSON.stringify(x[1] || {}).length;
+      var nb = x[1] ? Object.keys(x[1]).length : 0;
+      l.push(' ' + x[0] + ' : ' + Math.round(n / 1024) + ' Ko (' + nb + ' entrées)');
+    }catch(e){}
+  });
+  try{
+    var fc = ((window.franceData || {}).clients) || {}, ids = Object.keys(fc);
+    var pl = ids.map(function(k){ return [k, JSON.stringify(fc[k]).length]; }).sort(function(a, b){ return b[1] - a[1]; });
+    l.push(' clients France : ' + ids.length + ' fiches, la plus lourde ' + (pl[0] ? Math.round(pl[0][1] / 1024) + ' Ko' : '0') + ', médiane ' + (pl.length ? Math.round(pl[Math.floor(pl.length / 2)][1] / 1024) : 0) + ' Ko');
+    var fcol = ((window.franceData || {}).collectes) || {};
+    l.push(' collectes France : ' + Object.keys(fcol).length);
+  }catch(e){}
+  return l;
+}
+
 function _depHtmlReleveLenteur(){
   var ec = Object.keys(_depReleveEcoutes).map(function(k){ return [k, _depReleveEcoutes[k]]; })
     .sort(function(a, b){ return b[1].total - a[1].total; }).slice(0, 6);
@@ -25794,6 +25835,8 @@ function _depHtmlReleveLenteur(){
     + '<button type="button" class="btn btn-gray" onclick="renderAdminOutils()">&#128260; Actualiser</button>'
     + '<button type="button" class="btn btn-gray" style="margin-top:8px;color:#1a237e;border:1.5px solid #1a237e;" onclick="depCopierReleveLenteur()">&#128203; Copier le rel&eacute;v&eacute;</button>'
     + '<button type="button" class="btn btn-gray" style="margin-top:8px;color:#992020;border:1.5px solid #992020;" onclick="depEffacerReleveLenteur()">&#128465;&#65039; Effacer</button>';
+  h += '<div style="font-size:11.5px;font-weight:800;color:#999;letter-spacing:.03em;margin:14px 0 6px;">POIDS DE LA PAGE ET DES DONN&Eacute;ES</div>'
+    + '<div style="font-size:12px;border-bottom:1px dashed #ddd;padding:5px 0;line-height:1.55;">' + _depReleveStructure().map(esc).join('<br>') + '</div>';
   h += '<div style="font-size:11.5px;font-weight:800;color:#999;letter-spacing:.03em;margin:14px 0 6px;">DONN&Eacute;ES LES PLUS LOURDES</div>';
   h += ec.length ? ec.map(function(x){
     return '<div style="font-size:12px;border-bottom:1px dashed #ddd;padding:5px 0;"><b>' + esc(x[0]) + '</b> &middot; ' + x[1].n + ' r&eacute;ponse' + (x[1].n > 1 ? 's' : '') + ' &middot; max ' + Math.round(x[1].max) + ' ms &middot; total ' + Math.round(x[1].total) + ' ms</div>';

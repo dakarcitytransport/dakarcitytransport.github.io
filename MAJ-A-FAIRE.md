@@ -4981,3 +4981,15 @@ les minuteurs (`setTimeout`) de plus de 100 ms, les fonctions d'affichage
 principales (France, Collecte, fiches, container) de plus de 80 ms, les
 `JSON.parse` / `JSON.stringify` de plus de 40 ms avec leur taille en Ko.
 Prochaine étape : nouveau relevé à la prochaine lenteur en France & Europe.
+
+**22/10, v3.99.76 (departs.js v2.21.11) — Relevé de lenteur : poids de la
+page et des données.** 2e relevé de Cobey (v3.99.75) : toujours des pauses de
+~1,8 s en boucle (jusqu'à 13 s) sur France & Europe, mais AUCUN minuteur
+> 100 ms, AUCUNE fonction d'affichage > 80 ms, AUCUN JSON > 40 ms, aucune
+écoute lente. Le blocage ne vient donc pas du JavaScript de l'appli
+mesurable ici : il est dans le rendu natif (mise en page / dessin d'une page
+trop lourde) ou dans le traitement interne du SDK Firebase. Le relevé donne
+maintenant, à l'ouverture : nombre d'éléments de la page et des 5 plus gros
+écrans, images intégrées (nombre, Ko), poids en Ko de chaque jeu de données
+(franceData, clientsParCollecte…), fiche France la plus lourde et médiane ;
+chaque « pause » note aussi le nombre d'éléments de la page.
