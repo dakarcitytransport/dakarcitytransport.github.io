@@ -397,7 +397,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <div class="header">
     <button class="btn-back" onclick="goTo('s-home')">← Accueil</button>
     <div style="text-align:center;">
-      <div class="h-title">🇪🇺 Ramassage France &amp; Europe</div>
+      <div class="h-title">🇫🇷 Ramassage France</div>
       <div class="h-sub" id="fr-sous" style="color:#1a237e;">Suivi des colis</div>
     </div>
     <button onclick="ouvrirCarteFrance('suivi')" style="background:#e8eaf6;color:#1a237e;border:1.5px solid #1a237e;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">&#128506;</button>
@@ -427,6 +427,29 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   </div>
   <div style="background:#fff;border-top:1px solid var(--border);padding:10px 14px 14px;flex-shrink:0;">
     <button class="btn btn-green" style="margin:0;" onclick="ouvrirAjoutFrance()">+ Inscrire un client</button>
+  </div>
+</div>
+
+<!-- v3.99.79 — CLIENTS PROCHES : regroupe les clients en attente par temps de route -->
+<div class="screen" id="s-fr-proches">
+  <div class="header">
+    <button class="btn-back" onclick="fermerProchesFrance()">← France</button>
+    <div style="text-align:center;">
+      <div class="h-title">🧭 Clients proches</div>
+      <div class="h-sub" style="color:#1a237e;">Tournées possibles</div>
+    </div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="content" style="background:#F2F3F5;">
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;font-weight:700;color:#444;">
+        <span>Distance maximale du centre</span>
+        <span id="fr-pr-lib" style="font-size:16px;font-weight:800;color:#1a237e;">1h</span>
+      </div>
+      <input id="fr-pr-curseur" type="range" min="30" max="90" step="5" value="60" oninput="majProchesMinutes(this.value)" style="width:100%;margin:8px 0 2px;">
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#999;"><span>30 min</span><span>1h</span><span>1h30</span></div>
+    </div>
+    <div id="fr-proches-contenu"></div>
   </div>
 </div>
 
@@ -594,7 +617,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 <!-- NOUVELLE COLLECTE FRANCE & EUROPE — même calcul automatique du
      statut que "Nouvelle collecte" (s-new, Collecte Dakar), mais une
      date libre plutôt qu'un choix de dimanche (v3.99.30 : une tournée
-     France & Europe peut avoir lieu n'importe quel jour, contrairement
+     France peut avoir lieu n'importe quel jour, contrairement
      à la Collecte Dakar). Différence volontaire avec la Collecte : ici
      les clients existent déjà dans le vivier "attente" avant la
      collecte (pas l'inverse), donc on enchaîne sur le choix des
@@ -642,7 +665,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     <div style="width:60px;"></div>
   </div>
   <div class="content">
-    <div class="info-banner">🇪🇺 Ramassage France &amp; Europe · Inscrit par <strong id="fadd-by" style="margin-left:4px;"></strong></div>
+    <div class="info-banner">🇫🇷 Ramassage France · Inscrit par <strong id="fadd-by" style="margin-left:4px;"></strong></div>
     <div class="fg"><label class="fl">Civilité</label>
       <div id="fa-civ" style="display:flex;gap:6px;"></div></div>
     <div class="form-row" id="fa-ligne-nom">
@@ -914,7 +937,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     <div id="btn-france" onclick="ouvrirFrance()" style="background:#1a237e;border:2.5px solid #0d1444;border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:13px;cursor:pointer;width:100%;margin-bottom:18px;">
       <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px;">🇫🇷</div>
       <div style="flex:1;">
-        <div style="color:#fff;font-size:15px;font-weight:800;">Ramassage France &amp; Europe</div>
+        <div style="color:#fff;font-size:15px;font-weight:800;">Ramassage France</div>
         <div id="france-compteurs" style="color:#c5cae9;font-size:12px;margin-top:2px;">0 en attente</div>
       </div>
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
@@ -1451,9 +1474,9 @@ function ecouterFrance(){
     // moindre trace — impossible à distinguer d'un simple "pas encore de
     // client". On affiche donc maintenant l'erreur réelle, pour remplacer
     // les suppositions par un message qu'on peut lire et agir dessus.
-    console.error('Erreur écoute France & Europe:', err);
+    console.error('Erreur écoute France:', err);
     try{
-      showToastNew('❌ France & Europe : connexion refusée ('+((err&&err.code)||(err&&err.message)||'inconnue')+'). Montre ce message à Eric.');
+      showToastNew('❌ France : connexion refusée ('+((err&&err.code)||(err&&err.message)||'inconnue')+'). Montre ce message à Eric.');
     }catch(e){}
   });
 }
@@ -1993,7 +2016,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.78';
+var APP_VERSION = 'v3.99.79';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3189,7 +3212,7 @@ function _htmlStockage(){
   var largeur=Math.max(1.5, pc);
   var lignes=[
     {lib:'📷 Photos des colis',   o:s.photos},
-    {lib:'🇪🇺 France & Europe',   o:s.france},
+    {lib:'🇫🇷 France',   o:s.france},
     {lib:'🚚 Collectes de Dakar', o:s.collectes},
     {lib:'📇 Carnet de contacts', o:s.carnet}
   ].sort(function(a,b){ return b.o-a.o; });
@@ -3223,7 +3246,7 @@ function _htmlStockage(){
 
   h+='<button class="btn btn-gray" onclick="_recalculerPhotos()">🔄 Recompter les photos</button>'
    + '<div style="font-size:11.5px;color:#888;margin:7px 2px 0;line-height:1.55;">'
-   +   'Pour libérer de la place : vide l\'historique des dossiers partis dans France & Europe, '
+   +   'Pour libérer de la place : vide l\'historique des dossiers partis dans France, '
    +   'ou supprime les vieilles collectes depuis le suivi. Les photos partent avec les fiches.</div>'
    + '<div style="height:22px;"></div>';
   return h;
@@ -4150,14 +4173,14 @@ function renderFrance(){
   try{
     _frRenderFranceCorps(box);
   }catch(e){
-    console.error('Erreur affichage France & Europe:', e);
+    console.error('Erreur affichage France:', e);
     box.innerHTML = '<div style="text-align:center;color:#992020;padding:36px 20px;font-size:13.5px;line-height:1.6;">'
       + '<div style="font-size:34px;margin-bottom:10px;">⚠️</div>'
       + 'Affichage impossible pour le moment.<br>'
       + '<span style="font-size:11.5px;color:#aaa;">'+(((e&&e.message)||'erreur inconnue')+'').replace(/</g,'&lt;')+'</span><br><br>'
       + '<button class="btn-sm btn-green-sm" onclick="renderFrance()">🔄 Réessayer</button>'
       + '</div>';
-    try{ showToastNew('❌ Affichage France & Europe impossible. Montre ce message à Eric.'); }catch(e2){}
+    try{ showToastNew('❌ Affichage France impossible. Montre ce message à Eric.'); }catch(e2){}
   }
 }
 function _frRenderFranceCorps(box){
@@ -4221,6 +4244,11 @@ function _frRenderFranceCorps(box){
   // là, comme à Paris. On affiche donc simplement les clients en cours,
   // chacun avec son badge de statut (retour de Cobey du 19/09/2026).
   var liste=tous.filter(_frDansFiltre);
+  // v3.99.79 : accès à l'outil « Clients proches » (sauf dans une collecte ouverte).
+  if(!rOuv && !q && _peutGererFrance()){
+    html+='<div onclick="ouvrirProchesFrance()" style="display:flex;align-items:center;gap:10px;background:#e8eaf6;border:1.5px solid #1a237e;color:#1a237e;border-radius:12px;padding:11px 14px;margin-bottom:10px;font-size:13.5px;font-weight:800;cursor:pointer;">'
+      +'<span style="font-size:20px;">🧭</span><span style="flex:1;">Clients proches<div style="font-size:11px;font-weight:600;color:#5c6bc0;">Voir quelles tournées on peut organiser</div></span><span>›</span></div>';
+  }
   // Filtres géographiques calculés sur la liste courante
   html+=_frBarresGeo(liste);
   if(franceRegion) liste=liste.filter(function(c){ return c.region===franceRegion; });
@@ -4605,7 +4633,7 @@ function _fichesACorriger(){
 }
 
 function _libSource(s){
-  return s==='france' ? 'France & Europe' : (s==='carnet' ? 'Carnet de contacts' : 'Collectes de Dakar');
+  return s==='france' ? 'France' : (s==='carnet' ? 'Carnet de contacts' : 'Collectes de Dakar');
 }
 
 function _htmlCorrectionCivilites(){
@@ -5925,7 +5953,7 @@ function _frListeCollectes(){
     h+='<button class="new-btn" onclick="nouvelleCollecteFrance()">'
       + '<div class="new-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div>'
       + '<div><div style="color:#fff;font-size:15px;font-weight:800;">Créer une nouvelle collecte</div>'
-      + '<div style="color:#d4f5e0;font-size:12px;margin-top:2px;">France &amp; Europe</div></div>'
+      + '<div style="color:#d4f5e0;font-size:12px;margin-top:2px;">France</div></div>'
       + '</button>';
   }
 
@@ -7329,13 +7357,263 @@ function ouvrirAjoutFrance(){
   goTo('s-france-add');
 }
 
+
+/* ═══════════ CLIENTS PROCHES — v3.99.79 ═══════════
+   Cobey, 22/10/2026 : « je veux que tu nous aides à voir les clients
+   proches et si c'est possible » — « on peut mettre 1 heure, voire 1h30
+   maximum de trajet » — « il faut aussi prendre en compte les kilomètres
+   [...] fais l'estimation en kilomètres par rapport au temps » — « prêt
+   ou pas prêt, non, ça c'est à part » — « il faut un minimum de 3 clients
+   par tournée ». Les heures de départ/retour et la durée de la journée ne
+   comptent pas ici.
+   Principe : les clients « En attente » (déjà localisés par
+   _geocodeClientFr) sont regroupés autour d'un centre ; un client entre
+   dans un groupe s'il est à moins de _prochesMin minutes de route du
+   centre. Une première passe à vol d'oiseau (×1,1 min/km) choisit les
+   groupes, puis OSRM (table) donne le vrai temps et les vrais km. Si
+   OSRM ne répond pas, l'estimation reste affichée, marquée « ≈ ». */
+var _prochesMin = 60;
+var _prochesGroupes = [];
+var _prochesIsoles = [];
+var _prochesSansAdresse = [];
+var _prochesJeton = 0;
+var _prochesTimer = null;
+var _prochesApprox = false;
+var PROCHES_MIN_CLIENTS = 3;
+
+function _frKmOiseau(a, b){
+  var R = 6371, rad = Math.PI/180;
+  var dLat = (b.lat-a.lat)*rad, dLng = (b.lng-a.lng)*rad;
+  var x = Math.sin(dLat/2)*Math.sin(dLat/2)
+        + Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+function _frMinEstimees(kmOiseau){ return kmOiseau*1.1; }
+
+function ouvrirProchesFrance(){
+  if(!_peutGererFrance()){ showToastNew('⛔ Réservé à l’équipe.'); return; }
+  var cur = document.getElementById('fr-pr-curseur'); if(cur) cur.value = _prochesMin;
+  var lib = document.getElementById('fr-pr-lib'); if(lib) lib.textContent = _frDureeTexte(_prochesMin);
+  goTo('s-fr-proches');
+  _calculerProches();
+}
+function fermerProchesFrance(){
+  _prochesJeton++;
+  goTo('s-france');
+  renderFrance();
+}
+function majProchesMinutes(v){
+  _prochesMin = parseInt(v,10) || 60;
+  var lib = document.getElementById('fr-pr-lib'); if(lib) lib.textContent = _frDureeTexte(_prochesMin);
+  clearTimeout(_prochesTimer);
+  _prochesTimer = setTimeout(_calculerProches, 450);
+}
+
+function _prochesMessage(html){
+  var box = document.getElementById('fr-proches-contenu');
+  if(box) box.innerHTML = '<div style="text-align:center;color:#888;padding:34px 18px;font-size:13.5px;line-height:1.6;">'+html+'</div>';
+}
+
+function _calculerProches(){
+  var jeton = ++_prochesJeton;
+  var clients = _frClients().filter(function(c){ return c.statut==='attente'; });
+  if(!clients.length){ _prochesGroupes=[]; _prochesIsoles=[]; _prochesSansAdresse=[]; _prochesMessage('Aucun client en attente pour le moment.'); return; }
+
+  // 1. Coordonnées manquantes (3 requêtes à la fois, résultat mémorisé sur la fiche).
+  var sans = clients.filter(function(c){ return !(c.lat && c.lng); });
+  var total = sans.length, faits = 0, file = sans.slice(), actifs = 0;
+  var suite = function(){
+    if(jeton !== _prochesJeton) return;
+    if(file.length === 0 && actifs === 0){ _prochesEtape2(clients, jeton); return; }
+    while(actifs < 3 && file.length){
+      (function(c){
+        actifs++;
+        _geocodeClientFr(c, function(){
+          actifs--; faits++;
+          if(jeton === _prochesJeton) _prochesMessage('⏳ Localisation des clients… '+faits+' / '+total);
+          suite();
+        });
+      })(file.shift());
+    }
+  };
+  if(total){ _prochesMessage('⏳ Localisation des clients… 0 / '+total); suite(); }
+  else _prochesEtape2(clients, jeton);
+}
+
+function _prochesEtape2(clients, jeton){
+  var loc = clients.filter(function(c){ return c.lat && c.lng; });
+  _prochesSansAdresse = clients.filter(function(c){ return !(c.lat && c.lng); });
+  var res = _prochesFormer(loc, _prochesMin);
+  _prochesIsoles = res.isoles;
+  _prochesGroupes = [];
+  _prochesApprox = false;
+  _prochesMessage('⏳ Calcul des trajets…');
+  var i = 0;
+  var suivant = function(){
+    if(jeton !== _prochesJeton) return;
+    if(i >= res.groupes.length){ _prochesFin(); return; }
+    var g = res.groupes[i++];
+    _prochesAffiner(g, function(gAffine, retires){
+      if(jeton !== _prochesJeton) return;
+      retires.forEach(function(c){ _prochesIsoles.push(c); });
+      if(gAffine.membres.length >= 2) _prochesGroupes.push(gAffine);
+      else gAffine.membres.forEach(function(m){ _prochesIsoles.push(m.c); });
+      _prochesMessage('⏳ Calcul des trajets… '+i+' / '+res.groupes.length);
+      setTimeout(suivant, 120);
+    });
+  };
+  suivant();
+}
+
+// Choix des groupes à vol d'oiseau : le centre qui rassemble le plus de monde.
+function _prochesFormer(pts, limiteMin){
+  var reste = pts.slice(), groupes = [], seuil = limiteMin * 1.25;
+  while(reste.length >= 2){
+    var meilleur = null;
+    reste.forEach(function(ctr){
+      var membres = [], somme = 0;
+      reste.forEach(function(c){
+        var m = _frMinEstimees(_frKmOiseau(ctr, c));
+        if(m <= seuil){ membres.push(c); somme += m; }
+      });
+      if(!meilleur || membres.length > meilleur.membres.length
+         || (membres.length === meilleur.membres.length && somme < meilleur.somme)){
+        meilleur = { centre: ctr, membres: membres, somme: somme };
+      }
+    });
+    if(!meilleur || meilleur.membres.length < 2) break;
+    groupes.push(meilleur);
+    reste = reste.filter(function(c){ return meilleur.membres.indexOf(c) < 0; });
+  }
+  return { groupes: groupes, isoles: reste };
+}
+
+// Vrai temps et vrais km depuis le centre (OSRM, une requête par groupe).
+function _prochesAffiner(g, cb){
+  var autres = g.membres.filter(function(c){ return c !== g.centre; })
+    .sort(function(a, b){ return _frKmOiseau(g.centre, a) - _frKmOiseau(g.centre, b); }).slice(0, 90);
+  var liste = [g.centre].concat(autres);
+  var approx = function(){
+    _prochesApprox = true;
+    return liste.map(function(c){
+      var ko = _frKmOiseau(g.centre, c);
+      return { c: c, min: Math.round(_frMinEstimees(ko)), km: Math.round(ko*1.25), approx: true };
+    });
+  };
+  var fin = function(rows){
+    var gardes = [], retires = [];
+    rows.forEach(function(r){
+      if(r.c === g.centre || r.min <= _prochesMin) gardes.push(r); else retires.push(r.c);
+    });
+    cb({ centre: g.centre, membres: gardes }, retires);
+  };
+  var coords = liste.map(function(c){ return c.lng+','+c.lat; }).join(';');
+  fetch('https://router.project-osrm.org/table/v1/driving/'+coords+'?sources=0&annotations=duration,distance')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d && d.durations && d.durations[0] && d.distances && d.distances[0]){
+        fin(liste.map(function(c, i){
+          var s = d.durations[0][i], m = d.distances[0][i];
+          if(typeof s !== 'number' || typeof m !== 'number'){ _prochesApprox = true; var ko = _frKmOiseau(g.centre, c); return { c:c, min:Math.round(_frMinEstimees(ko)), km:Math.round(ko*1.25), approx:true }; }
+          return { c: c, min: Math.round(s/60), km: Math.round(m/1000), approx: false };
+        }));
+      } else fin(approx());
+    })
+    .catch(function(){ fin(approx()); });
+}
+
+function _prochesFin(){
+  _prochesGroupes.sort(function(a, b){ return b.membres.length - a.membres.length; });
+  _prochesRendu();
+}
+
+function _prochesVille(c){ return (c.ville || '').trim() || (c.cp || '') || '—'; }
+
+function _prochesRendu(){
+  var box = document.getElementById('fr-proches-contenu');
+  if(!box) return;
+  var ok = _prochesGroupes.filter(function(g){ return g.membres.length >= PROCHES_MIN_CLIENTS; }).length;
+  var h = '<div style="font-size:13px;font-weight:700;color:#444;margin:2px 2px 10px;">'
+    + (ok ? ('✅ '+ok+' tournée'+(ok>1?'s':'')+' possible'+(ok>1?'s':'')+' (au moins '+PROCHES_MIN_CLIENTS+' clients à moins de '+_frDureeTexte(_prochesMin)+' du centre)')
+          : ('Aucune tournée possible pour l’instant à moins de '+_frDureeTexte(_prochesMin)+' (il faut au moins '+PROCHES_MIN_CLIENTS+' clients proches).'))
+    + '</div>';
+  if(_prochesApprox) h += '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border-radius:8px;padding:7px 10px;margin-bottom:10px;">≈ Le service de trajets ne répond pas : temps et kilomètres sont estimés à vol d’oiseau.</div>';
+
+  _prochesGroupes.forEach(function(g, gi){
+    var n = g.membres.length, plein = n >= PROCHES_MIN_CLIENTS;
+    var colis = 0, euros = 0, maxMin = 0, maxKm = 0, approx = false;
+    g.membres.forEach(function(r){
+      colis += (r.c.nb || 1);
+      euros += (parseFloat(r.c.prix)||0) + (parseFloat(r.c.prixRamassage)||0);
+      if(r.min > maxMin) maxMin = r.min;
+      if(r.km > maxKm) maxKm = r.km;
+      if(r.approx) approx = true;
+    });
+    var pre = approx ? '≈ ' : '';
+    h += '<div style="background:#fff;border:1.5px solid '+(plein?'#009A44':'#F0C36D')+';border-radius:14px;padding:13px 14px;margin-bottom:12px;box-shadow:var(--shadow);">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+      +   '<div><div style="font-size:15px;font-weight:800;color:#1a1a2e;">Autour de '+_esc(_prochesVille(g.centre))+'</div>'
+      +   '<div style="font-size:11.5px;color:#777;margin-top:2px;">jusqu’à '+pre+_frDureeTexte(maxMin)+' · '+pre+maxKm+' km du centre</div></div>'
+      +   '<span style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:18px;white-space:nowrap;'+(plein?'background:#d4f0e0;color:#006b2d;':'background:#FFF3E0;color:#8A5200;')+'">'
+      +   (plein ? '✅ '+n+' clients' : '🟠 il en manque '+(PROCHES_MIN_CLIENTS-n))+'</span></div>'
+      + '<div style="font-size:12px;color:#555;margin:8px 0 6px;">📦 '+colis+' colis'+(_montantsVisibles()&&euros?(' · <b style="color:#006b2d;">'+Math.round(euros)+' €</b>'):'')+'</div>';
+    g.membres.slice().sort(function(a, b){ return a.min - b.min; }).forEach(function(r){
+      h += '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:5px 0;border-top:1px dashed #e4e4e4;">'
+        + '<span style="min-width:0;"><b>'+_nomAffiche(r.c)+'</b><span style="color:#888;"> · '+_esc(_prochesVille(r.c))+'</span>'+(r.c===g.centre?' <span style="font-size:10px;font-weight:800;color:#1a237e;">CENTRE</span>':'')+'</span>'
+        + '<span style="color:#444;white-space:nowrap;font-weight:600;">'+(r.c===g.centre?'—':((r.approx?'≈ ':'')+r.min+' min · '+r.km+' km'))+'</span></div>';
+    });
+    if(plein){
+      h += '<button class="btn" style="margin:10px 0 0;background:#1a237e;border:2.5px solid #0d1444;color:#fff;" onclick="creerTourneeProches('+gi+')">🚛 Créer la tournée avec ces '+n+' clients</button>';
+    }
+    h += '</div>';
+  });
+
+  if(_prochesIsoles.length){
+    h += '<div class="slabel">Clients isolés · '+_prochesIsoles.length+'</div>'
+      + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:6px 14px;margin-bottom:12px;">';
+    _prochesIsoles.forEach(function(c){
+      h += '<div style="font-size:12.5px;padding:7px 0;border-bottom:1px dashed #e4e4e4;"><b>'+_nomAffiche(c)+'</b><span style="color:#888;"> · '+_esc(_prochesVille(c))+(c.dept?(' ('+_esc(c.dept)+')'):'')+'</span>'
+        + '<div style="font-size:11px;color:#999;">seul dans sa zone à '+_frDureeTexte(_prochesMin)+' de route</div></div>';
+    });
+    h += '</div>';
+  }
+  if(_prochesSansAdresse.length){
+    h += '<div style="font-size:12px;color:#992020;background:#fde0e0;border-radius:10px;padding:10px 12px;margin-bottom:12px;">⚠️ Adresse introuvable pour : '
+      + _prochesSansAdresse.map(function(c){ return _nomAffiche(c); }).join(', ')+'. Complétez leur adresse pour les inclure.</div>';
+  }
+  if(!_prochesGroupes.length && !_prochesIsoles.length && !_prochesSansAdresse.length){
+    h += '<div style="text-align:center;color:#aaa;padding:30px;">Aucun client en attente.</div>';
+  }
+  box.innerHTML = h;
+}
+
+// Sélectionne les clients du groupe dans la liste : il reste à toucher
+// « Mettre dans un camion » (même parcours qu'une sélection à la main).
+function creerTourneeProches(i){
+  var g = _prochesGroupes[i];
+  if(!g) return;
+  dannySel = g.membres.map(function(r){ return r.c._id; }).filter(Boolean);
+  franceFiltre = 'tous'; franceRegion = ''; franceDept = ''; franceFiltrePret = false;
+  try{ currentCollecteFrId = null; }catch(e){}
+  goTo('s-france');
+  switchFranceTab('clients');
+  showToastNew('✅ '+dannySel.length+' clients sélectionnés — touchez « Mettre dans un camion ».');
+}
+
 // ── Choix du pays sur la fiche client ──
 var _faPays='FR';
 function _renderPaysChoix(){
   var box=document.getElementById('fa-pays');
   if(!box) return;
+  // v3.99.79 — Cobey : « on va enlever Europe et tout ce qui concerne tous
+  // les autres pays, on se concentre sur la France. » Le choix du pays
+  // n'apparaît plus ; il ne reste que pour modifier une ancienne fiche
+  // déjà enregistrée dans un autre pays.
+  var ancienne = (_faPays !== 'FR');
+  if(box.parentElement) box.parentElement.style.display = ancienne ? '' : 'none';
+  if(!ancienne){ box.innerHTML=''; return; }
   var h='';
-  PAYS.forEach(function(p){
+  PAYS.filter(function(p){ return p.code==='FR' || p.code===_faPays; }).forEach(function(p){
     var on=(_faPays===p.code);
     h+='<span onclick="setPaysFiche(\''+p.code+'\')" style="font-size:12px;font-weight:'+(on?800:600)+';padding:7px 11px;border-radius:18px;white-space:nowrap;cursor:pointer;'
       +(on?'background:#009A44;color:#fff;border:1.5px solid #009A44;':'background:#fff;border:1.5px solid var(--border);color:#555;')

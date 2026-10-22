@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.12';
+var DEP_VERSION = 'v2.21.13';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1877,7 +1877,7 @@ function _depCleFusion(c){
    "🔗 N factures" dans depDetail). */
 /* v1.54.0 — Les trois parcours, pas seulement la Collecte.
    Le repérage ne parcourait que clientsParCollecte. Un client du Dépôt
-   direct ou de France & Europe n'avait donc JAMAIS le bouton
+   direct ou de France n'avait donc JAMAIS le bouton
    « Regrouper », et une fiche de Collecte ne pouvait pas non plus être
    réunie avec la leur — alors que le carré Départ, lui, comptait bien
    les trois et annonçait « 4 factures ». L'appli disait donc qu'il y
@@ -1914,7 +1914,7 @@ function _depCibleDe(src, colId, clientId){
   return { depot: src === 'depot', france: src === 'france',
            collecteId: colId || '', clientId: clientId };
 }
-var DEP_LIB_PARCOURS = { col:'Collecte', depot:'Dépôt direct', france:'France & Europe' };
+var DEP_LIB_PARCOURS = { col:'Collecte', depot:'Dépôt direct', france:'France' };
 
 function _depFichesFusionnables(clientId, c){
   if(!c || !c.departId || _depEstFusionnee(c)) return [];
@@ -3541,7 +3541,7 @@ function injecterEcrans(){
   + '</div>'
 
   /* ---- ÉCRAN 6ter (v1.19.38) : fiche client d'une collecte, en lecture
-     seule à l'ouverture — présentation reprise du carré France & Europe
+     seule à l'ouverture — présentation reprise du carré France
      (retour de Cobey du 23/08/2026 : "le suivi est bien, on peut
      reprendre ça"). Carte d'informations + Suivi complet, puis bouton
      "✏️ Modifier la fiche" pour accéder au vrai formulaire (voir
@@ -4730,7 +4730,7 @@ function injecterEcrans(){
   document.body.appendChild(m9);
 
   /* ---- Modale (v2.20.29) : "Supprimer cette fiche" pour un client
-     France & Europe depuis l'écran de lecture partagé — même fenêtre
+     France depuis l'écran de lecture partagé — même fenêtre
      habillée que modal-delete côté Collecte, voir
      depOuvrirSuppressionFrance/depConfirmerSuppressionFrance. ---- */
   var m10 = document.createElement('div');
@@ -4823,7 +4823,7 @@ function injecterEcrans(){
     + '<div style="display:flex;flex-direction:column;gap:10px;">'
     +   '<button type="button" class="dep-st" style="padding:16px;font-size:15px;" onclick="depDevisDemanderCollecte()">&#128197; Collecte</button>'
     +   '<button type="button" class="dep-st" style="padding:16px;font-size:15px;" onclick="depDevisDemanderDepot()">&#127970; D&eacute;p&ocirc;t direct</button>'
-    +   '<button type="button" class="dep-st" style="padding:16px;font-size:15px;" onclick="depDevisValiderVers(\'france\')">&#127467;&#127479;&#127466;&#127482; France &amp; Europe</button>'
+    +   '<button type="button" class="dep-st" style="padding:16px;font-size:15px;" onclick="depDevisValiderVers(\'france\')">&#127467;&#127479; France</button>'
     + '</div>'
     + '<div class="modal-confirm-btns" style="margin-top:14px;">'
     +   '<button class="btn-sm btn-gray-sm" onclick="closeModal(\'modal-devis-valider\')">Annuler</button>'
@@ -5158,7 +5158,7 @@ function _depDepotCarreRenderListe(filtre){
         +     '<div class="dep-cli-n">'+_depPastilleRang(c, departId)
         +       esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
         +       (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
-        +       (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')+'</div>'
+        +       (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France</span>' : '')+'</div>'
         +     '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
         +       '<span>'+esc(c.tel||'—')+' &middot; '+(parseFloat(c.prix)||0)+' &euro;'
         +         (c.destinataireNom ? ' &middot; &#127968; '+esc(c.destinataireNom) : '')
@@ -8370,7 +8370,7 @@ window.depDetail = function(id, gardeFiltres){
         +   '<div class="dep-cli-n">'+_depPastilleRang(c, id)
         +     esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))+' '+drapeauCli+_pastilleDouble
         +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
-        +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')+'</div>'
+        +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France</span>' : '')+'</div>'
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">'
         +     '<span>'+(c.prixADefinir ? '&agrave; d&eacute;finir' : ((parseFloat(c.prix)||0)+' &euro;'))
         +       (c.livraisonDakar ? ' &middot; &#128666; livraison' : '')
@@ -12206,7 +12206,7 @@ window.depOuvrirFusionFacture = function(){
       // v1.54.0 : d'où vient cette facture — les trois parcours se
       // côtoient désormais dans la liste, autant le dire.
       if(x.src === 'depot')  libCol = 'D&eacute;p&ocirc;t direct';
-      if(x.src === 'france') libCol = 'France &amp; Europe';
+      if(x.src === 'france') libCol = 'France';
       return '<div class="dep-cli-card" style="cursor:pointer;border-left:4px solid #E58A00;margin-bottom:8px;"'
         + ' onclick="depChoisirFusion(\''+x.src+'\',\''+x.collecteId+'\',\''+x.clientId+'\')">'
         + '<div style="font-weight:800;font-size:13.5px;color:#111;">' + libCol + '</div>'
@@ -12576,7 +12576,7 @@ function _depBadgeLivraison(c, arrive, fondBlanc){
    dépôt à Dakar [...] c'est Mamadou Niass qui les délivre [...] ceux
    qui ne délivrent pas, c'est ceux qui restent. » Vue automatique, pas
    un vrai déplacement de données : tous les clients (Collecte, Dépôt
-   direct, France & Europe confondus) dont le départ est "Arrivé" et qui
+   direct, France confondus) dont le départ est "Arrivé" et qui
    ont une livraison à Dakar. Le décompte (48h/5€ jour de gardiennage/
    alerte 60 jours) suit l'article "Retrait des colis" des CGV, calculé
    depuis l'horodatage de l'étape "Arrivée au dépôt" du départ — déjà
@@ -12750,7 +12750,7 @@ function depRenderDepotDakar(){
       + ';" onclick="'+clic+'">'
       +   '<div class="dep-cli-n">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
       +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
-      +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')
+      +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France</span>' : '')
       +     (c.livraisonDakar
               ? ' <span style="font-size:10.5px;font-weight:700;color:#4A2E8A;">&#128666; Livraison</span>'
               : ' <span style="font-size:10.5px;font-weight:700;color:#8A5200;">&#127978; Retrait</span>')+'</div>'
@@ -15347,7 +15347,7 @@ function _depValiderConfirmerFrance(ctx, fiche){
   try{ _depMarquerRamasseCamionFrance(ctx.clientId); }catch(e){}
 
   try{
-    depActivite('&#9989;', 'a ramass&eacute; <strong>' + esc(_depNomFiche(fiche)) + '</strong> &mdash; France &amp; Europe');
+    depActivite('&#9989;', 'a ramass&eacute; <strong>' + esc(_depNomFiche(fiche)) + '</strong> &mdash; France');
   }catch(e){}
 
   try{
@@ -15435,7 +15435,7 @@ window.depOuvrirNouveauCamionExterneFrance = function(){
     m.style.cssText = 'align-items:center;';
     m.innerHTML = '<div class="modal-sheet" style="border-radius:16px;margin:16px;">'
       +   '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🚚 Chauffeur externe</div>'
-      +   '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:16px;">Un code d&rsquo;acc&egrave;s sera g&eacute;n&eacute;r&eacute; &agrave; la cr&eacute;ation, propre &agrave; cette collecte France &amp; Europe.</div>'
+      +   '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:16px;">Un code d&rsquo;acc&egrave;s sera g&eacute;n&eacute;r&eacute; &agrave; la cr&eacute;ation, propre &agrave; cette collecte France.</div>'
       +   '<div class="fg"><label class="fl">Pr&eacute;nom du chauffeur</label>'
       +   '<input class="fi" id="new-truck-externe-fr-nom" placeholder="Amadou" maxlength="40"></div>'
       +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">'
@@ -15938,13 +15938,13 @@ function _frReconcilierStatutsRamasses(){
 }
 
 /* ─────────────────────────────────────────────
-   v3.99.35 — ARCHIVAGE DES CLIENTS "PARTI" (France & Europe)
+   v3.99.35 — ARCHIVAGE DES CLIENTS "PARTI" (France)
 
    Cobey : « l'appli a encore des lenteurs [...] chargement de page lent,
    bouton non clicable », en France & Europe spécifiquement. Cause : rien
    ne retire jamais un client de franceData.clients, même une fois son
    colis expédié depuis longtemps — l'écoute Firebase télécharge donc
-   l'historique COMPLET de l'activité France & Europe (des mois de
+   l'historique COMPLET de l'activité France (des mois de
    clients) à chaque ouverture de l'appli, même sur un réseau faible en
    tournée.
 
@@ -16131,7 +16131,7 @@ function _frMajBarreInscrire(t){
    nom/prénom/téléphone (_showSuggestionsCombo, showSuggestions,
    fillClientFromSug — natifs, inchangés). Cobey a demandé d'étendre ce même
    principe aux deux autres endroits où un client est inscrit : le dépôt
-   direct ("dp-", écran propre à departs.js) et France & Europe ("fa-",
+   direct ("dp-", écran propre à departs.js) et France ("fa-",
    natif). Ces fonctions génériques, paramétrées par préfixe de champs,
    couvrent les deux — le formulaire "f-" garde son mécanisme natif tel quel.
 
@@ -18163,7 +18163,7 @@ function greffer(){
           el.parentNode.replaceChild(carte, el);
           break;
         }
-      }catch(e){ console.error('departs: mise en avant du total France & Europe', e); }
+      }catch(e){ console.error('departs: mise en avant du total France', e); }
     };
     window.renderFrance._depPatch = true;
   }
@@ -20853,7 +20853,7 @@ window.depOuvrirImpressionToutesEtiquettesCamion = function(k, src, colId){
   if(src === 'france'){
     var r = colId ? ((window.franceData||{}).collectes||{})[colId]
       : (typeof window._frCollecteActive === 'function' ? window._frCollecteActive() : null);
-    if(!r){ toast('⚠️ Collecte France & Europe introuvable.'); return; }
+    if(!r){ toast('⚠️ Collecte France introuvable.'); return; }
     tk = (r.trucks||{})[k];
     clients = (window.franceData||{}).clients || {};
     ctxBase = { collecteId: r._id, depot: false, france: true };
@@ -22103,7 +22103,7 @@ window.depRapfinContainer = function(id){
         +   '<div class="dep-cli-n">' + _depPastilleRang(c, id)
         +     esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))
         +     (x.src === 'depot'  ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
-        +     (x.src === 'france' ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')
+        +     (x.src === 'france' ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France</span>' : '')
         +   '</div>'
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
         +     (estSansPrix
@@ -22620,7 +22620,7 @@ window.depRenderBilanContainer = function(){
                valeur: depl[k].montant, texte: _depEuros(depl[k].montant) + ' &euro;' };
     }).sort(function(a, b){ return b.valeur - a.valeur; });
     h += _depBlCarte('&#128739;&#65039; FRAIS DE D&Eacute;PLACEMENT FACTUR&Eacute;S',
-      _depBlLigne('Total (clients France &amp; Europe)', _depEuros(depArrondi2(totDepl)) + ' &euro;', '#00636b')
+      _depBlLigne('Total (clients France)', _depEuros(depArrondi2(totDepl)) + ' &euro;', '#00636b')
       + '<div style="margin-top:10px;padding-top:12px;border-top:1px solid #F0F0F2;">' + _depBlBarres(rowsDepl, '#00838F') + '</div>');
   }
 
@@ -22723,7 +22723,7 @@ window.depRenderBilanContainer = function(){
   fiches.forEach(function(x){
     var k = x.src === 'col' ? '&Icirc;le-de-France (collectes)'
       : x.src === 'depot' ? 'D&eacute;p&ocirc;t direct'
-      : esc(x.c.region || 'France &amp; Europe (autre)');
+      : esc(x.c.region || 'France (autre)');
     geo[k] = (geo[k] || 0) + 1;
   });
   var rowsGeo = Object.keys(geo).map(function(k){ return { label: k, valeur: geo[k] }; })
@@ -23599,7 +23599,7 @@ window.depRenderDepensesFixes = function(){
         +     '<span>&#128197; ' + esc(g.colDate || '—') + '</span>'
         +     (ghEstFr ? ('<span style="background:#E8EAF6;color:#1a237e;border:1.5px solid #1a237e;'
                 + 'border-radius:20px;padding:1px 8px;font-size:9.5px;letter-spacing:0;text-transform:none;">'
-                + '&#127466;&#127482; France &amp; Europe</span>') : '')
+                + ' France</span>') : '')
         +   '</div>'
         +   '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:5px;">'
         +     '<span style="font-size:12px;font-weight:700;color:var(--text3);">' + _depEuros(sousTotal) + ' &euro;</span>'
@@ -24096,7 +24096,7 @@ function _depFmInjecterSuiviContainer(departId){
    rapport financier, dans la carte container Mali [...] on ne fait aucune
    dépense, on ne gère rien [...] cette étape-là se fait en amont, après
    avoir enregistré les clients [...] il ne faut pas qu'on le fasse depuis
-   chaque case de Collecte/France & Europe/Dépôt direct, mais qu'on le
+   chaque case de Collecte/France/Dépôt direct, mais qu'on le
    fasse directement dans le bilan financier, dans le container, en
    interne. » Retiré des trois fiches client ; la liste nominative de tous
    les clients du container (_depHtmlListeTaxesContainer, injectée par
@@ -24150,7 +24150,7 @@ function _depHtmlListeTaxesContainer(departId){
         return '<div class="dep-cli" style="cursor:pointer;" onclick="depOuvrirTaxePrestataireDe(\''+x.src+'\',\''+esc(x.collecteId||'')+'\',\''+esc(x.clientId)+'\')">'
           + '<div class="dep-cli-n">' + esc(_depNomFiche(c))
           +   (x.src === 'depot'  ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
-          +   (x.src === 'france' ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France &amp; Europe</span>' : '')
+          +   (x.src === 'france' ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France</span>' : '')
           + '</div>'
           + '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
           +   '<span>Factur&eacute; ' + (c.prix||0) + ' &euro;</span>'
@@ -24749,7 +24749,7 @@ window.depRenderFideliteContact = function(){
       var c = x.c;
       var pay = depCalculerPaiement(c);
       var d = c.departId ? (window.departsData||{})[c.departId] : null;
-      var origine = d ? esc(d.nom||'') : (x.depot ? 'D&eacute;p&ocirc;t direct' : (x.france ? 'France &amp; Europe' : 'Pas encore rattach&eacute;'));
+      var origine = d ? esc(d.nom||'') : (x.depot ? 'D&eacute;p&ocirc;t direct' : (x.france ? 'France' : 'Pas encore rattach&eacute;'));
       // v2.20.13 — Cobey, après avoir vérifié qu'une ligne "—" (sans date)
       // ouvrait bien la bonne facture au tap : « ça fonctionne, mais c'est
       // pas compréhensible [...] mettre des dates, ou des anciennes
@@ -25423,7 +25423,7 @@ function _depHtmlStockage(){
 
   var lignes=[
     {lib:'🚚 Collectes de Dakar', o:col},
-    {lib:'🇪🇺 France & Europe',   o:fr},
+    {lib:'🇫🇷 France',   o:fr},
     {lib:'📷 Photos',             o:ph},
     {lib:'🏢 Dépôt direct',       o:dep},
     {lib:'📇 Carnet de contacts', o:car},

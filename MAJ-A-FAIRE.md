@@ -5029,3 +5029,32 @@ au login (Firebase redonne les récents). Testé : 4 000 événements → 150
 affichés, stockage 8 Ko. Non prouvé comme cause unique : un test Chrome avec
 16 000 éléments cachés ne ralentit pas France ; WebKit iPhone peut réagir
 différemment. À confirmer par un nouveau relevé depuis le raccourci.
+
+**22/10, v3.99.79 (departs.js v2.21.13) — France seulement + outil « Clients
+proches ».** Cobey : « pour France-Europe, on va enlever Europe et tout ce
+qui concerne les autres pays, on se concentre sur la France » puis « je
+veux que tu nous aides à voir les clients proches [...] ça peut être 1
+heure, voire 1h30 maximum de trajet [...] il faut aussi prendre en compte
+les kilomètres [...] fais l'estimation en kilomètres par rapport au temps
+[...] prêt ou pas prêt, non, ça c'est à part [...] minimum 3 clients par
+tournée [...] les heures, on ne prend pas en compte, ça sera à part. »
+1) Libellés : « France & Europe » devient « France » (cases, en-têtes,
+badges, toasts), drapeau 🇫🇷 ; le choix du pays disparaît du formulaire
+d'inscription (il ne reste que pour modifier une ancienne fiche déjà
+enregistrée dans un autre pays — aucune donnée supprimée). Le texte des
+CGV (« entre le Sénégal, la France et l'Europe ») est volontairement
+inchangé (texte contractuel). 2) Nouvel écran `s-fr-proches` (bouton « 🧭
+Clients proches » en haut de la liste France > Clients) : prend les
+clients « En attente » (pas les planifiés), les localise (cache lat/lng sur
+la fiche), forme des groupes autour d'un centre : un client est dans le
+groupe s'il est à ≤ N minutes de route du centre (curseur 30 min – 1h30,
+1h par défaut). Première passe à vol d'oiseau (×1,1 min/km), puis OSRM
+`table` pour le vrai temps ET les vrais km de chaque client depuis le
+centre (« ≈ » si OSRM indisponible). Chaque groupe : « Autour de <ville du
+centre> », nb clients/colis/montant, jusqu'à X min · Y km du centre, ✅ à
+partir de 3 clients, 🟠 « il en manque N » sinon ; clients isolés listés à
+part ; clients sans adresse localisable signalés. Bouton « Créer la
+tournée avec ces N clients » : sélectionne les clients dans la liste France
+(même parcours que « Mettre dans un camion »). « Prêt / pas prêt » et les
+horaires ne sont pas pris en compte. Testé avec faux OSRM (pas de réseau
+ici) : à vérifier en vrai avec les adresses réelles.
