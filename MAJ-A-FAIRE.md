@@ -4791,3 +4791,25 @@ jour exceptionnel (colonne marquée « except. »), « – » pour qui n'est
 pas concerné ce jour-là. À noter : la nouvelle branche Firebase
 `dct_planning_jours` doit être autorisée en écriture par les règles de la
 base (comme `dct_planning`) — sinon « Échec, réessayez ».
+
+**22/10, v3.99.66 (departs.js v2.21.2) — Planning : jour de chargement et
+collectes France & Europe lus automatiquement.** Cobey : « dimanche 25,
+c'est la collecte mais c'est aussi le jour de chargement [...] le planning
+lira automatiquement quels jours sont les chargements », précisé : « le
+jour de chargement, c'est le jour de départ, c'est exactement la même
+chose ». Puis : « la même chose avec les collectes France-Europe [...]
+quand on crée une collecte, le planning lit qu'il y a une collecte et met
+un planning en adéquation » — « tout le monde peut répondre, comme
+maintenant » et « pas besoin de notif » (la collecte bouge parfois
+avant de se valider). `_depPlanningJours` relit à chaque affichage
+`franceData.collectes` (jour de plus si la date n'est pas déjà au
+Planning, pastille « 🇪🇺 COLLECTE FRANCE & EUROPE » + nom sinon) et
+`departsData` (pastille « 📦 CHARGEMENT » + nom du container sur sa date
+de départ, containers clos exclus ; plusieurs containers le même jour =
+plusieurs noms). Aucune donnée stockée : changer une date, renommer ou
+supprimer une collecte suit tout seul. Mêmes règles qu'un dimanche pour
+les réponses (équipe fixe + volontaires), mais jamais de verrou du jeudi
+22h hors dimanche (`_depPlEstDimanche`). Bilan d'un container : une
+tournée France & Europe hors dimanche compte dans les présences si le
+Planning a au moins une réponse ce jour-là (les anciennes collectes,
+sans réponse, n'afficheraient que des « ? »).

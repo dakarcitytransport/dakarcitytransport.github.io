@@ -1484,7 +1484,10 @@ function _franceRedessinerSiLibre(){
   try{ var scFr=document.querySelector('.screen.active');
        if(scFr && scFr.id==='s-france' && typeof renderFrance==='function') renderFrance(); }catch(e){}
   try{ var sc=document.querySelector('.screen.active');
-       if(sc && sc.id==='s-partenaire' && typeof renderDanny==='function') renderDanny(); }catch(e){}
+       if(sc && sc.id==='s-partenaire' && typeof renderDanny==='function') renderDanny();
+       // v3.99.66 : le Planning lit les collectes France & Europe (jours et
+       // pastilles) — il doit suivre quand elles changent.
+       if(sc && sc.id==='s-planning' && typeof depRenderPlanning==='function') depRenderPlanning(); }catch(e){}
   try{ var sc2=document.querySelector('.screen.active');
        if(sc2 && sc2.id==='s-collecte' && typeof renderCollecteContent==='function') renderCollecteContent();
        if(sc2 && sc2.id==='s-camion' && typeof currentCamion!=='undefined' && currentCamion) renderCamion(currentCamion); }catch(e){}
@@ -1979,7 +1982,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.65';
+var APP_VERSION = 'v3.99.66';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
