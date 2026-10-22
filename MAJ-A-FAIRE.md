@@ -4920,3 +4920,11 @@ Retour : « quand DCT va dans l'interface de Mamadou on ne peut pas revenir
 de l'accueil de Mamadou, visible uniquement avec l'accès Direction
 (`?direction=`) ; il ferme l'onglet, sinon renvoie vers dct-app.html.
 Non testé sur iPhone (fermeture d'onglet dépend du navigateur).
+
+**22/10, mamadou.html v1.14.10 — fiches regroupées comptées en double chez
+Mamadou.** Cobey : « pourquoi Mamadou a 60 clients au dépôt et nous on en a
+58 ? » Côté DCT, une fiche absorbée par une autre (`fusionneeDans`, bouton
+Regrouper) ne compte plus nulle part ; mamadou.html n'en tenait pas compte
+et la listait en plus (2 fiches regroupées = l'écart de 2). Désormais
+`clientsDuContainer` ignore ces fiches : Dépôt Dakar, liste des containers,
+compteurs et totaux livraison de Mamadou suivent la même règle que DCT.

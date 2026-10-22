@@ -453,7 +453,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.9';
+var MAMADOU_VERSION = 'v1.14.10';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -814,7 +814,12 @@ function tousLesClients(){
   return out;
 }
 function clientsDuContainer(departId){
-  return tousLesClients().filter(function(x){ return x.c.departId === departId; });
+  // v1.14.10 — Cobey : « pourquoi Mamadou a 60 clients au dépôt et nous
+  // 58 ? » Côté DCT, une fiche regroupée dans une autre (fusionneeDans)
+  // ne compte plus nulle part ; ici elle apparaissait encore en double.
+  return tousLesClients().filter(function(x){
+    return x.c.departId === departId && !(x.c.fusionneeDans && x.c.fusionneeDans.clientId);
+  });
 }
 function refClientDe(c){
   return refsClients[_depCleContact(c)] || '';
