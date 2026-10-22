@@ -5058,3 +5058,20 @@ tournée avec ces N clients » : sélectionne les clients dans la liste France
 (même parcours que « Mettre dans un camion »). « Prêt / pas prêt » et les
 horaires ne sont pas pris en compte. Testé avec faux OSRM (pas de réseau
 ici) : à vérifier en vrai avec les adresses réelles.
+
+**22/10, v3.99.80 — « Clients proches » refait en CARTE.** Cobey : « c'est
+une interface pas facile à comprendre. Moi je voulais une interface avec
+une carte où les pôles sont visibles via des couleurs différentes, où on
+verrait les clients sur la carte proches les uns des autres, que les
+régions où les pôles soient distinctes. » La liste de v3.99.79 est
+remplacée : carte France (Leaflet/OSM) en haut, un pôle = une couleur
+(cercle teinté dont le rayon couvre ses clients, pastille avec le nombre de
+clients et le nom de la ville, points de la même couleur pour ses clients) ;
+plein = au moins 3 clients (✅), vide en pointillés = il en manque (🟠),
+points gris = clients isolés. Dessous, une ligne de pastilles de couleur
+(une par pôle) : toucher un pôle (carte ou pastille) zoome dessus et ouvre
+le détail (clients, minutes, km depuis le centre, colis, montant, bouton
+« Créer la tournée »). Le curseur 30 min – 1h30 reste en haut, tout se
+recalcule. Calcul inchangé (OSRM, 3 clients minimum, clients « En
+attente »). Testé avec faux OSRM et Leaflet local ; rendu vérifié par
+capture. À valider avec les vraies adresses.

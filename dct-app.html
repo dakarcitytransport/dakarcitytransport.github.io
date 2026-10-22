@@ -430,27 +430,30 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   </div>
 </div>
 
-<!-- v3.99.79 — CLIENTS PROCHES : regroupe les clients en attente par temps de route -->
+<!-- v3.99.80 — CLIENTS PROCHES : carte, un pôle = une couleur -->
 <div class="screen" id="s-fr-proches">
   <div class="header">
     <button class="btn-back" onclick="fermerProchesFrance()">← France</button>
     <div style="text-align:center;">
       <div class="h-title">🧭 Clients proches</div>
-      <div class="h-sub" style="color:#1a237e;">Tournées possibles</div>
+      <div class="h-sub" style="color:#1a237e;" id="fr-pr-sous">Tournées possibles</div>
     </div>
     <div style="width:60px;"></div>
   </div>
-  <div class="content" style="background:#F2F3F5;">
-    <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;font-weight:700;color:#444;">
-        <span>Distance maximale du centre</span>
-        <span id="fr-pr-lib" style="font-size:16px;font-weight:800;color:#1a237e;">1h</span>
-      </div>
-      <input id="fr-pr-curseur" type="range" min="30" max="90" step="5" value="60" oninput="majProchesMinutes(this.value)" style="width:100%;margin:8px 0 2px;">
-      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#999;"><span>30 min</span><span>1h</span><span>1h30</span></div>
+  <div style="background:#fff;padding:8px 14px 6px;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12px;font-weight:700;color:#444;white-space:nowrap;">Autour d'un pôle :</span>
+      <input id="fr-pr-curseur" type="range" min="30" max="90" step="5" value="60" oninput="majProchesMinutes(this.value)" style="flex:1;min-width:0;">
+      <span id="fr-pr-lib" style="font-size:15px;font-weight:800;color:#1a237e;min-width:46px;text-align:right;">1h</span>
     </div>
-    <div id="fr-proches-contenu"></div>
+    <div style="font-size:10.5px;color:#999;margin-top:1px;">Temps de route maximum entre un client et le centre de son pôle</div>
   </div>
+  <div style="position:relative;flex:0 0 42%;min-height:230px;background:#e8ecef;">
+    <div id="fr-pr-carte" style="position:absolute;inset:0;"></div>
+    <div id="fr-pr-etat" style="position:absolute;left:8px;top:8px;z-index:500;background:rgba(255,255,255,.94);border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:700;color:#1a237e;display:none;"></div>
+  </div>
+  <div id="fr-pr-legende" style="display:flex;gap:8px;overflow-x:auto;padding:8px 12px;background:#fff;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-shrink:0;min-height:44px;align-items:center;"></div>
+  <div class="content" id="fr-proches-contenu" style="background:#F2F3F5;"></div>
 </div>
 
 <!-- FEUILLE DE ROUTE D'UN CAMION FRANCE -->
@@ -2016,7 +2019,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.79';
+var APP_VERSION = 'v3.99.80';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -7395,6 +7398,7 @@ function ouvrirProchesFrance(){
   var cur = document.getElementById('fr-pr-curseur'); if(cur) cur.value = _prochesMin;
   var lib = document.getElementById('fr-pr-lib'); if(lib) lib.textContent = _frDureeTexte(_prochesMin);
   goTo('s-fr-proches');
+  _prochesPreparerCarte(function(){});
   _calculerProches();
 }
 function fermerProchesFrance(){
@@ -7410,14 +7414,14 @@ function majProchesMinutes(v){
 }
 
 function _prochesMessage(html){
-  var box = document.getElementById('fr-proches-contenu');
-  if(box) box.innerHTML = '<div style="text-align:center;color:#888;padding:34px 18px;font-size:13.5px;line-height:1.6;">'+html+'</div>';
+  var et = document.getElementById('fr-pr-etat');
+  if(et){ et.innerHTML = html; et.style.display = 'block'; }
 }
 
 function _calculerProches(){
   var jeton = ++_prochesJeton;
   var clients = _frClients().filter(function(c){ return c.statut==='attente'; });
-  if(!clients.length){ _prochesGroupes=[]; _prochesIsoles=[]; _prochesSansAdresse=[]; _prochesMessage('Aucun client en attente pour le moment.'); return; }
+  if(!clients.length){ _prochesGroupes=[]; _prochesIsoles=[]; _prochesSansAdresse=[]; _prochesSel=-1; _prochesRendu(); var et0=document.getElementById('fr-pr-etat'); if(et0){ et0.innerHTML='Aucun client en attente'; et0.style.display='block'; } return; }
 
   // 1. Coordonnées manquantes (3 requêtes à la fois, résultat mémorisé sur la fiche).
   var sans = clients.filter(function(c){ return !(c.lat && c.lng); });
@@ -7523,66 +7527,173 @@ function _prochesAffiner(g, cb){
 }
 
 function _prochesFin(){
-  _prochesGroupes.sort(function(a, b){ return b.membres.length - a.membres.length; });
+  _prochesGroupes.sort(function(x, y){ return y.membres.length - x.membres.length; });
+  _prochesSel = -1;
   _prochesRendu();
 }
 
 function _prochesVille(c){ return (c.ville || '').trim() || (c.cp || '') || '—'; }
 
+var PROCHES_COULEURS = ['#1a73e8','#e8710a','#188038','#a142f4','#d93025','#00897b','#c2185b','#6d4c41','#5c6bc0','#9e9d24'];
+var _prochesCarte = null, _prochesCalque = null, _prochesSel = -1;
+
+function _prochesCouleur(gi){ return PROCHES_COULEURS[gi % PROCHES_COULEURS.length]; }
+
+function _prochesResume(g){
+  var colis = 0, euros = 0, maxMin = 0, maxKm = 0, approx = false;
+  g.membres.forEach(function(r){
+    colis += (r.c.nb || 1);
+    euros += (parseFloat(r.c.prix)||0) + (parseFloat(r.c.prixRamassage)||0);
+    if(r.min > maxMin) maxMin = r.min;
+    if(r.km > maxKm) maxKm = r.km;
+    if(r.approx) approx = true;
+  });
+  return { colis:colis, euros:euros, maxMin:maxMin, maxKm:maxKm, approx:approx, plein:g.membres.length >= PROCHES_MIN_CLIENTS };
+}
+
+function _prochesPreparerCarte(cb){
+  _chargerLeaflet(function(){
+    var el = document.getElementById('fr-pr-carte');
+    if(!el || !window.L) return;
+    if(_prochesCarte && _prochesCarte._container !== el){ try{ _prochesCarte.remove(); }catch(e){} _prochesCarte = null; }
+    if(!_prochesCarte){
+      _prochesCarte = L.map(el, { zoomControl:true }).setView([46.6, 2.4], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:18 }).addTo(_prochesCarte);
+      _prochesCalque = L.layerGroup().addTo(_prochesCarte);
+    }
+    setTimeout(function(){ try{ _prochesCarte.invalidateSize(); }catch(e){} cb(); }, 60);
+  });
+}
+
 function _prochesRendu(){
+  _prochesPreparerCarte(function(){
+    _prochesDessinerCarte();
+    _prochesDessinerLegende();
+    _prochesDessinerDetail();
+    var et = document.getElementById('fr-pr-etat'); if(et) et.style.display = 'none';
+  });
+}
+
+function _prochesDessinerCarte(){
+  if(!_prochesCarte) return;
+  _prochesCalque.clearLayers();
+  var tous = [], cercles = {};
+  _prochesGroupes.forEach(function(g, gi){
+    var col = _prochesCouleur(gi), res = _prochesResume(g);
+    var estSel = (gi === _prochesSel), floute = (_prochesSel >= 0 && !estSel);
+    var rayon = 0;
+    g.membres.forEach(function(r){ rayon = Math.max(rayon, _frKmOiseau(g.centre, r.c)); });
+    cercles[gi] = L.circle([g.centre.lat, g.centre.lng], {
+      radius: (rayon + 2) * 1000, color: col, weight: estSel ? 3 : 2, dashArray: res.plein ? null : '6 6',
+      fillColor: col, fillOpacity: floute ? 0.03 : 0.12, opacity: floute ? 0.35 : 0.9, interactive: false
+    }).addTo(_prochesCalque);
+    g.membres.forEach(function(r){
+      if(r.c === g.centre) return;
+      L.circleMarker([r.c.lat, r.c.lng], { radius: 8, color: '#fff', weight: 2, fillColor: col, fillOpacity: floute ? 0.4 : 1 })
+        .bindTooltip(_nomAfficheTexte(r.c)+' · '+(r.approx?'≈ ':'')+r.min+' min · '+r.km+' km')
+        .on('click', function(){ _prochesChoisir(gi); })
+        .addTo(_prochesCalque);
+      tous.push([r.c.lat, r.c.lng]);
+    });
+    var badge = '<div style="width:34px;height:34px;border-radius:50%;background:'+(res.plein?col:'#fff')+';color:'+(res.plein?'#fff':col)
+      +';border:3px solid '+col+';display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;font-family:sans-serif;box-shadow:0 1px 6px rgba(0,0,0,.45);'
+      +(floute?'opacity:.45;':'')+(estSel?'outline:3px solid #fff;':'')+'">'+g.membres.length+'</div>'
+      +'<div style="position:absolute;left:50%;top:36px;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:800;color:#222;font-family:sans-serif;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;">'+_esc(_prochesVille(g.centre))+'</div>';
+    L.marker([g.centre.lat, g.centre.lng], { icon: L.divIcon({ html:'<div style="position:relative;width:34px;height:34px;">'+badge+'</div>', className:'', iconSize:[34,34], iconAnchor:[17,17] }) })
+      .on('click', function(){ _prochesChoisir(gi); })
+      .addTo(_prochesCalque);
+    tous.push([g.centre.lat, g.centre.lng]);
+  });
+  _prochesIsoles.forEach(function(c){
+    L.circleMarker([c.lat, c.lng], { radius: 6, color: '#fff', weight: 2, fillColor: '#8a8f98', fillOpacity: _prochesSel >= 0 ? 0.45 : 0.95 })
+      .bindTooltip(_nomAfficheTexte(c)+' · isolé')
+      .addTo(_prochesCalque);
+    tous.push([c.lat, c.lng]);
+  });
+  try{
+    if(_prochesSel >= 0 && _prochesGroupes[_prochesSel]){
+      _prochesCarte.fitBounds(cercles[_prochesSel].getBounds(), { padding:[20,20], maxZoom:11 });
+    } else if(tous.length){
+      _prochesCarte.fitBounds(tous, { padding:[30,30], maxZoom:9 });
+    }
+  }catch(e){}
+}
+
+function _nomAfficheTexte(c){
+  var t = document.createElement('div'); t.innerHTML = _nomAffiche(c); return t.textContent;
+}
+
+function _prochesDessinerLegende(){
+  var box = document.getElementById('fr-pr-legende');
+  if(!box) return;
+  var h = '';
+  _prochesGroupes.forEach(function(g, gi){
+    var col = _prochesCouleur(gi), res = _prochesResume(g), on = (gi === _prochesSel);
+    h += '<span onclick="_prochesChoisir('+gi+')" style="display:inline-flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;padding:6px 11px;border-radius:20px;font-size:12.5px;font-weight:800;white-space:nowrap;'
+      + 'border:2px solid '+col+';'+(on?'background:'+col+';color:#fff;':'background:#fff;color:#222;')+'">'
+      + '<span style="width:11px;height:11px;border-radius:50%;background:'+(on?'#fff':col)+';display:inline-block;"></span>'
+      + _esc(_prochesVille(g.centre))+' · '+g.membres.length+(res.plein?' ✅':' 🟠')+'</span>';
+  });
+  if(_prochesIsoles.length){
+    h += '<span style="display:inline-flex;align-items:center;gap:6px;flex-shrink:0;padding:6px 11px;border-radius:20px;font-size:12.5px;font-weight:700;white-space:nowrap;border:2px solid #cfd2d6;background:#fff;color:#666;">'
+      + '<span style="width:11px;height:11px;border-radius:50%;background:#8a8f98;display:inline-block;"></span>Isolés · '+_prochesIsoles.length+'</span>';
+  }
+  if(!h) h = '<span style="font-size:12.5px;color:#999;">Aucun client à afficher.</span>';
+  box.innerHTML = h;
+}
+
+function _prochesChoisir(gi){
+  _prochesSel = (_prochesSel === gi) ? -1 : gi;
+  _prochesDessinerCarte();
+  _prochesDessinerLegende();
+  _prochesDessinerDetail();
+}
+
+function _prochesDessinerDetail(){
   var box = document.getElementById('fr-proches-contenu');
+  var sous = document.getElementById('fr-pr-sous');
   if(!box) return;
   var ok = _prochesGroupes.filter(function(g){ return g.membres.length >= PROCHES_MIN_CLIENTS; }).length;
-  var h = '<div style="font-size:13px;font-weight:700;color:#444;margin:2px 2px 10px;">'
-    + (ok ? ('✅ '+ok+' tournée'+(ok>1?'s':'')+' possible'+(ok>1?'s':'')+' (au moins '+PROCHES_MIN_CLIENTS+' clients à moins de '+_frDureeTexte(_prochesMin)+' du centre)')
-          : ('Aucune tournée possible pour l’instant à moins de '+_frDureeTexte(_prochesMin)+' (il faut au moins '+PROCHES_MIN_CLIENTS+' clients proches).'))
-    + '</div>';
+  if(sous) sous.textContent = ok ? (ok+' tournée'+(ok>1?'s':'')+' possible'+(ok>1?'s':'')) : 'Aucune tournée possible';
+  var h = '';
   if(_prochesApprox) h += '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border-radius:8px;padding:7px 10px;margin-bottom:10px;">≈ Le service de trajets ne répond pas : temps et kilomètres sont estimés à vol d’oiseau.</div>';
 
-  _prochesGroupes.forEach(function(g, gi){
-    var n = g.membres.length, plein = n >= PROCHES_MIN_CLIENTS;
-    var colis = 0, euros = 0, maxMin = 0, maxKm = 0, approx = false;
-    g.membres.forEach(function(r){
-      colis += (r.c.nb || 1);
-      euros += (parseFloat(r.c.prix)||0) + (parseFloat(r.c.prixRamassage)||0);
-      if(r.min > maxMin) maxMin = r.min;
-      if(r.km > maxKm) maxKm = r.km;
-      if(r.approx) approx = true;
-    });
-    var pre = approx ? '≈ ' : '';
-    h += '<div style="background:#fff;border:1.5px solid '+(plein?'#009A44':'#F0C36D')+';border-radius:14px;padding:13px 14px;margin-bottom:12px;box-shadow:var(--shadow);">'
+  var g = _prochesGroupes[_prochesSel];
+  if(g){
+    var col = _prochesCouleur(_prochesSel), res = _prochesResume(g), n = g.membres.length, pre = res.approx ? '≈ ' : '';
+    h += '<div style="background:#fff;border:2px solid '+col+';border-radius:14px;padding:13px 14px;box-shadow:var(--shadow);">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
-      +   '<div><div style="font-size:15px;font-weight:800;color:#1a1a2e;">Autour de '+_esc(_prochesVille(g.centre))+'</div>'
-      +   '<div style="font-size:11.5px;color:#777;margin-top:2px;">jusqu’à '+pre+_frDureeTexte(maxMin)+' · '+pre+maxKm+' km du centre</div></div>'
-      +   '<span style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:18px;white-space:nowrap;'+(plein?'background:#d4f0e0;color:#006b2d;':'background:#FFF3E0;color:#8A5200;')+'">'
-      +   (plein ? '✅ '+n+' clients' : '🟠 il en manque '+(PROCHES_MIN_CLIENTS-n))+'</span></div>'
-      + '<div style="font-size:12px;color:#555;margin:8px 0 6px;">📦 '+colis+' colis'+(_montantsVisibles()&&euros?(' · <b style="color:#006b2d;">'+Math.round(euros)+' €</b>'):'')+'</div>';
+      +   '<div><div style="font-size:16px;font-weight:800;color:#1a1a2e;"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+col+';margin-right:7px;"></span>Autour de '+_esc(_prochesVille(g.centre))+'</div>'
+      +   '<div style="font-size:12px;color:#777;margin-top:3px;">jusqu’à '+pre+_frDureeTexte(res.maxMin)+' · '+pre+res.maxKm+' km du centre</div></div>'
+      +   '<span style="font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:18px;white-space:nowrap;'+(res.plein?'background:#d4f0e0;color:#006b2d;':'background:#FFF3E0;color:#8A5200;')+'">'
+      +   (res.plein ? '✅ '+n+' clients' : '🟠 il en manque '+(PROCHES_MIN_CLIENTS-n))+'</span></div>'
+      + '<div style="font-size:12.5px;color:#555;margin:8px 0 6px;">📦 '+res.colis+' colis'+(_montantsVisibles()&&res.euros?(' · <b style="color:#006b2d;">'+Math.round(res.euros)+' €</b>'):'')+'</div>';
     g.membres.slice().sort(function(a, b){ return a.min - b.min; }).forEach(function(r){
-      h += '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:5px 0;border-top:1px dashed #e4e4e4;">'
-        + '<span style="min-width:0;"><b>'+_nomAffiche(r.c)+'</b><span style="color:#888;"> · '+_esc(_prochesVille(r.c))+'</span>'+(r.c===g.centre?' <span style="font-size:10px;font-weight:800;color:#1a237e;">CENTRE</span>':'')+'</span>'
-        + '<span style="color:#444;white-space:nowrap;font-weight:600;">'+(r.c===g.centre?'—':((r.approx?'≈ ':'')+r.min+' min · '+r.km+' km'))+'</span></div>';
+      h += '<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 0;border-top:1px dashed #e4e4e4;">'
+        + '<span style="min-width:0;"><b>'+_nomAffiche(r.c)+'</b><span style="color:#888;"> · '+_esc(_prochesVille(r.c))+'</span>'+(r.c===g.centre?' <span style="font-size:10px;font-weight:800;color:'+col+';">CENTRE</span>':'')+'</span>'
+        + '<span style="color:#444;white-space:nowrap;font-weight:700;">'+(r.c===g.centre?'—':((r.approx?'≈ ':'')+r.min+' min · '+r.km+' km'))+'</span></div>';
     });
-    if(plein){
-      h += '<button class="btn" style="margin:10px 0 0;background:#1a237e;border:2.5px solid #0d1444;color:#fff;" onclick="creerTourneeProches('+gi+')">🚛 Créer la tournée avec ces '+n+' clients</button>';
+    if(res.plein){
+      h += '<button class="btn" style="margin:12px 0 0;background:#1a237e;border:2.5px solid #0d1444;color:#fff;" onclick="creerTourneeProches('+_prochesSel+')">🚛 Créer la tournée avec ces '+n+' clients</button>';
     }
     h += '</div>';
-  });
-
-  if(_prochesIsoles.length){
+  } else {
+    h += '<div style="text-align:center;color:#666;font-size:13px;line-height:1.55;padding:14px 10px;">'
+      + (_prochesGroupes.length ? 'Touchez un pôle sur la carte ou dans la liste ci-dessus pour voir ses clients.<br><span style="font-size:11.5px;color:#999;">Rond plein ✅ = au moins '+PROCHES_MIN_CLIENTS+' clients, rond vide 🟠 = il en manque, gris = client isolé.</span>'
+                                 : 'Aucun pôle pour l’instant à moins de '+_frDureeTexte(_prochesMin)+' : il faut au moins '+PROCHES_MIN_CLIENTS+' clients proches.')
+      + '</div>';
+  }
+  if(_prochesIsoles.length && !g){
     h += '<div class="slabel">Clients isolés · '+_prochesIsoles.length+'</div>'
       + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:6px 14px;margin-bottom:12px;">';
     _prochesIsoles.forEach(function(c){
-      h += '<div style="font-size:12.5px;padding:7px 0;border-bottom:1px dashed #e4e4e4;"><b>'+_nomAffiche(c)+'</b><span style="color:#888;"> · '+_esc(_prochesVille(c))+(c.dept?(' ('+_esc(c.dept)+')'):'')+'</span>'
-        + '<div style="font-size:11px;color:#999;">seul dans sa zone à '+_frDureeTexte(_prochesMin)+' de route</div></div>';
+      h += '<div style="font-size:12.5px;padding:7px 0;border-bottom:1px dashed #e4e4e4;"><b>'+_nomAffiche(c)+'</b><span style="color:#888;"> · '+_esc(_prochesVille(c))+(c.dept?(' ('+_esc(c.dept)+')'):'')+'</span></div>';
     });
     h += '</div>';
   }
-  if(_prochesSansAdresse.length){
+  if(_prochesSansAdresse.length && !g){
     h += '<div style="font-size:12px;color:#992020;background:#fde0e0;border-radius:10px;padding:10px 12px;margin-bottom:12px;">⚠️ Adresse introuvable pour : '
       + _prochesSansAdresse.map(function(c){ return _nomAffiche(c); }).join(', ')+'. Complétez leur adresse pour les inclure.</div>';
-  }
-  if(!_prochesGroupes.length && !_prochesIsoles.length && !_prochesSansAdresse.length){
-    h += '<div style="text-align:center;color:#aaa;padding:30px;">Aucun client en attente.</div>';
   }
   box.innerHTML = h;
 }
