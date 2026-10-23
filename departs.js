@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.14';
+var DEP_VERSION = 'v2.21.15';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5494,6 +5494,9 @@ function ecouterDeparts(){
   db.ref('dct_planning').on('value', function(snap){
     window.planningData = snap.val() || {};
     _depRedessinerDiffere('planning', 's-planning', function(){ depRenderPlanning(); });
+    // v3.99.82 : les cartes de collecte affichent qui est disponible.
+    _depRedessinerDiffere('cartesCollectes', 's-home', function(){ if(typeof renderCollectesList === 'function') renderCollectesList(); });
+    _depRedessinerDiffere('cartesFrance', 's-france', function(){ if(window.franceTab === 'collectes' && typeof renderFrance === 'function') renderFrance(); });
     _depRedessinerDiffere('espaces', 's-espaces', function(){ depRenderEspaces(); });
   });
 
@@ -26451,6 +26454,18 @@ function _depPlLibelleJour(iso){
 
 // Les jours à venir : les prochains dimanches, plus les jours des collectes
 // France & Europe, dans l'ordre.
+/* v3.99.82 — « Samedi 24 octobre 2026 » (libellé d'une collecte de
+   Dakar) -> « 2026-10-24 ». Vide si le libellé n'est pas lisible. */
+function _depIsoDeCollecte(c){
+  var m = /(\d{1,2})\s+([^\s\d]+)\s+(\d{4})/.exec((c && c.date) || '');
+  if(!m) return '';
+  var sans = function(x){ return String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+  var mois = DEP_PL_MOIS.map(sans).indexOf(sans(m[2]));
+  if(mois < 0) return '';
+  return m[3] + '-' + ('0' + (mois + 1)).slice(-2) + '-' + ('0' + parseInt(m[1], 10)).slice(-2);
+}
+window._depIsoDeCollecte = _depIsoDeCollecte;
+
 function _depPlanningJours(){
   var liste = _depProchainsDimanches(5);
   var vus = {};
@@ -26472,7 +26487,21 @@ function _depPlanningJours(){
       vus[r.dateIso] = true;
     }
   });
+  // v3.99.82 — Cobey : « rajoute les jours exceptionnels dans le planning
+  // [...] s'il y a un jour exceptionnel, un endroit pour répondre si on est
+  // présent ou pas. » Toute collecte de Dakar (Collecte) à venir entre au
+  // Planning toute seule, comme celles de France : pas de bouton, le
+  // Planning relit `collectes` à chaque affichage.
+  var collDk = (window.collectes || []).filter(function(c){ return c && c.statut !== 'terminee'; });
+  collDk.forEach(function(c){
+    var iso = _depIsoDeCollecte(c);
+    if(!iso || iso < auj || vus[iso]) return;
+    var d = new Date(iso + 'T12:00:00');
+    liste.push({ iso: iso, libelle: d.getDate() + ' ' + DEP_PL_MOIS[d.getMonth()], annee: d.getFullYear() });
+    vus[iso] = true;
+  });
   liste.forEach(function(j){
+    j.collectesDakar = collDk.filter(function(c){ return _depIsoDeCollecte(c) === j.iso; }).length;
     j.collectesFrance = [];
     Object.keys(collFr).forEach(function(k){
       var r = collFr[k];
@@ -26872,6 +26901,26 @@ window.depPlanningExterneAjouter = function(iso, dispo){
   });
 };
 
+/* v3.99.82 — Cobey : « à côté de chaque collecte, [...] les personnes qui
+   ont répondu présent dans le planning », « les vrais prénoms », et pareil
+   pour France. La ligne affichée sur les cartes de collecte (Collecte et
+   France) : les prénoms des personnes « Disponible » ce jour-là. Rien pour
+   un jour passé ou sans date. Les « Pas dispo » ne sont pas montrés. */
+window._depLigneDisposJour = function(iso){
+  try{
+    if(!iso || iso < _depPlIsoAujourdhui()) return '';
+    var gens = _depGensPourJour(iso), dispos = [], reponses = 0;
+    gens.forEach(function(c){
+      var r = _depDispoDe(iso, c.id);
+      if(r){ reponses++; if(r.dispo) dispos.push(c.name || c.id); }
+    });
+    var style = 'font-size:12px;font-weight:700;margin:7px 0 0;line-height:1.4;';
+    if(dispos.length) return '<div style="' + style + 'color:#006b2d;">&#128994; ' + dispos.map(esc).join(' &middot; ') + '</div>';
+    if(reponses) return '<div style="' + style + 'color:#992020;">Personne de disponible pour l&rsquo;instant</div>';
+    return '<div style="' + style + 'color:#8a8a8a;">Pas encore de r&eacute;ponses</div>';
+  }catch(e){ return ''; }
+};
+
 // Le titre d'un jour : « Dimanche 4 octobre », ou « Samedi 4 octobre » +
 // pastille EXCEPTIONNEL + motif.
 function _depPlTitreJour(dim, taille){
@@ -26900,6 +26949,7 @@ function _depPlTitreJour(dim, taille){
   }).join('');
   return '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">'
     + '<div style="font-size:' + (taille || 15.5) + 'px;font-weight:800;color:var(--text);margin-right:2px;">' + esc(base) + '</div>'
+    + ((dim.collectesDakar && !_depPlEstDimanche(dim.iso)) ? pastille('&#128230; COLLECTE', '#DDF1E6', '#006b2d') : '')
     + (fr.length ? pastille('&#127467;&#127479; COLLECTE FRANCE', '#E3E7FA', '#1a237e') : '')
     + '</div>'
     + (noms.length

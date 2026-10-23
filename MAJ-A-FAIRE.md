@@ -5084,3 +5084,25 @@ majuscules, donc raté par le remplacement de la v3.99.79 qui cherchait
 Planning deviennent « FRANCE » / « COLLECTE FRANCE ». Contrôle fait sur
 toute la page (texte, titres, placeholders) : plus aucun « Europe » visible.
 Texte des CGV inchangé volontairement.
+
+**23/10, v3.99.82 (departs.js v2.21.15) — Jours exceptionnels dans le
+Planning + prénoms des personnes disponibles sur les cartes de collecte.**
+Cobey : « est-ce que c'est possible qu'à côté de chaque collecte, on puisse
+voir les personnes qui ont répondu présent dans le planning [...] je veux
+plutôt les vrais prénoms » ; « rajoute les jours exceptionnels dans le
+planning : si quelqu'un fait un jour exceptionnel, il y a un endroit pour
+répondre si on est présent ou pas » ; « pour France Europe, tu mets pareil,
+la ligne avec les prénoms » ; « ok » (toute l'équipe terrain peut répondre).
+1) `_depIsoDeCollecte` lit le libellé d'une collecte de Dakar (« Samedi 24
+octobre 2026 ») ; `_depPlanningJours` ajoute tout seul chaque collecte à
+venir non terminée absente des dimanches (pastille « 📦 COLLECTE » sur les
+jours hors dimanche) : on y répond comme un dimanche (« Mes disponibilités »
+et « L'équipe »), jamais de verrou du jeudi 22 h ni d'absence d'office
+(dimanches seulement), pas de notification. Le Planning se redessine quand
+les collectes changent. 2) `window._depLigneDisposJour(iso)` : ligne « 🟢
+Issyaka · Samba · Ibrahima » (prénoms des « Disponible »), « Personne de
+disponible pour l'instant » si tous ont répondu non, « Pas encore de
+réponses » sinon ; rien pour un jour passé, une collecte terminée ou une
+collecte France sans date. Affichée sous chaque carte de la Collecte et de
+France > Collectes ; les cartes se mettent à jour quand le Planning change.
+Les « Pas dispo » ne sont pas montrés.
