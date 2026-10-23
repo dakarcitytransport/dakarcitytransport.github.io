@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.15';
+var DEP_VERSION = 'v2.21.16';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -26914,10 +26914,16 @@ window._depLigneDisposJour = function(iso){
       var r = _depDispoDe(iso, c.id);
       if(r){ reponses++; if(r.dispo) dispos.push(c.name || c.id); }
     });
-    var style = 'font-size:12px;font-weight:700;margin:7px 0 0;line-height:1.4;';
-    if(dispos.length) return '<div style="' + style + 'color:#006b2d;">&#128994; ' + dispos.map(esc).join(' &middot; ') + '</div>';
-    if(reponses) return '<div style="' + style + 'color:#992020;">Personne de disponible pour l&rsquo;instant</div>';
-    return '<div style="' + style + 'color:#8a8a8a;">Pas encore de r&eacute;ponses</div>';
+    var bloc = function(contenu){
+      return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:9px 14px 12px;border-top:1px solid #eceef1;">'
+        + '<span style="font-size:10px;font-weight:800;color:#8a8f98;letter-spacing:.06em;margin-right:2px;">DISPONIBLES</span>' + contenu + '</div>';
+    };
+    var puce = function(txt, fond, coul){
+      return '<span style="font-size:12px;font-weight:700;background:' + fond + ';color:' + coul + ';padding:3px 10px;border-radius:14px;">' + txt + '</span>';
+    };
+    if(dispos.length) return bloc(dispos.map(function(n){ return puce(esc(n), '#E4F5EA', '#0a6b30'); }).join(''));
+    if(reponses) return bloc(puce('personne pour l&rsquo;instant', '#FDECEC', '#992020'));
+    return bloc(puce('pas encore de r&eacute;ponses', '#F1F2F4', '#7a7f87'));
   }catch(e){ return ''; }
 };
 

@@ -2020,7 +2020,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.82';
+var APP_VERSION = 'v3.99.83';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6042,7 +6042,7 @@ function _frCarteCollecte(r){
     +   '<div class="collecte-stat"><span>'+t.clients+'</span> client'+(t.clients!==1?'s':'')+'</div>'
     +   (t.clients?('<div class="collecte-stat"><span style="color:#006b2d;">'+t.ramasses+' ramassé'+(t.ramasses>1?'s':'')+'</span></div>'):'')
     + '</div>'
-    + ((r.statut!=='terminee' && r.dateIso && typeof window._depLigneDisposJour==='function') ? '<div style="padding:0 2px 2px;">'+window._depLigneDisposJour(r.dateIso)+'</div>' : '')
+    + ((r.statut!=='terminee' && r.dateIso && typeof window._depLigneDisposJour==='function') ? window._depLigneDisposJour(r.dateIso) : '')
     + '</div>';
 }
 
@@ -9202,7 +9202,7 @@ function makeCollecteCard(c){
   // v3.99.82 : qui est disponible ce jour-là (Planning). Pas sur une collecte terminée.
   if(c.statut!=='terminee' && typeof window._depLigneDisposJour==='function' && typeof window._depIsoDeCollecte==='function'){
     var lg=window._depLigneDisposJour(window._depIsoDeCollecte(c));
-    if(lg){ var dl=document.createElement('div'); dl.style.cssText='padding:0 2px 2px;'; dl.innerHTML=lg; card.appendChild(dl); }
+    if(lg){ var dl=document.createElement('div'); dl.innerHTML=lg; card.appendChild(dl); }
   }
   return card;
 }

@@ -5106,3 +5106,11 @@ réponses » sinon ; rien pour un jour passé, une collecte terminée ou une
 collecte France sans date. Affichée sous chaque carte de la Collecte et de
 France > Collectes ; les cartes se mettent à jour quand le Planning change.
 Les « Pas dispo » ne sont pas montrés.
+
+**23/10, v3.99.83 (departs.js v2.21.16) — ligne des disponibles plus soignée.**
+Cobey : « l'affichage n'est pas très esthétique » (la ligne de prénoms
+collée au bord de la carte, sans marge, avec un gros rond vert). Elle devient
+un bandeau en bas de la carte, séparé par un filet, aligné sur les marges de
+la carte (14 px) : libellé « DISPONIBLES » en petit gris, puis un prénom par
+pastille verte ; « personne pour l'instant » en pastille rouge pâle, « pas
+encore de réponses » en pastille grise. Même rendu en Collecte et en France.
