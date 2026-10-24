@@ -78,6 +78,9 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .enc-btn-fl{font-size:26px;color:#0a6b30;line-height:1;}
 .enc-tit{font-size:11px;font-weight:800;color:#777;text-transform:uppercase;letter-spacing:.04em;margin:6px 0 8px;}
 .enc-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer;}
+.enc-row:active{background:#EAF7EE;border-color:#BFE6C8;}
+.enc-voir{font-size:11px;font-weight:700;color:#0a6b30;margin-top:3px;}
+.enc-fl{font-size:24px;color:#0a6b30;line-height:1;flex-shrink:0;}
 .enc-n{font-size:13.5px;font-weight:800;color:#111;}
 .enc-d{font-size:11.5px;color:#888;margin-top:2px;}
 .enc-vide{text-align:center;color:#999;font-size:13px;padding:18px 10px;}
@@ -504,7 +507,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.17.0';
+var MAMADOU_VERSION = 'v1.17.1';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1319,8 +1322,10 @@ function _encHtmlListe(lignes, titre){
     var x = l.x;
     h += '<div class="enc-row" onclick="ouvrirFiche({src:\'' + x.src + '\',collecteId:\'' + esc(x.collecteId) + '\',clientId:\'' + esc(x.clientId) + '\'},false,\'ecran-encaissements\')">'
       +   '<div style="min-width:0;"><div class="enc-n">' + esc(x.c.name || '') + '</div>'
-      +   '<div class="enc-d">' + (l.le ? esc(_mnDateHeureCourte(l.le)) : '—') + '</div></div>'
-      +   '<div style="flex-shrink:0;"><span class="m-bloc"><span class="m-cfa">' + Math.round(l.cfa).toLocaleString('fr-FR') + ' FCFA</span><span class="m-eur">' + depArrondi2(l.eur) + ' &euro;</span></span></div>'
+      +   '<div class="enc-d">' + (l.le ? esc(_mnDateHeureCourte(l.le)) : '—') + '</div>'
+      +   '<div class="enc-voir">Voir la fiche</div></div>'
+      +   '<div style="flex-shrink:0;display:flex;align-items:center;gap:8px;"><span class="m-bloc"><span class="m-cfa">' + Math.round(l.cfa).toLocaleString('fr-FR') + ' FCFA</span><span class="m-eur">' + depArrondi2(l.eur) + ' &euro;</span></span>'
+      +   '<span class="enc-fl">&rsaquo;</span></div>'
       + '</div>';
   });
   return h;

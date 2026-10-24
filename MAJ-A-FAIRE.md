@@ -5247,3 +5247,12 @@ d'abord) et Livraison (bloc facturé / encaissé / dont DCT / dont Mamadou /
 restant, puis liste des livraisons qu'il a encaissées). Un appui sur un
 paiement ouvre la fiche du client ; « retour » revient sur cette page, mise à
 jour. Limité au container ouvert. Rien côté DCT.
+
+**24/10, mamadou.html v1.17.1 — lignes de « Mes encaissements » clairement
+cliquables.** Cobey : « il faut que quand il clique sur le client, il puisse
+se retrouver sur la page du client [...] j'avais pas vu vrai, ajoute ta
+proposition ». Le clic ouvrait déjà la fiche (`ouvrirFiche`, retour vers
+« Mes encaissements »), mais rien n'indiquait que les lignes se touchent. Ajout
+d'une flèche « › », du texte « Voir la fiche » sous la date, et d'un fond vert
+pâle à l'appui, dans les onglets Colis et Livraison ; montant et flèche
+regroupés à droite.
