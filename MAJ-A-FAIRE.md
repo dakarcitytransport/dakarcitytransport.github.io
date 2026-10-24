@@ -5265,3 +5265,12 @@ Dépôt Dakar (pastilles, « encore à encaisser ») et sur la ligne « dont
 encaissé à Dakar par Mamadou » ; helper `_depEurCfa` supprimé. Inchangé :
 tout le CFA + € de mamadou.html (cartes, fiche, Dépôt Dakar, page Mes
 encaissements).
+
+**24/10, dct-app.html v3.99.90 / departs.js v2.21.22 — ligne de paiement sur
+les cartes client du container.** Cobey : « il me semble avant on avait le prix
+genre 100 euros payé sur 200 » puis « Ok fait ». Sous le prix et le téléphone
+de chaque carte client d'un container (côté DCT, euros uniquement), une pastille
+blanche à bord coloré : « ✅ Colis soldé » (vert), « 🟠 Colis : 100 € payés sur
+200 € » (orange) ou « ❌ Colis : rien payé (300 €) » (rouge). La livraison a sa
+propre pastille séparée (même trois états) quand le client a une livraison à
+Dakar. Rien pour les colis « prix à définir ». Aucun CFA côté DCT.

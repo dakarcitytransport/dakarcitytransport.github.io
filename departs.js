@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.21';
+var DEP_VERSION = 'v2.21.22';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8393,6 +8393,7 @@ window.depDetail = function(id, gardeFiltres){
         +       '</span>'
         +     _depLienTelIcone(c.tel)
         +   '</div>'
+        +   _depLignePaiementCarte(c)
         +   _depBadgeLivraison(c, d.statut === 'arrive', _cliColoree)
         +   '<div class="dep-cli-btns" style="margin-top:12px;">'
               + '<button class="dep-cli-btn" style="background:' + (_cliColoree ? '#fff' : '#EAF7EE') + ';border-color:#C8E6D0;color:#006b2d;" '
@@ -12550,6 +12551,36 @@ function _depEncaissePar(c){
 // rester visible ; les autres appels (facture, kv) sont sur fond
 // blanc de toute façon, donc inchangés (fondBlanc omis = comportement
 // d'avant).
+/* v2.21.22 — Cobey : « il me semble qu'avant on avait le prix, genre
+   100 euros payé sur 200 » — sur chaque carte client d'un container (case
+   Départ) : ce qui est payé sur le prix du colis, en euros seulement, et
+   la livraison à part quand le client en a une (deux caisses séparées).
+   Vert = soldé, orange = partiel, rouge = rien payé. */
+function _depLignePaiementCarte(c){
+  if(!c || c.prixADefinir) return '';
+  var pc = depCalculerPaiement(c);
+  if(pc.total <= 0 && !c.livraisonDakar) return '';
+  // Fond blanc : sur une carte teintée (orange / vert) une puce teintée disparaîtrait.
+  var puce = function(txt, fond, coul){
+    return '<div style="display:inline-block;font-size:11.5px;font-weight:800;background:#fff;border:1.5px solid ' + coul + ';color:' + coul + ';padding:2px 10px;border-radius:14px;margin:2px 6px 2px 0;">' + txt + '</div>';
+  };
+  var h = '';
+  if(pc.total > 0){
+    if(pc.statut === 'paye') h += puce('&#9989; Colis sold&eacute;', '#E4F5EA', '#0a6b30');
+    else if(pc.statut === 'partiel') h += puce('&#128992; Colis&nbsp;: ' + pc.paye + ' &euro; pay&eacute;s sur ' + pc.total + ' &euro;', '#FFF3E0', '#8A5200');
+    else h += puce('&#10060; Colis&nbsp;: rien pay&eacute; (' + pc.total + ' &euro;)', '#FDECEC', '#B3261E');
+  }
+  if(c.livraisonDakar){
+    var pl = depCalculerPaiementLivraison(c);
+    if(pl.total > 0){
+      if(pl.statut === 'paye') h += puce('&#9989; Livraison sold&eacute;e', '#E4F5EA', '#0a6b30');
+      else if(pl.statut === 'partiel') h += puce('&#128992; Livraison&nbsp;: ' + pl.paye + ' &euro; sur ' + pl.total + ' &euro;', '#FFF3E0', '#8A5200');
+      else h += puce('&#10060; Livraison&nbsp;: rien pay&eacute; (' + pl.total + ' &euro;)', '#FDECEC', '#B3261E');
+    }
+  }
+  return h ? '<div style="margin:4px 0 2px;">' + h + '</div>' : '';
+}
+
 function _depBadgeLivraison(c, arrive, fondBlanc){
   if(!c) return '';
   var fondFait = fondBlanc ? '#fff' : '#EAF7EE';
