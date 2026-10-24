@@ -38,10 +38,19 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 .client-nom{font-size:14.5px;font-weight:800;color:#111;}
 .client-adresse{font-size:12.5px;color:#666;margin-top:3px;line-height:1.4;}
 .client-colis{font-size:12.5px;color:#333;margin-top:5px;line-height:1.4;background:#F5F5F5;border-radius:8px;padding:6px 9px;}
-/* v1.7.0 — Issyaka via Cobey : « si on peut voir les observations chez le
-   chauffeur externe » — la consigne notée sur la fiche (accès, étage,
-   horaire...) s'affiche sous le colis, bien visible. */
-.client-obs{font-size:12.5px;color:#6b3f00;margin-top:5px;line-height:1.4;background:#FFF4E0;border-left:3px solid #E58A00;border-radius:6px;padding:6px 9px;font-weight:600;}
+/* v1.7.1 — Cobey : « tu aurais dû mettre un bouton Observation où il clique
+   dessus et il voit, comme dans DCT : s'il y a beaucoup d'observations, il
+   aura un écran trop long. » Un bouton ambre dans la ligne Appeler / Waze,
+   qui ouvre une fenêtre avec les observations de la fiche. */
+.act-obs{background:#FFF4E0;border:1.5px solid #E58A00;color:#8a4b00;font-weight:800;cursor:pointer;font-family:var(--font);}
+.obs-fond{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:flex-end;justify-content:center;}
+.obs-fond.open{display:flex;}
+.obs-fiche{background:#fff;width:100%;max-width:430px;max-height:80%;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 16px 22px;}
+.obs-fiche h2{font-size:16px;font-weight:800;margin-bottom:2px;}
+.obs-fiche .obs-sous{font-size:12px;color:#888;margin-bottom:12px;}
+.obs-item{background:#FFF4E0;border-left:3px solid #E58A00;border-radius:8px;padding:10px 12px;margin-bottom:9px;font-size:14px;line-height:1.45;color:#4a2b00;font-weight:600;}
+.obs-item small{display:block;margin-top:5px;font-size:11px;color:#a0742f;font-weight:600;}
+.obs-ferme{width:100%;padding:13px;border:none;border-radius:10px;background:#006b2d;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);margin-top:4px;}
 .badge-fait{font-size:10px;font-weight:800;background:#00b34e;color:#fff;padding:3px 9px;border-radius:20px;white-space:nowrap;}
 .badge-refus{font-size:10px;font-weight:800;background:#c0392b;color:#fff;padding:3px 9px;border-radius:20px;white-space:nowrap;}
 .actions{display:flex;gap:7px;margin-top:11px;}
@@ -160,6 +169,8 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
     </div>
   </div>
 
+  <div id="obs-fond" class="obs-fond" onclick="if(event.target===this)fermerObservations()"><div class="obs-fiche" id="obs-contenu"></div></div>
+
   <div id="ecran-motif" hidden class="card">
     <div class="pad">
       <h1 style="text-align:left;">Colis non récupéré ?</h1>
@@ -175,7 +186,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.7.0';
+var CHAUFFEUR_VERSION = 'v1.7.2';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -813,13 +824,30 @@ function afficherTournee(tk){
 
 // v1.7.0 — Les observations de la fiche client (c.observations[], ou l'ancien
 // champ unique observationCollecte), telles que DCT les a notées.
-function _htmlObservations(c){
+function _observationsDe(c){
   var liste = Array.isArray(c.observations) ? c.observations
     : ((c.observationCollecte && String(c.observationCollecte).trim()) ? [{ texte: String(c.observationCollecte).trim() }] : []);
-  var textes = liste.map(function(o){ return o && o.texte ? String(o.texte).trim() : ''; }).filter(Boolean);
-  if(!textes.length) return '';
-  return '<div class="client-obs">⚠️ ' + textes.map(esc).join('<br>⚠️ ') + '</div>';
+  return liste.filter(function(o){ return o && o.texte && String(o.texte).trim(); });
 }
+function _dateObs(ts){
+  if(!ts) return '';
+  var d = new Date(ts);
+  return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+' à '+('0'+d.getHours()).slice(-2)+'h'+('0'+d.getMinutes()).slice(-2);
+}
+function ouvrirObservations(id){
+  var c = clientsTournee.find(function(x){ return x.id === id; });
+  if(!c) return;
+  var obs = _observationsDe(c);
+  var h = '<h2>⚠️ Observations</h2><div class="obs-sous">' + esc(c.name || '') + '</div>';
+  obs.forEach(function(o){
+    var meta = [o.le ? _dateObs(o.le) : '', o.par || ''].filter(Boolean).join(' · ');
+    h += '<div class="obs-item">' + esc(String(o.texte).trim()).replace(/\n/g, '<br>') + (meta ? '<small>' + esc(meta) + '</small>' : '') + '</div>';
+  });
+  h += '<button type="button" class="obs-ferme" onclick="fermerObservations()">Fermer</button>';
+  $('obs-contenu').innerHTML = h;
+  $('obs-fond').classList.add('open');
+}
+function fermerObservations(){ $('obs-fond').classList.remove('open'); }
 
 function dessinerListe(ids, statuts, horaires){
   var h = '';
@@ -836,7 +864,6 @@ function dessinerListe(ids, statuts, horaires){
       +     '<div><div class="client-nom">' + (heure ? ('🕐 ' + esc(heure) + ' — ') : '') + esc(c.name || '') + '</div>'
       +     '<div class="client-adresse">📍 ' + esc(adresse || '—') + '</div>'
       +     (c.colis ? ('<div class="client-colis">📦 ' + esc(c.colis) + '</div>') : '')
-      +     _htmlObservations(c)
       +   '</div>';
     if(st) h += st.etat === 'recupere' ? '<span class="badge-fait">✓ Récupéré</span>' : '<span class="badge-refus">✕ Non récupéré</span>';
     h += '</div>';
@@ -844,6 +871,10 @@ function dessinerListe(ids, statuts, horaires){
     // — le chauffeur peut avoir besoin de recontacter quelqu'un après
     // coup (retour de Cobey du 01/09/2026 : "s'il a besoin pour x raison
     // de revenir au client").
+    // v1.7.2 : le bouton Observation a sa propre ligne (trois boutons côte à
+    // côte se coupaient sur deux lignes sur un petit écran).
+    var nbObs = _observationsDe(c).length;
+    if(nbObs) h += '<div class="actions" style="margin-top:9px;"><button type="button" class="act act-obs" onclick="ouvrirObservations(\'' + id + '\')">⚠️ Observation' + (nbObs > 1 ? ' (' + nbObs + ')' : '') + ' — voir</button></div>';
     h += '<div class="actions">'
       +    (tel ? ('<a class="act" href="tel:' + esc(tel) + '">📞 Appeler</a>') : '<span class="act" style="opacity:.4;">📞 —</span>')
       +    (adresse ? ('<button type="button" class="act" style="cursor:pointer;" onclick="ouvrirWaze(\'' + id + '\',\'' + esc(adresse).replace(/'/g, '&#39;') + '\')">🧭 Waze</button>') : '<span class="act" style="opacity:.4;">🧭 —</span>')

@@ -5218,3 +5218,15 @@ observation de `c.observations[]` (texte libre noté sur la fiche : accès,
 étage, horaire...), ou l'ancien champ unique `observationCollecte`. Rien
 n'est affiché si le client n'a pas d'observation. Les fiches n'ont pas été
 modifiées. Non couvert : l'arrêt « Chartres » (écran à part).
+
+**24/10, chauffeur.html v1.7.2 — Observation en bouton, plus en encart.**
+Cobey : « tu as mis l'observation direct. Tu aurais dû mettre un bouton
+observation où il clique dessus et il voit, comme dans DCT, parce que s'il y
+a beaucoup d'observations, il aura un écran trop long. » L'encart de la
+v1.7.0 est retiré. Sur chaque client qui a des observations : une ligne
+ambre pleine largeur « ⚠️ Observation (N) — voir » (sa propre ligne, au-dessus
+d'Appeler / Waze : à trois côte à côte les libellés se coupaient). Un appui
+ouvre une fenêtre en bas d'écran : une carte par observation (texte complet,
+date et auteur quand ils existent), bouton « Fermer » ; fermeture aussi en
+touchant le fond. Rien pour un client sans observation. Écran de tournée
+inchangé en longueur, quel que soit le nombre d'observations.
