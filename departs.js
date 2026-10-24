@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.19';
+var DEP_VERSION = 'v2.21.20';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2525,9 +2525,13 @@ window.depVoirRestants = function(quoi){
 // v2.21.19 — Cobey : « à côté du prix en euros le prix en CFA [...] pareil
 // côté DCT, mais euros d'abord » : « 150 € · ≈ 98 000 FCFA » (CFA arrondi
 // au millier, comme partout).
-function _depEurCfa(eur){
+// v2.21.20 — une couleur par monnaie : euros en bleu marine (gras), CFA en
+// vert (plus petit) ; en rouge (reste dû) : euros rouge foncé, CFA rouge clair.
+function _depEurCfa(eur, rouge){
   var e = depArrondi2(parseFloat(eur) || 0);
-  return e + '&nbsp;&euro; &middot; &asymp;&nbsp;' + depFormatCFA(e).replace(/ /g, '&nbsp;');
+  var ce = rouge ? '#992020' : '#1a237e', cc = rouge ? '#c0675f' : '#0a6b30';
+  return '<span style="color:' + ce + ';font-weight:800;white-space:nowrap;">' + e + '&nbsp;&euro;</span> '
+    + '<span style="color:' + cc + ';font-weight:700;font-size:.9em;white-space:nowrap;">&middot; &asymp;&nbsp;' + depFormatCFA(e).replace(/ /g, '&nbsp;') + '</span>';
 }
 
 function _depBlocCaisse(cp){
@@ -2555,13 +2559,13 @@ function _depBlocCaisse(cp){
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">'
       +   '<div style="background:'+teinte.okBg+';border-radius:10px;padding:9px 4px;">'
       +     '<div style="font-size:17px;font-weight:800;color:'+teinte.okFg+';">'+paye+' &euro;</div>'
-      +     '<div style="font-size:10.5px;font-weight:700;color:'+teinte.okFg+';">&asymp;&nbsp;'+depFormatCFA(paye).replace(/ /g, '&nbsp;')+'</div>'
+      +     '<div style="font-size:10.5px;font-weight:700;color:#0a6b30;">&asymp;&nbsp;'+depFormatCFA(paye).replace(/ /g, '&nbsp;')+'</div>'
       +     '<div style="font-size:9.5px;font-weight:800;color:'+teinte.okFg+';opacity:.75;">PAY&Eacute;</div></div>'
       +   '<div style="background:'+(du > 0 ? '#FBE3E3' : '#F2F2F2')+';border-radius:10px;padding:9px 4px;'
       +     (tapable ? 'cursor:pointer;box-shadow:inset 0 0 0 ' + (actif ? '2.5px' : '1.5px') + ' #E9A9A9;' : '') + '"'
       +     (tapable ? ' onclick="depVoirRestants(\''+cle+'\')"' : '') + '>'
       +     '<div style="font-size:17px;font-weight:800;color:'+(du > 0 ? '#B3261E' : '#999')+';">'+du+' &euro;</div>'
-      +     '<div style="font-size:10.5px;font-weight:700;color:'+(du > 0 ? '#B3261E' : '#999')+';">&asymp;&nbsp;'+depFormatCFA(du).replace(/ /g, '&nbsp;')+'</div>'
+      +     '<div style="font-size:10.5px;font-weight:700;color:'+(du > 0 ? '#c0675f' : '#999')+';">&asymp;&nbsp;'+depFormatCFA(du).replace(/ /g, '&nbsp;')+'</div>'
       +     '<div style="font-size:9.5px;font-weight:800;color:'+(du > 0 ? '#B3261E' : '#999')+';opacity:.75;">RESTE D&Ucirc;</div>'
       +     (tapable
           ? '<div style="font-size:9.5px;font-weight:800;color:#B3261E;margin-top:4px;">'
@@ -12691,8 +12695,8 @@ function _depPastillePaiementDakar(c){
   var st, txt;
   if(p.total <= 0){ st = ['#F4F4F5','#E0E0E0','#666']; txt = 'Aucun tarif'; }
   else if(p.statut === 'paye'){ st = ['#EAF7EE','#BFE6C8','#006b2d']; txt = '&#9989; Sold&eacute; &middot; ' + _depEurCfa(p.total); }
-  else if(p.statut === 'partiel'){ st = ['#FFF3E0','#F0C36D','#8A5200']; txt = '&#9680; Reste ' + _depEurCfa(p.reste) + ' &middot; sur ' + p.total + ' &euro;'; }
-  else { st = ['#FDECEC','#F3B8B8','#B3261E']; txt = '&#10060; Non pay&eacute; &middot; ' + _depEurCfa(p.total); }
+  else if(p.statut === 'partiel'){ st = ['#FFF3E0','#F0C36D','#8A5200']; txt = '&#9680; Reste ' + _depEurCfa(p.reste, true) + ' &middot; sur ' + p.total + ' &euro;'; }
+  else { st = ['#FDECEC','#F3B8B8','#B3261E']; txt = '&#10060; Non pay&eacute; &middot; ' + _depEurCfa(p.total, true); }
   return '<span style="font-size:11.5px;font-weight:800;background:'+st[0]+';border:1.5px solid '+st[1]+';color:'+st[2]+';border-radius:20px;padding:5px 11px;margin:6px 0;white-space:nowrap;">'+txt+'</span>';
 }
 
@@ -12745,7 +12749,7 @@ function depRenderDepotDakar(){
       + '<div><div style="font-size:19px;font-weight:800;color:#B45309;">'+nGardiennage+'</div><div style="font-size:9px;font-weight:700;color:#888;">GARDIENNAGE</div></div>'
       + '<div><div style="font-size:19px;font-weight:800;color:#B3261E;">'+n60+'</div><div style="font-size:9px;font-weight:700;color:#888;">&Agrave; 60J+</div></div>'
       + '</div>'
-      + '<div style="margin-top:8px;font-size:11.5px;color:#555;text-align:center;">&#9989; <b>'+nSolde+'</b> sold&eacute;'+(nSolde>1?'s':'')+' sur '+tous.length+' &middot; <b style="color:'+(resteTot>0?'#B3261E':'#006b2d')+';">'+_depEurCfa(resteTot)+'</b> encore &agrave; encaisser</div>';
+      + '<div style="margin-top:8px;font-size:11.5px;color:#555;text-align:center;">&#9989; <b>'+nSolde+'</b> sold&eacute;'+(nSolde>1?'s':'')+' sur '+tous.length+' &middot; <b style="color:'+(resteTot>0?'#B3261E':'#006b2d')+';">'+_depEurCfa(resteTot, resteTot>0)+'</b> encore &agrave; encaisser</div>';
   }
 
   // Les plus anciens en premier (les plus urgents).

@@ -5183,3 +5183,19 @@ séparés, aucun total mélangé. DCT : `_depEurCfa(eur)` → « 150 € · ≈ 
 FCFA » sur les cartes client du container (Départ), sous PAYÉ / RESTE DÛ de
 la caisse du container, dans le Dépôt Dakar (pastilles et « encore à
 encaisser ») et sur la ligne « encaissé à Dakar par Mamadou ».
+
+**24/10, mamadou.html v1.16.1 + v3.99.88 (departs.js v2.21.20) — bloc colis
+sans « restant », montants lisibles, une couleur par monnaie.** Cobey : « pour
+les colis (pas les livraisons), on va enlever les restants à payer : les
+clients vont peut-être payer en virement ou en espèces, ce n'est pas dit que
+ce total soit ce qu'il va récupérer » ; « fais une distinction, une couleur
+entre le montant en francs CFA et le montant en euros ». 1) Bloc « Colis —
+encaissé à Dakar » : ligne « Restant à payer (colis) » retirée (reste :
+encaissé par Mamadou en espèces + clients concernés) ; le bloc livraison
+garde son restant. 2) Totaux des blocs sur deux lignes alignées à droite
+(`mnMontantBloc` : CFA au-dessus, euros dessous) au lieu de se couper sur
+trois lignes. 3) Couleurs — Mamadou : CFA vert foncé gras, euros bleu marine
+plus petit ; pour un reste à payer : CFA rouge foncé, euros rouge clair
+(classes `.m-cfa`, `.m-eur`, `.rouge`). DCT (`_depEurCfa`) : euros bleu marine
+gras, CFA vert plus petit ; en rouge : euros rouge foncé, CFA rouge clair ;
+tuiles PAYÉ / RESTE DÛ de la caisse du container idem.
