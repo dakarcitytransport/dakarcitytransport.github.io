@@ -5207,3 +5207,14 @@ ne pouvait pas rétrécir (`.kv .k{flex-shrink:0}`) et poussait le montant
 hors de la boîte. Le libellé passe sur deux lignes (« Encaissé par
 Mamadou » / « (espèces) ») et peut rétrécir ; `.kv .v` reçoit `min-width:0`
 et `max-width:100%`. Vérifié à 390 px de large avec 3 756 010 FCFA.
+
+**24/10, chauffeur.html v1.7.0 — observations visibles chez le chauffeur
+externe.** Issyaka (message relayé par Cobey, avec capture de la page
+chauffeur) : « dernière petite chose, si on peut voir les observations chez
+le chauffeur externe ». La page chauffeur charge déjà toute la fiche client
+(`france/clients/<id>` ou `dct/clients/<collecte>/<id>`) : on affiche sous
+la ligne du colis un encart ambre « ⚠️ <observation> » — une ligne par
+observation de `c.observations[]` (texte libre noté sur la fiche : accès,
+étage, horaire...), ou l'ancien champ unique `observationCollecte`. Rien
+n'est affiché si le client n'a pas d'observation. Les fiches n'ont pas été
+modifiées. Non couvert : l'arrêt « Chartres » (écran à part).

@@ -38,6 +38,10 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 .client-nom{font-size:14.5px;font-weight:800;color:#111;}
 .client-adresse{font-size:12.5px;color:#666;margin-top:3px;line-height:1.4;}
 .client-colis{font-size:12.5px;color:#333;margin-top:5px;line-height:1.4;background:#F5F5F5;border-radius:8px;padding:6px 9px;}
+/* v1.7.0 — Issyaka via Cobey : « si on peut voir les observations chez le
+   chauffeur externe » — la consigne notée sur la fiche (accès, étage,
+   horaire...) s'affiche sous le colis, bien visible. */
+.client-obs{font-size:12.5px;color:#6b3f00;margin-top:5px;line-height:1.4;background:#FFF4E0;border-left:3px solid #E58A00;border-radius:6px;padding:6px 9px;font-weight:600;}
 .badge-fait{font-size:10px;font-weight:800;background:#00b34e;color:#fff;padding:3px 9px;border-radius:20px;white-space:nowrap;}
 .badge-refus{font-size:10px;font-weight:800;background:#c0392b;color:#fff;padding:3px 9px;border-radius:20px;white-space:nowrap;}
 .actions{display:flex;gap:7px;margin-top:11px;}
@@ -171,7 +175,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.6.2';
+var CHAUFFEUR_VERSION = 'v1.7.0';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -807,6 +811,16 @@ function afficherTournee(tk){
   }
 }
 
+// v1.7.0 — Les observations de la fiche client (c.observations[], ou l'ancien
+// champ unique observationCollecte), telles que DCT les a notées.
+function _htmlObservations(c){
+  var liste = Array.isArray(c.observations) ? c.observations
+    : ((c.observationCollecte && String(c.observationCollecte).trim()) ? [{ texte: String(c.observationCollecte).trim() }] : []);
+  var textes = liste.map(function(o){ return o && o.texte ? String(o.texte).trim() : ''; }).filter(Boolean);
+  if(!textes.length) return '';
+  return '<div class="client-obs">⚠️ ' + textes.map(esc).join('<br>⚠️ ') + '</div>';
+}
+
 function dessinerListe(ids, statuts, horaires){
   var h = '';
   ids.forEach(function(id){
@@ -822,6 +836,7 @@ function dessinerListe(ids, statuts, horaires){
       +     '<div><div class="client-nom">' + (heure ? ('🕐 ' + esc(heure) + ' — ') : '') + esc(c.name || '') + '</div>'
       +     '<div class="client-adresse">📍 ' + esc(adresse || '—') + '</div>'
       +     (c.colis ? ('<div class="client-colis">📦 ' + esc(c.colis) + '</div>') : '')
+      +     _htmlObservations(c)
       +   '</div>';
     if(st) h += st.etat === 'recupere' ? '<span class="badge-fait">✓ Récupéré</span>' : '<span class="badge-refus">✕ Non récupéré</span>';
     h += '</div>';
