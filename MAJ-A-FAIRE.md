@@ -5133,3 +5133,16 @@ France). Les trois compteurs Total/Affectés/Restants et les boutons du bas
 (Ajouter un camion, Chauffeur externe, Valider, Carte) disparaissent ; les
 bandeaux « chauffeur externe » au-dessus des camions restent. Fonctions
 `validerDispatch*` laissées en place, devenues inutilisées.
+
+**24/10, v3.99.85 (departs.js v2.21.17) — France : le Suivi passe sur la page
+d'avant.** Cobey : « le bouton Suivi doit être dans la page d'avant, comme
+dans le parcours Collecte. » Dans la Collecte, Suivi est à l'accueil (à côté
+d'Accueil) et, dans une collecte, il n'y a que Clients et Dispatch. France
+faisait l'inverse (v2.20.11 : Suivi seulement dans une collecte ouverte).
+Désormais : page des collectes = Clients | Collectes | Suivi ; collecte
+ouverte = Clients | Dispatch. Le Suivi n'exige plus de collecte ouverte : il
+montre la collecte en cours (`_frCollecteActive`, comme avant quand rien
+n'est ouvert) ; sans collecte en cours : « Aucune collecte en cours ».
+Limite connue : si deux collectes France sont « en cours » en même temps,
+le Suivi montre la première (pas encore de sélecteur de collecte comme côté
+Collecte).

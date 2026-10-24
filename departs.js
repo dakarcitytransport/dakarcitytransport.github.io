@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.16';
+var DEP_VERSION = 'v2.21.17';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -15675,9 +15675,9 @@ function _frRenderSuivi(){
     return '<div class="suivi-band" style="padding:16px 16px 18px;">'
       +   '<div style="display:flex;align-items:center;gap:7px;"><span class="suivi-off"></span>'
       +   '<span style="color:#fff;font-size:17px;font-weight:800;">Suivi live</span></div>'
-      +   '<div style="color:rgba(255,255,255,0.55);font-size:12.5px;margin-top:8px;">Aucune collecte ouverte.</div>'
+      +   '<div style="color:rgba(255,255,255,0.55);font-size:12.5px;margin-top:8px;">Aucune collecte en cours.</div>'
       + '</div>'
-      + '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:30px 14px;background:#f1f3f6;">Ouvrez une collecte depuis l&rsquo;onglet Collectes.</div>';
+      + '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:30px 14px;background:#f1f3f6;">Le suivi appara&icirc;t d&egrave;s qu&rsquo;une collecte est en cours.</div>';
   }
   var trks = col.trucks || {};
   var cls = (window.franceData || {}).clients || {};
@@ -16097,8 +16097,13 @@ function _frFusionnerOngletCollectesDispatch(t){
   // le bouton "qui ne fait rien") — il n'a donc plus sa place dans la
   // barre à ce moment-là, et réapparaît dès qu'une collecte est ouverte
   // (en même temps que "Dispatch", exactement comme ce dernier).
+  // v3.99.85 — Cobey : « le bouton Suivi doit être dans la page d'avant,
+  // comme dans le parcours Collecte » (là, Suivi est à l'accueil à côté
+  // d'Accueil, et dans une collecte il n'y a que Clients et Dispatch).
+  // Inverse de la v2.20.11 : Suivi est maintenant sur la page des
+  // collectes, et plus dans une collecte ouverte.
   var ongletSuivi = document.getElementById('ftab-suivi');
-  if(ongletSuivi) ongletSuivi.style.display = ouverte ? '' : 'none';
+  if(ongletSuivi) ongletSuivi.style.display = ouverte ? 'none' : '';
 }
 
 /* v2.11.6 — Cobey : « le bouton inscrire client ne doit être que sur
@@ -18490,7 +18495,8 @@ function greffer(){
     var origSwitchFranceTab = window.switchFranceTab;
     window.switchFranceTab = function(t){
       var ouverte = !!(window.currentCollecteFrId && typeof window._frCollectes === 'function' && window._frCollectes()[window.currentCollecteFrId]);
-      if(t === 'suivi' && !ouverte) t = 'collectes';
+      // v3.99.85 : le Suivi n'exige plus d'avoir ouvert une collecte — il
+      // montre la collecte en cours (voir _frCollecteActive).
       origSwitchFranceTab(t);
       try{ _frMajOngletSuivi(t); }catch(e){}
       try{ _frMajBarreInscrire(t); }catch(e){}
