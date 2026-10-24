@@ -5114,3 +5114,22 @@ un bandeau en bas de la carte, séparé par un filet, aligné sur les marges de
 la carte (14 px) : libellé « DISPONIBLES » en petit gris, puis un prénom par
 pastille verte ; « personne pour l'instant » en pastille rouge pâle, « pas
 encore de réponses » en pastille grise. Même rendu en Collecte et en France.
+
+**24/10, v3.99.84 — Dispatch allégé (Collecte et France).** Cobey : « ici
+aussi, je trouve que c'est trop surchargé de boutons [...] le bouton valider
+le dispatch, je crois qu'il sert à rien » puis, après l'aperçu, « vas-y
+fait ». Vérifié : « Valider le dispatch » ne posait qu'un drapeau
+`dispatchValide` (badge « ✅ Dispatch validé » sur la carte + ligne
+d'Activité), rien n'en dépendait. Retiré, avec le badge. Nouvel écran :
+une seule carte en haut (Facturé / Collecté / barre + bloc « Affectés à un
+camion x / n » avec avertissement « N clients sans camion · M sans heure »,
+vert « ✅ Tout le monde est affecté, avec une heure » ; en France
+l'avertissement ouvre toujours la liste pour affecter), un seul gros bouton
+« 🗺️ Organiser sur la carte » (France : + « 👥 Choisir les clients de la
+collecte »), puis « CAMIONS » avec un bouton « ＋ Ajouter ▾ » qui ouvre une
+fenêtre : 🚛 Un camion DCT / 🚚 Un chauffeur externe (mêmes fonctions
+qu'avant : addTruck, depOuvrirNouveauCamionExterne, et leurs équivalents
+France). Les trois compteurs Total/Affectés/Restants et les boutons du bas
+(Ajouter un camion, Chauffeur externe, Valider, Carte) disparaissent ; les
+bandeaux « chauffeur externe » au-dessus des camions restent. Fonctions
+`validerDispatch*` laissées en place, devenues inutilisées.

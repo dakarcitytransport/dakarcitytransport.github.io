@@ -1345,6 +1345,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
      du 07/10 : « on met France Europe comme parcours collecte »). -->
 <div class="modal-overlay" id="modal-del-collecte-fr"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">📅</div><div class="modal-confirm-title">Supprimer cette collecte ?</div><div class="modal-confirm-sub" id="del-collecte-fr-sub"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-del-collecte-fr')">Annuler</button><button class="btn-sm btn-red-sm" onclick="confirmerSupprimerCollecteFrance()">🗑️ Supprimer</button></div></div></div></div>
 <div class="modal-overlay" id="modal-dispatch-invalid-fr"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">⚠️</div><div class="modal-confirm-title">Dispatch incomplet</div><div class="modal-confirm-sub" id="dispatch-errors-fr" style="text-align:left;white-space:pre-line;"></div><div style="margin-top:16px;"><button class="btn-sm btn-green-sm" style="width:100%;" onclick="closeModal('modal-dispatch-invalid-fr')">OK, je corrige</button></div></div></div></div>
+<div class="modal-overlay" id="modal-ajouter-camion"><div class="modal-sheet"><div style="padding:6px 2px 4px;">
+  <div style="font-size:15px;font-weight:800;margin:2px 4px 12px;">Ajouter…</div>
+  <button class="btn" style="margin:0 0 10px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" onclick="_choisirAjoutCamion('dct')">🚛 Un camion DCT</button>
+  <button class="btn" style="margin:0 0 10px;background:#EAF7EE;color:#006b2d;border:2px solid #006b2d;" onclick="_choisirAjoutCamion('externe')">🚚 Un chauffeur externe</button>
+  <button class="btn btn-gray" style="margin:0;" onclick="closeModal('modal-ajouter-camion')">Annuler</button>
+</div></div></div>
 <div class="modal-overlay" id="modal-dispatch-confirm-fr"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">✅</div><div class="modal-confirm-title">Valider le dispatch ?</div><div class="modal-confirm-sub" id="dispatch-confirm-fr-sub"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-dispatch-confirm-fr')">Annuler</button><button class="btn-sm btn-green-sm" onclick="confirmerValiderDispatchFrance()">✅ Valider</button></div></div></div></div>
 <div class="modal-overlay" id="modal-doublon"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">⚠️</div><div class="modal-confirm-title">Client déjà existant</div><div class="modal-confirm-sub"><strong id="doublon-nom"></strong> est déjà dans cette collecte.<br><span id="doublon-info" style="color:#888;font-size:12px;"></span></div><div style="font-size:13px;color:#555;margin:10px 0;">Voulez-vous l'ajouter quand même ?</div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-doublon')">Annuler</button><button class="btn-sm" style="background:#c0392b;color:#fff;border:2px solid #922b21;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);" onclick="closeModal('modal-doublon');ouvrirConfirmClient();">Ajouter quand même</button></div></div></div></div>
 <div class="modal-overlay" id="modal-confirm-client"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">✅</div><div class="modal-confirm-title">Confirmer l'ajout ?</div><div id="confirm-client-recap" style="background:#f9f9f9;border-radius:10px;padding:12px;margin:10px 0;text-align:left;border:1.5px solid #e0e0e0;"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-confirm-client')">Annuler</button><button class="btn-sm btn-green-sm" onclick="closeModal('modal-confirm-client');saveClientConfirme();">✅ Confirmer</button></div></div></div></div>
@@ -2020,7 +2026,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.83';
+var APP_VERSION = 'v3.99.84';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -6127,10 +6133,14 @@ function _frDispatchDetail(r){
     var totalG=ids.reduce(function(s,id){ return s+_frPrixClient(id); },0);
     var collG=cles.reduce(function(s,k){ return s+_frCollecteCamion(trks[k]); },0);
     var pctG=totalG>0?Math.round(collG/totalG*100):0;
+    var aff=ids.filter(function(id){ return !!asgn[id]; }).length;
+    var sansHeureFr=ids.filter(function(id){ var k=asgn[id]; return !!k && (!trks[k] || !trks[k].hours || !trks[k].hours[id]); }).length;
     h+='<div class="finance-global"><div class="finance-title">💰 Suivi financier global</div>'
       +'<div class="finance-row"><span class="finance-label">📋 Facturé</span><span class="finance-val" style="color:#1a237e;">'+collG+' €</span></div>'
       +'<div class="finance-bar-bg"><div class="finance-bar" style="width:'+pctG+'%;"></div></div>'
-      +'<div class="finance-pct">'+pctG+'% facturé</div></div>';
+      +'<div class="finance-pct">'+pctG+'% facturé</div>'
+      +_blocAffectation(aff,nb,nb-aff,sansHeureFr,(gere && (nb-aff)>0)?'_frAllerAffecter()':'')
+      +'</div>';
 
     // v3.99.25 — Cobey, 14/10/2026 : « les montants des collaborateurs
     // sont dans la même interface que les camions [...] ça fait trop
@@ -6141,37 +6151,25 @@ function _frDispatchDetail(r){
     // Clients (voir renderFrance) — Dispatch ne garde que les camions,
     // comme côté Collecte (renderClientsTab vs renderDispatchTab).
 
-    // 2. Les trois compteurs
-    var aff=ids.filter(function(id){ return !!asgn[id]; }).length;
-    h+='<div style="display:flex;gap:8px;margin-bottom:14px;">'
-      +'<div style="flex:1;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:10px;text-align:center;">'
-      +  '<div style="font-size:11px;color:#888;font-weight:700;">CLIENTS</div><div style="font-size:19px;font-weight:800;">'+nb+'</div></div>'
-      +'<div style="flex:1;background:#d4f0e0;border:1.5px solid #009A44;border-radius:10px;padding:10px;text-align:center;">'
-      +  '<div style="font-size:11px;color:#006b2d;font-weight:700;">AFFECTÉS</div><div style="font-size:19px;font-weight:800;color:#006b2d;">'+aff+'</div></div>'
-      +'<div style="flex:1;background:#fde0e0;border:1.5px solid #c0392b;border-radius:10px;padding:10px;text-align:center;">'
-      +  '<div style="font-size:11px;color:#992020;font-weight:700;">NON AFFECTÉS</div><div style="font-size:19px;font-weight:800;color:#992020;">'+(nb-aff)+'</div></div>'
-      +'</div>';
-
-    // v3.60.1 : le compteur rouge seul ne disait pas quoi faire — rien
-    // n'indiquait qu'il fallait descendre jusqu'à la liste par
-    // département pour donner un camion à chacun.
-    if(gere && (nb-aff)>0){
-      h+='<div onclick="_frAllerAffecter()" style="background:#fff3cd;border:2px solid #856404;border-radius:var(--radius);'
-        +'padding:13px 14px;margin-bottom:14px;cursor:pointer;">'
-        +'<div style="font-size:14px;font-weight:800;color:#856404;">⚠️ '+(nb-aff)+' client'+((nb-aff)>1?'s':'')+' sans camion</div>'
-        +'<div style="font-size:12.5px;color:#856404;margin-top:4px;line-height:1.5;">'
-        +  'Tapez ici, puis tapez un client dans la liste pour lui donner un camion.</div></div>';
-    }
   } else {
     h+='<div style="background:#fff;border:1.5px dashed var(--border);border-radius:var(--radius);text-align:center;color:#888;'
       +'padding:18px 16px;margin-bottom:12px;line-height:1.6;font-size:13px;">Aucun client sur cette collecte.'
       +(gere?'<br>Choisissez-en dans le vivier avec le bouton plus bas.':'')+'</div>';
   }
 
+  // v3.99.84 — Cobey : « trop surchargé de boutons » : la carte devient le
+  // seul gros bouton, les camions ont un menu « ＋ Ajouter ».
+  h+='<button style="'+_STYLE_BTN_CARTE+'" onclick="ouvrirCarteFrance(\'suivi\')">🗺️ Organiser sur la carte</button>';
+  if(gere){
+    h+='<button class="btn" style="margin-bottom:14px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" '
+      +'onclick="ouvrirPickClientsFrance(\''+r._id+'\')">👥 Choisir les clients de la collecte</button>';
+  }
   // 3. Les camions
-  h+='<div class="slabel">Camions — tap pour ouvrir la tournée</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 8px;">'
+    +'<div class="slabel" style="margin:0;">Camions — tap pour ouvrir la tournée</div>'
+    +(gere?'<button onclick="ouvrirMenuAjouterCamion(\'fr\')" style="'+_STYLE_BTN_AJOUTER+'">＋ Ajouter ▾</button>':'')+'</div>';
   if(!cles.length){
-    h+='<div style="text-align:center;color:#aaa;padding:20px;border:2px dashed #ddd;border-radius:14px;margin-bottom:12px;font-size:13px;">Aucun camion</div>';
+    h+='<div style="text-align:center;color:#999;padding:16px;border:2px dashed #ddd;border-radius:14px;margin-bottom:12px;font-size:13px;">Aucun camion pour l\u2019instant.'+(gere?'<br>Touchez « ＋ Ajouter » pour en créer un.':'')+'</div>';
   }
   cles.forEach(function(k){
     var tk=trks[k], tc=_frTc(tk);
@@ -6220,34 +6218,6 @@ function _frDispatchDetail(r){
       +'<div class="truck-pills-wrap">'+(pills||'<span style="font-size:12px;color:#aaa;font-style:italic;">Aucun client</span>')+'</div>'
       +'</div>';
   });
-
-  if(gere){
-    // 4. Ajouter un camion
-    h+='<button style="width:100%;padding:13px;background:#e0e0e0;color:#111;border:2.5px solid #333;border-radius:10px;'
-      +'font-size:14px;font-weight:800;cursor:pointer;margin-bottom:12px;font-family:var(--font);" onclick="addTruckFrance()">➕ Ajouter un camion</button>';
-
-    // 5. Valider le dispatch
-    if(_frDispatchValide(r)){
-      h+='<div style="background:#d4f0e0;border:2px solid #009A44;border-radius:12px;padding:14px;text-align:center;margin-bottom:14px;">'
-        +'<div style="font-size:20px;margin-bottom:4px;">✅</div>'
-        +'<div style="font-size:15px;font-weight:800;color:#006b2d;">Dispatch validé !</div>'
-        +'<div style="font-size:12px;color:#006b2d;margin-top:3px;">Les camions peuvent partir.</div></div>'
-        +'<button style="width:100%;padding:12px;background:#fff3cd;color:#856404;border:2px solid #856404;border-radius:10px;'
-        +'font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px;font-family:var(--font);" onclick="annulerValidationDispatchFrance()">↩️ Annuler la validation</button>';
-    } else {
-      h+='<button style="width:100%;padding:14px;background:#1a237e;color:#fff;border:2.5px solid #0d1b6b;border-radius:10px;'
-        +'font-size:15px;font-weight:800;cursor:pointer;margin-bottom:12px;font-family:var(--font);" onclick="validerDispatchFrance()">✅ Valider le dispatch</button>';
-    }
-  }
-
-  // 6. La carte
-  h+='<button style="width:100%;padding:13px;background:#0d47a1;color:#fff;border:2.5px solid #0a2d6e;border-radius:10px;'
-    +'font-size:14px;font-weight:800;cursor:pointer;margin-bottom:14px;font-family:var(--font);" onclick="ouvrirCarteFrance(\'suivi\')">🗺️ Carte des clients — organiser le dispatch</button>';
-
-  if(gere){
-    h+='<button class="btn" style="margin-bottom:14px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" '
-      +'onclick="ouvrirPickClientsFrance(\''+r._id+'\')">👥 Choisir les clients de la collecte</button>';
-  }
 
   // 7. Les clients par departement
   if(nb){
@@ -9196,7 +9166,7 @@ function makeCollecteCard(c){
   card.appendChild(top);
   var stats=document.createElement('div');stats.className='collecte-card-stats';
   stats.onclick=function(){ouvrirCollecte(c.id);};
-  var dispBadge=c.dispatchValide?'<div class="collecte-stat"><span style="color:#006b2d;">✅ Dispatch validé</span></div>':'';
+  var dispBadge='';
   stats.innerHTML='<div class="collecte-stat"><span>'+nb+'</span> client'+(nb!==1?'s':'')+'</div><div class="collecte-stat"><span>'+total+' €</span></div>'+dispBadge;
   card.appendChild(stats);
   // v3.99.82 : qui est disponible ce jour-là (Planning). Pas sur une collecte terminée.
@@ -9393,6 +9363,62 @@ function showToastNew(msg, type){
   setTimeout(function(){t.style.display='none';},3000);
 }
 
+// ═══════════ DISPATCH ALLÉGÉ — v3.99.84 ═══════════
+// Cobey : « ici aussi, je trouve que c'est trop surchargé de boutons [...]
+// le bouton valider le dispatch, il sert à rien. » Un seul bouton
+// principal (la carte), les camions avec un menu « ＋ Ajouter », et le
+// contrôle « chaque client a un camion et une heure » devient un
+// avertissement dans la carte du haut, plus un bouton. Le marqueur
+// « Dispatch validé » disparaît avec lui (rien n'en dépendait).
+var _STYLE_BTN_CARTE='width:100%;padding:14px;background:#0d47a1;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:14px;font-family:var(--font);box-shadow:0 2px 6px rgba(13,71,161,.3);';
+var _STYLE_BTN_AJOUTER='background:#fff;color:#1a237e;border:1.5px solid #1a237e;border-radius:18px;padding:6px 13px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);';
+
+// Clients affectés à un camion mais sans heure de passage (Collecte).
+function _nbSansHeureCollecte(asgn,trks){
+  var n=0;
+  Object.keys(asgn||{}).forEach(function(id){
+    var k=asgn[id]; if(!k) return;
+    var tk=(trks||{})[k];
+    if(!tk || !tk.hours || !tk.hours[id]) n++;
+  });
+  return n;
+}
+
+// Le bloc « Affectés à un camion » ajouté au bas de la carte financière.
+function _blocAffectation(aff,nb,rem,sansHeure,onclickAttention){
+  if(!nb) return '';
+  var pct=Math.round(aff/nb*100);
+  var ok=(rem===0 && sansHeure===0);
+  var parts=[];
+  if(rem>0) parts.push(rem+' client'+(rem>1?'s':'')+' sans camion');
+  if(sansHeure>0) parts.push(sansHeure+' sans heure');
+  return '<div style="border-top:1px dashed #dfe2e6;margin-top:12px;padding-top:10px;">'
+    +'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;"><span>Affectés à un camion</span>'
+    +'<span style="color:'+(rem?'#992020':'#006b2d')+';">'+aff+' / '+nb+'</span></div>'
+    +'<div class="progress-bg" style="margin-top:6px;"><div class="progress-bar" style="width:'+pct+'%;background:#009A44;"></div></div>'
+    +(ok
+      ?'<div style="font-size:12.5px;font-weight:700;color:#006b2d;background:#e4f5ea;border-radius:8px;padding:7px 10px;margin-top:9px;">✅ Tout le monde est affecté, avec une heure</div>'
+      :'<div'+(onclickAttention?' onclick="'+onclickAttention+'" style="cursor:pointer;':' style="')+'font-size:12.5px;font-weight:700;color:#8a5200;background:#fff3e0;border-radius:8px;padding:7px 10px;margin-top:9px;">⚠️ '+parts.join(' · ')+'</div>')
+    +'</div>';
+}
+
+// Le menu « ＋ Ajouter » : camion DCT ou chauffeur externe.
+var _menuCamionMode='col';
+function ouvrirMenuAjouterCamion(mode){
+  _menuCamionMode=mode;
+  openModal('modal-ajouter-camion');
+}
+function _choisirAjoutCamion(type){
+  closeModal('modal-ajouter-camion');
+  if(_menuCamionMode==='fr'){
+    if(type==='dct') addTruckFrance();
+    else if(typeof window.depOuvrirNouveauCamionExterneFrance==='function') window.depOuvrirNouveauCamionExterneFrance();
+  } else {
+    if(type==='dct') addTruck();
+    else if(typeof window.depOuvrirNouveauCamionExterne==='function') window.depOuvrirNouveauCamionExterne();
+  }
+}
+
 function renderDispatchTab(){
   try{ nettoyerCamionFantome(); }catch(e){}
   var trks=getTrucks(),cls=getClients();
@@ -9417,15 +9443,26 @@ function renderDispatchTab(){
   fg.innerHTML='<div class="finance-title">💰 Suivi financier global</div>'
     +'<div class="finance-row"><span class="finance-label">📋 Facturé</span><span class="finance-val" style="color:#1a237e;">'+collG+' €</span></div>'
     +'<div class="finance-bar-bg"><div class="finance-bar" style="width:'+pctG+'%;"></div></div>'
-    +'<div class="finance-pct">'+pctG+'% facturé</div>';
+    +'<div class="finance-pct">'+pctG+'% facturé</div>'
+    +_blocAffectation(aff,nb,rem,_nbSansHeureCollecte(asgn,trks));
   container.appendChild(fg);
-  var stats=document.createElement('div');stats.style.cssText='display:flex;gap:8px;margin-bottom:14px;';
-  stats.innerHTML='<div style="flex:1;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:10px;text-align:center;"><div style="font-size:11px;color:#888;font-weight:600;">Total</div><div style="font-size:20px;font-weight:800;">'+nb+'</div></div>'
-    +'<div style="flex:1;background:#d4f0e0;border:1.5px solid #009A44;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:11px;color:#006b2d;font-weight:600;">Affectés</div><div style="font-size:20px;font-weight:800;color:#006b2d;">'+aff+'</div></div>'
-    +'<div style="flex:1;background:#fde0e0;border:1.5px solid #c0392b;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:11px;color:#992020;font-weight:600;">Restants</div><div style="font-size:20px;font-weight:800;color:#992020;">'+rem+'</div></div>';
-  container.appendChild(stats);
   }
-  var sl=document.createElement('div');sl.className='slabel';sl.textContent='Camions — tap pour ouvrir la tournée';container.appendChild(sl);
+  // v3.99.84 — Cobey : « trop surchargé de boutons » : un seul bouton
+  // principal (la carte), puis les camions avec un menu « ＋ Ajouter ».
+  var mapBtn=document.createElement('button');
+  mapBtn.style.cssText=_STYLE_BTN_CARTE;
+  mapBtn.innerHTML='🗺️ Organiser sur la carte';
+  mapBtn.onclick=ouvrirCarteDispatch;
+  container.appendChild(mapBtn);
+  var camHead=document.createElement('div');camHead.style.cssText='display:flex;justify-content:space-between;align-items:center;margin:4px 0 8px;';
+  camHead.innerHTML='<div class="slabel" style="margin:0;">Camions — tap pour ouvrir la tournée</div>'
+    +(isLocked()?'':'<button onclick="ouvrirMenuAjouterCamion(\'col\')" style="'+_STYLE_BTN_AJOUTER+'">＋ Ajouter ▾</button>');
+  container.appendChild(camHead);
+  if(!Object.keys(trks).length){
+    var vide=document.createElement('div');vide.style.cssText='text-align:center;color:#999;padding:16px;border:2px dashed #ddd;border-radius:14px;margin-bottom:12px;font-size:13px;';
+    vide.innerHTML='Aucun camion pour l\u2019instant.'+(isLocked()?'':'<br>Touchez « ＋ Ajouter » pour en créer un.');
+    container.appendChild(vide);
+  }
   Object.keys(trks).forEach(function(k){
     var tc=getTc(k),tk=trks[k];
     var total=getTruckTotal(k,trks,cls),collected=getTruckCollected(k,trks,cls);
@@ -9467,37 +9504,6 @@ function renderDispatchTab(){
     (function(kk){card.onclick=function(){openCamion(kk);};})(k);
     container.appendChild(card);
   });
-  if(!isLocked()){
-    var btnTruck=document.createElement('button');
-    btnTruck.style.cssText='width:100%;padding:13px;background:#e0e0e0;color:#111;border:2.5px solid #333;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;font-family:var(--font);';
-    btnTruck.textContent='➕ Ajouter un camion';btnTruck.onclick=addTruck;
-    container.appendChild(btnTruck);
-    // Bouton validation dispatch — juste sous "Ajouter un camion"
-    if(isDispatchValide()){
-      var validBanner=document.createElement('div');
-      validBanner.style.cssText='background:#d4f0e0;border:2px solid #009A44;border-radius:12px;padding:14px;text-align:center;margin-bottom:14px;';
-      validBanner.innerHTML='<div style="font-size:20px;margin-bottom:4px;">✅</div><div style="font-size:15px;font-weight:800;color:#006b2d;">Dispatch validé !</div><div style="font-size:12px;color:#006b2d;margin-top:4px;">Tous les clients sont affectés et planifiés</div>';
-      container.appendChild(validBanner);
-      var btnAnnuler=document.createElement('button');
-      btnAnnuler.style.cssText='width:100%;padding:12px;background:#fff3cd;color:#856404;border:2px solid #856404;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);margin-bottom:14px;';
-      btnAnnuler.textContent='↩️ Annuler la validation';
-      btnAnnuler.onclick=annulerValidationDispatch;
-      container.appendChild(btnAnnuler);
-    } else {
-      var btnValid=document.createElement('button');
-      btnValid.style.cssText='width:100%;padding:14px;background:#1a237e;color:#fff;border:2.5px solid #0d1b6b;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;font-family:var(--font);margin-bottom:14px;';
-      btnValid.textContent='✅ Valider le dispatch';
-      btnValid.onclick=validerDispatch;
-      container.appendChild(btnValid);
-    }
-  }
-  // === BOUTON CARTE ===
-  var mapBtn=document.createElement('button');
-  mapBtn.style.cssText='width:100%;padding:13px;background:#0d47a1;color:#fff;border:2.5px solid #0a2d6e;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;';
-  mapBtn.innerHTML='🗺️ Carte des clients — organiser le dispatch';
-  mapBtn.onclick=ouvrirCarteDispatch;
-  container.appendChild(mapBtn);
-  // === FIN BOUTON CARTE ===
   var sl2=document.createElement('div');sl2.className='slabel';sl2.textContent='Clients par département — tap pour affecter';container.appendChild(sl2);
   var deptMap={};
   Object.entries(cls).forEach(function(entry){
