@@ -113,7 +113,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .fiche-av{width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;margin:0 auto 10px;}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}
 .kv .k{color:#888;flex-shrink:0;}
-.kv .v{color:#111;font-weight:700;text-align:right;}
+.kv .v{color:#111;font-weight:700;text-align:right;min-width:0;max-width:100%;}
 .statut-badge{display:block;text-align:center;font-size:12.5px;font-weight:800;border-radius:10px;padding:10px;margin:14px 0;}
 .statut-vert{background:#D4F0E0;color:#006b2d;}
 .statut-rouge{background:#FDEDED;color:#992020;}
@@ -345,7 +345,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
            des clients paient sur place, à Mamadou. -->
       <div id="cd-finance-colis" hidden style="background:#EAF7EE;border:1.5px solid #BFE6C8;border-radius:10px;padding:12px;margin-bottom:14px;">
         <div style="font-size:11px;color:#006b2d;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">&#128230; Colis &mdash; encaiss&eacute; &agrave; Dakar</div>
-        <div class="kv" style="border-bottom:1px solid #CFEBD6;padding:6px 0;"><span class="k">Encaiss&eacute; par Mamadou (esp&egrave;ces)</span><span class="v" id="cd-col-encaisse" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="border-bottom:1px solid #CFEBD6;padding:6px 0;"><span class="k" style="flex-shrink:1;min-width:0;">Encaiss&eacute; par Mamadou<br><span style="font-size:11px;">(esp&egrave;ces)</span></span><span class="v" id="cd-col-encaisse" style="color:#006b2d;">&mdash;</span></div>
         <div class="kv" style="padding:6px 0;"><span class="k">Clients concern&eacute;s</span><span class="v" id="cd-col-nb">&mdash;</span></div>
       </div>
       <input class="recherche" id="cd-recherche" placeholder="Rechercher un client&hellip;" oninput="cdAppliquerFiltres()">
@@ -473,7 +473,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.16.1';
+var MAMADOU_VERSION = 'v1.16.2';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

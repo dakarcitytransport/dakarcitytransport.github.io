@@ -5199,3 +5199,11 @@ plus petit ; pour un reste à payer : CFA rouge foncé, euros rouge clair
 (classes `.m-cfa`, `.m-eur`, `.rouge`). DCT (`_depEurCfa`) : euros bleu marine
 gras, CFA vert plus petit ; en rouge : euros rouge foncé, CFA rouge clair ;
 tuiles PAYÉ / RESTE DÛ de la caisse du container idem.
+
+**24/10, mamadou.html v1.16.2 — le montant ne déborde plus.** Cobey : « ça
+déborde les prix » (bloc « Colis — encaissé à Dakar » : « 1 878 005 FCFA »
+sortait du cadre). Cause : le libellé « Encaissé par Mamadou (espèces) »
+ne pouvait pas rétrécir (`.kv .k{flex-shrink:0}`) et poussait le montant
+hors de la boîte. Le libellé passe sur deux lignes (« Encaissé par
+Mamadou » / « (espèces) ») et peut rétrécir ; `.kv .v` reçoit `min-width:0`
+et `max-width:100%`. Vérifié à 390 px de large avec 3 756 010 FCFA.
