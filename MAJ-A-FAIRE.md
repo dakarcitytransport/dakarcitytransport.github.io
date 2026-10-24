@@ -5274,3 +5274,13 @@ blanche à bord coloré : « ✅ Colis soldé » (vert), « 🟠 Colis : 100 €
 200 € » (orange) ou « ❌ Colis : rien payé (300 €) » (rouge). La livraison a sa
 propre pastille séparée (même trois états) quand le client a une livraison à
 Dakar. Rien pour les colis « prix à définir ». Aucun CFA côté DCT.
+
+**24/10, mamadou.html v1.17.2 — encaissement : FCFA d'abord, plus de bouton
+« Espèces ».** Cobey, devant la fiche d'un client chez Mamadou (1500 € dus,
+984 000 FCFA) : « il faudrait peut-être qu'on change » puis « Ok » sur ma
+proposition. Dans le bloc « Encaisser » (colis et livraison) : le bouton FCFA
+passe en premier et est sélectionné par défaut (champ « Montant en FCFA »),
+« € Euros » reste en second ; le bouton « Espèces » (seule méthode possible,
+donc inutile) est retiré, l'encaissement reste enregistré en espèces. Le
+choix revient sur FCFA à chaque changement de client. Arrondi du FCFA
+(taux 655,957, au millier) inchangé.

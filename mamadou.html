@@ -507,7 +507,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.17.1';
+var MAMADOU_VERSION = 'v1.17.2';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1662,7 +1662,7 @@ function ouvrirFiche(ref, silencieux, provenance){
   var c = clientActuel(ref);
   if(!c){ if(!silencieux) alert('Client introuvable.'); return; }
   _ficheCtx = ref;
-  if(changementClient){ _deviseColis = 'eur'; _deviseLiv = 'eur'; }
+  if(changementClient){ _deviseColis = 'fcfa'; _deviseLiv = 'fcfa'; }
   if(!silencieux) goTo('ecran-fiche');
 
   $('f-av').textContent = initiales(c.prenom, c.nom) || (c.name||'?').charAt(0).toUpperCase();
@@ -1917,7 +1917,8 @@ function mnFermerZoom(){
 // stockée (v.montant), avec le FCFA saisi et son taux gardés à part
 // (v.montantFCFA/v.tauxFCFA) pour l'historique — jamais de double
 // comptage.
-var _deviseColis = 'eur', _deviseLiv = 'eur';
+// v1.17.2 — Cobey : FCFA d'abord (Mamadou encaisse en espèces, en FCFA).
+var _deviseColis = 'fcfa', _deviseLiv = 'fcfa';
 
 function _htmlEncaisser(type, reste){
   var pref = type === 'liv' ? 'liv' : 'col';
@@ -1925,14 +1926,11 @@ function _htmlEncaisser(type, reste){
   return '<div class="encaisser-bloc">'
     + '<label>Encaisser &mdash; reste '+mnMontantHtml(reste)+'</label>'
     + '<div class="meth-row">'
-    +   '<button type="button" class="meth-btn '+(devise==='eur'?'on':'')+'" id="enc-'+pref+'-d-eur" onclick="choisirDevise(\''+type+'\',\'eur\')">&euro; Euros</button>'
     +   '<button type="button" class="meth-btn '+(devise==='fcfa'?'on':'')+'" id="enc-'+pref+'-d-fcfa" onclick="choisirDevise(\''+type+'\',\'fcfa\')">FCFA</button>'
+    +   '<button type="button" class="meth-btn '+(devise==='eur'?'on':'')+'" id="enc-'+pref+'-d-eur" onclick="choisirDevise(\''+type+'\',\'eur\')">&euro; Euros</button>'
     + '</div>'
     + '<input id="enc-'+pref+'-montant" type="number" min="0" step="0.01" placeholder="'+(devise==='fcfa'?'Montant en FCFA':'Montant en €')+'" oninput="mnMajApercuDevise(\''+type+'\')">'
     + '<div id="enc-'+pref+'-apercu" style="font-size:11px;color:#888;margin:-8px 0 12px;"></div>'
-    + '<div class="meth-row">'
-    +   '<button type="button" class="meth-btn on" id="enc-'+pref+'-m-especes" onclick="choisirMethode(\''+type+'\',\'especes\')">Espèces</button>'
-    + '</div>'
     + '<button type="button" class="btn btn-light" onclick="encaisser(\''+type+'\')">Enregistrer l’encaissement</button>'
     + '</div>';
 }
