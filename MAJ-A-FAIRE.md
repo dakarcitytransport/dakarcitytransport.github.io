@@ -5230,3 +5230,20 @@ ouvre une fenêtre en bas d'écran : une carte par observation (texte complet,
 date et auteur quand ils existent), bouton « Fermer » ; fermeture aussi en
 touchant le fond. Rien pour un client sans observation. Écran de tournée
 inchangé en longueur, quel que soit le nombre d'observations.
+
+**24/10, mamadou.html v1.17.0 — page « Mes encaissements ».** Cobey : « Mamadou
+aimerait avoir le détail de ce qu'il a encaissé en colis, on voit six clients,
+on voudrait savoir qui sont ces clients-là [...] ça va charger la page et les
+clients seront tout en bas. Est-ce possible de mettre tout ce qui est
+tarification dans un bouton qui amènera à une autre interface ? » ; « pour
+Mamadou, pas besoin de voir tous les containers pour l'instant ». Les deux
+blocs (livraison, colis) quittent l'écran du container, qui ne garde qu'un
+bouton « 💰 Mes encaissements » (résumé : Colis X FCFA / Livraison Y FCFA,
+toujours séparés) — la recherche, les filtres et les clients remontent. Le
+bouton ouvre `ecran-encaissements` (retour « ← Retour au container ») avec
+deux onglets : Colis (encaissé par Mamadou en espèces, nombre de clients, puis
+liste des paiements : client, montant CFA exact + €, date/heure, plus récent
+d'abord) et Livraison (bloc facturé / encaissé / dont DCT / dont Mamadou /
+restant, puis liste des livraisons qu'il a encaissées). Un appui sur un
+paiement ouvre la fiche du client ; « retour » revient sur cette page, mise à
+jour. Limité au container ouvert. Rien côté DCT.

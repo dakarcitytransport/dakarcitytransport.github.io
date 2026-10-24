@@ -71,6 +71,16 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .cd-selects{display:flex;gap:8px;margin-bottom:12px;}
 .cd-selects select{width:auto;flex:1;margin-bottom:0;padding:11px 10px;font-size:13px;}
 .recherche{margin-bottom:12px;}
+/* v1.17.0 — bouton « Mes encaissements » + liste des paiements */
+.enc-btn{display:flex;align-items:center;gap:10px;background:#EAF7EE;border:1.5px solid #BFE6C8;border-radius:12px;padding:12px 14px;margin-bottom:14px;cursor:pointer;}
+.enc-btn-t{font-size:14.5px;font-weight:800;color:#0a4d22;}
+.enc-btn-s{font-size:12px;color:#555;margin-top:3px;line-height:1.5;}
+.enc-btn-fl{font-size:26px;color:#0a6b30;line-height:1;}
+.enc-tit{font-size:11px;font-weight:800;color:#777;text-transform:uppercase;letter-spacing:.04em;margin:6px 0 8px;}
+.enc-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer;}
+.enc-n{font-size:13.5px;font-weight:800;color:#111;}
+.enc-d{font-size:11.5px;color:#888;margin-top:2px;}
+.enc-vide{text-align:center;color:#999;font-size:13px;padding:18px 10px;}
 .cli-item{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
 .cli-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
 .cli-nom{font-size:14px;font-weight:800;color:#111;}
@@ -322,31 +332,17 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
         <div style="font-size:12.5px;color:#a04800;font-weight:700;margin-bottom:8px;">&#128230; Ce container n&rsquo;est pas encore arriv&eacute; au d&eacute;p&ocirc;t.</div>
         <button type="button" class="btn btn-green" style="margin-bottom:0;" onclick="validerArriveeDepot()">&#9989; Valider l&rsquo;arriv&eacute;e au d&eacute;p&ocirc;t</button>
       </div>
-      <!-- v1.6.0 — Cobey : « Niass a besoin de savoir le total facturé
-           en livraison du container, le total encaissé et le total
-           restant [...] adapté à la livraison ! » Caisse livraison
-           uniquement (jamais le colis, voir la garde v1.0.0 plus bas).
-           v1.6.2 — « le détail de ce qui a été encaissé par DCT et [...]
-           par Mamadou Niass [...] il verra, lui, ce qu'il a récolté et
-           il verra aussi ce que Dakar a récolté » : 2 sous-lignes sous
-           Encaissé, en retrait, qui se partagent ce même total. -->
-      <div id="cd-finance-liv" hidden style="background:#EAF2FB;border:1.5px solid #B9D4F0;border-radius:10px;padding:12px;margin-bottom:14px;">
-        <div style="font-size:11px;color:#1a4971;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">&#128666; Livraison &mdash; ce container</div>
-        <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:6px 0;"><span class="k">Factur&eacute;</span><span class="v" id="cd-liv-facture">&mdash;</span></div>
-        <div class="kv" style="padding:6px 0 2px;"><span class="k">Encaiss&eacute;</span><span class="v" id="cd-liv-encaisse" style="color:#006b2d;">&mdash;</span></div>
-        <div class="kv" style="padding:3px 0 3px 14px;font-size:12px;"><span class="k">dont par DCT</span><span class="v" id="cd-liv-par-dct" style="color:#006b2d;">&mdash;</span></div>
-        <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:3px 0 6px 14px;font-size:12px;"><span class="k">dont par Mamadou</span><span class="v" id="cd-liv-par-mamadou" style="color:#006b2d;">&mdash;</span></div>
-        <div class="kv" style="padding:6px 0;"><span class="k">Restant</span><span class="v" id="cd-liv-restant" style="color:#992020;">&mdash;</span></div>
-      </div>
-      <!-- v1.15.0 — Cobey : « Mamadou nous a dit qu'il ne voyait pas le montant
-           total de ce qu'il avait récupéré en espèces pour les colis [...] il
-           faut vraiment toujours séparer livraison et colis. » Même principe
-           que le bloc livraison juste au-dessus, pour le prix des colis que
-           des clients paient sur place, à Mamadou. -->
-      <div id="cd-finance-colis" hidden style="background:#EAF7EE;border:1.5px solid #BFE6C8;border-radius:10px;padding:12px;margin-bottom:14px;">
-        <div style="font-size:11px;color:#006b2d;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">&#128230; Colis &mdash; encaiss&eacute; &agrave; Dakar</div>
-        <div class="kv" style="border-bottom:1px solid #CFEBD6;padding:6px 0;"><span class="k" style="flex-shrink:1;min-width:0;">Encaiss&eacute; par Mamadou<br><span style="font-size:11px;">(esp&egrave;ces)</span></span><span class="v" id="cd-col-encaisse" style="color:#006b2d;">&mdash;</span></div>
-        <div class="kv" style="padding:6px 0;"><span class="k">Clients concern&eacute;s</span><span class="v" id="cd-col-nb">&mdash;</span></div>
+      <!-- v1.17.0 — Cobey : « mettre tout ce qui est tarification dans un bouton
+           qui amènera à une autre interface [...] il aura accès, s'il veut, aux
+           chiffres et revenir en arrière pour revoir tous les clients et faire
+           ses livraisons » — les blocs livraison et colis vivent maintenant
+           sur l'écran « Mes encaissements » (voir ecran-encaissements). -->
+      <div id="cd-btn-enc" hidden class="enc-btn" onclick="ouvrirEncaissements()">
+        <div style="flex:1;min-width:0;">
+          <div class="enc-btn-t">&#128176; Mes encaissements</div>
+          <div class="enc-btn-s" id="cd-btn-enc-sub"></div>
+        </div>
+        <span class="enc-btn-fl">&rsaquo;</span>
       </div>
       <input class="recherche" id="cd-recherche" placeholder="Rechercher un client&hellip;" oninput="cdAppliquerFiltres()">
       <div class="filtres" id="cd-filtres"></div>
@@ -359,6 +355,41 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
         <select id="cd-filtre-region" onchange="cdFiltreRegion(this.value)"></select>
       </div>
       <div id="cd-liste"></div>
+    </div>
+  </div>
+
+  <!-- v1.17.0 — Mes encaissements : colis et livraison, jamais mélangés. -->
+  <div id="ecran-encaissements" hidden class="card">
+    <div class="hdr2">
+      <div class="retour-haut-fonce" onclick="fermerEncaissements()">&larr; Retour au container</div>
+      <div class="nom">&#128176; Mes encaissements</div>
+      <div class="sub2" id="enc-nom"></div>
+    </div>
+    <div class="pad">
+      <div class="filtres" style="margin-bottom:12px;">
+        <span class="filtre on" id="enc-tab-colis" onclick="encOnglet('colis')">&#128230; Colis</span>
+        <span class="filtre" id="enc-tab-liv" onclick="encOnglet('liv')">&#128666; Livraison</span>
+      </div>
+      <div id="enc-p-colis">
+      <div id="cd-finance-colis" hidden style="background:#EAF7EE;border:1.5px solid #BFE6C8;border-radius:10px;padding:12px;margin-bottom:14px;">
+        <div style="font-size:11px;color:#006b2d;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">&#128230; Colis &mdash; encaiss&eacute; &agrave; Dakar</div>
+        <div class="kv" style="border-bottom:1px solid #CFEBD6;padding:6px 0;"><span class="k" style="flex-shrink:1;min-width:0;">Encaiss&eacute; par Mamadou<br><span style="font-size:11px;">(esp&egrave;ces)</span></span><span class="v" id="cd-col-encaisse" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="padding:6px 0;"><span class="k">Clients concern&eacute;s</span><span class="v" id="cd-col-nb">&mdash;</span></div>
+      </div>
+        <div id="enc-liste-colis"></div>
+      </div>
+      <div id="enc-p-liv" hidden>
+      <div id="cd-finance-liv" hidden style="background:#EAF2FB;border:1.5px solid #B9D4F0;border-radius:10px;padding:12px;margin-bottom:14px;">
+        <div style="font-size:11px;color:#1a4971;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">&#128666; Livraison &mdash; ce container</div>
+        <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:6px 0;"><span class="k">Factur&eacute;</span><span class="v" id="cd-liv-facture">&mdash;</span></div>
+        <div class="kv" style="padding:6px 0 2px;"><span class="k">Encaiss&eacute;</span><span class="v" id="cd-liv-encaisse" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="padding:3px 0 3px 14px;font-size:12px;"><span class="k">dont par DCT</span><span class="v" id="cd-liv-par-dct" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:3px 0 6px 14px;font-size:12px;"><span class="k">dont par Mamadou</span><span class="v" id="cd-liv-par-mamadou" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="padding:6px 0;"><span class="k">Restant</span><span class="v" id="cd-liv-restant" style="color:#992020;">&mdash;</span></div>
+      </div>
+        <div id="enc-liv-vide" hidden style="text-align:center;color:#999;font-size:13px;padding:22px 10px;">Aucune livraison dans ce container.</div>
+        <div id="enc-liste-liv"></div>
+      </div>
     </div>
   </div>
 
@@ -473,7 +504,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.16.2';
+var MAMADOU_VERSION = 'v1.17.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -819,13 +850,14 @@ function mnAccueilOuvrir(){
 function rafraichirEcranActif(){
   if(!_accueilAffiche) return;
   if(!$('ecran-container-detail').hidden){ _cdMajBlocArrivee(); _cdMajFinanceLivraison(); _cdMajFinanceColis(); cdAppliquerFiltres(); }
+  if(!$('ecran-encaissements').hidden){ _cdMajFinanceLivraison(); _cdMajFinanceColis(); }
   if(!$('ecran-fiche').hidden && _ficheCtx) ouvrirFiche(_ficheCtx, true);
 }
 
 /* ─────────── Navigation ─────────── */
 function goTo(id){
   ['ecran-chargement','ecran-erreur','ecran-login','ecran-accueil','ecran-changer-mdp',
-   'ecran-scan','ecran-secours','ecran-containers','ecran-container-detail','ecran-depot-dakar','ecran-fiche'].forEach(function(e){
+   'ecran-scan','ecran-secours','ecran-containers','ecran-container-detail','ecran-encaissements','ecran-depot-dakar','ecran-fiche'].forEach(function(e){
     $(e).hidden = (e !== id);
   });
 }
@@ -1216,16 +1248,25 @@ function _cdMajFinanceLivraison(){
   var bloc = $('cd-finance-liv');
   if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT){ bloc.hidden = true; return; }
   var clients = clientsDuContainer(_cdDepartId).filter(function(x){ return x.c.livraisonDakar; });
-  if(!clients.length){ bloc.hidden = true; return; }
-  var facture = 0, encaisse = 0, restant = 0, parMamadou = 0, parDCT = 0;
+  if(!clients.length){ bloc.hidden = true; window._encLiv = { cfa:0, eur:0 }; $('enc-liv-vide').hidden = false; $('enc-liste-liv').innerHTML = ''; _cdMajBoutonEnc(); return; }
+  $('enc-liv-vide').hidden = true;
+  var facture = 0, encaisse = 0, restant = 0, parMamadou = 0, parDCT = 0, parMamadouCFA = 0, lignes = [];
   clients.forEach(function(x){
     var payLiv = depCalculerPaiementLivraison(x.c);
     facture += payLiv.total; encaisse += payLiv.paye; restant += payLiv.reste;
     (Array.isArray(x.c.versementsLivraison) ? x.c.versementsLivraison : []).forEach(function(v){
       var m = parseFloat(v && v.montant) || 0;
-      if(v && v.par === 'Mamadou Niass') parMamadou += m; else parDCT += m;
+      if(v && v.par === 'Mamadou Niass'){
+        parMamadou += m;
+        var cfa = (parseFloat(v.montantFCFA) > 0) ? parseFloat(v.montantFCFA) : Math.round(m * TAUX_FCFA_EUR);
+        parMamadouCFA += cfa;
+        lignes.push({ x:x, eur:m, cfa:cfa, le:v.le || 0 });
+      } else parDCT += m;
     });
   });
+  window._encLiv = { cfa: parMamadouCFA, eur: depArrondi2(parMamadou) };
+  $('enc-liste-liv').innerHTML = _encHtmlListe(lignes, 'Livraisons encaissées par Mamadou');
+  _cdMajBoutonEnc();
   bloc.hidden = false;
   $('cd-liv-facture').innerHTML = mnMontantBloc(facture);
   $('cd-liv-encaisse').innerHTML = mnMontantBloc(encaisse);
@@ -1241,20 +1282,26 @@ function _cdMajFinanceColis(){
   if(!bloc) return;
   if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT){ bloc.hidden = true; return; }
   var clients = clientsDuContainer(_cdDepartId);
-  if(!clients.length){ bloc.hidden = true; return; }
-  var encaisse = 0, encaisseCFA = 0, nb = 0;
+  if(!clients.length){ bloc.hidden = true; window._encColis = { cfa:0, eur:0 }; $('enc-liste-colis').innerHTML = ''; _cdMajBoutonEnc(); return; }
+  var encaisse = 0, encaisseCFA = 0, nb = 0, lignes = [];
   clients.forEach(function(x){
     var dejaCompte = false;
     (Array.isArray(x.c.versements) ? x.c.versements : []).forEach(function(v){
       if(v && v.par === 'Mamadou Niass'){
-        encaisse += parseFloat(v.montant) || 0;
+        var eur = parseFloat(v.montant) || 0;
+        encaisse += eur;
         // Saisi en FCFA : on garde le montant exact tapé (v.montantFCFA) ;
         // saisi en euros : conversion au taux fixe.
-        encaisseCFA += (parseFloat(v.montantFCFA) > 0) ? parseFloat(v.montantFCFA) : Math.round((parseFloat(v.montant) || 0) * TAUX_FCFA_EUR);
+        var cfa = (parseFloat(v.montantFCFA) > 0) ? parseFloat(v.montantFCFA) : Math.round(eur * TAUX_FCFA_EUR);
+        encaisseCFA += cfa;
+        lignes.push({ x:x, eur:eur, cfa:cfa, le:v.le || 0 });
         if(!dejaCompte){ nb++; dejaCompte = true; }
       }
     });
   });
+  window._encColis = { cfa: encaisseCFA, eur: depArrondi2(encaisse) };
+  $('enc-liste-colis').innerHTML = _encHtmlListe(lignes, 'Détail des paiements de colis');
+  _cdMajBoutonEnc();
   bloc.hidden = false;
   // Cobey : « le montant en francs CFA et en euros, je crois qu'il encaisse
   // que en francs CFA » — les deux, le CFA en premier (c'est ce qu'il tient
@@ -1262,6 +1309,47 @@ function _cdMajFinanceColis(){
   $('cd-col-encaisse').innerHTML = '<span class="m-bloc"><span class="m-cfa">' + Math.round(encaisseCFA).toLocaleString('fr-FR') + ' FCFA</span><span class="m-eur">' + depArrondi2(encaisse) + ' &euro;</span></span>';
   $('cd-col-nb').textContent = nb + ' client' + (nb > 1 ? 's' : '');
 }
+
+// ── Écran « Mes encaissements » (v1.17.0) ──
+function _encHtmlListe(lignes, titre){
+  if(!lignes.length) return '<div class="enc-vide">Aucun encaissement pour l\u2019instant.</div>';
+  lignes = lignes.slice().sort(function(a, b){ return b.le - a.le; });
+  var h = '<div class="enc-tit">' + esc(titre) + ' (' + lignes.length + ')</div>';
+  lignes.forEach(function(l){
+    var x = l.x;
+    h += '<div class="enc-row" onclick="ouvrirFiche({src:\'' + x.src + '\',collecteId:\'' + esc(x.collecteId) + '\',clientId:\'' + esc(x.clientId) + '\'},false,\'ecran-encaissements\')">'
+      +   '<div style="min-width:0;"><div class="enc-n">' + esc(x.c.name || '') + '</div>'
+      +   '<div class="enc-d">' + (l.le ? esc(_mnDateHeureCourte(l.le)) : '—') + '</div></div>'
+      +   '<div style="flex-shrink:0;"><span class="m-bloc"><span class="m-cfa">' + Math.round(l.cfa).toLocaleString('fr-FR') + ' FCFA</span><span class="m-eur">' + depArrondi2(l.eur) + ' &euro;</span></span></div>'
+      + '</div>';
+  });
+  return h;
+}
+function _cdMajBoutonEnc(){
+  var b = $('cd-btn-enc');
+  if(!b) return;
+  if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT || !clientsDuContainer(_cdDepartId).length){ b.hidden = true; return; }
+  b.hidden = false;
+  var c = window._encColis || { cfa:0 }, l = window._encLiv || { cfa:0 };
+  $('cd-btn-enc-sub').innerHTML = 'Colis <span class="m-cfa">' + Math.round(c.cfa).toLocaleString('fr-FR') + ' FCFA</span>'
+    + '<br>Livraison <span class="m-cfa">' + Math.round(l.cfa).toLocaleString('fr-FR') + ' FCFA</span>';
+}
+var _encOnglet = 'colis';
+function encOnglet(o){
+  o = (o === 'liv') ? 'liv' : 'colis';
+  _encOnglet = o;
+  $('enc-tab-colis').classList.toggle('on', o === 'colis');
+  $('enc-tab-liv').classList.toggle('on', o === 'liv');
+  $('enc-p-colis').hidden = (o !== 'colis');
+  $('enc-p-liv').hidden = (o !== 'liv');
+}
+function ouvrirEncaissements(){
+  $('enc-nom').textContent = (departsData[_cdDepartId] || {}).nom || '';
+  _cdMajFinanceLivraison(); _cdMajFinanceColis();
+  encOnglet(_encOnglet);
+  goTo('ecran-encaissements');
+}
+function fermerEncaissements(){ goTo('ecran-container-detail'); }
 
 function validerArriveeDepot(){
   if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT) return;
@@ -1689,6 +1777,8 @@ function fermerFiche(){
   // rafraîchir sa liste, sinon le client délivré reste affiché "en
   // attente" jusqu'au prochain rechargement.
   if(retour === 'ecran-depot-dakar'){ _mnRenderDepotDakar(); }
+  // v1.17.0 : revenir d'une fiche ouverte depuis « Mes encaissements »
+  if(retour === 'ecran-encaissements'){ _cdMajFinanceLivraison(); _cdMajFinanceColis(); encOnglet(_encOnglet); }
 }
 
 // v1.1.0 — Cobey : « il doit également prendre maximum 5 photos pour
