@@ -464,7 +464,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.15.1';
+var MAMADOU_VERSION = 'v1.16.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -608,6 +608,10 @@ function depEurEnCFA(eur){
   return reste < 500 ? base : base + 1000;
 }
 function depFormatCFA(eur){ return depEurEnCFA(eur).toLocaleString('fr-FR') + ' FCFA'; }
+// v1.16.0 — Cobey : « à côté du prix en euros le prix en CFA [...] lui, là-bas,
+// il aura des francs CFA » ; « CFA pour lui d'abord ». Montant affiché
+// « 98 000 FCFA · 150 € » (CFA en gras, arrondi au millier comme partout).
+function mnMontantHtml(eur){ eur = depArrondi2(eur); return '<b>' + depFormatCFA(eur) + '</b> &middot; ' + eur + ' &euro;'; }
 function depCalculerPaiementGenerique(total, versementsArr){
   var versements = Array.isArray(versementsArr) ? versementsArr : [];
   var paye = depArrondi2(versements.reduce(function(s, v){ return s + (parseFloat(v && v.montant) || 0); }, 0));
@@ -1065,13 +1069,13 @@ function _mnPastillePaiement(c){
   var rienPaye = (pc.paye + pl.paye) <= 0;
   var lignes;
   if(!c.livraisonDakar){
-    lignes = [(rienPaye ? 'Non pay&eacute; &middot; ' : 'Reste ') + resteC + ' &euro;'];
+    lignes = [(rienPaye ? 'Non pay&eacute; &middot; ' : 'Reste ') + mnMontantHtml(resteC)];
   } else if(rienPaye){
-    lignes = ['Non pay&eacute; &middot; colis ' + pc.total + ' &euro; &middot; livraison ' + pl.total + ' &euro;'];
+    lignes = ['Non pay&eacute; &middot; colis ' + mnMontantHtml(pc.total) + '<br>livraison ' + mnMontantHtml(pl.total)];
   } else {
     lignes = [];
-    if(resteC > 0) lignes.push('Reste colis : ' + resteC + ' &euro;');
-    if(resteL > 0) lignes.push('Reste livraison : ' + resteL + ' &euro;');
+    if(resteC > 0) lignes.push('Reste colis : ' + mnMontantHtml(resteC));
+    if(resteL > 0) lignes.push('Reste livraison : ' + mnMontantHtml(resteL));
   }
   var fond = rienPaye ? 'background:#FDECEC;color:#B3261E;' : '';
   return '<div class="cli-reste" style="' + fond + (rienPaye ? 'display:inline-block;border-radius:8px;padding:4px 9px;' : '') + '">'
@@ -1087,11 +1091,11 @@ function _mnBadgeDepotDakar(c, tsArrivee){
   if(info.alerte60){
     return '<div class="cli-reste" style="background:#B3261E;color:#fff;border-radius:8px;padding:6px 9px;">'
       + '&#128680; ' + info.joursDepot + ' jours au d&eacute;p&ocirc;t &middot; seuil des 60 jours d&eacute;pass&eacute; &middot; '
-      + info.montant + ' &euro; de gardiennage</div>';
+      + mnMontantHtml(info.montant) + ' de gardiennage</div>';
   }
   if(info.enRetard){
     return '<div class="cli-reste">&#9203; ' + info.joursRetard + ' jour' + (info.joursRetard > 1 ? 's' : '')
-      + ' de retard &middot; ' + info.montant + ' &euro; de gardiennage (5 &euro;/jour)</div>';
+      + ' de retard &middot; ' + mnMontantHtml(info.montant) + ' de gardiennage (5 &euro;/jour)</div>';
   }
   var restant = Math.max(0, Math.ceil(48 - info.heures));
   return '<div class="cli-sub">&#128337; Au d&eacute;p&ocirc;t depuis ' + Math.max(0, Math.floor(info.heures)) + 'h &middot; encore ' + restant + 'h avant gardiennage</div>';
@@ -1204,11 +1208,11 @@ function _cdMajFinanceLivraison(){
     });
   });
   bloc.hidden = false;
-  $('cd-liv-facture').textContent = depArrondi2(facture) + ' €';
-  $('cd-liv-encaisse').textContent = depArrondi2(encaisse) + ' €';
-  $('cd-liv-restant').textContent = depArrondi2(restant) + ' €';
-  $('cd-liv-par-dct').textContent = depArrondi2(parDCT) + ' €';
-  $('cd-liv-par-mamadou').textContent = depArrondi2(parMamadou) + ' €';
+  $('cd-liv-facture').innerHTML = mnMontantHtml(facture);
+  $('cd-liv-encaisse').innerHTML = mnMontantHtml(encaisse);
+  $('cd-liv-restant').innerHTML = mnMontantHtml(restant);
+  $('cd-liv-par-dct').innerHTML = mnMontantHtml(parDCT);
+  $('cd-liv-par-mamadou').innerHTML = mnMontantHtml(parMamadou);
 }
 
 // v1.15.0 — total des colis encaissés par Mamadou lui-même (versements
@@ -1219,12 +1223,15 @@ function _cdMajFinanceColis(){
   if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT){ bloc.hidden = true; return; }
   var clients = clientsDuContainer(_cdDepartId);
   if(!clients.length){ bloc.hidden = true; return; }
-  var encaisse = 0, nb = 0, restant = 0;
+  var encaisse = 0, encaisseCFA = 0, nb = 0, restant = 0;
   clients.forEach(function(x){
     var dejaCompte = false;
     (Array.isArray(x.c.versements) ? x.c.versements : []).forEach(function(v){
       if(v && v.par === 'Mamadou Niass'){
         encaisse += parseFloat(v.montant) || 0;
+        // Saisi en FCFA : on garde le montant exact tapé (v.montantFCFA) ;
+        // saisi en euros : conversion au taux fixe.
+        encaisseCFA += (parseFloat(v.montantFCFA) > 0) ? parseFloat(v.montantFCFA) : Math.round((parseFloat(v.montant) || 0) * TAUX_FCFA_EUR);
         if(!dejaCompte){ nb++; dejaCompte = true; }
       }
     });
@@ -1234,10 +1241,9 @@ function _cdMajFinanceColis(){
   // Cobey : « le montant en francs CFA et en euros, je crois qu'il encaisse
   // que en francs CFA » — les deux, le CFA en premier (c'est ce qu'il tient
   // en main), arrondi au millier comme partout dans l'appli.
-  var deux = function(eur){ eur = depArrondi2(eur); return depFormatCFA(eur) + ' · ' + eur + ' €'; };
-  $('cd-col-encaisse').textContent = deux(encaisse);
+  $('cd-col-encaisse').innerHTML = '<b>' + Math.round(encaisseCFA).toLocaleString('fr-FR') + ' FCFA</b> &middot; ' + depArrondi2(encaisse) + ' &euro;';
   $('cd-col-nb').textContent = nb + ' client' + (nb > 1 ? 's' : '');
-  $('cd-col-restant').textContent = deux(restant);
+  $('cd-col-restant').innerHTML = mnMontantHtml(restant);
 }
 
 function validerArriveeDepot(){
@@ -1460,8 +1466,8 @@ function cdAppliquerFiltres(){
       var payLiv = depCalculerPaiementLivraison(c);
       // v1.6.1 — Cobey : « ça manque de couleur pour distinguer ce qui a
       // été payé et ce qui reste. »
-      liv = '<div class="cli-liv ' + (payLiv.reste > 0 ? 'cli-liv-reste' : 'cli-liv-soldee') + '">🚚 Livraison : ' + payLiv.total + ' €'
-        + (payLiv.reste > 0 ? ' (reste ' + payLiv.reste + ' €)' : ' — soldée') + '</div>';
+      liv = '<div class="cli-liv ' + (payLiv.reste > 0 ? 'cli-liv-reste' : 'cli-liv-soldee') + '">🚚 Livraison : ' + mnMontantHtml(payLiv.total)
+        + (payLiv.reste > 0 ? ' (reste ' + mnMontantHtml(payLiv.reste) + ')' : ' — soldée') + '</div>';
     }
     // v3.99.59 — Cobey, 21/10/2026 : « on va retirer le bouton "remettre
     // au client" car on a vu qu'il appuyait sur ce bouton sans passer
@@ -1500,7 +1506,7 @@ function cdAppliquerFiltres(){
       // que ce qu'il reste à payer pour les clients, il ne doit voir
       // aucun prix encaissé ! » — jamais pay.paye ici, jamais de total.
       +   (pay.reste > 0
-            ? ('<div class="cli-reste">Reste à payer : '+pay.reste+' €</div>')
+            ? ('<div class="cli-reste">Reste à payer : '+mnMontantHtml(pay.reste)+'</div>')
             : '<div class="cli-paye">✅ Soldé</div>')
       +   liv
       +   remisBadge
@@ -1579,13 +1585,13 @@ function ouvrirFiche(ref, silencieux, provenance){
 
   var statutHtml = '';
   if(pay.statut === 'paye') statutHtml = '<div class="statut-badge statut-vert">✅ Colis payé</div>';
-  else if(pay.statut === 'partiel') statutHtml = '<div class="statut-badge statut-orange">⚠️ Paiement partiel — reste '+pay.reste+' €</div>';
-  else statutHtml = '<div class="statut-badge statut-rouge">❌ Non payé — '+pay.total+' € dus</div>';
+  else if(pay.statut === 'partiel') statutHtml = '<div class="statut-badge statut-orange">⚠️ Paiement partiel — reste '+mnMontantHtml(pay.reste)+'</div>';
+  else statutHtml = '<div class="statut-badge statut-rouge">❌ Non payé — '+mnMontantHtml(pay.total)+' dus</div>';
   $('f-statut').innerHTML = statutHtml;
 
   if(pay.reste > 0){
     $('f-reste-row').hidden = false;
-    $('f-reste').textContent = pay.reste + ' €';
+    $('f-reste').innerHTML = mnMontantHtml(pay.reste);
     $('f-encaisser-colis').innerHTML = _htmlEncaisser('colis', pay.reste);
   } else {
     $('f-reste-row').hidden = true;
@@ -1639,8 +1645,8 @@ function ouvrirFiche(ref, silencieux, provenance){
     $('f-liv-adresse').textContent = adresseLiv || '—';
     var hLiv = '';
     if(payL.statut === 'paye') hLiv = '<div class="statut-badge statut-vert">✅ Livraison payée</div>';
-    else if(payL.statut === 'partiel') hLiv = '<div class="statut-badge statut-orange">⚠️ Reste '+payL.reste+' € sur la livraison</div>';
-    else hLiv = '<div class="statut-badge statut-rouge">❌ Livraison non payée — '+payL.total+' € dus</div>';
+    else if(payL.statut === 'partiel') hLiv = '<div class="statut-badge statut-orange">⚠️ Reste '+mnMontantHtml(payL.reste)+' sur la livraison</div>';
+    else hLiv = '<div class="statut-badge statut-rouge">❌ Livraison non payée — '+mnMontantHtml(payL.total)+' dus</div>';
     $('f-liv-statut').innerHTML = hLiv;
     $('f-encaisser-liv').innerHTML = payL.reste > 0 ? _htmlEncaisser('liv', payL.reste) : '';
   } else {
@@ -1805,7 +1811,7 @@ function _htmlEncaisser(type, reste){
   var pref = type === 'liv' ? 'liv' : 'col';
   var devise = type === 'liv' ? _deviseLiv : _deviseColis;
   return '<div class="encaisser-bloc">'
-    + '<label>Encaisser &mdash; reste '+reste+' &euro; ('+depFormatCFA(reste)+')</label>'
+    + '<label>Encaisser &mdash; reste '+mnMontantHtml(reste)+'</label>'
     + '<div class="meth-row">'
     +   '<button type="button" class="meth-btn '+(devise==='eur'?'on':'')+'" id="enc-'+pref+'-d-eur" onclick="choisirDevise(\''+type+'\',\'eur\')">&euro; Euros</button>'
     +   '<button type="button" class="meth-btn '+(devise==='fcfa'?'on':'')+'" id="enc-'+pref+'-d-fcfa" onclick="choisirDevise(\''+type+'\',\'fcfa\')">FCFA</button>'

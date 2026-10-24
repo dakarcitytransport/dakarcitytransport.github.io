@@ -5165,3 +5165,21 @@ caisse du container (Rapport financier) : « dont encaissé à Dakar par
 Mamadou : X FCFA · Y € (N clients, espèces) » (`compteursDepart`:
 colisMamadou / colisMamadouNb). Le bloc livraison n'est pas modifié (pas de
 CFA ajouté : à voir si utile).
+
+**24/10, mamadou.html v1.16.0 + v3.99.87 (departs.js v2.21.19) — prix en
+FCFA et en € côte à côte.** Cobey : « il faudrait mettre à côté du prix en
+euros le prix en CFA, et en total aussi, parce que lui là-bas il aura des
+francs CFA » ; « CFA pour lui d'abord » ; « pareil côté DCT, mais euros
+d'abord ». Mamadou : `mnMontantHtml(eur)` → « <b>98 000 FCFA</b> · 150 € »
+(arrondi au millier, comme partout) sur les cartes client du container
+(reste à payer, livraison), les pastilles du Dépôt Dakar (reste colis /
+reste livraison / non payé, gardiennage), la fiche client (statuts,
+« reste à payer », « Encaisser — reste ») et les totaux des deux blocs
+(livraison : facturé, encaissé, dont DCT, dont Mamadou, restant ; colis :
+encaissé, restant). Pour « Encaissé par Mamadou (colis) », le FCFA est le
+montant EXACT tapé quand il a payé en FCFA (`v.montantFCFA`), sinon la
+conversion du montant en euros au taux fixe. Livraison et colis restent
+séparés, aucun total mélangé. DCT : `_depEurCfa(eur)` → « 150 € · ≈ 98 000
+FCFA » sur les cartes client du container (Départ), sous PAYÉ / RESTE DÛ de
+la caisse du container, dans le Dépôt Dakar (pastilles et « encore à
+encaisser ») et sur la ligne « encaissé à Dakar par Mamadou ».

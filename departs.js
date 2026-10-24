@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.18';
+var DEP_VERSION = 'v2.21.19';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2522,6 +2522,14 @@ window.depVoirRestants = function(quoi){
 // caisses, jamais additionnées entre elles. Vert ce qui est rentré,
 // rouge ce qui manque, et au-dessus « reçus sur » pour lire d'un coup
 // où on en est.
+// v2.21.19 — Cobey : « à côté du prix en euros le prix en CFA [...] pareil
+// côté DCT, mais euros d'abord » : « 150 € · ≈ 98 000 FCFA » (CFA arrondi
+// au millier, comme partout).
+function _depEurCfa(eur){
+  var e = depArrondi2(parseFloat(eur) || 0);
+  return e + '&nbsp;&euro; &middot; &asymp;&nbsp;' + depFormatCFA(e).replace(/ /g, '&nbsp;');
+}
+
 function _depBlocCaisse(cp){
   function ligne(titre, icone, total, paye, du, teinte, cle){
     var pct = total > 0 ? Math.round((paye / total) * 100) : 0;
@@ -2547,11 +2555,13 @@ function _depBlocCaisse(cp){
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">'
       +   '<div style="background:'+teinte.okBg+';border-radius:10px;padding:9px 4px;">'
       +     '<div style="font-size:17px;font-weight:800;color:'+teinte.okFg+';">'+paye+' &euro;</div>'
+      +     '<div style="font-size:10.5px;font-weight:700;color:'+teinte.okFg+';">&asymp;&nbsp;'+depFormatCFA(paye).replace(/ /g, '&nbsp;')+'</div>'
       +     '<div style="font-size:9.5px;font-weight:800;color:'+teinte.okFg+';opacity:.75;">PAY&Eacute;</div></div>'
       +   '<div style="background:'+(du > 0 ? '#FBE3E3' : '#F2F2F2')+';border-radius:10px;padding:9px 4px;'
       +     (tapable ? 'cursor:pointer;box-shadow:inset 0 0 0 ' + (actif ? '2.5px' : '1.5px') + ' #E9A9A9;' : '') + '"'
       +     (tapable ? ' onclick="depVoirRestants(\''+cle+'\')"' : '') + '>'
       +     '<div style="font-size:17px;font-weight:800;color:'+(du > 0 ? '#B3261E' : '#999')+';">'+du+' &euro;</div>'
+      +     '<div style="font-size:10.5px;font-weight:700;color:'+(du > 0 ? '#B3261E' : '#999')+';">&asymp;&nbsp;'+depFormatCFA(du).replace(/ /g, '&nbsp;')+'</div>'
       +     '<div style="font-size:9.5px;font-weight:800;color:'+(du > 0 ? '#B3261E' : '#999')+';opacity:.75;">RESTE D&Ucirc;</div>'
       +     (tapable
           ? '<div style="font-size:9.5px;font-weight:800;color:#B3261E;margin-top:4px;">'
@@ -2574,7 +2584,7 @@ function _depBlocCaisse(cp){
     // encaissés par lui à Dakar, en espèces), séparé de la livraison.
     + (cp.colisMamadou > 0
         ? '<div style="font-size:11.5px;color:#006b2d;font-weight:700;margin:-2px 0 8px;">&#127480;&#127475; dont encaiss&eacute; &agrave; Dakar par Mamadou : <b>'
-          + depFormatCFA(cp.colisMamadou) + '</b> &middot; ' + cp.colisMamadou + ' &euro; (' + cp.colisMamadouNb + ' client' + (cp.colisMamadouNb > 1 ? 's' : '') + ', esp&egrave;ces)</div>'
+          + _depEurCfa(cp.colisMamadou) + '</b> (' + cp.colisMamadouNb + ' client' + (cp.colisMamadouNb > 1 ? 's' : '') + ', esp&egrave;ces)</div>'
         : '')
     + ligne('LIVRAISON', '&#128666;', cp.livTotal, cp.livPaye, cp.livDu,
             { okBg:'#D9EEF7', okFg:'#0b5d78' }, 'livraison')
@@ -8388,7 +8398,7 @@ window.depDetail = function(id, gardeFiltres){
         +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
         +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France</span>' : '')+'</div>'
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">'
-        +     '<span>'+(c.prixADefinir ? '&agrave; d&eacute;finir' : ((parseFloat(c.prix)||0)+' &euro;'))
+        +     '<span>'+(c.prixADefinir ? '&agrave; d&eacute;finir' : _depEurCfa(parseFloat(c.prix)||0))
         +       (c.livraisonDakar ? ' &middot; &#128666; livraison' : '')
         +       '</span>'
         +     _depLienTelIcone(c.tel)
@@ -12680,9 +12690,9 @@ function _depPastillePaiementDakar(c){
   var p = depCalculerPaiementCombine(c);
   var st, txt;
   if(p.total <= 0){ st = ['#F4F4F5','#E0E0E0','#666']; txt = 'Aucun tarif'; }
-  else if(p.statut === 'paye'){ st = ['#EAF7EE','#BFE6C8','#006b2d']; txt = '&#9989; Sold&eacute; &middot; ' + p.total + ' &euro;'; }
-  else if(p.statut === 'partiel'){ st = ['#FFF3E0','#F0C36D','#8A5200']; txt = '&#9680; Reste ' + p.reste + ' &euro; &middot; sur ' + p.total + ' &euro;'; }
-  else { st = ['#FDECEC','#F3B8B8','#B3261E']; txt = '&#10060; Non pay&eacute; &middot; ' + p.total + ' &euro;'; }
+  else if(p.statut === 'paye'){ st = ['#EAF7EE','#BFE6C8','#006b2d']; txt = '&#9989; Sold&eacute; &middot; ' + _depEurCfa(p.total); }
+  else if(p.statut === 'partiel'){ st = ['#FFF3E0','#F0C36D','#8A5200']; txt = '&#9680; Reste ' + _depEurCfa(p.reste) + ' &middot; sur ' + p.total + ' &euro;'; }
+  else { st = ['#FDECEC','#F3B8B8','#B3261E']; txt = '&#10060; Non pay&eacute; &middot; ' + _depEurCfa(p.total); }
   return '<span style="font-size:11.5px;font-weight:800;background:'+st[0]+';border:1.5px solid '+st[1]+';color:'+st[2]+';border-radius:20px;padding:5px 11px;margin:6px 0;white-space:nowrap;">'+txt+'</span>';
 }
 
@@ -12735,7 +12745,7 @@ function depRenderDepotDakar(){
       + '<div><div style="font-size:19px;font-weight:800;color:#B45309;">'+nGardiennage+'</div><div style="font-size:9px;font-weight:700;color:#888;">GARDIENNAGE</div></div>'
       + '<div><div style="font-size:19px;font-weight:800;color:#B3261E;">'+n60+'</div><div style="font-size:9px;font-weight:700;color:#888;">&Agrave; 60J+</div></div>'
       + '</div>'
-      + '<div style="margin-top:8px;font-size:11.5px;color:#555;text-align:center;">&#9989; <b>'+nSolde+'</b> sold&eacute;'+(nSolde>1?'s':'')+' sur '+tous.length+' &middot; <b style="color:'+(resteTot>0?'#B3261E':'#006b2d')+';">'+resteTot+' &euro;</b> encore &agrave; encaisser</div>';
+      + '<div style="margin-top:8px;font-size:11.5px;color:#555;text-align:center;">&#9989; <b>'+nSolde+'</b> sold&eacute;'+(nSolde>1?'s':'')+' sur '+tous.length+' &middot; <b style="color:'+(resteTot>0?'#B3261E':'#006b2d')+';">'+_depEurCfa(resteTot)+'</b> encore &agrave; encaisser</div>';
   }
 
   // Les plus anciens en premier (les plus urgents).
