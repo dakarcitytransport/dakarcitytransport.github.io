@@ -328,6 +328,17 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
         <div class="kv" style="border-bottom:1px solid #D7E6F7;padding:3px 0 6px 14px;font-size:12px;"><span class="k">dont par Mamadou</span><span class="v" id="cd-liv-par-mamadou" style="color:#006b2d;">&mdash;</span></div>
         <div class="kv" style="padding:6px 0;"><span class="k">Restant</span><span class="v" id="cd-liv-restant" style="color:#992020;">&mdash;</span></div>
       </div>
+      <!-- v1.15.0 — Cobey : « Mamadou nous a dit qu'il ne voyait pas le montant
+           total de ce qu'il avait récupéré en espèces pour les colis [...] il
+           faut vraiment toujours séparer livraison et colis. » Même principe
+           que le bloc livraison juste au-dessus, pour le prix des colis que
+           des clients paient sur place, à Mamadou. -->
+      <div id="cd-finance-colis" hidden style="background:#EAF7EE;border:1.5px solid #BFE6C8;border-radius:10px;padding:12px;margin-bottom:14px;">
+        <div style="font-size:11px;color:#006b2d;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">&#128230; Colis &mdash; encaiss&eacute; &agrave; Dakar</div>
+        <div class="kv" style="border-bottom:1px solid #CFEBD6;padding:6px 0;"><span class="k">Encaiss&eacute; par Mamadou (esp&egrave;ces)</span><span class="v" id="cd-col-encaisse" style="color:#006b2d;">&mdash;</span></div>
+        <div class="kv" style="border-bottom:1px solid #CFEBD6;padding:6px 0;"><span class="k">Clients concern&eacute;s</span><span class="v" id="cd-col-nb">&mdash;</span></div>
+        <div class="kv" style="padding:6px 0;"><span class="k">Restant &agrave; payer (colis)</span><span class="v" id="cd-col-restant" style="color:#992020;">&mdash;</span></div>
+      </div>
       <input class="recherche" id="cd-recherche" placeholder="Rechercher un client&hellip;" oninput="cdAppliquerFiltres()">
       <div class="filtres" id="cd-filtres"></div>
       <div class="cd-selects">
@@ -453,7 +464,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.14.11';
+var MAMADOU_VERSION = 'v1.15.1';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -784,7 +795,7 @@ function mnAccueilOuvrir(){
 
 function rafraichirEcranActif(){
   if(!_accueilAffiche) return;
-  if(!$('ecran-container-detail').hidden){ _cdMajBlocArrivee(); _cdMajFinanceLivraison(); cdAppliquerFiltres(); }
+  if(!$('ecran-container-detail').hidden){ _cdMajBlocArrivee(); _cdMajFinanceLivraison(); _cdMajFinanceColis(); cdAppliquerFiltres(); }
   if(!$('ecran-fiche').hidden && _ficheCtx) ouvrirFiche(_ficheCtx, true);
 }
 
@@ -1132,6 +1143,7 @@ function ouvrirContainerDetail(departId){
   $('cd-recherche').value = '';
   _cdMajBlocArrivee();
   _cdMajFinanceLivraison();
+  _cdMajFinanceColis();
   _cdRenderFiltres();
   cdAppliquerFiltres();
 }
@@ -1197,6 +1209,35 @@ function _cdMajFinanceLivraison(){
   $('cd-liv-restant').textContent = depArrondi2(restant) + ' €';
   $('cd-liv-par-dct').textContent = depArrondi2(parDCT) + ' €';
   $('cd-liv-par-mamadou').textContent = depArrondi2(parMamadou) + ' €';
+}
+
+// v1.15.0 — total des colis encaissés par Mamadou lui-même (versements
+// dont `par` est « Mamadou Niass »), jamais mélangé avec la livraison.
+function _cdMajFinanceColis(){
+  var bloc = $('cd-finance-colis');
+  if(!bloc) return;
+  if(!_cdDepartId || _cdDepartId === DEP_ID_DEPOT){ bloc.hidden = true; return; }
+  var clients = clientsDuContainer(_cdDepartId);
+  if(!clients.length){ bloc.hidden = true; return; }
+  var encaisse = 0, nb = 0, restant = 0;
+  clients.forEach(function(x){
+    var dejaCompte = false;
+    (Array.isArray(x.c.versements) ? x.c.versements : []).forEach(function(v){
+      if(v && v.par === 'Mamadou Niass'){
+        encaisse += parseFloat(v.montant) || 0;
+        if(!dejaCompte){ nb++; dejaCompte = true; }
+      }
+    });
+    restant += depCalculerPaiement(x.c).reste;
+  });
+  bloc.hidden = false;
+  // Cobey : « le montant en francs CFA et en euros, je crois qu'il encaisse
+  // que en francs CFA » — les deux, le CFA en premier (c'est ce qu'il tient
+  // en main), arrondi au millier comme partout dans l'appli.
+  var deux = function(eur){ eur = depArrondi2(eur); return depFormatCFA(eur) + ' · ' + eur + ' €'; };
+  $('cd-col-encaisse').textContent = deux(encaisse);
+  $('cd-col-nb').textContent = nb + ' client' + (nb > 1 ? 's' : '');
+  $('cd-col-restant').textContent = deux(restant);
 }
 
 function validerArriveeDepot(){
@@ -1773,7 +1814,6 @@ function _htmlEncaisser(type, reste){
     + '<div id="enc-'+pref+'-apercu" style="font-size:11px;color:#888;margin:-8px 0 12px;"></div>'
     + '<div class="meth-row">'
     +   '<button type="button" class="meth-btn on" id="enc-'+pref+'-m-especes" onclick="choisirMethode(\''+type+'\',\'especes\')">Espèces</button>'
-    +   '<button type="button" class="meth-btn" id="enc-'+pref+'-m-virement" onclick="choisirMethode(\''+type+'\',\'virement\')">Virement</button>'
     + '</div>'
     + '<button type="button" class="btn btn-light" onclick="encaisser(\''+type+'\')">Enregistrer l’encaissement</button>'
     + '</div>';
@@ -1800,8 +1840,8 @@ function mnMajApercuDevise(type){
 function choisirMethode(type, m){
   if(type === 'liv') _methLiv = m; else _methColis = m;
   var pref = type === 'liv' ? 'liv' : 'col';
-  $('enc-'+pref+'-m-especes').classList.toggle('on', m === 'especes');
-  $('enc-'+pref+'-m-virement').classList.toggle('on', m === 'virement');
+  var be = $('enc-'+pref+'-m-especes'); if(be) be.classList.toggle('on', m === 'especes');
+  var bv = $('enc-'+pref+'-m-virement'); if(bv) bv.classList.toggle('on', m === 'virement');
 }
 function encaisser(type){
   var pref = type === 'liv' ? 'liv' : 'col';

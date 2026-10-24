@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.17';
+var DEP_VERSION = 'v2.21.18';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2431,6 +2431,7 @@ function compteursDepart(departId){
      ignore serait pire que de n'en annoncer aucun. */
   var r = { clients:0, euros:0, colis:0,
             colisTotal:0, colisPaye:0, colisDu:0, colisTrop:0, colisTropNb:0,
+            colisMamadou:0, colisMamadouNb:0,
             livTotal:0,   livPaye:0,   livDu:0,   livTrop:0,   livTropNb:0,
             livClients:0, sansPrix:0, taxePrestataire:0 };
 
@@ -2450,6 +2451,12 @@ function compteursDepart(departId){
     r.colisTotal += pc.total; r.colisPaye += pc.paye; r.colisDu += pc.reste;
     var tc = _depTropVerse(pc);
     if(tc > 0){ r.colisTrop += tc; r.colisTropNb++; }
+    // v2.21.18 — ce que Mamadou a encaissé lui-même sur le prix du colis.
+    var parMn = 0;
+    (Array.isArray(c.versements) ? c.versements : []).forEach(function(v){
+      if(v && v.par === 'Mamadou Niass') parMn += (parseFloat(v.montant) || 0);
+    });
+    if(parMn > 0){ r.colisMamadou += parMn; r.colisMamadouNb++; }
     var pl = depCalculerPaiementLivraison(c);
     if(pl.total > 0) r.livClients++;
     r.livTotal += pl.total;   r.livPaye += pl.paye;   r.livDu += pl.reste;
@@ -2471,7 +2478,7 @@ function compteursDepart(departId){
 
   // Les additions d'euros traînent des restes binaires (surtout après une
   // conversion FCFA) — on arrondit une seule fois, à la fin.
-  ['euros','colisTotal','colisPaye','colisDu','colisTrop','livTotal','livPaye','livDu','livTrop','taxePrestataire']
+  ['euros','colisTotal','colisPaye','colisDu','colisTrop','colisMamadou','livTotal','livPaye','livDu','livTrop','taxePrestataire']
     .forEach(function(k){ r[k] = depArrondi2(r[k]); });
   return r;
 }
@@ -2563,6 +2570,12 @@ function _depBlocCaisse(cp){
     +   'Les colis et les livraisons sont deux caisses s&eacute;par&eacute;es.</div>'
     + ligne('COLIS', '&#128230;', cp.colisTotal, cp.colisPaye, cp.colisDu,
             { okBg:'#D4F0E0', okFg:'#006b2d' }, 'colis')
+    // v2.21.18 — Cobey : même récapitulatif que chez Mamadou (colis
+    // encaissés par lui à Dakar, en espèces), séparé de la livraison.
+    + (cp.colisMamadou > 0
+        ? '<div style="font-size:11.5px;color:#006b2d;font-weight:700;margin:-2px 0 8px;">&#127480;&#127475; dont encaiss&eacute; &agrave; Dakar par Mamadou : <b>'
+          + depFormatCFA(cp.colisMamadou) + '</b> &middot; ' + cp.colisMamadou + ' &euro; (' + cp.colisMamadouNb + ' client' + (cp.colisMamadouNb > 1 ? 's' : '') + ', esp&egrave;ces)</div>'
+        : '')
     + ligne('LIVRAISON', '&#128666;', cp.livTotal, cp.livPaye, cp.livDu,
             { okBg:'#D9EEF7', okFg:'#0b5d78' }, 'livraison')
     + (cp.livClients

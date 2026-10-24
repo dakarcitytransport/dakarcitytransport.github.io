@@ -5146,3 +5146,22 @@ n'est ouvert) ; sans collecte en cours : « Aucune collecte en cours ».
 Limite connue : si deux collectes France sont « en cours » en même temps,
 le Suivi montre la première (pas encore de sélecteur de collecte comme côté
 Collecte).
+
+**24/10, mamadou.html v1.15.1 + v3.99.86 (departs.js v2.21.18) — colis
+encaissés par Mamadou, en FCFA et en euros.** Cobey : « Mamadou nous a dit
+qu'il ne voyait pas le montant total de ce qu'il avait récupéré en espèces
+pour les colis [...] on a pas le récap pour les colis que les clients n'ont
+pas payé avant et qui ont payé là-bas » ; « il prend aucun paiement en
+virement, que des espèces » ; « il faut vraiment toujours séparer livraison
+et colis » (donc pas de total mélangé sur son accueil) ; « 2 ok » (même
+récap côté DCT) ; « le montant en francs CFA et en euros, je crois qu'il
+encaisse que en francs CFA, mais je suis pas sûr ». Mamadou : nouveau bloc
+« 📦 Colis — encaissé à Dakar » sous le bloc livraison de chaque container :
+encaissé par Mamadou (espèces) = somme des `versements` dont `par` est
+« Mamadou Niass », nombre de clients concernés, restant à payer (colis) ; les
+montants en FCFA (arrondi au millier, comme partout) puis en €. Le bouton
+« Virement » disparaît de son écran d'encaissement. DCT : sous « COLIS » de la
+caisse du container (Rapport financier) : « dont encaissé à Dakar par
+Mamadou : X FCFA · Y € (N clients, espèces) » (`compteursDepart`:
+colisMamadou / colisMamadouNb). Le bloc livraison n'est pas modifié (pas de
+CFA ajouté : à voir si utile).
