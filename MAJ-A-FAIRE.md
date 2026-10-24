@@ -5256,3 +5256,12 @@ proposition ». Le clic ouvrait déjà la fiche (`ouvrirFiche`, retour vers
 d'une flèche « › », du texte « Voir la fiche » sous la date, et d'un fond vert
 pâle à l'appui, dans les onglets Colis et Livraison ; montant et flèche
 regroupés à droite.
+
+**24/10, v3.99.89 (departs.js v2.21.21) — côté DCT, les prix repassent en
+euros seulement.** Cobey : « tu peux remettre les prix comme avant ? Les CFA
+côté DCT c'est pas la peine. » Retirés : le CFA sur les cartes client du
+container (Départ), sous PAYÉ / RESTE DÛ de la caisse du container, dans le
+Dépôt Dakar (pastilles, « encore à encaisser ») et sur la ligne « dont
+encaissé à Dakar par Mamadou » ; helper `_depEurCfa` supprimé. Inchangé :
+tout le CFA + € de mamadou.html (cartes, fiche, Dépôt Dakar, page Mes
+encaissements).
