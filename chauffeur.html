@@ -186,7 +186,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.7.2';
+var CHAUFFEUR_VERSION = 'v1.8.0';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -883,6 +883,10 @@ function dessinerListe(ids, statuts, horaires){
     // client, séparé du rappel avant-ramasse déjà envoyé côté DCT (retour
     // de Cobey du 06/09/2026). Numéro direct (wa.me), le chauffeur
     // complète juste le temps estimé après ouverture de WhatsApp.
+    var depart = !st ? _departValide(id) : null;
+    if(depart){
+      h += '<div class="cloture-note">🧭 Parti à ' + _hhmmTs(depart) + ' · <span style="cursor:pointer;text-decoration:underline;" onclick="annulerDepart(\'' + id + '\')">↩ Annuler le départ</span></div>';
+    }
     if(!st && tel){
       var msgArrive = 'Bonjour, c\'est votre chauffeur Dakar City Transport 🚚. Je suis en route pour venir récupérer votre colis, j\'arrive dans ';
       h += '<div class="actions">'
@@ -920,9 +924,36 @@ function envoyerJArrive(tel){
 // live" (bug remonté par Cobey le 01/09/2026 : rien ne s'affichait dans
 // Suivi malgré le clic Waze, car rien n'écrivait wazeTs). Premier clic
 // fait foi, comme côté natif — on ne réécrit jamais un départ existant.
+// v1.8.0 — Cobey, 25/10/2026 : « quand on appuie sur Waze, ça lance le
+// chrono. On ne peut pas annuler, corriger. » Un départ annulé laisse une
+// « pierre tombale » (wazeAnnules/<id> = heure d'annulation) : un départ
+// plus ancien qu'elle ne compte plus, et un nouvel appui sur Waze en
+// écrit un neuf.
+function _departValide(id){
+  var w = truckCourant && truckCourant.wazeTs && truckCourant.wazeTs[id];
+  if(!w) return null;
+  var a = truckCourant.wazeAnnules && truckCourant.wazeAnnules[id];
+  return (a && w <= a) ? null : w;
+}
+function _hhmmTs(ts){
+  var d = new Date(ts);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+function annulerDepart(id){
+  if(!ctx) return;
+  var c = clientsTournee.find(function(x){ return x.id === id; });
+  if(!confirm('Annuler le départ' + (c && c.name ? ' pour ' + c.name : '') + ' ? Le chrono s’arrête et le client repasse à « À venir ».')) return;
+  var maj = {};
+  maj['wazeAnnules/' + id] = Date.now();
+  maj['wazeTs/' + id] = null;
+  db.ref(_cheminTruck()).update(maj).catch(function(e){
+    console.error('chauffeur: annulation départ', e);
+    alert('Erreur de connexion, réessaie.');
+  });
+}
 function ouvrirWaze(id, adresse){
   var url = 'https://waze.com/ul?q=' + encodeURIComponent(adresse) + '&navigate=yes';
-  if(ctx && !(truckCourant && truckCourant.wazeTs && truckCourant.wazeTs[id])){
+  if(ctx && !_departValide(id)){
     var ts = Date.now();
     db.ref(_cheminTruck('wazeTs/' + id)).set(ts)
       .catch(function(e){ console.error('chauffeur: écriture départ waze', e); });

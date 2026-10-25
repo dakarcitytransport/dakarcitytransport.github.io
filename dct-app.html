@@ -1771,7 +1771,10 @@ function ecouterChangements(){
           // Préserver wazeTs, finTs et cancelled locaux si Firebase ne les a pas
           var localTk = dispatchParCollecte[colId] && dispatchParCollecte[colId].trucks && dispatchParCollecte[colId].trucks[k];
           if(localTk){
-            if(!tk.wazeTs && localTk.wazeTs) tk.wazeTs = localTk.wazeTs;
+            if(!tk.wazeTs && localTk.wazeTs){
+              var _wLoc = _fusionnerTs(null, localTk.wazeTs, 'min', tk.wazeAnnules);
+              if(Object.keys(_wLoc).length) tk.wazeTs = _wLoc;
+            }
             if(!tk.finTs && localTk.finTs) tk.finTs = localTk.finTs;
             if(!tk.cancelled && localTk.cancelled) tk.cancelled = localTk.cancelled;
           }
@@ -1795,7 +1798,8 @@ function ecouterChangements(){
               // v2.8.3 : fusion CLÉ PAR CLÉ (plus de comparaison de
               // nombre de clés, qui faisait disparaître les départs
               // enregistrés par les autres téléphones).
-              localD.trucks[k].wazeTs = _fusionnerTs(remoteTk.wazeTs, localTk.wazeTs, 'min');
+              localD.trucks[k].wazeAnnules = _fusionnerTs(remoteTk.wazeAnnules, localTk.wazeAnnules, 'max');
+              localD.trucks[k].wazeTs = _fusionnerTs(remoteTk.wazeTs, localTk.wazeTs, 'min', localD.trucks[k].wazeAnnules);
               localD.trucks[k].finTs  = _fusionnerTs(remoteTk.finTs,  localTk.finTs,  'max');
             });
           }
@@ -1946,13 +1950,18 @@ function _dctRedessinerEcranActif(){
 // v2.8.3 : fusionne deux tables {clientId: timestamp} sans perte.
 // mode 'min' = on garde le plus ancien (heure de départ),
 // mode 'max' = on garde le plus récent (heure de fin).
-function _fusionnerTs(distant, local, mode){
+// v3.99.91 : `annules` (optionnel) = {clientId: horodatage d'annulation}.
+// Un départ plus ancien que son annulation est ignoré, d'où qu'il vienne
+// (copie locale d'un autre téléphone comprise) : sans ça, l'ancienne heure
+// serait ressuscitée par la règle « on garde la plus ancienne ».
+function _fusionnerTs(distant, local, mode, annules){
   var res = {};
   [distant, local].forEach(function(src){
     if(!src || typeof src !== 'object') return;
     Object.keys(src).forEach(function(cid){
       var v = src[cid];
       if(typeof v !== 'number' || !v) return;
+      if(annules && annules[cid] && v <= annules[cid]) return;
       if(res[cid] === undefined){ res[cid] = v; return; }
       res[cid] = (mode === 'max') ? Math.max(res[cid], v) : Math.min(res[cid], v);
     });
@@ -2026,7 +2035,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.90';
+var APP_VERSION = 'v3.99.91';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2455,13 +2464,76 @@ function _suiviChoisirCollecte(){
   suiviCollecteId = enc ? enc.id : null;
 }
 
+// v3.99.91 — Cobey, 25/10/2026 : « quand on appuie sur Waze, ça lance le
+// chrono. On ne peut pas annuler, corriger. » Heure de départ d'un client,
+// sauf si elle a été annulée depuis (tk.wazeAnnules[id] = horodatage de
+// l'annulation, gardé comme « pierre tombale » pour qu'une copie locale
+// d'un autre téléphone ne ressuscite pas l'ancien départ).
+var SUIVI_DEPART_LONG_MS = 3*3600*1000;
+function _suiviWaze(tk,id){
+  var w = tk && tk.wazeTs && tk.wazeTs[id];
+  if(!w) return null;
+  var a = tk.wazeAnnules && tk.wazeAnnules[id];
+  return (a && w <= a) ? null : w;
+}
+// Au-delà de 3 h, le chrono ne compte plus (un départ oublié affichait
+// « 38h10 »).
+function _chronoSuivi(ms){
+  return ms > SUIVI_DEPART_LONG_MS ? 'plus de 3 h' : _chrono(ms);
+}
+// Boutons communs aux deux Suivi (Collecte et France) pour un client en
+// route : annuler le départ ; si le chrono dépasse 3 h, alerte et
+// « Repartir maintenant » (annule puis redémarre un chrono neuf).
+function _suiviBoutonsDepart(estFr, camion, collId, id, depuisMs){
+  var long_ = depuisMs > SUIVI_DEPART_LONG_MS;
+  var args = (estFr?'true':'false')+",'"+camion+"','"+collId+"','"+id+"'";
+  var st = 'border:1.5px solid #c2410c;background:#fff;color:#c2410c;border-radius:9px;padding:7px 12px;'
+         + 'font-size:12px;font-weight:800;cursor:pointer;font-family:var(--font);margin:6px 8px 0 0;';
+  var h = '';
+  if(long_) h += '<div style="font-size:12px;font-weight:800;color:#b45309;margin-top:6px;">\u26a0\ufe0f D\u00e9part oubli\u00e9 ? Le chrono ne compte plus.</div>';
+  h += '<div>'
+    + '<button type="button" style="'+st+'" onclick="event.stopPropagation();suiviAnnulerDepart('+args+',false)">\u21a9 Annuler le d\u00e9part</button>'
+    + (long_ ? '<button type="button" style="'+st+'" onclick="event.stopPropagation();suiviAnnulerDepart('+args+',true)">\ud83e\udded Repartir maintenant</button>' : '')
+    + '</div>';
+  return h;
+}
+function suiviAnnulerDepart(estFr, camion, collId, id, repartir){
+  if(!firebaseReady || !db){ showToastNew('\u274c Pas de connexion, r\u00e9essaie'); return; }
+  var tk;
+  if(estFr){ var r = (typeof window._frCollecteActive==='function') ? window._frCollecteActive() : null; tk = r && (r.trucks||{})[camion]; }
+  else { var d = dispatchParCollecte[collId]; tk = d && d.trucks && d.trucks[camion]; }
+  if(!tk){ showToastNew('\u274c Camion introuvable'); return; }
+  var cl = estFr ? ((window.franceData||{}).clients||{})[id] : (clientsParCollecte[collId]||{})[id];
+  var nom = (cl && cl.name) || 'ce client';
+  var q = repartir
+    ? 'Repartir maintenant pour '+nom+' ? Le d\u00e9part est remis \u00e0 l\u2019heure actuelle.'
+    : 'Annuler le d\u00e9part de '+nom+' ? Il repasse \u00e0 \u00ab \u00c0 venir \u00bb et le chrono s\u2019arr\u00eate.';
+  if(!confirm(q)) return;
+  var now = Date.now();
+  var chemin = (estFr ? 'france/collectes/'+collId : 'dct/dispatch/'+collId)+'/trucks/'+camion;
+  var maj = {}; maj['wazeAnnules/'+id] = now; maj['wazeTs/'+id] = repartir ? now+1 : null;
+  window._lastWriteTime = Date.now();
+  if(!tk.wazeAnnules) tk.wazeAnnules = {};
+  tk.wazeAnnules[id] = now;
+  if(!tk.wazeTs) tk.wazeTs = {};
+  if(repartir) tk.wazeTs[id] = now+1; else delete tk.wazeTs[id];
+  if(!estFr){ try{ localStorage.setItem('dct_v3_dispatch', JSON.stringify(dispatchParCollecte)); }catch(ee){} }
+  db.ref(chemin).update(maj).catch(function(e){
+    console.error('suivi: annulation du d\u00e9part', e);
+    showToastNew('\u274c \u00c9chec : '+((e&&e.message)||'\u00e9criture refus\u00e9e'));
+  });
+  showToastNew(repartir ? '\ud83e\udded Nouveau d\u00e9part enregistr\u00e9' : '\u21a9 D\u00e9part annul\u00e9');
+  if(estFr){ if(typeof window._frRafraichirSuivi==='function') window._frRafraichirSuivi(); }
+  else if(typeof renderTimelineCamion==='function' && suiviCamion) renderTimelineCamion(suiviCamion);
+}
+
 // Statut d'un client dans un camion
 function _suiviStatut(tk,id){
   if((tk.validated||[]).indexOf(id)!==-1) return 'collecte';
   if((tk.refused||[]).indexOf(id)!==-1)   return 'refuse';
   if((tk.cancelled||[]).indexOf(id)!==-1) return 'annule';
   if((tk.reported||[]).indexOf(id)!==-1)  return 'reporte';
-  if(tk.wazeTs && tk.wazeTs[id])          return 'route';
+  if(_suiviWaze(tk,id))                   return 'route';
   return 'avenir';
 }
 function _suiviTraite(st){
@@ -2530,7 +2602,7 @@ function _suiviStatsCamion(tk){
     if(st==='refuse')   r.refuses++;
     if(st==='annule')   r.annules++;
     if(st==='reporte')  r.reportes++;
-    var w = tk.wazeTs && tk.wazeTs[id];
+    var w = _suiviWaze(tk,id);
     var f = tk.finTs   && tk.finTs[id];
     if(w){ if(!r.depart || w<r.depart) r.depart=w; }
     if(f){ if(!r.dernier || f>r.dernier) r.dernier=f; }
@@ -2658,7 +2730,8 @@ function renderSuivi(){
       h+='<div style="font-size:9.5px;font-weight:800;letter-spacing:0.8px;color:#c2410c;">EN ROUTE</div>';
       h+='<div style="font-size:14px;font-weight:800;color:#14304f;margin-top:3px;">'+_esc(cE.name||'Client')+'</div>';
       if(adr) h+='<div style="font-size:12px;color:#64748b;margin-top:2px;">'+_esc(adr)+'</div>';
-      h+='<div style="font-size:12.5px;font-weight:800;color:#c2410c;margin-top:6px;">\u23f1 En route depuis <span data-dep="'+s.enRoute.dep+'">'+_chrono(Date.now()-s.enRoute.dep)+'</span></div>';
+      h+='<div style="font-size:12.5px;font-weight:800;color:#c2410c;margin-top:6px;">\u23f1 En route depuis <span data-dep="'+s.enRoute.dep+'">'+_chronoSuivi(Date.now()-s.enRoute.dep)+'</span></div>';
+      if(Date.now()-s.enRoute.dep > SUIVI_DEPART_LONG_MS) h+='<div style="font-size:12px;font-weight:800;color:#b45309;margin-top:4px;">\u26a0\ufe0f D\u00e9part oubli\u00e9 ? Touche pour corriger.</div>';
       h+='</div>';
     } else if(s.total && s.traites===s.total){
       h+='<div style="margin-top:11px;border:1px solid #a8e6c4;background:#d4f5e4;border-radius:10px;padding:10px;">';
@@ -2745,7 +2818,7 @@ function renderTimelineCamion(k){
   if(!ids.length) h='<div style="text-align:center;color:#94a3b8;font-size:13px;padding:30px 14px;">Aucun client affect\u00e9 \u00e0 ce camion.</div>';
   ids.forEach(function(id,i){
     var c=cls[id]||{}, st=_suiviStatut(tk,id), P=SUIVI_C[st];
-    var w=tk.wazeTs&&tk.wazeTs[id], f=tk.finTs&&tk.finTs[id];
+    var w=_suiviWaze(tk,id), f=tk.finTs&&tk.finTs[id];
     var last=(i===ids.length-1);
     var gris=(st==='avenir');
     h+='<div style="display:flex;gap:11px;">';
@@ -2760,7 +2833,8 @@ function renderTimelineCamion(k){
 
     if(st==='route' && w){
       h+='<div style="font-size:12px;color:#475569;margin-top:5px;">Parti \u00e0 '+_hhmm(w)+'</div>';
-      h+='<div style="display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:6px;background:'+P.bg+';color:'+P.fg+';">\u23f1 En route depuis <span data-dep="'+w+'">'+_chrono(Date.now()-w)+'</span></div>';
+      h+='<div style="display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:6px;background:'+P.bg+';color:'+P.fg+';">\u23f1 En route depuis <span data-dep="'+w+'">'+_chronoSuivi(Date.now()-w)+'</span></div>';
+      h+=_suiviBoutonsDepart(false,suiviCamion,suiviCollecteId,id,Date.now()-w);
     } else if(_suiviTraite(st)){
       if(w && f){
         h+='<div style="font-size:12px;color:#475569;margin-top:5px;line-height:1.45;">Parti \u00e0 '+_hhmm(w)+' \u00b7 '+P.lib+' \u00e0 '+_hhmm(f)+' \u00b7 <span style="color:#94a3b8;">'+_dureeTxt(f-w)+' (trajet + passage)</span></div>';
@@ -2840,7 +2914,7 @@ function majChronos(){
   var els=document.querySelectorAll('[data-dep]');
   for(var i=0;i<els.length;i++){
     var d=parseInt(els[i].getAttribute('data-dep'),10);
-    if(d) els[i].textContent=_chrono(now-d);
+    if(d) els[i].textContent=_chronoSuivi(now-d);
   }
 }
 function _suiviStartTimer(){

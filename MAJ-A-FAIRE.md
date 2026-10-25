@@ -5284,3 +5284,27 @@ passe en premier et est sélectionné par défaut (champ « Montant en FCFA »),
 donc inutile) est retiré, l'encaissement reste enregistré en espèces. Le
 choix revient sur FCFA à chaque changement de client. Arrondi du FCFA
 (taux 655,957, au millier) inchangé.
+
+**25/10, dct-app.html v3.99.91 / departs.js v2.21.23 / chauffeur.html v1.8.0 —
+annuler un départ « Waze » (et alerte à 3 h).** Cobey : « quand on appuie sur
+Waze, ça lance le chrono. On ne peut pas annuler, corriger. Trouve-moi une
+solution » puis « 1 et 2 » sur ma proposition. Le premier appui sur Waze
+écrit `wazeTs[client]` (« le premier clic fait foi ») et rien ne l'effaçait :
+le chrono tournait jusqu'à la clôture du client (38 h vues dans le Suivi
+France).
+1. **Annuler le départ** : bouton « ↩ Annuler le départ » sur chaque client
+   « en route » dans le Suivi (Collecte et France) et sur la carte du client
+   chez le chauffeur externe (« Parti à 17:44 · ↩ Annuler le départ »). Le
+   client repasse à « À venir », le chrono disparaît ; un nouvel appui sur
+   Waze en relance un neuf. Écrit `wazeTs/<id>` = null ET une « pierre
+   tombale » `wazeAnnules/<id>` = heure d'annulation : un départ plus ancien
+   que sa pierre tombale est ignoré (`_suiviWaze`, `_fusionnerTs(…, annules)`),
+   sinon la règle « on garde l'heure la plus ancienne » et la copie locale
+   d'un autre téléphone ressuscitaient l'ancien départ.
+2. **Alerte à 3 h** : au-delà de 3 h le chrono n'est plus compté (« En route
+   depuis plus de 3 h », `_chronoSuivi`) avec « ⚠️ Départ oublié ? » et un
+   second bouton « 🧭 Repartir maintenant » (annule puis redémarre un chrono
+   neuf). Sur la carte du camion (liste du Suivi) : seulement l'alerte.
+Non testé contre le vrai Firebase (sandbox sans réseau) : si les règles
+Firebase refusent l'écriture de `wazeAnnules`, le bouton affichera « Échec ».
+Aussi : retrait de trois captures de test (enc_*.png) commises par erreur.

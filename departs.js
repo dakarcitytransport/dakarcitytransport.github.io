@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.22';
+var DEP_VERSION = 'v2.21.23';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -15803,7 +15803,8 @@ function _frRenderSuivi(){
         +   '<div style="font-size:9.5px;font-weight:800;letter-spacing:0.8px;color:#c2410c;">EN ROUTE</div>'
         +   '<div style="font-size:14px;font-weight:800;color:#14304f;margin-top:3px;">' + esc(_nomAffiche(cE) || 'Client') + '</div>'
         +   (adr ? ('<div style="font-size:12px;color:#64748b;margin-top:2px;">' + esc(adr) + '</div>') : '')
-        +   '<div style="font-size:12.5px;font-weight:800;color:#c2410c;margin-top:6px;">&#9201; En route depuis ' + _chrono(Date.now() - s.enRoute.dep) + '</div>'
+        +   '<div style="font-size:12.5px;font-weight:800;color:#c2410c;margin-top:6px;">&#9201; En route depuis ' + _chronoSuivi(Date.now() - s.enRoute.dep) + '</div>'
+        + ((Date.now() - s.enRoute.dep > SUIVI_DEPART_LONG_MS) ? '<div style="font-size:12px;font-weight:800;color:#b45309;margin-top:4px;">&#9888;&#65039; D&eacute;part oubli&eacute; ? Touche pour corriger.</div>' : '')
         + '</div>';
     } else if(s.total && s.traites === s.total){
       h += '<div style="margin-top:11px;border:1px solid #a8e6c4;background:#d4f5e4;border-radius:10px;padding:10px;">'
@@ -15827,6 +15828,7 @@ function _frRenderSuivi(){
   return b + h;
 }
 
+window._frRafraichirSuivi = function(){ try{ _frRenderSuiviEcran(); }catch(e){} };
 function _frRenderSuiviEcran(){
   try{ if(typeof window.majBoutonFrance === 'function') window.majBoutonFrance(); }catch(e){}
   var box = document.getElementById('france-content');
@@ -15899,7 +15901,7 @@ function _frRenderTimelineCamion(k){
   }
   ids.forEach(function(id, i){
     var c = cls[id] || {}, st = _suiviStatut(tk, id), P = SUIVI_C[st];
-    var w = tk.wazeTs && tk.wazeTs[id], f = tk.finTs && tk.finTs[id];
+    var w = _suiviWaze(tk, id), f = tk.finTs && tk.finTs[id];
     var last = (i === ids.length - 1);
     var gris = (st === 'avenir');
     h += '<div style="display:flex;gap:11px;">'
@@ -15914,7 +15916,8 @@ function _frRenderTimelineCamion(k){
 
     if(st === 'route' && w){
       h += '<div style="font-size:12px;color:#475569;margin-top:5px;">Parti &agrave; ' + _hhmm(w) + '</div>'
-        +  '<div style="display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:6px;background:' + P.bg + ';color:' + P.fg + ';">&#9201; En route depuis ' + _chrono(Date.now() - w) + '</div>';
+        +  '<div style="display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:6px;background:' + P.bg + ';color:' + P.fg + ';">&#9201; En route depuis ' + _chronoSuivi(Date.now() - w) + '</div>'
+        +  _suiviBoutonsDepart(true, k, col._id, id, Date.now() - w);
     } else if(_suiviTraite(st)){
       if(w && f){
         h += '<div style="font-size:12px;color:#475569;margin-top:5px;line-height:1.45;">Parti &agrave; ' + _hhmm(w) + ' &middot; ' + P.lib + ' &agrave; ' + _hhmm(f) + ' &middot; <span style="color:#94a3b8;">' + _dureeTxt(f - w) + ' (trajet + passage)</span></div>';
