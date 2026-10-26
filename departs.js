@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.37';
+var DEP_VERSION = 'v2.21.38';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25992,9 +25992,31 @@ window.depActiviteRecreer = function(){
   window.renderAdminOutils();
 };
 
+/* v2.21.38 — Cobey a ouvert la console Firebase : les clients de la collecte
+   du 1er novembre (col_1791646344916, créée 9 s après celle du 25 octobre)
+   y sont intacts ; seule la ligne de la collecte manque dans la liste. Le
+   téléphone, lui, ne les avait pas en mémoire : ce bouton relit la base
+   (dct/clients et dct/dispatch) et ajoute à la mémoire les groupes absents,
+   après quoi le panneau « Collectes disparues » les propose. */
+window.depRelireBaseCollectes = function(){
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  toast('Relecture de la base…');
+  Promise.all([ db.ref('dct/clients').once('value'), db.ref('dct/dispatch').once('value') ]).then(function(res){
+    var cl = res[0].val() || {}, dp = res[1].val() || {}, n = 0;
+    Object.keys(cl).forEach(function(id){
+      if(!window.clientsParCollecte[id]){ window.clientsParCollecte[id] = cl[id]; n++; }
+    });
+    Object.keys(dp).forEach(function(id){
+      if(!window.dispatchParCollecte[id]) window.dispatchParCollecte[id] = dp[id];
+    });
+    toast(n ? ('✅ ' + n + ' groupe' + (n>1?'s':'') + ' de clients relu' + (n>1?'s':'') + ' depuis la base') : 'Rien de plus dans la base.');
+    window.renderAdminOutils();
+  }).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'lecture refusée')); });
+};
 function _depHtmlCollectesDisparues(){
   var o = _depCollectesOrphelines();
-  var h = _depHtmlReconstituer() + _depHtmlToutesCollectes()
+  var h = '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Relire la base (clients et camions)</button>'
+    + _depHtmlReconstituer() + _depHtmlToutesCollectes()
     + '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128269; Collectes disparues</div>';
   if(!o.length){
     return h + '<div style="font-size:12px;color:#888;margin-bottom:22px;line-height:1.55;">Aucun client orphelin : toutes les fiches clients sont rattach&eacute;es &agrave; une collecte existante.</div>';

@@ -5488,3 +5488,16 @@ garde maintenant aussi les clients cités par une modification, une affectation,
 un planning, une ramasse... de cette collecte (hors lignes de camion/dispatch),
 avec « prix non noté », et chaque client a un champ prix modifiable avant la
 recréation.
+
+**26/10, dct-app.html v3.99.103 / departs.js v2.21.38 — « Relire la base » pour
+retrouver la collecte du 1er novembre.** Cobey a ouvert la console Firebase :
+`dct/collectes` n'a plus la ligne du 1er novembre, mais `dct/clients` garde un
+groupe `col_1791646344916` (créé le 10/10, 9 s après la collecte du 25/10),
+avec les fiches (ex. colis « 2 Fût 270L », Aminata, creeLe 12/10). Seule la
+ligne de la collecte dans la liste a été écrasée. Le téléphone n'avait pas ce
+groupe en mémoire. Nouveau bouton en tête du panneau Outils : « Relire la base
+(clients et camions) » (`depRelireBaseCollectes` : lit `dct/clients` et
+`dct/dispatch`, ajoute à la mémoire les groupes absents) ; le panneau
+« Collectes disparues » propose alors la collecte (« Créée le 10/10 · 3 clients
+· 333 € »), à recréer avec la date du 1er novembre (même identifiant, donc
+fiches, camions et affectations reviennent).
