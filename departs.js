@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.44';
+var DEP_VERSION = 'v2.21.45';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -7917,9 +7917,21 @@ window.depEnregistrer = function(){
     // v1.19.83 : le nom n'est plus modifiable ici — il reste celui déjà
     // attribué (auto ou historique), on ne le touche pas à l'édition.
     var nomActuel = dActuel.nom || depNomParDefaut(depPaysDepart(dActuel));
+    // v2.21.45 — Cobey, 26/10/2026 : « le détail des notifications doit être
+    // pour tout type de notification [...] j'ai changé le statut du
+    // conteneur, mais il ne me met rien. Alors que j'ai ouvert l'inscription,
+    // il aurait dû le marquer. » Ce qui a changé, avant → après.
+    var _fd = function(s){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? (m[3]+'/'+m[2]+'/'+m[1]) : (s || '—'); };
+    var _ls = function(st){ return (STATUTS_DEPART[st || 'preparation'] || STATUTS_DEPART.preparation).label; };
+    var diffsDep = [];
+    if((dActuel.dateDepart||'') !== (obj.dateDepart||'')) diffsDep.push('date de d&eacute;part : ' + _fd(dActuel.dateDepart) + ' &rarr; <strong>' + _fd(obj.dateDepart) + '</strong>');
+    if((dActuel.dateArriveePrevue||'') !== (obj.dateArriveePrevue||'')) diffsDep.push('arriv&eacute;e pr&eacute;vue (port) : ' + _fd(dActuel.dateArriveePrevue) + ' &rarr; <strong>' + _fd(obj.dateArriveePrevue) + '</strong>');
+    if((dActuel.dateArriveeDepotPrevue||'') !== (obj.dateArriveeDepotPrevue||'')) diffsDep.push('arriv&eacute;e pr&eacute;vue (d&eacute;p&ocirc;t) : ' + _fd(dActuel.dateArriveeDepotPrevue) + ' &rarr; <strong>' + _fd(obj.dateArriveeDepotPrevue) + '</strong>');
+    if(!!dActuel.ouvertInscription !== !!obj.ouvertInscription) diffsDep.push(obj.ouvertInscription ? '<strong>inscriptions ouvertes</strong>' : '<strong>inscriptions ferm&eacute;es</strong>');
+    if((dActuel.statut || 'preparation') !== obj.statut) diffsDep.push('statut : ' + _ls(dActuel.statut) + ' &rarr; <strong>' + _ls(obj.statut) + '</strong>');
     db.ref('departs/'+_depEditId).update(obj).then(function(){
       toast('✅ Départ mis à jour');
-      depActivite('&#128230;', 'a modifi&eacute; le d&eacute;part <strong>'+esc(nomActuel)+'</strong>');
+      if(diffsDep.length) depActivite('&#128230;', 'a modifi&eacute; le d&eacute;part <strong>'+esc(nomActuel)+'</strong> (d&eacute;part du ' + _fd(dActuel.dateDepart) + ')<br><span style="color:#555;">' + diffsDep.join(' &middot; ') + '</span>');
       goTo('s-departs'); depRenderListe();
     }).catch(function(e){
       toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé'));
@@ -7935,7 +7947,7 @@ window.depEnregistrer = function(){
     obj.nom     = depNomParDefaut(obj.pays);
     db.ref('departs').push(obj).then(function(){
       toast('✅ Départ créé');
-      depActivite('&#128230;', 'a cr&eacute;&eacute; le d&eacute;part <strong>'+esc(obj.nom)+'</strong>');
+      depActivite('&#128230;', 'a cr&eacute;&eacute; le d&eacute;part <strong>'+esc(obj.nom)+'</strong> ('+esc(DEP_PAYS_NOM_PLAIN[obj.pays] || obj.pays)+') &mdash; d&eacute;part le '+(function(s){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? (m[3]+'/'+m[2]+'/'+m[1]) : esc(s || '—'); })(obj.dateDepart) + (obj.ouvertInscription ? ' &middot; inscriptions ouvertes' : ''));
       goTo('s-departs'); depRenderListe();
     }).catch(function(e){
       toast('❌ Échec : ' + ((e && e.message) || 'création refusée'));
@@ -7949,9 +7961,12 @@ window.depSupprimer = function(){
   if(cp.clients > 0){ toast('🔒 Ce départ contient des clients.'); return; }
   if(!confirm('Supprimer définitivement ce départ ?')) return;
   var nom = nomDepart(_depEditId);
+  var dSupp = (window.departsData||{})[_depEditId] || {};
+  var mSupp = /^(\d{4})-(\d{2})-(\d{2})/.exec(dSupp.dateDepart || '');
+  var dateSupp = mSupp ? (mSupp[3]+'/'+mSupp[2]+'/'+mSupp[1]) : esc(dSupp.dateDepart || '');
   db.ref('departs/'+_depEditId).remove().then(function(){
     toast('🗑 Départ supprimé');
-    depActivite('&#128465;', 'a supprim&eacute; le d&eacute;part <strong>'+esc(nom)+'</strong>');
+    depActivite('&#128465;', 'a supprim&eacute; le d&eacute;part <strong>'+esc(nom)+'</strong>' + (dateSupp ? ' (d&eacute;part du ' + dateSupp + ', sans client)' : ''));
     _depEditId = null;
     goTo('s-departs'); depRenderListe();
   }).catch(function(e){
@@ -8020,7 +8035,7 @@ window.depEtapeSuivante = function(){
   maj[prochaine.key] = { fait: true, ts: Date.now(), par: u.name || u.id || '' };
   db.ref('departs/'+id+'/etapesTransport').update(maj).then(function(){
     toast('✅ ' + prochaine.label);
-    depActivite('🚚', 'a validé l\'étape « ' + esc(prochaine.label) + ' » pour <strong>' + esc(d.nom||'') + '</strong>');
+    depActivite('🚚', 'a validé l\'étape « ' + esc(prochaine.label) + ' » pour <strong>' + esc(d.nom||'') + '</strong>' + (d.dateDepart ? ' (départ du ' + String(d.dateDepart).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$3/$2/$1') + ')' : ''));
     // v1.49.0 : le suivi entraîne le statut du container.
     if(d.etapesTransport) d.etapesTransport[prochaine.key] = maj[prochaine.key];
     else d.etapesTransport = maj;
@@ -8054,6 +8069,7 @@ function _depMajStatutDepuisEtapes(id){
   var vise = _depStatutSelonEtapes(d);
   if(!vise || vise === (d.statut || 'preparation')) return;
   var u = window.currentUser || {};
+  var ancienLib = depStatutLabel({ statut: d.statut || 'preparation', pays: d.pays });
   var hist = Array.isArray(d.histStatut) ? d.histStatut.slice() : [];
   hist.push({ statut: vise, ts: Date.now(), q: u.name || u.id || '' });
   d.statut = vise;
@@ -8079,7 +8095,9 @@ function _depMajStatutDepuisEtapes(id){
   }
   var lib = depStatutLabel(d);
   toast('📦 Container « ' + lib + ' »');
-  depActivite('&#128230;', 'le container <strong>'+esc(d.nom||'')+'</strong> passe en <strong>'+esc(lib)+'</strong>');
+  depActivite('&#128230;', 'a fait passer le container <strong>'+esc(d.nom||'')+'</strong>'
+    + (d.dateDepart ? ' (d&eacute;part du ' + String(d.dateDepart).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$3/$2/$1') + ')' : '')
+    + ' de <strong>' + esc(ancienLib) + '</strong> &agrave; <strong>' + esc(lib) + '</strong>');
 }
 
 window.depEtapeAnnuler = function(){
@@ -13807,6 +13825,7 @@ window.depConfirmerMove = function(){
   var u = window.currentUser || {};
   var hist = c.historiqueDepart || [];
   hist.push({ de: c.departId || '', vers: vers, par: u.id || '', le: Date.now() });
+  var departAvantMv = c.departId || '';
 
   c.departId = vers;
   c.historiqueDepart = hist;
@@ -13821,7 +13840,8 @@ window.depConfirmerMove = function(){
     _depEcrireFacture({ depot:!!mv.depot, france:!!mv.france, clientId: mv.clientId },
       { departId: vers, rangDepart: c.rangDepart || null, rangDepartId: c.rangDepartId || null, historiqueDepart: hist });
   } else try{ sauvegarder(); }catch(e){}
-  depActivite('&#128666;', 'a d&eacute;plac&eacute; <strong>'+esc(_depNomFiche(c))+'</strong> vers <strong>'+esc(nomDepart(vers))+'</strong>');
+  depActivite('&#128666;', 'a d&eacute;plac&eacute; <strong>'+esc(_depNomFiche(c))+'</strong>'
+    + (departAvantMv ? ' de <strong>'+esc(nomDepart(departAvantMv))+'</strong>' : '') + ' vers <strong>'+esc(nomDepart(vers))+'</strong>');
 
   closeModal('modal-dep-move');
   toast('✅ Client déplacé');
@@ -19065,7 +19085,7 @@ window._depClotureCollecteExterne = function(){
   c.statut = 'terminee';
   try{
     var u = window.currentUser || {};
-    addActivity('🔒', u.bg, '<strong style="color:' + u.color + '">' + esc(u.name || '') + '</strong> a clôturé la collecte', "À l'instant");
+    addActivity('🔒', u.bg, '<strong style="color:' + u.color + '">' + esc(u.name || '') + '</strong> a clôturé la collecte du <strong>' + esc(c.date || '') + '</strong>', "À l'instant");
   }catch(e){}
   try{ sauvegarder(); }catch(e){}
   try{ renderCollectesList(); }catch(e){}
@@ -21324,9 +21344,14 @@ function depMajBoutonEspaces(){
 }
 
 /* --- Écrire dans le fil d'activité (la direction reste visible) --- */
+var _depDernActTexte = { cle:'', ts:0 };
 function depActivite(emoji, texte){
   try{
     var u = window.currentUser || {};
+    // v2.21.45 : même ligne, même personne, moins d'une minute : une seule fois.
+    var cleAct = (u.id || '') + '|' + texte;
+    if(cleAct === _depDernActTexte.cle && Date.now() - _depDernActTexte.ts < 60000) return;
+    _depDernActTexte = { cle: cleAct, ts: Date.now() };
     if(window.db && window.firebaseReady){
       var now = new Date();
       db.ref('activite_items').push({

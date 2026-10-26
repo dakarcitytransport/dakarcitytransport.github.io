@@ -2111,7 +2111,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.111';
+var APP_VERSION = 'v3.99.112';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5504,7 +5504,7 @@ function changerDateCollecteFr(){
   closeModal('modal-fc-statut');
   _frUpdate(maj).then(function(){
     showToastNew('📅 Date mise à jour : '+lib);
-    _activiteFrance('📅','a changé la date de la collecte en <strong>'+lib+'</strong>');
+    _activiteFrance('📅','a changé la date de la collecte'+(r.nom?(' <strong>'+r.nom+'</strong>'):'')+' : '+(r.dateLib||'sans date')+' → <strong>'+lib+'</strong>');
     renderFrance();
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
 }
@@ -5559,7 +5559,8 @@ function changerStatutCollecteFr(nouveau){
   closeModal('modal-fc-statut');
   _frUpdate(maj).then(function(){
     showToastNew('✏️ Statut mis à jour');
-    if(nouveau==='terminee') _activiteFrance('🏁','a terminé la collecte <strong>'+r.dateLib+'</strong>');
+    if(nouveau==='terminee') _activiteFrance('🏁','a terminé la collecte'+(r.nom?(' <strong>'+r.nom+'</strong>'):'')+' du <strong>'+r.dateLib+'</strong>');
+    else if((r.statut||'')!==nouveau) _activiteFrance('✏️','a changé le statut de la collecte'+(r.nom?(' <strong>'+r.nom+'</strong>'):'')+' du <strong>'+r.dateLib+'</strong> : '+({a_venir:'À venir',en_cours:'En cours',terminee:'Terminée'}[r.statut]||r.statut||'—')+' → <strong>'+({a_venir:'À venir',en_cours:'En cours',terminee:'Terminée'}[nouveau]||nouveau)+'</strong>');
     renderFrance();
   }).catch(function(e){ showToastNew('❌ Échec : '+((e&&e.message)||'écriture refusée')); });
 }
@@ -9379,9 +9380,11 @@ function ouvrirStatut(id){
 }
 function changerStatut(s){
   var idx=collectes.findIndex(function(x){return x.id===collecteStatutId;});
+  var ancienSt = idx>=0 ? collectes[idx].statut : '';
   if(idx>=0)collectes[idx].statut=s;
   closeModal('modal-statut');
-  addActivity('✏️',currentUser.bg,'<strong style="color:'+currentUser.color+'">'+currentUser.name+'</strong> a modifié le statut d\'une collecte',"À l'instant");
+  // v3.99.112 : quelle collecte, et de quel statut à quel statut.
+  if(idx<0 || ancienSt!==s) addActivity('✏️',currentUser.bg,'<strong style="color:'+currentUser.color+'">'+currentUser.name+'</strong> a changé le statut de la collecte du <strong>'+(idx>=0?collectes[idx].date:'')+'</strong> : '+(STATUT_LABELS[ancienSt]||ancienSt||'—')+' → <strong>'+(STATUT_LABELS[s]||s)+'</strong>',"À l'instant");
   sauvegarder();renderCollectesList();
   if(collecteStatutId===currentCollecteId)updateCollecteHeader();
 }
@@ -11379,8 +11382,10 @@ function toggleRename(k){
 }
 function confirmRename(k){
   var v=document.getElementById('ri-'+k);if(!v||!v.value.trim())return;
-  var trks=getTrucks();if(trks[k])trks[k].name=v.value.trim();
-  addActivity('✏️',currentUser.bg,'<strong style="color:'+currentUser.color+'">'+currentUser.name+'</strong> a renommé un camion en <strong>'+v.value.trim()+'</strong>',"À l'instant");
+  var trks=getTrucks();
+  var ancienNomCamion = trks[k] ? trks[k].name : '';
+  if(trks[k])trks[k].name=v.value.trim();
+  addActivity('✏️',currentUser.bg,'<strong style="color:'+currentUser.color+'">'+currentUser.name+'</strong> a renommé le camion <strong>'+ancienNomCamion+'</strong> en <strong>'+v.value.trim()+'</strong>'+_sufColl(),"À l'instant");
   sauvegarder();renderDispatchTab();
 }
 function addTruck(){
@@ -12543,7 +12548,12 @@ function _activiteHtmlPourStockage(al){
   return out.join('');
 }
 
+// v3.99.112 : la même ligne, de la même personne, répétée en moins d'une
+// minute (double appui, double enregistrement) n'est écrite qu'une fois.
+var _dernAct = { texte:'', ts:0 };
 function addActivity(emoji,bg,text,time){
+  if(text === _dernAct.texte && Date.now() - _dernAct.ts < 60000) return;
+  _dernAct = { texte:text, ts:Date.now() };
   if(currentUser && currentUser.admin) return; // Admin invisible
   var now=new Date();
   var dateStr=now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});

@@ -5631,3 +5631,27 @@ même fiche en moins de 3 minutes mettent à jour la même ligne
 (`_depDerniereActFacture`) ; le code « &eacute; » n'est plus échappé. S'applique
 aux fiches collecte (écran de confirmation, validation de collecte) et au
 formulaire dépôt direct (sans mention de collecte).
+
+**26/10, dct-app.html v3.99.112 / departs.js v2.21.45 — Activité : du détail
+pour TOUTES les notifications.** Cobey (capture « Eric a modifié le départ
+Chargement DKR » ×2) : « le détail des notifications doit être pour tout type
+de notification, pas que les changements [...] j'ai changé le statut du
+conteneur, mais il ne me met rien. Alors que j'ai ouvert l'inscription, il
+aurait dû le marquer » puis « Ok fait ». Audit des ~70 messages (departs.js,
+dct-app.html) : la plupart avaient déjà leur détail (versements avec montant,
+affectations, ramasses...). Corrigés :
+- **Container** (`depEnregistrer`) : un message unique avec les différences
+  avant → après : date de départ, arrivée prévue (port / dépôt), inscriptions
+  OUVERTES/FERMÉES, statut ; rien n'est écrit s'il n'y a aucun changement.
+  Création : pays, date de départ, inscriptions. Suppression : date.
+  Étape de transport validée et passage de statut : « a fait passer le
+  container X (départ du …) de Parti à Arrivé » (l'ancienne phrase « Eric le
+  container X passe en … » était mal construite). Déplacement d'un client :
+  « de A vers B ».
+- **Collecte** : `changerStatut` → « a changé le statut de la collecte du
+  <date> : En cours → Terminée » (avant : « a modifié le statut d'une collecte »,
+  sans dire laquelle) ; renommage de camion « <ancien> en <nouveau> » avec la
+  collecte ; clôture « a clôturé la collecte du <date> ». France : changement de
+  date (ancienne → nouvelle) et de statut avec avant → après.
+- **Doublons** : une même ligne de la même personne répétée en moins d'une
+  minute n'est écrite qu'une fois (`addActivity` et `depActivite`).
