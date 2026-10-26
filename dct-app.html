@@ -2111,7 +2111,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.110';
+var APP_VERSION = 'v3.99.111';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -10513,7 +10513,10 @@ function saveClientEdit(){
   clientsParCollecte[colId][id] = newData;
 
   var c = newData;
-  addActivity('✏️',currentUser.bg,'<strong style="color:'+currentUser.color+'">'+currentUser.name+'</strong> a modifié <strong>'+c.name+'</strong>'+_sufColl(),"À l'instant");
+  // v3.99.111 : quand la fiche passe par la confirmation détaillée (departs.js),
+  // c'est CETTE ligne-là, précise (« prix : 100 € → 130 € »), qui part dans
+  // l'Activité : plus de doublon « a modifié X » + « a modifié la facture de X ».
+  if(!window._depActiviteDetaillee) addActivity('✏️',currentUser.bg,'<strong style="color:'+currentUser.color+'">'+currentUser.name+'</strong> a modifié <strong>'+c.name+'</strong>'+_sufColl(),"À l'instant");
   sauvegarder();
   var t=document.getElementById('toast-client');
   if(t){t.textContent='✅ Modifications enregistrées !';t.className='toast toast-success show';setTimeout(function(){t.classList.remove('show');goTo(clientRetour);if(currentCamion)renderCamion(currentCamion);renderCollecteContent();},1500);}

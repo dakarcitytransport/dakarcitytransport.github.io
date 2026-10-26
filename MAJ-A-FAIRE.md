@@ -5611,3 +5611,23 @@ en route. Containers clôturés retirés de la liste (le Dépôt reste, neutre).
 « arrivé » ; « clôturé » = statut cloture. En tête de la fiche d'un container,
 la ligne de suivi prend la même couleur avec l'état. `containerAutorise` n'est
 pas modifié (scan, Dépôt Dakar et saisie de secours fonctionnent comme avant).
+
+**26/10, dct-app.html v3.99.111 / departs.js v2.21.44 — Activité : une seule
+ligne claire par modification de fiche.** Cobey (capture de l'Activité) :
+« quand on voit ces notifications-là, on ne sait pas trop à quoi ça
+correspond » puis « Ok fait tout ». Constats : (1) chaque modification
+écrivait deux lignes (« a modifié X · collecte du 25 octobre » de
+`saveClientEdit` + « a modifié la facture de X — prix » de
+`_depTracerModifsFacture`) ; (2) on ne voyait pas de combien à combien ; (3)
+« livraison activ&eacute;e » s'affichait avec son code (étiquette déjà en HTML
+échappée une 2e fois par `esc()`) ; (4) les retouches rapprochées donnaient
+des lignes quasi identiques.
+Maintenant : `_depActiviteFacture` écrit UNE ligne : « Issyaka a modifié la
+facture de <client> · collecte du 25 octobre » puis le détail avant → après
+(« prix : 100 € → 130 € · adresse : … → … ») ; la ligne générique de
+`saveClientEdit` est supprimée quand la confirmation détaillée est utilisée
+(`window._depActiviteDetaillee`) ; les retouches de la même personne sur la
+même fiche en moins de 3 minutes mettent à jour la même ligne
+(`_depDerniereActFacture`) ; le code « &eacute; » n'est plus échappé. S'applique
+aux fiches collecte (écran de confirmation, validation de collecte) et au
+formulaire dépôt direct (sans mention de collecte).

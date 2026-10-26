@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.43';
+var DEP_VERSION = 'v2.21.44';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13581,8 +13581,7 @@ window.depEnregistrerDepot = function(){
       var tsD = Date.now();
       var qD = u.name || u.id || '';
       diffsD.forEach(function(d){ histD.push({ q: qD, a: d.texte, ts: tsD, type: d.type }); });
-      var labelsD = diffsD.map(function(d){ return d.label; });
-      depActivite('&#9999;&#65039;', 'a modifi&eacute; la facture de <strong>'+esc(fiche.name||'')+'</strong> &mdash; '+esc(labelsD.join(', ')));
+      _depActiviteFacture(fiche, diffsD, null, true);
     }
     fiche.hist = histD;
     // .set() remplace tout le nœud : sans ça, corriger la fiche d'un client
@@ -14944,7 +14943,46 @@ function _depDiffFacturePourHist(fiche, avant){
   return out;
 }
 
-function _depTracerModifsFacture(fiche, avant){
+/* v2.21.44 — Cobey, 26/10/2026 (capture de l'Activité) : « quand on voit ces
+   notifications-là, on ne sait pas trop à quoi ça correspond » puis « fais
+   tout ». Avant, chaque modification de fiche écrivait DEUX lignes (« a modifié
+   X · collecte du 25 octobre » + « a modifié la facture de X — prix »), sans
+   dire de combien à combien, et « livraison activ&eacute;e » s'affichait avec
+   son code (l'étiquette, déjà en HTML, était échappée une 2e fois). Une seule
+   ligne maintenant, avec la collecte et le détail avant → après ; les retouches
+   de la même personne sur la même fiche en moins de 3 minutes se fondent dans la
+   même ligne. */
+var _depDerniereActFacture = null;
+function _depResumeDiff(d){
+  var t = String(d.texte || '');
+  t = t.replace(/^a modifi&eacute; (le |la |l&rsquo;)/, '');
+  t = t.replace(/^a activ&eacute; la livraison/, 'livraison activ&eacute;e').replace(/^a d&eacute;sactiv&eacute; la livraison/, 'livraison d&eacute;sactiv&eacute;e');
+  return t.replace(/^a modifi&eacute; /, '');
+}
+function _depActiviteFacture(fiche, diffs, colId, sansCollecte){
+  try{
+    if(!diffs || !diffs.length || !window.db || !window.firebaseReady) return;
+    var u = window.currentUser || {};
+    var cle = (u.id || '') + '|' + (fiche.id || fiche.name || '');
+    var now = Date.now();
+    var l = _depDerniereActFacture;
+    var fusion = !!(l && l.cle === cle && now - l.ts < 180000);
+    var parts = fusion ? l.parts : [];
+    diffs.forEach(function(d){ var r = _depResumeDiff(d); if(parts.indexOf(r) === -1) parts.push(r); });
+    var suffixe = (!sansCollecte && typeof _sufColl === 'function') ? _sufColl(colId) : '';
+    var texte = '<strong style="color:' + (u.color || '#333') + '">' + esc(u.name || '') + '</strong> a modifi&eacute; la facture de <strong>' + esc(fiche.name || '') + '</strong>'
+      + suffixe + '<br><span style="color:#555;">' + parts.join(' &middot; ') + '</span>';
+    var d0 = new Date(now);
+    var champs = { ts: now, text: texte,
+      timeLabel: d0.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'}) + ' à ' + d0.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) };
+    if(fusion && l.ref){ l.ref.update(champs); l.ts = now; l.parts = parts; return; }
+    champs.emoji = '&#9999;&#65039;'; champs.bg = u.bg || '#eee';
+    var ref = db.ref('activite_items').push(champs);
+    _depDerniereActFacture = { cle: cle, ts: now, parts: parts, ref: ref };
+  }catch(e){ console.error('departs: activité facture', e); }
+}
+
+function _depTracerModifsFacture(fiche, avant, colId){
   var uH = window.currentUser || {};
   var q = uH.name || uH.id || '';
   var diffs = _depDiffFacturePourHist(fiche, avant);
@@ -14953,8 +14991,7 @@ function _depTracerModifsFacture(fiche, avant){
     var histFact = fiche.hist || [];
     diffs.forEach(function(d){ histFact.push({ q: q, a: d.texte, ts: ts, type: d.type }); });
     fiche.hist = histFact;
-    var labels = diffs.map(function(d){ return d.label; });
-    depActivite('&#9999;&#65039;', 'a modifi&eacute; la facture de <strong>'+esc(fiche.name||'')+'</strong> &mdash; '+esc(labels.join(', ')));
+    _depActiviteFacture(fiche, diffs, colId);
   }
   return diffs.map(function(d){ return d.label; });
 }
@@ -17429,8 +17466,10 @@ function greffer(){
     function _depSauvegarderFicheReel(p){
       var colId = p.colId, id = p.id, avant = p.avant, extras = p.extras;
 
+      window._depActiviteDetaillee = true;
       try{ origEdit.call(window); }
       catch(e){ console.error('departs: saveClientEdit original', e); }
+      window._depActiviteDetaillee = false;
 
       try{
         var fiche = ((window.clientsParCollecte||{})[colId]||{})[id];
@@ -17465,7 +17504,7 @@ function greffer(){
               prixADefinir: !!fiche.prixADefinir
             });
           }
-          _depTracerModifsFacture(fiche, avant);
+          _depTracerModifsFacture(fiche, avant, colId);
           sauvegarder();
         }
       }catch(e){ console.error('departs: recollage fiche', e); }
