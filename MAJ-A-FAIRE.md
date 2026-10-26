@@ -5464,3 +5464,17 @@ l'écran Collecte (ex. « Terminée » à tort). Nouveau bloc en tête du pannea
 liste les collectes que l'appli a en mémoire (date, clients, €, statut) et un
 bouton « Recalculer les statuts selon les dates » (`_mettreAJourStatuts` +
 sauvegarde) qui remet « En cours / À venir » selon la date.
+
+**26/10, dct-app.html v3.99.101 / departs.js v2.21.36 — Outils : retrouver une
+collecte par l'Activité.** Cobey : « Je veux retrouver la collecte du premier !
+Comment on fait. » La collecte du 1er novembre (3 clients, 333 €) n'est plus
+dans la base ni dans les fiches orphelines du téléphone (écrasée par une
+sauvegarde en bloc d'un appareil à jour obsolète, hypothèse non prouvée). Le
+fil d'Activité (`activite_items`, partagé) garde « X a ajouté Prénom Nom —
+colis — prix € · collecte du 1 novembre ». Nouveau bloc Réglages > Outils
+« Retrouver une collecte par l'Activité » : `depActiviteChercher` lit les 4000
+derniers événements, garde ceux de la date saisie, retranche les « a supprimé »
+ultérieurs ; `depActiviteRecreer` recrée la collecte (nouvel id) et ses
+clients cochés, avec tel/adresse repris du carnet `dctContacts` quand le nom
+correspond ; statut recalculé, sauvegarde. Les camions/affectations et les
+modifications de prix faites après l'ajout ne sont pas reconstitués.

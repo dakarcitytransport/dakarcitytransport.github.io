@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.35';
+var DEP_VERSION = 'v2.21.36';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25868,9 +25868,114 @@ window.depRecalculerStatutsCollectes = function(){
   toast('✅ Statuts recalculés');
   window.renderAdminOutils();
 };
+/* v2.21.36 — Cobey, 26/10/2026 : « Je veux retrouver la collecte du premier ! »
+   La collecte du 1er novembre (3 clients, 333 €) a été effacée de la base, et
+   ses fiches ne sont plus sur le téléphone. Reste le fil d'Activité, qui
+   garde « X a ajouté <Prénom Nom> — colis — prix € · collecte du 1 novembre »
+   pour chaque client ajouté : on le relit, on retranche ceux qui ont été
+   supprimés ensuite, et on recrée la collecte et ses clients (coordonnées
+   reprises du carnet de contacts quand le nom y est). */
+var _depActRecup = [];
+function _depNormNom(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/^(m\.|mme|mr|mlle)\s+/,'').replace(/^🏢\s*/,'').replace(/[^a-z0-9]+/g,' ').trim();
+}
+function _depHtmlReconstituer(){
+  var st = 'margin-bottom:10px;';
+  return '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#129520; Retrouver une collecte par l\'Activit&eacute;</div>'
+    + '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Relit le fil d\'Activit&eacute; : chaque client ajout&eacute; &agrave; une collecte y est not&eacute; avec son colis et son prix.</div>'
+    + '<input class="fi" id="dep-act-motif" value="1 novembre" style="' + st + '" placeholder="ex. 1 novembre">'
+    + '<button type="button" class="btn btn-gray" onclick="depActiviteChercher()">&#128269; Chercher dans l\'Activit&eacute;</button>'
+    + '<div id="dep-act-resultats" style="margin-top:10px;"></div>'
+    + '<div style="height:22px;"></div>';
+}
+window.depActiviteChercher = function(){
+  var box = document.getElementById('dep-act-resultats');
+  var motif = _depNormNom((document.getElementById('dep-act-motif') || {}).value);
+  if(!box) return;
+  if(!motif){ box.innerHTML = '<div style="font-size:12px;color:#c0392b;">Indiquez la date, par exemple &laquo; 1 novembre &raquo;.</div>'; return; }
+  if(!window.db || !window.firebaseReady){ box.innerHTML = '<div style="font-size:12px;color:#c0392b;">Connexion indisponible.</div>'; return; }
+  box.innerHTML = '<div style="font-size:12px;color:#888;">Recherche en cours&hellip;</div>';
+  db.ref('activite_items').orderByChild('ts').limitToLast(4000).once('value', function(snap){
+    var items = [];
+    snap.forEach(function(ch){ var v = ch.val(); if(v && v.text) items.push(v); });
+    items.sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
+    var liste = [];
+    items.forEach(function(it){
+      var t = String(it.text);
+      var col = /collecte du ([^<]*)</.exec(t);
+      if(!col || _depNormNom(col[1]) !== motif) return;
+      var mA = /a ajout(?:é|&eacute;) <strong>([^<]*)<\/strong> — ([\s\S]*?) — ([\d.,]+) €/.exec(t);
+      var mS = /a supprim(?:é|&eacute;) <strong>([^<]*)<\/strong>/.exec(t);
+      if(mA){
+        liste.push({ nom: mA[1].trim(), colis: mA[2].trim(), prix: parseFloat(String(mA[3]).replace(',', '.')) || 0, ts: it.ts || 0,
+                     par: (/<strong[^>]*>([^<]*)<\/strong> a ajout/.exec(t) || [,''])[1] });
+      } else if(mS){
+        var n = _depNormNom(mS[1]);
+        for(var i = liste.length - 1; i >= 0; i--){ if(_depNormNom(liste[i].nom) === n){ liste.splice(i, 1); break; } }
+      }
+    });
+    _depActRecup = liste;
+    if(!liste.length){ box.innerHTML = '<div style="font-size:12px;color:#c0392b;">Aucun client trouv&eacute; pour &laquo; ' + esc(motif) + ' &raquo; dans l\'Activit&eacute;. (L\'historique plus ancien a peut-&ecirc;tre &eacute;t&eacute; vid&eacute;.)</div>'; return; }
+    var h = '<div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">' + liste.length + ' client' + (liste.length>1?'s':'') + ' retrouv&eacute;' + (liste.length>1?'s':'') + ' (d&eacute;coche ceux &agrave; ne pas recr&eacute;er)</div>';
+    liste.forEach(function(c, i){
+      var quand = c.ts ? new Date(c.ts) : null;
+      h += '<label style="display:flex;gap:10px;align-items:flex-start;background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;">'
+        + '<input type="checkbox" id="dep-act-ck-' + i + '" checked style="margin-top:3px;width:18px;height:18px;">'
+        + '<div style="min-width:0;"><div style="font-size:13px;font-weight:800;">' + esc(c.nom) + ' &middot; ' + (Math.round(c.prix*100)/100) + ' &euro;</div>'
+        + '<div style="font-size:12px;color:#666;">' + esc(c.colis || '—') + (quand ? ' &middot; ajout&eacute; le ' + String(quand.getDate()).padStart(2,'0') + '/' + String(quand.getMonth()+1).padStart(2,'0') : '') + (c.par ? ' par ' + esc(c.par) : '') + '</div></div></label>';
+    });
+    h += '<input type="date" class="fi" id="dep-act-date" value="' + _depProchainDimancheIso() + '" style="margin:6px 0 8px;">'
+      + '<button type="button" class="btn btn-green" onclick="depActiviteRecreer()">&#10133; Recr&eacute;er la collecte avec ces clients</button>';
+    box.innerHTML = h;
+  }, function(e){
+    box.innerHTML = '<div style="font-size:12px;color:#c0392b;">Lecture refus&eacute;e : ' + esc((e && e.message) || 'erreur') + '</div>';
+  });
+};
+window.depActiviteRecreer = function(){
+  var v = (document.getElementById('dep-act-date') || {}).value;
+  if(!v){ toast('⚠️ Choisissez la date de la collecte.'); return; }
+  var choisis = _depActRecup.filter(function(c, i){ var ck = document.getElementById('dep-act-ck-' + i); return ck && ck.checked; });
+  if(!choisis.length){ toast('⚠️ Aucun client coché.'); return; }
+  var p = v.split('-'), d = new Date(+p[0], +p[1]-1, +p[2], 12);
+  var lib = JOURS_FR[d.getDay()].charAt(0).toUpperCase() + JOURS_FR[d.getDay()].slice(1) + ' ' + d.getDate() + ' ' + MOIS_FR[d.getMonth()] + ' ' + d.getFullYear();
+  var existe = (window.collectes || []).find(function(c){ return c && String(c.date).toLowerCase() === lib.toLowerCase(); });
+  if(existe){ toast('⚠️ Une collecte du ' + lib + ' existe déjà.'); return; }
+  if(!confirm('Recréer la collecte du ' + lib + ' avec ' + choisis.length + ' client' + (choisis.length>1?'s':'') + ' ?')) return;
+  var id = 'col_' + Date.now();
+  window.collectes.unshift({ id:id, date:lib, type:'normal', statut:'a_venir' });
+  window.clientsParCollecte[id] = {};
+  window.dispatchParCollecte[id] = { trucks:{}, assigned:{} };
+  var contacts = window.dctContacts || {};
+  choisis.forEach(function(c){
+    var cle = _depNormNom(c.nom);
+    var ct = null;
+    Object.keys(contacts).forEach(function(k){
+      var x = contacts[k]; if(!x || ct) return;
+      if(_depNormNom(x.name) === cle || _depNormNom((x.prenom||'') + ' ' + (x.nom||'')) === cle) ct = x;
+    });
+    ct = ct || {};
+    var mots = c.nom.split(/\s+/);
+    var collab = (window.COLLABS || []).find(function(x){ return x.name === c.par; }) || (window.COLLABS || [])[0] || {};
+    var cid = _nouvelIdClient();
+    window.clientsParCollecte[id][cid] = {
+      name: ct.name || c.nom, civilite: ct.civilite || '', prenom: ct.prenom || mots[0] || '', nom: ct.nom || mots.slice(1).join(' '),
+      tel: ct.tel || '', tel2: ct.tel2 || '', adresse: ct.adresse || '', infos: ct.infos || '', ville: ct.ville || '', cp: ct.cp || '',
+      dept: ct.dept || String(ct.cp || '').substring(0, 2), colis: c.colis || '', prix: c.prix || 0,
+      bg: collab.bg, color: collab.color, by: c.par || ''
+    };
+    window.dispatchParCollecte[id].assigned[cid] = null;
+  });
+  try{ _mettreAJourStatuts(); }catch(e){}
+  sauvegarder();
+  try{ renderCollectesList(); }catch(e){}
+  toast('✅ Collecte du ' + lib + ' recréée (' + choisis.length + ' client' + (choisis.length>1?'s':'') + ')');
+  window.renderAdminOutils();
+};
+
 function _depHtmlCollectesDisparues(){
   var o = _depCollectesOrphelines();
-  var h = _depHtmlToutesCollectes()
+  var h = _depHtmlReconstituer() + _depHtmlToutesCollectes()
     + '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128269; Collectes disparues</div>';
   if(!o.length){
     return h + '<div style="font-size:12px;color:#888;margin-bottom:22px;line-height:1.55;">Aucun client orphelin : toutes les fiches clients sont rattach&eacute;es &agrave; une collecte existante.</div>';
