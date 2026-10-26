@@ -5501,3 +5501,22 @@ groupe en mémoire. Nouveau bouton en tête du panneau Outils : « Relire la bas
 « Collectes disparues » propose alors la collecte (« Créée le 10/10 · 3 clients
 · 333 € »), à recréer avec la date du 1er novembre (même identifiant, donc
 fiches, camions et affectations reviennent).
+
+**26/10, dct-app.html v3.99.104 — PROTECTION 1 : une collecte ne peut plus
+disparaître « par oubli ».** Cobey : « comment faire pour que ça n'arrive plus ? »
+puis « Ok » sur le plan (protection 1, protection 2, sauvegarde quotidienne de
+15 jours). Cause : `sauvegarderFirebase` remplaçait `dct/collectes` par la
+liste de l'appareil ; un téléphone en retard effaçait les collectes ajoutées
+par d'autres (la ligne du 1er novembre avait disparu alors que ses clients
+étaient restés dans `dct/clients`).
+Maintenant : `sauvegarderFirebase` écrit clients/dispatch/contacts comme avant
+mais FUSIONNE la liste des collectes dans la base par transaction
+(`_fusionnerListeCollectes` : tout ce qui est dans la base OU sur le téléphone
+reste ; le téléphone l'emporte pour une même collecte). Une suppression
+volontaire (`_effacerCollecte`, corbeille) retire UNIQUEMENT cette collecte de
+la base (transaction) et laisse une trace `dct/collectes_supprimees/<id>` pour
+qu'un téléphone en retard ne la ressuscite pas. Testé avec une fausse base :
+téléphone en retard (N conservée), suppression volontaire (B retirée + trace),
+téléphone en retard après suppression (B ne revient pas), ajout normal.
+Reste à faire : protection 2 (n'écrire que les groupes de clients/camions
+modifiés), puis sauvegarde quotidienne gardée 15 jours + bouton Restaurer.

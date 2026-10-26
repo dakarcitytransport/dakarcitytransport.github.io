@@ -2022,14 +2022,51 @@ function sauvegarderFirebase(){
   clearTimeout(syncTimeout);
   syncTimeout = setTimeout(function(){
     window._lastWriteTime = Date.now();
+    // v3.99.104 — PROTECTION 1 (Cobey, 26/10/2026, collecte du 1er novembre
+    // effacée par une sauvegarde en bloc). Avant, la liste des collectes de ce
+    // téléphone REMPLAÇAIT celle de la base : un téléphone en retard effaçait
+    // ce que les autres avaient ajouté. Maintenant la liste est FUSIONNÉE dans
+    // la base (transaction) : toute collecte déjà présente dans la base est
+    // conservée, sauf si quelqu'un l'a supprimée volontairement (corbeille),
+    // ce qui laisse une trace dans dct/collectes_supprimees.
     // Ne PAS écraser dct/activite — géré séparément via addActivity
-    db.ref('dct').update({
-      collectes: collectes,
-      clients: clientsParCollecte,
-      dispatch: dispatchParCollecte,
-      contacts: window.dctContacts || {}
-    }).catch(function(e){ console.log("Erreur sync:", e); });
+    var ecrire = function(supp){
+      db.ref('dct').update({
+        clients: clientsParCollecte,
+        dispatch: dispatchParCollecte,
+        contacts: window.dctContacts || {}
+      }).catch(function(e){ console.log("Erreur sync:", e); });
+      var locale = collectes;
+      db.ref('dct/collectes').transaction(function(distant){
+        return _fusionnerListeCollectes(distant, locale, supp);
+      }, function(err){ if(err) console.log("Erreur sync collectes:", err); }, false);
+    };
+    db.ref('dct/collectes_supprimees').once('value', function(snapS){
+      ecrire(Object.assign({}, snapS.val() || {}, _collectesSupprimees));
+    }, function(){ ecrire(Object.assign({}, _collectesSupprimees)); });
   }, 800); // Debounce 800ms pour grouper les écritures
+}
+var _collectesSupprimees = {};   // identifiants supprimés volontairement depuis ce téléphone
+// Fusionne la liste de la base (distant) et celle du téléphone (local) :
+// tout ce qui est dans l'une OU l'autre reste, sauf les collectes supprimées
+// volontairement (supprimees = {id: horodatage}). Le téléphone l'emporte pour
+// une collecte présente des deux côtés.
+function _fusionnerListeCollectes(distant, local, supprimees){
+  var supp = supprimees || {};
+  var rem = !distant ? [] : (Array.isArray(distant) ? distant : Object.keys(distant).map(function(k){ return distant[k]; }));
+  var vus = {}, out = [];
+  (local || []).forEach(function(c){
+    if(!c) return;
+    if(c.id && supp[c.id]) return;
+    if(c.id) vus[c.id] = true;
+    out.push(c);
+  });
+  rem.forEach(function(c){
+    if(!c || !c.id || vus[c.id] || supp[c.id]) return;
+    vus[c.id] = true;
+    out.push(c);
+  });
+  return out;
 }
 
 
@@ -2037,7 +2074,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.103';
+var APP_VERSION = 'v3.99.104';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -9333,13 +9370,22 @@ function _effacerCollecte(idToDelete){
   if(suiviCollecteId===idToDelete) suiviCollecteId=null;
 
   // Supprimer directement dans Firebase (contourne le guard collectes vide)
+  // v3.99.104 : on retire UNIQUEMENT cette collecte de la liste de la base
+  // (et pas toute la liste de ce téléphone, peut-être en retard), et on laisse
+  // une trace pour qu'un téléphone en retard ne la ressuscite pas.
+  _collectesSupprimees[idToDelete] = Date.now();
   if(firebaseReady && db){
     var updates = {};
-    updates['dct/collectes'] = collectes.length ? collectes : null;
     updates['dct/clients/'+idToDelete] = null;
     updates['dct/dispatch/'+idToDelete] = null;
     updates['dct_depenses/'+idToDelete] = null;
+    updates['dct/collectes_supprimees/'+idToDelete] = Date.now();
     db.ref().update(updates);
+    db.ref('dct/collectes').transaction(function(distant){
+      var rem = !distant ? [] : (Array.isArray(distant) ? distant : Object.keys(distant).map(function(k){ return distant[k]; }));
+      rem = rem.filter(function(c){ return c && c.id !== idToDelete; });
+      return rem.length ? rem : null;
+    }, function(err){ if(err) console.log('Erreur suppression collecte:', err); }, false);
   }
   sauvegarder();
 }
