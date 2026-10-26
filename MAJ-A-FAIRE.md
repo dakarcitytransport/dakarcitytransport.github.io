@@ -5478,3 +5478,13 @@ ultérieurs ; `depActiviteRecreer` recrée la collecte (nouvel id) et ses
 clients cochés, avec tel/adresse repris du carnet `dctContacts` quand le nom
 correspond ; statut recalculé, sauvegarde. Les camions/affectations et les
 modifications de prix faites après l'ajout ne sont pas reconstitués.
+
+**26/10, dct-app.html v3.99.102 / departs.js v2.21.37 — Retrouver une collecte
+par l'Activité : clients cités sans « a ajouté ».** Cobey (capture 09:53) :
+l'outil ne trouvait qu'un client (Alpha DIALLO, 260 €) sur les 3 de la
+collecte du 1er novembre (333 €). Les deux autres ne sont pas passés par
+« a ajouté » (fiche déplacée d'une autre collecte, par ex.). La recherche
+garde maintenant aussi les clients cités par une modification, une affectation,
+un planning, une ramasse... de cette collecte (hors lignes de camion/dispatch),
+avec « prix non noté », et chaque client a un champ prix modifiable avant la
+recréation.

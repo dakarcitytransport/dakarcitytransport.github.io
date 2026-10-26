@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.36';
+var DEP_VERSION = 'v2.21.37';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25907,12 +25907,28 @@ window.depActiviteChercher = function(){
       if(!col || _depNormNom(col[1]) !== motif) return;
       var mA = /a ajout(?:é|&eacute;) <strong>([^<]*)<\/strong> — ([\s\S]*?) — ([\d.,]+) €/.exec(t);
       var mS = /a supprim(?:é|&eacute;) <strong>([^<]*)<\/strong>/.exec(t);
+      var actP = (/^\s*<strong[^>]*>([^<]*)<\/strong>/.exec(t) || [,''])[1];
       if(mA){
-        liste.push({ nom: mA[1].trim(), colis: mA[2].trim(), prix: parseFloat(String(mA[3]).replace(',', '.')) || 0, ts: it.ts || 0,
-                     par: (/<strong[^>]*>([^<]*)<\/strong> a ajout/.exec(t) || [,''])[1] });
+        var nA = _depNormNom(mA[1]);
+        for(var j = liste.length - 1; j >= 0; j--){ if(_depNormNom(liste[j].nom) === nA) liste.splice(j, 1); }
+        liste.push({ nom: mA[1].trim(), colis: mA[2].trim(), prix: parseFloat(String(mA[3]).replace(',', '.')) || 0, ts: it.ts || 0, par: actP });
       } else if(mS){
         var n = _depNormNom(mS[1]);
         for(var i = liste.length - 1; i >= 0; i--){ if(_depNormNom(liste[i].nom) === n){ liste.splice(i, 1); break; } }
+      } else if(!/camion|dispatch|chauffeur/i.test(t)){
+        // v2.21.37 : un client peut aussi être cité par une modification, une
+        // affectation, un planning, une ramasse... sans « a ajouté » (fiche
+        // déplacée d'une autre collecte, par exemple). On le garde, prix à
+        // renseigner.
+        var tous = []; t.replace(/<strong[^>]*>([^<]*)<\/strong>/g, function(_, g){ tous.push(g); return _; });
+        var cible = tous[1];
+        if(cible){
+          cible.split(/\s*,\s*/).forEach(function(nm){
+            nm = nm.trim(); if(!nm) return;
+            var k = _depNormNom(nm);
+            if(!liste.some(function(x){ return _depNormNom(x.nom) === k; })) liste.push({ nom:nm, colis:'', prix:0, ts: it.ts || 0, par: actP, cite:true });
+          });
+        }
       }
     });
     _depActRecup = liste;
@@ -25920,10 +25936,11 @@ window.depActiviteChercher = function(){
     var h = '<div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">' + liste.length + ' client' + (liste.length>1?'s':'') + ' retrouv&eacute;' + (liste.length>1?'s':'') + ' (d&eacute;coche ceux &agrave; ne pas recr&eacute;er)</div>';
     liste.forEach(function(c, i){
       var quand = c.ts ? new Date(c.ts) : null;
-      h += '<label style="display:flex;gap:10px;align-items:flex-start;background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;">'
+      h += '<div style="display:flex;gap:10px;align-items:flex-start;background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;">'
         + '<input type="checkbox" id="dep-act-ck-' + i + '" checked style="margin-top:3px;width:18px;height:18px;">'
-        + '<div style="min-width:0;"><div style="font-size:13px;font-weight:800;">' + esc(c.nom) + ' &middot; ' + (Math.round(c.prix*100)/100) + ' &euro;</div>'
-        + '<div style="font-size:12px;color:#666;">' + esc(c.colis || '—') + (quand ? ' &middot; ajout&eacute; le ' + String(quand.getDate()).padStart(2,'0') + '/' + String(quand.getMonth()+1).padStart(2,'0') : '') + (c.par ? ' par ' + esc(c.par) : '') + '</div></div></label>';
+        + '<div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:800;">' + esc(c.nom) + '</div>'
+        + '<div style="font-size:12px;color:#666;">' + (c.cite ? 'cit&eacute; dans l\'Activit&eacute; (prix non not&eacute;)' : esc(c.colis || '—')) + (quand ? ' &middot; ' + String(quand.getDate()).padStart(2,'0') + '/' + String(quand.getMonth()+1).padStart(2,'0') : '') + (c.par ? ' par ' + esc(c.par) : '') + '</div>'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;"><input type="number" inputmode="decimal" class="fi" id="dep-act-px-' + i + '" value="' + (Math.round(c.prix*100)/100) + '" style="width:110px;margin:0;"><span style="font-size:12px;">&euro;</span></div></div></div>';
     });
     h += '<input type="date" class="fi" id="dep-act-date" value="' + _depProchainDimancheIso() + '" style="margin:6px 0 8px;">'
       + '<button type="button" class="btn btn-green" onclick="depActiviteRecreer()">&#10133; Recr&eacute;er la collecte avec ces clients</button>';
@@ -25958,6 +25975,8 @@ window.depActiviteRecreer = function(){
     var mots = c.nom.split(/\s+/);
     var collab = (window.COLLABS || []).find(function(x){ return x.name === c.par; }) || (window.COLLABS || [])[0] || {};
     var cid = _nouvelIdClient();
+    var pxEl = document.getElementById('dep-act-px-' + _depActRecup.indexOf(c));
+    if(pxEl && pxEl.value !== '') c.prix = parseFloat(pxEl.value) || 0;
     window.clientsParCollecte[id][cid] = {
       name: ct.name || c.nom, civilite: ct.civilite || '', prenom: ct.prenom || mots[0] || '', nom: ct.nom || mots.slice(1).join(' '),
       tel: ct.tel || '', tel2: ct.tel2 || '', adresse: ct.adresse || '', infos: ct.infos || '', ville: ct.ville || '', cp: ct.cp || '',
