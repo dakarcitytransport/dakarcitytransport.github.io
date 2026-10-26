@@ -1697,6 +1697,7 @@ function ecouterChangements(){
         });
         localStorage.setItem('dct_v3_dispatch', JSON.stringify(dispatchParCollecte));
       }
+      _noterBaseSync(dataInit, false);
       if(collectes.length){
         var enc = collectes.find(function(x){ return x.statut === 'en_cours'; });
         currentCollecteId = (enc || collectes[0]).id;
@@ -1815,6 +1816,7 @@ function ecouterChangements(){
     } else if(!data.contacts) {
       window.dctContacts = {}; // Tous les contacts ont été supprimés
     }
+    _noterBaseSync(data, true);
     _dctMajActivite(data);
     // v3.78.0 : ne jamais redessiner pendant qu'un doigt est posé.
     // La synchronisation temps réel reconstruit l'écran actif à chaque
@@ -2031,11 +2033,31 @@ function sauvegarderFirebase(){
     // ce qui laisse une trace dans dct/collectes_supprimees.
     // Ne PAS écraser dct/activite — géré séparément via addActivity
     var ecrire = function(supp){
-      db.ref('dct').update({
-        clients: clientsParCollecte,
-        dispatch: dispatchParCollecte,
-        contacts: window.dctContacts || {}
-      }).catch(function(e){ console.log("Erreur sync:", e); });
+      // v3.99.105 — PROTECTION 2 : on n'écrit que les collectes (clients et
+      // camions) et les contacts que CE téléphone a modifiés depuis sa
+      // dernière synchronisation (_baseSync). Plus jamais de remplacement en
+      // bloc : un téléphone en retard n'efface ni n'écrase ce qu'il n'a pas
+      // touché. Aucune collecte n'est supprimée par omission.
+      var maj = {};
+      var existe = {}; (collectes || []).forEach(function(c){ if(c && c.id) existe[c.id] = true; });
+      Object.keys(clientsParCollecte).forEach(function(id){
+        if(supp[id] || !existe[id]) return;
+        var js = JSON.stringify(clientsParCollecte[id]);
+        if(js !== _baseSync.clients[id]){ maj['clients/'+id] = clientsParCollecte[id]; _baseSync.clients[id] = js; }
+      });
+      Object.keys(dispatchParCollecte).forEach(function(id){
+        if(supp[id] || !existe[id]) return;
+        var js = JSON.stringify(dispatchParCollecte[id]);
+        if(js !== _baseSync.dispatch[id]){ maj['dispatch/'+id] = dispatchParCollecte[id]; _baseSync.dispatch[id] = js; }
+      });
+      if(Object.keys(maj).length) db.ref('dct').update(maj).catch(function(e){ console.log("Erreur sync:", e); });
+      var ct = window.dctContacts || {}, majC = {}, bc = _baseSync.contacts;
+      Object.keys(ct).forEach(function(k){
+        var js = JSON.stringify(ct[k]);
+        if(js !== bc[k]){ majC[k] = ct[k]; bc[k] = js; }
+      });
+      Object.keys(bc).forEach(function(k){ if(ct[k] === undefined){ majC[k] = null; delete bc[k]; } });
+      if(Object.keys(majC).length) db.ref('dct/contacts').update(majC).catch(function(e){ console.log("Erreur sync contacts:", e); });
       var locale = collectes;
       db.ref('dct/collectes').transaction(function(distant){
         return _fusionnerListeCollectes(distant, locale, supp);
@@ -2047,6 +2069,21 @@ function sauvegarderFirebase(){
   }, 800); // Debounce 800ms pour grouper les écritures
 }
 var _collectesSupprimees = {};   // identifiants supprimés volontairement depuis ce téléphone
+// Ce que ce téléphone a vu dans la base à sa dernière synchronisation, par
+// collecte (clients, camions) et par contact : sert à ne réécrire que ce qui
+// a changé ICI (voir sauvegarderFirebase).
+var _baseSync = { clients:{}, dispatch:{}, contacts:{} };
+function _noterBaseSync(data, avecContacts){
+  try{
+    Object.keys((data && data.clients) || {}).forEach(function(id){ _baseSync.clients[id] = JSON.stringify(clientsParCollecte[id]); });
+    Object.keys((data && data.dispatch) || {}).forEach(function(id){ _baseSync.dispatch[id] = JSON.stringify(dispatchParCollecte[id]); });
+    if(avecContacts){
+      var ct = window.dctContacts || {};
+      _baseSync.contacts = {};
+      Object.keys(ct).forEach(function(k){ _baseSync.contacts[k] = JSON.stringify(ct[k]); });
+    }
+  }catch(e){ console.log('base sync:', e); }
+}
 // Fusionne la liste de la base (distant) et celle du téléphone (local) :
 // tout ce qui est dans l'une OU l'autre reste, sauf les collectes supprimées
 // volontairement (supprimees = {id: horodatage}). Le téléphone l'emporte pour
@@ -2074,7 +2111,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.104';
+var APP_VERSION = 'v3.99.105';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -9121,6 +9158,7 @@ function finalisLogin(collab){
           });
           localStorage.setItem('dct_v3_dispatch', JSON.stringify(dispatchParCollecte));
         }
+        _noterBaseSync(data, false);
         if(collectes.length){
           var enc = collectes.find(function(x){ return x.statut === 'en_cours'; });
           currentCollecteId = (enc || collectes[0]).id;

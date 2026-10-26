@@ -5520,3 +5520,19 @@ téléphone en retard (N conservée), suppression volontaire (B retirée + trace
 téléphone en retard après suppression (B ne revient pas), ajout normal.
 Reste à faire : protection 2 (n'écrire que les groupes de clients/camions
 modifiés), puis sauvegarde quotidienne gardée 15 jours + bouton Restaurer.
+
+**26/10, dct-app.html v3.99.105 — PROTECTION 2 : n'écrire que ce que CE
+téléphone a modifié.** Suite du plan validé par Cobey. `sauvegarderFirebase`
+n'envoie plus `clients`, `dispatch` et `contacts` en bloc : il compare, groupe
+par groupe (une collecte = un groupe de clients, un groupe de camions) et
+contact par contact, avec ce que le téléphone avait vu à sa dernière
+synchronisation (`_baseSync`, renseigné par `_noterBaseSync` aux trois
+chargements : démarrage, connexion, écoute temps réel) et n'écrit que
+les différences. Rien n'est supprimé par omission (un contact supprimé ici est
+retiré explicitement ; une collecte supprimée passe par `_effacerCollecte`).
+Les groupes dont la collecte n'existe plus sur le téléphone ou qui sont dans
+`dct/collectes_supprimees` ne sont jamais réécrits. Testé avec une fausse base :
+un téléphone en retard modifie G1, supprime k1, ajoute k3 pendant que d'autres
+ont ajouté la collecte N, un client dans G2 et le contact k4 : seuls
+`clients/G1` et les contacts k1/k3 sont écrits, N, le client de G2 et k4
+restent ; une 2e sauvegarde sans changement n'écrit rien.
