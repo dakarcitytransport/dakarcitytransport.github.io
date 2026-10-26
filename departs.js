@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.32';
+var DEP_VERSION = 'v2.21.33';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25796,8 +25796,71 @@ function _depHtmlOutils(){
     + '<button type="button" class="btn btn-gray" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;margin-top:8px;" onclick="nettoyerOrphelinsCollecteEnCours()">🧹 Nettoyer la collecte en cours</button>'
     + '<div style="font-size:11.5px;color:#999;margin-top:8px;line-height:1.55;">Retire uniquement les r&eacute;f&eacute;rences sans fiche client, sur la collecte en cours. Les clients existants ne sont jamais touch&eacute;s.</div>'
     + '<div style="height:22px;"></div>'
+    + _depHtmlCollectesDisparues()
     + _depHtmlViderActivite();
 }
+
+/* v2.21.33 — Cobey, 26/10/2026 : « il y avait des collectes pour les
+   dimanches à venir. Mais là, il n'y a plus rien. » Sans doute une collecte
+   effacée de la liste (l'appli réécrit la liste complète des collectes dans
+   Firebase à chaque sauvegarde : un téléphone resté sur une vieille liste
+   peut écraser une collecte créée entre-temps). Les clients, eux, restent
+   rangés sous l'identifiant de la collecte : ce panneau repère les groupes
+   de clients dont la collecte n'existe plus et permet de la recréer, avec
+   sa date, pour retrouver tout ce qu'elle contenait. */
+function _depCollectesOrphelines(){
+  var ids = {};
+  (window.collectes || []).forEach(function(c){ if(c && c.id) ids[c.id] = true; });
+  var out = [];
+  Object.keys(window.clientsParCollecte || {}).forEach(function(id){
+    if(ids[id]) return;
+    var cls = window.clientsParCollecte[id] || {};
+    var cles = Object.keys(cls).filter(function(k){ return cls[k]; });
+    if(!cles.length) return;
+    var d = (window.dispatchParCollecte || {})[id] || {};
+    out.push({ id:id, n:cles.length, noms:cles.slice(0,3).map(function(k){ return cls[k].name || ((cls[k].prenom||'')+' '+(cls[k].nom||'')).trim() || 'Client'; }),
+               camions:Object.keys(d.trucks || {}).length });
+  });
+  return out;
+}
+function _depProchainDimancheIso(){
+  var d = new Date(); d.setHours(12,0,0,0);
+  d.setDate(d.getDate() + ((7 - d.getDay()) % 7));
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function _depHtmlCollectesDisparues(){
+  var o = _depCollectesOrphelines();
+  var h = '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128269; Collectes disparues</div>';
+  if(!o.length){
+    return h + '<div style="font-size:12px;color:#888;margin-bottom:22px;line-height:1.55;">Aucun client orphelin : toutes les fiches clients sont rattach&eacute;es &agrave; une collecte existante.</div>';
+  }
+  h += '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Des clients sont rang&eacute;s sous une collecte qui n\'existe plus dans la liste. Choisissez sa date puis recr&eacute;ez-la : les clients et les camions reviennent.</div>';
+  o.forEach(function(g){
+    h += '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:12px;margin-bottom:10px;">'
+      + '<div style="font-size:13px;font-weight:800;">' + g.n + ' client' + (g.n>1?'s':'') + (g.camions ? ' &middot; ' + g.camions + ' camion' + (g.camions>1?'s':'') : '') + '</div>'
+      + '<div style="font-size:12px;color:#666;margin:3px 0 8px;">' + g.noms.map(esc).join(', ') + (g.n>3 ? '&hellip;' : '') + '</div>'
+      + '<input type="date" class="fi" id="dep-orph-date-' + esc(g.id) + '" value="' + _depProchainDimancheIso() + '" style="margin-bottom:8px;">'
+      + '<button type="button" class="btn btn-green" onclick="depRecreerCollecte(\'' + esc(g.id) + '\')">&#10133; Recr&eacute;er cette collecte</button>'
+      + '</div>';
+  });
+  return h + '<div style="height:12px;"></div>';
+}
+window.depRecreerCollecte = function(id){
+  var inp = document.getElementById('dep-orph-date-' + id);
+  var v = inp && inp.value;
+  if(!v){ toast('⚠️ Choisissez une date.'); return; }
+  var p = v.split('-'), d = new Date(+p[0], +p[1]-1, +p[2], 12);
+  var lib = JOURS_FR[d.getDay()].charAt(0).toUpperCase() + JOURS_FR[d.getDay()].slice(1) + ' ' + d.getDate() + ' ' + MOIS_FR[d.getMonth()] + ' ' + d.getFullYear();
+  if((window.collectes || []).some(function(c){ return c && c.id === id; })){ toast('Cette collecte existe déjà.'); return; }
+  if(!confirm('Recréer la collecte du ' + lib + ' avec ses clients ?')) return;
+  window.collectes.unshift({ id:id, date:lib, type:'normal', statut:'a_venir' });
+  if(!window.dispatchParCollecte[id]) window.dispatchParCollecte[id] = { trucks:{}, assigned:{} };
+  try{ _mettreAJourStatuts(); }catch(e){}
+  sauvegarder();
+  try{ renderCollectesList(); }catch(e){}
+  toast('✅ Collecte du ' + lib + ' recréée');
+  window.renderAdminOutils();
+};
 
 /* v2.21.24 — Cobey, 26/10/2026 : « Tu peux supprimer pour Samba, Boubacar
    et Ibrahim les notifications. Ils n'ont pas le réflexe de supprimer

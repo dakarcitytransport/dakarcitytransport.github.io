@@ -5429,3 +5429,19 @@ collectes pour les dimanches à venir. Mais là, il n'y a plus rien. »
    d'un écran vide. À vérifier avec Cobey : la case COLLECTE des espaces,
    l'Archivage > Collectes terminées, et si les collectes réapparaissent après
    réouverture.
+
+**26/10, dct-app.html v3.99.98 / departs.js v2.21.33 — « Collectes disparues » :
+retrouver une collecte effacée de la liste.** Cobey (captures, 09:34) : plus
+aucune collecte à venir sur l'écran Collecte alors que la case des espaces
+annonçait « Dimanche 1 novembre 2026, 4 clients » (08:44) ; l'Archivage ne
+montre que des collectes d'octobre. Hypothèse : `sauvegarderFirebase`
+réécrit en bloc `dct/collectes`, `dct/clients`, `dct/dispatch` avec ce que
+l'appareil a en mémoire — un téléphone resté sur une vieille liste (ou passé
+au changement de statuts du lundi, `_mettreAJourStatuts`) peut donc écraser une
+collecte créée entre-temps. Les fiches clients restent en revanche rangées
+sous l'identifiant de la collecte (le listener ne fait qu'`Object.assign`).
+Nouveau panneau Réglages > Outils : `_depCollectesOrphelines` repère les
+groupes de clients sans collecte, avec noms/camions ; `depRecreerCollecte(id)`
+recrée la collecte (même id, date choisie) et sauvegarde, ce qui rebranche
+clients et camions. À faire si Cobey le valide : empêcher qu'un appareil
+écrase les listes entières (écriture par collecte plutôt qu'en bloc).
