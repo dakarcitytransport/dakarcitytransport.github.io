@@ -5351,3 +5351,16 @@ des espaces (« N clients inscrits au dépôt »), les cartes de départ de la
 liste (« N inscrits au dépôt ») et l'écran détail d'un départ, qui ne liste
 plus que ces clients (titre « Clients inscrits au dépôt »). Le récap complet
 du container reste dans Départs.
+
+**26/10, dct-app.html v3.99.93 / departs.js v2.21.27 — plus de bouton
+Notification/Activité pour Samba, Ibrahima et Boubacar.** Cobey : « enlève
+carrément le bouton notification. Je veux plus qu'ils aient des
+notifications. Ils n'en ont pas besoin » puis « Je parle de Samba, Ibrahima et
+Boubacar. » Pour les profils SA, IB, BO (`PROFILS_SANS_ACTIVITE`) : le bouton
+🕒 de l'accueil des espaces et l'onglet « Activité » de la barre du bas sont
+masqués (`_appliquerSansActivite`, rappelé à la connexion et à chaque
+`depRenderEspaces`), `setNav('activite')` est bloqué pour eux, et
+`_ecouterNotifs` ne pose plus l'écoute du fil (`activite_items`,
+`dct_connexions`) — plus de pastille ni de travail pour rien. Les autres
+profils ne changent pas. Leurs propres actions continuent d'alimenter le fil
+vu par la direction. Le vidage d'historique fait la veille reste en place.

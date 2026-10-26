@@ -2037,7 +2037,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.92';
+var APP_VERSION = 'v3.99.93';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2419,6 +2419,7 @@ function setNav(tab){
     _suiviStartTimer();
   }
   else if(tab==='activite'){
+    if(currentUser && _sansActivite(currentUser.id)) return;
     _suiviStopTimer();
     goTo('s-activite');
     // Recharger l'activité depuis Firebase à chaque ouverture (nouveau système)
@@ -8734,8 +8735,28 @@ function _estDeMoi(texte){
   return String(texte||'').indexOf('>'+moi+'<')>=0;
 }
 
+// v3.99.93 — Cobey, 26/10/2026 : « enlève carrément le bouton notification
+// [...] pour Samba, Ibrahima et Boubacar. Ils n'en ont pas besoin. » Pour ces
+// profils : plus de bouton Activité (accueil ni barre du bas), plus de
+// pastille, et plus d'écoute du fil (un travail de moins sur leur appli).
+var PROFILS_SANS_ACTIVITE = ['SA','IB','BO'];
+function _sansActivite(id){ return PROFILS_SANS_ACTIVITE.indexOf(id) !== -1; }
+function _appliquerSansActivite(){
+  var sans = !!(currentUser && _sansActivite(currentUser.id));
+  var els = document.querySelectorAll('.nav-item[onclick*="activite"]');
+  for(var i=0;i<els.length;i++) els[i].style.display = sans ? 'none' : '';
+  var b = document.getElementById('dep-esp-activite-btn');
+  if(b && b.parentNode) b.parentNode.style.display = sans ? 'none' : 'inline-flex';
+}
 function _ecouterNotifs(id){
   if(!id) return;
+  if(_sansActivite(id)){
+    try{ if(_notifRef) _notifRef.off(); }catch(e){}
+    try{ if(_notifConnRef) _notifConnRef.off(); }catch(e){}
+    _nActs = 0; _nConn = 0; _notifTotal = 0;
+    updateNotifBadge();
+    return;
+  }
   // Firebase met parfois deux secondes à répondre après la connexion :
   // sans cette relance, l'écouteur n'était jamais posé.
   if(!firebaseReady || !db){ setTimeout(function(){ _ecouterNotifs(id); }, 1500); return; }
@@ -9143,6 +9164,7 @@ function _finalisLoginCore(collab){
   // Écouter les notifs Firebase en temps réel
   _notifTotal = 0;
   _ecouterNotifs(collab.id);
+  try{ _appliquerSansActivite(); }catch(e){}
   goTo('s-home');
   renderCollectesList();
   setTimeout(function(){ _mettreAJourStatuts(); }, 300);

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.26';
+var DEP_VERSION = 'v2.21.27';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5695,6 +5695,7 @@ function _depNettoyerClientsSupprimes(){
 
 window.depRenderEspaces = function(){
   var u = window.currentUser || {};
+  try{ if(typeof _appliquerSansActivite === 'function') _appliquerSansActivite(); }catch(e){}
   var g = $('dep-esp-greet');   if(g) g.textContent = 'Bonjour ' + (u.name||'') + ' !';
   var a = $('dep-esp-av');
   if(a){
