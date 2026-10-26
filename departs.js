@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.41';
+var DEP_VERSION = 'v2.21.42';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25816,9 +25816,9 @@ function _depHtmlOutils(){
   return '<style>#admin-section-outils summary{list-style:none}#admin-section-outils summary::-webkit-details-marker{display:none}</style>'
     + _depAccordeon('sauv', '&#128190; Sauvegardes', 'Une copie par jour, ' + DEP_SAUV_JOURS + ' jours gard&eacute;s', _depHtmlSauvegardes())
     + _depAccordeon('retrouver', '&#128737;&#65039; Retrouver une collecte', nbOrph ? (nbOrph + ' &agrave; r&eacute;cup&eacute;rer') : 'Si une collecte a disparu',
-        '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Relire la base (clients et camions)</button>' + _depHtmlCollectesDisparues())
-    + _depAccordeon('avance', '&#128295; Avanc&eacute;', 'Activit&eacute;, statuts, diagnostic, lenteur',
-        _depHtmlReconstituer() + _depHtmlToutesCollectes() + diag + _htmlCorrectionCivilites() + _depHtmlReleveLenteur());
+        '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Chercher les collectes manquantes</button>' + _depHtmlCollectesDisparues())
+    + _depAccordeon('avance', '&#128295; Avanc&eacute;', 'Diagnostic, civilit&eacute;s, lenteur',
+        diag + _htmlCorrectionCivilites() + _depHtmlReleveLenteur());
 }
 
 /* v2.21.33 — Cobey, 26/10/2026 : « il y avait des collectes pour les
@@ -25857,162 +25857,6 @@ function _depProchainDimancheIso(){
   d.setDate(d.getDate() + ((7 - d.getDay()) % 7));
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
-/* v2.21.35 — Cobey, 09:43 : le panneau ne propose que de vieilles fiches test,
-   pas les 3 clients (333 €) de la collecte du 1er novembre. Donc cette
-   collecte n'est peut-être pas « disparue » : elle peut être encore dans la
-   liste, avec un statut qui la cache de l'écran Collecte. Ce bloc montre
-   TOUTES les collectes que l'appli a en mémoire, avec leur statut, et un
-   bouton pour recalculer les statuts selon les dates. */
-function _depHtmlToutesCollectes(){
-  var cols = (window.collectes || []).filter(Boolean).slice().sort(function(a,b){ return _depParseDateSure(b.date) - _depParseDateSure(a.date); });
-  var lib = { en_cours:'En cours', a_venir:'À venir', terminee:'Terminée' };
-  var h = '<div style="font-size:13px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128203; Collectes en m&eacute;moire (' + cols.length + ')</div>'
-    + '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Tout ce que l\'appli a sur ce t&eacute;l&eacute;phone, avec le statut qui d&eacute;cide de l\'endroit o&ugrave; la collecte s\'affiche.</div>';
-  cols.slice(0, 8).forEach(function(c){
-    var cls = (window.clientsParCollecte || {})[c.id] || {};
-    var ks = Object.keys(cls).filter(function(k){ return cls[k]; });
-    var tot = ks.reduce(function(s,k){ return s + (parseFloat(cls[k].prix) || 0); }, 0);
-    var st = lib[c.statut] || ('?? ' + esc(String(c.statut)));
-    h += '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;align-items:center;">'
-      + '<div style="min-width:0;"><div style="font-size:13px;font-weight:800;">' + esc(c.date || '(sans date)') + '</div>'
-      + '<div style="font-size:12px;color:#666;">' + ks.length + ' client' + (ks.length>1?'s':'') + ' &middot; ' + (Math.round(tot*100)/100) + ' &euro;</div></div>'
-      + '<span style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:99px;background:#f0f0f0;white-space:nowrap;">' + st + '</span></div>';
-  });
-  h += '<button type="button" class="btn btn-gray" onclick="depRecalculerStatutsCollectes()">&#128260; Recalculer les statuts selon les dates</button>'
-    + '<div style="height:22px;"></div>';
-  return h;
-}
-window.depRecalculerStatutsCollectes = function(){
-  try{ _mettreAJourStatuts(); }catch(e){ console.error(e); }
-  try{ sauvegarder(); }catch(e){}
-  try{ renderCollectesList(); }catch(e){}
-  toast('✅ Statuts recalculés');
-  window.renderAdminOutils();
-};
-/* v2.21.36 — Cobey, 26/10/2026 : « Je veux retrouver la collecte du premier ! »
-   La collecte du 1er novembre (3 clients, 333 €) a été effacée de la base, et
-   ses fiches ne sont plus sur le téléphone. Reste le fil d'Activité, qui
-   garde « X a ajouté <Prénom Nom> — colis — prix € · collecte du 1 novembre »
-   pour chaque client ajouté : on le relit, on retranche ceux qui ont été
-   supprimés ensuite, et on recrée la collecte et ses clients (coordonnées
-   reprises du carnet de contacts quand le nom y est). */
-var _depActRecup = [];
-function _depNormNom(s){
-  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/^(m\.|mme|mr|mlle)\s+/,'').replace(/^🏢\s*/,'').replace(/[^a-z0-9]+/g,' ').trim();
-}
-function _depHtmlReconstituer(){
-  var st = 'margin-bottom:10px;';
-  return '<div style="font-size:13px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#129520; Retrouver une collecte par l\'Activit&eacute;</div>'
-    + '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Relit le fil d\'Activit&eacute; : chaque client ajout&eacute; &agrave; une collecte y est not&eacute; avec son colis et son prix.</div>'
-    + '<input class="fi" id="dep-act-motif" value="1 novembre" style="' + st + '" placeholder="ex. 1 novembre">'
-    + '<button type="button" class="btn btn-gray" onclick="depActiviteChercher()">&#128269; Chercher dans l\'Activit&eacute;</button>'
-    + '<div id="dep-act-resultats" style="margin-top:10px;"></div>'
-    + '<div style="height:22px;"></div>';
-}
-window.depActiviteChercher = function(){
-  var box = document.getElementById('dep-act-resultats');
-  var motif = _depNormNom((document.getElementById('dep-act-motif') || {}).value);
-  if(!box) return;
-  if(!motif){ box.innerHTML = '<div style="font-size:12px;color:#c0392b;">Indiquez la date, par exemple &laquo; 1 novembre &raquo;.</div>'; return; }
-  if(!window.db || !window.firebaseReady){ box.innerHTML = '<div style="font-size:12px;color:#c0392b;">Connexion indisponible.</div>'; return; }
-  box.innerHTML = '<div style="font-size:12px;color:#888;">Recherche en cours&hellip;</div>';
-  db.ref('activite_items').orderByChild('ts').limitToLast(4000).once('value', function(snap){
-    var items = [];
-    snap.forEach(function(ch){ var v = ch.val(); if(v && v.text) items.push(v); });
-    items.sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
-    var liste = [];
-    items.forEach(function(it){
-      var t = String(it.text);
-      var col = /collecte du ([^<]*)</.exec(t);
-      if(!col || _depNormNom(col[1]) !== motif) return;
-      var mA = /a ajout(?:é|&eacute;) <strong>([^<]*)<\/strong> — ([\s\S]*?) — ([\d.,]+) €/.exec(t);
-      var mS = /a supprim(?:é|&eacute;) <strong>([^<]*)<\/strong>/.exec(t);
-      var actP = (/^\s*<strong[^>]*>([^<]*)<\/strong>/.exec(t) || [,''])[1];
-      if(mA){
-        var nA = _depNormNom(mA[1]);
-        for(var j = liste.length - 1; j >= 0; j--){ if(_depNormNom(liste[j].nom) === nA) liste.splice(j, 1); }
-        liste.push({ nom: mA[1].trim(), colis: mA[2].trim(), prix: parseFloat(String(mA[3]).replace(',', '.')) || 0, ts: it.ts || 0, par: actP });
-      } else if(mS){
-        var n = _depNormNom(mS[1]);
-        for(var i = liste.length - 1; i >= 0; i--){ if(_depNormNom(liste[i].nom) === n){ liste.splice(i, 1); break; } }
-      } else if(!/camion|dispatch|chauffeur/i.test(t)){
-        // v2.21.37 : un client peut aussi être cité par une modification, une
-        // affectation, un planning, une ramasse... sans « a ajouté » (fiche
-        // déplacée d'une autre collecte, par exemple). On le garde, prix à
-        // renseigner.
-        var tous = []; t.replace(/<strong[^>]*>([^<]*)<\/strong>/g, function(_, g){ tous.push(g); return _; });
-        var cible = tous[1];
-        if(cible){
-          cible.split(/\s*,\s*/).forEach(function(nm){
-            nm = nm.trim(); if(!nm) return;
-            var k = _depNormNom(nm);
-            if(!liste.some(function(x){ return _depNormNom(x.nom) === k; })) liste.push({ nom:nm, colis:'', prix:0, ts: it.ts || 0, par: actP, cite:true });
-          });
-        }
-      }
-    });
-    _depActRecup = liste;
-    if(!liste.length){ box.innerHTML = '<div style="font-size:12px;color:#c0392b;">Aucun client trouv&eacute; pour &laquo; ' + esc(motif) + ' &raquo; dans l\'Activit&eacute;. (L\'historique plus ancien a peut-&ecirc;tre &eacute;t&eacute; vid&eacute;.)</div>'; return; }
-    var h = '<div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">' + liste.length + ' client' + (liste.length>1?'s':'') + ' retrouv&eacute;' + (liste.length>1?'s':'') + ' (d&eacute;coche ceux &agrave; ne pas recr&eacute;er)</div>';
-    liste.forEach(function(c, i){
-      var quand = c.ts ? new Date(c.ts) : null;
-      h += '<div style="display:flex;gap:10px;align-items:flex-start;background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;">'
-        + '<input type="checkbox" id="dep-act-ck-' + i + '" checked style="margin-top:3px;width:18px;height:18px;">'
-        + '<div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:800;">' + esc(c.nom) + '</div>'
-        + '<div style="font-size:12px;color:#666;">' + (c.cite ? 'cit&eacute; dans l\'Activit&eacute; (prix non not&eacute;)' : esc(c.colis || '—')) + (quand ? ' &middot; ' + String(quand.getDate()).padStart(2,'0') + '/' + String(quand.getMonth()+1).padStart(2,'0') : '') + (c.par ? ' par ' + esc(c.par) : '') + '</div>'
-        + '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;"><input type="number" inputmode="decimal" class="fi" id="dep-act-px-' + i + '" value="' + (Math.round(c.prix*100)/100) + '" style="width:110px;margin:0;"><span style="font-size:12px;">&euro;</span></div></div></div>';
-    });
-    h += '<input type="date" class="fi" id="dep-act-date" value="' + _depProchainDimancheIso() + '" style="margin:6px 0 8px;">'
-      + '<button type="button" class="btn btn-green" onclick="depActiviteRecreer()">&#10133; Recr&eacute;er la collecte avec ces clients</button>';
-    box.innerHTML = h;
-  }, function(e){
-    box.innerHTML = '<div style="font-size:12px;color:#c0392b;">Lecture refus&eacute;e : ' + esc((e && e.message) || 'erreur') + '</div>';
-  });
-};
-window.depActiviteRecreer = function(){
-  var v = (document.getElementById('dep-act-date') || {}).value;
-  if(!v){ toast('⚠️ Choisissez la date de la collecte.'); return; }
-  var choisis = _depActRecup.filter(function(c, i){ var ck = document.getElementById('dep-act-ck-' + i); return ck && ck.checked; });
-  if(!choisis.length){ toast('⚠️ Aucun client coché.'); return; }
-  var p = v.split('-'), d = new Date(+p[0], +p[1]-1, +p[2], 12);
-  var lib = JOURS_FR[d.getDay()].charAt(0).toUpperCase() + JOURS_FR[d.getDay()].slice(1) + ' ' + d.getDate() + ' ' + MOIS_FR[d.getMonth()] + ' ' + d.getFullYear();
-  var existe = (window.collectes || []).find(function(c){ return c && String(c.date).toLowerCase() === lib.toLowerCase(); });
-  if(existe){ toast('⚠️ Une collecte du ' + lib + ' existe déjà.'); return; }
-  if(!confirm('Recréer la collecte du ' + lib + ' avec ' + choisis.length + ' client' + (choisis.length>1?'s':'') + ' ?')) return;
-  var id = 'col_' + Date.now();
-  window.collectes.unshift({ id:id, date:lib, type:'normal', statut:'a_venir' });
-  window.clientsParCollecte[id] = {};
-  window.dispatchParCollecte[id] = { trucks:{}, assigned:{} };
-  var contacts = window.dctContacts || {};
-  choisis.forEach(function(c){
-    var cle = _depNormNom(c.nom);
-    var ct = null;
-    Object.keys(contacts).forEach(function(k){
-      var x = contacts[k]; if(!x || ct) return;
-      if(_depNormNom(x.name) === cle || _depNormNom((x.prenom||'') + ' ' + (x.nom||'')) === cle) ct = x;
-    });
-    ct = ct || {};
-    var mots = c.nom.split(/\s+/);
-    var collab = (window.COLLABS || []).find(function(x){ return x.name === c.par; }) || (window.COLLABS || [])[0] || {};
-    var cid = _nouvelIdClient();
-    var pxEl = document.getElementById('dep-act-px-' + _depActRecup.indexOf(c));
-    if(pxEl && pxEl.value !== '') c.prix = parseFloat(pxEl.value) || 0;
-    window.clientsParCollecte[id][cid] = {
-      name: ct.name || c.nom, civilite: ct.civilite || '', prenom: ct.prenom || mots[0] || '', nom: ct.nom || mots.slice(1).join(' '),
-      tel: ct.tel || '', tel2: ct.tel2 || '', adresse: ct.adresse || '', infos: ct.infos || '', ville: ct.ville || '', cp: ct.cp || '',
-      dept: ct.dept || String(ct.cp || '').substring(0, 2), colis: c.colis || '', prix: c.prix || 0,
-      bg: collab.bg, color: collab.color, by: c.par || ''
-    };
-    window.dispatchParCollecte[id].assigned[cid] = null;
-  });
-  try{ _mettreAJourStatuts(); }catch(e){}
-  sauvegarder();
-  try{ renderCollectesList(); }catch(e){}
-  toast('✅ Collecte du ' + lib + ' recréée (' + choisis.length + ' client' + (choisis.length>1?'s':'') + ')');
-  window.renderAdminOutils();
-};
-
 /* v2.21.38 — Cobey a ouvert la console Firebase : les clients de la collecte
    du 1er novembre (col_1791646344916, créée 9 s après celle du 25 octobre)
    y sont intacts ; seule la ligne de la collecte manque dans la liste. Le

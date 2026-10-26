@@ -5570,3 +5570,16 @@ supprimé pour ces collaborateurs-là l'onglet des activités. » Samba, Ibrahim
 et Boubacar n'ont plus de bouton Activité (v3.99.93) : plus rien à vider pour
 eux. Bloc et code supprimés (`_depHtmlViderActivite`, `depViderActiviteProfil`,
 `DEP_PROFILS_ACTIVITE`). Outils = Sauvegardes, Retrouver une collecte, Avancé.
+
+**26/10, dct-app.html v3.99.109 / departs.js v2.21.42 — Outils : une seule
+façon de retrouver une collecte.** Cobey : « pour la recherche des collectes,
+j'ai l'impression qu'il y a plusieurs fonctions qui font la même chose, vu
+qu'on a fait plusieurs tests. » Retirés : « Retrouver par l'Activité »
+(`depActiviteChercher/Recreer`, `_depNormNom`), « Collectes en mémoire » et
+« Recalculer les statuts » (`_depHtmlToutesCollectes`,
+`depRecalculerStatutsCollectes`) : outils de dépannage du 26/10, remplacés par
+les sauvegardes quotidiennes et la relecture de la base. Reste, dans
+« Retrouver une collecte » : un bouton « Chercher les collectes manquantes »
+(relit la base) qui liste les collectes disparues à recréer (`depRecreerCollecte`).
+Outils = 💾 Sauvegardes, 🛡️ Retrouver une collecte, 🔧 Avancé (diagnostic,
+civilités, lenteur).
