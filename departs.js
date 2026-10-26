@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.24';
+var DEP_VERSION = 'v2.21.25';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -23520,8 +23520,11 @@ window.depOuvrirRapfinFixes = function(departId){
 // collaborateurs à part Aminata »), Eric compris (« moi y compris »).
 // appliquerProfils() a déjà retiré le second profil admin d'Issyaka
 // (id 'AI') de COLLABS au démarrage — pas de doublon de nom à filtrer.
+// v2.21.25 — Cobey, 26/10/2026 : « Ajoute Aminata et Autre » : Aminata
+// rejoint la liste, et « Autre » couvre quelqu'un qui n'est pas un profil.
 function _depCollabsPourSalaire(){
-  return (window.COLLABS || []).filter(function(c){ return c && c.id !== 'AM'; });
+  return (window.COLLABS || []).filter(function(c){ return c; })
+    .concat([{ id:'AUTRE', name:'Autre' }]);
 }
 
 // v1.94.15 : le champ "Nombre de personnes" ne concerne que le poste

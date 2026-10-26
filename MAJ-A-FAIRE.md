@@ -5331,3 +5331,9 @@ terminées dans l'Archivage ; vider l'historique d'activité d'un profil.**
    pour les trois » (confirmation, écrit ces dates, les autres profils gardent
    leur fil). Pas exécutable depuis ici (pas d'accès à Firebase) : à appuyer
    une fois par Cobey.
+
+**26/10, departs.js v2.21.25 — Dépenses du container, poste « Salaires » :
+Aminata et « Autre » ajoutés.** Cobey : « Ajoute Aminata et Autre » (liste des
+noms du poste Salaires). `_depCollabsPourSalaire` ne retire plus Aminata (AM)
+et ajoute l'entrée « Autre » (id `AUTRE`). Nouvelle liste : Issyaka,
+Abdoulaye, Samba, Ibrahima, Boubacar, Aminata, Eric, Autre.
