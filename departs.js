@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.31';
+var DEP_VERSION = 'v2.21.32';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14025,6 +14025,7 @@ function cacherOngletActiviteAccueil(){
     if(lab && lab.textContent.trim() === 'Activité') item.style.display = 'none';
   });
 }
+window.cacherOngletActiviteAccueil = cacherOngletActiviteAccueil;
 
 // Le carré Client et l'écran Activité sont désormais des espaces
 // autonomes, comme Départs : pas de barre du bas, juste la flèche

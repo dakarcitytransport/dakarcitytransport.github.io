@@ -2037,7 +2037,7 @@ function sauvegarderFirebase(){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.96';
+var APP_VERSION = 'v3.99.97';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -8744,9 +8744,17 @@ function _sansActivite(id){ return PROFILS_SANS_ACTIVITE.indexOf(id) !== -1; }
 function _appliquerSansActivite(){
   var sans = !!(currentUser && _sansActivite(currentUser.id));
   var els = document.querySelectorAll('.nav-item[onclick*="activite"]');
-  for(var i=0;i<els.length;i++) els[i].style.display = sans ? 'none' : '';
+  for(var i=0;i<els.length;i++){
+    if(sans){ els[i].style.display = 'none'; els[i].setAttribute('data-sans-act','1'); }
+    else if(els[i].getAttribute('data-sans-act')){ els[i].removeAttribute('data-sans-act'); }
+  }
   var b = document.getElementById('dep-esp-activite-btn');
   if(b && b.parentNode) b.parentNode.style.display = sans ? 'none' : 'inline-flex';
+  // v3.99.97 : l'onglet « Activité » du bas de l'écran Collecte est caché pour
+  // tout le monde (voir cacherOngletActiviteAccueil, departs.js) : la
+  // v3.99.93 le remettait par erreur en vidant son style pour les autres
+  // profils (retour de Cobey du 26/10/2026 : « elle n'était pas là à la base »).
+  try{ if(typeof cacherOngletActiviteAccueil === 'function') cacherOngletActiviteAccueil(); }catch(e){}
 }
 function _ecouterNotifs(id){
   if(!id) return;
@@ -9172,6 +9180,7 @@ function _finalisLoginCore(collab){
 
 // TRI DATES
 function parseDate(dateStr){
+  dateStr = (typeof dateStr === 'string') ? dateStr : String(dateStr == null ? '' : dateStr);
   var mois={janvier:0,fevrier:1,mars:2,avril:3,mai:4,juin:5,juillet:6,aout:7,septembre:8,octobre:9,novembre:10,decembre:11};
   var s=(dateStr||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().split(' ');
   var day=parseInt(s[1])||1;
@@ -9185,6 +9194,14 @@ function sortByDate(arr,asc){
 
 // ACCUEIL
 function renderCollectesList(){
+  try{ _renderCollectesListeCorps(); }
+  catch(e){
+    console.error('renderCollectesList', e);
+    var c0=document.getElementById('home-collectes');
+    if(c0) c0.innerHTML='<div style="text-align:center;color:#c0392b;padding:30px 20px;font-size:13px;">⚠️ La liste des collectes n\'a pas pu s\'afficher.<br><span style="color:#888;font-size:11px;">'+String((e&&e.message)||e).replace(/</g,'&lt;')+'</span></div>';
+  }
+}
+function _renderCollectesListeCorps(){
   var enCours=sortByDate(collectes.filter(function(c){return c.statut==='en_cours';}),true);
   var aVenir=sortByDate(collectes.filter(function(c){return c.statut==='a_venir';}),true);
   var terminees=sortByDate(collectes.filter(function(c){return c.statut==='terminee';}),false);

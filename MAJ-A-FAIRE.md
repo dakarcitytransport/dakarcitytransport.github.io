@@ -5409,3 +5409,23 @@ introuvable ». Le bouton passait `d._id`, or `d` vient de `departsData[...]`
 brut, sans `_id` : l'appel partait avec « undefined ». Bug présent depuis
 v1.19.x, invisible tant que l'historique restait vide. Il passe maintenant
 `c.departId`.
+
+**26/10, dct-app.html v3.99.97 / departs.js v2.21.32 — onglet « Activité »
+revenu par erreur ; liste des collectes blindée.** Cobey (capture, écran
+Collecte, 09:31) : « l'onglet activité, là, je sais pas pourquoi elle est là,
+mais elle n'était pas là à la base » et « il me semble qu'il y avait des
+collectes pour les dimanches à venir. Mais là, il n'y a plus rien. »
+1. **Onglet Activité** : bug de ma v3.99.93 (`_appliquerSansActivite`) : pour
+   les profils autorisés, je vidais le style `display` des onglets « Activité »,
+   ce qui effaçait le `display:none` posé par `cacherOngletActiviteAccueil`
+   (departs.js, Activité cachée depuis l'ajout du bouton 🕒 des espaces). Corrigé :
+   on ne touche plus qu'aux profils sans activité, et on rappelle
+   `cacherOngletActiviteAccueil` (désormais exposée sur window).
+2. **Liste vide** : cause non établie (aucun accès à Firebase depuis ici). Le
+   code de liste (`renderCollectesList`) ne cachait pas de collecte, mais une
+   erreur dans la liste (date non texte → `parseDate` plantait) laissait
+   l'écran blanc sans message. `parseDate` accepte maintenant n'importe quel
+   type, et `renderCollectesList` affiche un message d'erreur lisible au lieu
+   d'un écran vide. À vérifier avec Cobey : la case COLLECTE des espaces,
+   l'Archivage > Collectes terminées, et si les collectes réapparaissent après
+   réouverture.
