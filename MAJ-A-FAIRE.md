@@ -5392,3 +5392,12 @@ d'un côté ou de l'autre, on rapproche par le nom (`_depNomNorm` : mots dans
 n'importe quel ordre, sans accents/majuscules, 2 mots minimum) ; un numéro
 différent écarte les homonymes ; les fiches d'une collecte supprimée sont
 gardées.
+
+**26/10, dct-app.html v3.99.95 / departs.js v2.21.30 — Historique d'envoi :
+seulement à partir du container de septembre.** Cobey : « on avait dit que tu
+recherches uniquement l'historique à partir du conteneur de septembre. »
+`_depTousEnvoisContact` ne garde que les envois dont le container part à
+partir du 1er septembre 2026 (`DEP_HISTO_DEPUIS`) ; sans container, date de la
+collecte, sinon date de création de la fiche ; sans aucune date, écarté.
+Si la limite doit être un container précis plutôt que le 1er septembre, changer
+cette constante.

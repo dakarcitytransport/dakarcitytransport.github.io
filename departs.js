@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.29';
+var DEP_VERSION = 'v2.21.30';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14244,9 +14244,26 @@ function _depTousEnvoisContact(contactKey){
     }
   });
 
+  // v2.21.30 — Cobey, 26/10/2026 : « on avait dit que tu recherches
+  // uniquement l'historique à partir du conteneur de septembre. » On ne garde
+  // que les envois dont le container part à partir du 1er septembre 2026 ;
+  // sans container, on se fie à la date de la collecte, sinon à celle de la
+  // création de la fiche.
+  resultats = resultats.filter(function(r){
+    var d = r.c.departId ? (window.departsData||{})[r.c.departId] : null;
+    var t = d ? _depQuandDepart(d) : NaN;
+    if(isNaN(t) || !t){
+      var col = r.collecteId ? (window.collectes||[]).filter(function(x){ return x && x.id === r.collecteId; })[0] : null;
+      t = (col && typeof parseDate === 'function') ? parseDate(col.date).getTime() : NaN;
+    }
+    if((isNaN(t) || !t) && r.c.creeLe) t = r.c.creeLe;
+    if(isNaN(t) || !t) return false;
+    return t >= DEP_HISTO_DEPUIS;
+  });
   resultats.sort(function(a,b){ return (b.c.creeLe||0) - (a.c.creeLe||0); });
   return resultats;
 }
+var DEP_HISTO_DEPUIS = Date.UTC(2026, 8, 1);   // 1er septembre 2026
 
 // Un numéro réduit à ses 9 derniers chiffres (null s'il en a moins) :
 // « +33 6 52 32 15 79 », « 06 52 32 15 79 » et « 0652321579 » donnent
