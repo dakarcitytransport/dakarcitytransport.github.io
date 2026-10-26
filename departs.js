@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.34';
+var DEP_VERSION = 'v2.21.35';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25836,9 +25836,42 @@ function _depProchainDimancheIso(){
   d.setDate(d.getDate() + ((7 - d.getDay()) % 7));
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
+/* v2.21.35 — Cobey, 09:43 : le panneau ne propose que de vieilles fiches test,
+   pas les 3 clients (333 €) de la collecte du 1er novembre. Donc cette
+   collecte n'est peut-être pas « disparue » : elle peut être encore dans la
+   liste, avec un statut qui la cache de l'écran Collecte. Ce bloc montre
+   TOUTES les collectes que l'appli a en mémoire, avec leur statut, et un
+   bouton pour recalculer les statuts selon les dates. */
+function _depHtmlToutesCollectes(){
+  var cols = (window.collectes || []).filter(Boolean).slice().sort(function(a,b){ return _depParseDateSure(b.date) - _depParseDateSure(a.date); });
+  var lib = { en_cours:'En cours', a_venir:'À venir', terminee:'Terminée' };
+  var h = '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128203; Collectes en m&eacute;moire (' + cols.length + ')</div>'
+    + '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Tout ce que l\'appli a sur ce t&eacute;l&eacute;phone, avec le statut qui d&eacute;cide de l\'endroit o&ugrave; la collecte s\'affiche.</div>';
+  cols.slice(0, 8).forEach(function(c){
+    var cls = (window.clientsParCollecte || {})[c.id] || {};
+    var ks = Object.keys(cls).filter(function(k){ return cls[k]; });
+    var tot = ks.reduce(function(s,k){ return s + (parseFloat(cls[k].prix) || 0); }, 0);
+    var st = lib[c.statut] || ('?? ' + esc(String(c.statut)));
+    h += '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;align-items:center;">'
+      + '<div style="min-width:0;"><div style="font-size:13px;font-weight:800;">' + esc(c.date || '(sans date)') + '</div>'
+      + '<div style="font-size:12px;color:#666;">' + ks.length + ' client' + (ks.length>1?'s':'') + ' &middot; ' + (Math.round(tot*100)/100) + ' &euro;</div></div>'
+      + '<span style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:99px;background:#f0f0f0;white-space:nowrap;">' + st + '</span></div>';
+  });
+  h += '<button type="button" class="btn btn-gray" onclick="depRecalculerStatutsCollectes()">&#128260; Recalculer les statuts selon les dates</button>'
+    + '<div style="height:22px;"></div>';
+  return h;
+}
+window.depRecalculerStatutsCollectes = function(){
+  try{ _mettreAJourStatuts(); }catch(e){ console.error(e); }
+  try{ sauvegarder(); }catch(e){}
+  try{ renderCollectesList(); }catch(e){}
+  toast('✅ Statuts recalculés');
+  window.renderAdminOutils();
+};
 function _depHtmlCollectesDisparues(){
   var o = _depCollectesOrphelines();
-  var h = '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128269; Collectes disparues</div>';
+  var h = _depHtmlToutesCollectes()
+    + '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128269; Collectes disparues</div>';
   if(!o.length){
     return h + '<div style="font-size:12px;color:#888;margin-bottom:22px;line-height:1.55;">Aucun client orphelin : toutes les fiches clients sont rattach&eacute;es &agrave; une collecte existante.</div>';
   }

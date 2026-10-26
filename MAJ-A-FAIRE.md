@@ -5454,3 +5454,13 @@ collecte est `col_` + l'heure de création : le panneau trie de la plus récente
 à la plus ancienne, indique « Créée le JJ/MM · N clients · X € · N camions »,
 n'affiche d'abord que les 45 derniers jours, le reste derrière « Voir les plus
 anciennes (N) ».
+
+**26/10, dct-app.html v3.99.100 / departs.js v2.21.35 — Outils : « Collectes
+en mémoire » + recalcul des statuts.** Cobey (capture 09:43) : le panneau
+« Collectes disparues » ne propose que de vieilles fiches test (« M. Eric Un »,
+« Berth »), pas les 3 clients à 333 € du 1er novembre. Hypothèse : la collecte
+n'a pas disparu, elle est restée dans la liste avec un statut qui la cache de
+l'écran Collecte (ex. « Terminée » à tort). Nouveau bloc en tête du panneau :
+liste les collectes que l'appli a en mémoire (date, clients, €, statut) et un
+bouton « Recalculer les statuts selon les dates » (`_mettreAJourStatuts` +
+sauvegarde) qui remet « En cours / À venir » selon la date.
