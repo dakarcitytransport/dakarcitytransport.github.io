@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.23';
+var DEP_VERSION = 'v2.21.24';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5821,7 +5821,8 @@ window.depRenderEspaces = function(){
   var scarch = $('dep-case-sub-arch');
   if(scarch){
     var nbDepC = tousLesDeparts().filter(function(d){ return d.statut === 'cloture'; }).length;
-    var nbColT = (window.collectes || []).filter(function(c){ return c && c.statut === 'terminee'; }).length;
+    var nbColT = (window.collectes || []).filter(function(c){ return c && c.statut === 'terminee'; }).length
+               + _depArchiveItemsBruts('collectesFr').length;
     scarch.innerHTML = '<b style="color:#8B5E34;">'+nbDepC+'</b> d&eacute;part'+(nbDepC>1?'s':'')+' clôtur&eacute;'+(nbDepC>1?'s':'')
       + '<br>'+nbColT+' collecte'+(nbColT>1?'s':'')+' archiv&eacute;e'+(nbColT>1?'s':'');
   }
@@ -7389,7 +7390,22 @@ function _depArchiveItemsBruts(type){
       return { date: dt, item: c };
     });
   }
+  // v2.21.24 — Cobey, 26/10/2026 : « dans le parcours France, les collectes
+  // finies doivent aller dans l'archivage, dans une propre catégorie à eux
+  // France. » Les collectes France terminées (france/collectes) ont leur
+  // dossier à part, séparé des collectes de Paris.
+  if(type === 'collectesFr'){
+    var rs = (window.franceData && window.franceData.collectes) || {};
+    return Object.keys(rs).map(function(k){ var r = rs[k]; if(r){ r._id = k; } return r; })
+      .filter(function(r){ return r && r.statut === 'terminee'; })
+      .map(function(r){ return { date: _depDateCollecteFr(r), item: r }; });
+  }
   return [];
+}
+
+function _depDateCollecteFr(r){
+  if(r && r.dateIso){ var d = new Date(r.dateIso + 'T12:00:00'); if(!isNaN(d.getTime())) return d; }
+  return (typeof parseDate === 'function') ? parseDate(r && r.dateLib) : new Date(NaN);
 }
 
 function _depSemaineInfo(date){
@@ -7451,6 +7467,26 @@ function _depArchiveCarteDepart(d){
     + '</div>';
 }
 
+function _depArchiveCarteCollecteFr(r){
+  var t = (typeof window._frTotauxCollecte === 'function') ? window._frTotauxCollecte(r) : { camions:0, clients:0, ramasses:0 };
+  var gere = (typeof window._peutGererFrance === 'function') ? window._peutGererFrance() : false;
+  return '<div class="dep-card" style="border-left-color:#8B5E34;cursor:pointer;" onclick="depArchiveOuvrirCollecteFr(\''+r._id+'\')">'
+    +   '<div class="dep-card-top">'
+    +     '<div class="dep-nom">'+(r.nom ? esc(r.nom)+' &mdash; ' : '')+esc(r.dateLib||'Collecte France')+'</div>'
+    +     '<div style="display:flex;align-items:center;gap:6px;">'
+    +       '<div class="dep-badge" style="background:#EDEDED;color:#777;">Termin&eacute;e</div>'
+    +       (gere ? '<button type="button" onclick="event.stopPropagation();ouvrirStatutCollecteFr(\''+r._id+'\')" style="background:#f0f0f0;border:1.5px solid #ccc;border-radius:6px;padding:3px 8px;font-size:11px;color:#555;cursor:pointer;font-weight:700;">&#9999;&#65039;</button>'
+    +       '<button type="button" onclick="event.stopPropagation();supprimerCollecteFrance(\''+r._id+'\')" style="background:#fde0e0;border:1.5px solid #c0392b;border-radius:6px;padding:3px 8px;font-size:11px;color:#992020;cursor:pointer;font-weight:700;">&#128465;&#65039;</button>' : '')
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="dep-meta">'
+    +     '<span>&#128667; <b>'+t.camions+'</b> camion'+(t.camions>1?'s':'')+'</span>'
+    +     '<span>&#128100; <b>'+t.clients+'</b> client'+(t.clients>1?'s':'')+'</span>'
+    +     (t.clients ? '<span style="color:#006b2d;"><b>'+t.ramasses+'</b> ramass&eacute;'+(t.ramasses>1?'s':'')+'</span>' : '')
+    +   '</div>'
+    + '</div>';
+}
+
 function _depArchiveCarteCollecte(c){
   var cls = (window.clientsParCollecte||{})[c.id] || {};
   var nb = Object.keys(cls).length;
@@ -7498,6 +7534,39 @@ window.depArchiveOuvrirCollecte = function(id){
   try{ ouvrirCollecte(id); }catch(e){ console.error('departs: collecte archivée', e); }
   setTimeout(function(){ _depArchiveRetourVers('#s-collecte .btn-back', 'Archivage'); }, 0);
 };
+
+// Le bouton Retour de l'écran France ramène à l'accueil en dur : on le
+// réécrit pour revenir à l'archive, puis on le remet dès qu'on repart vers
+// l'accueil, l'espace ou l'archive elle-même.
+var _depFranceDepuisArchive = false;
+function _depRestaurerRetourFrance(){
+  if(!_depFranceDepuisArchive) return;
+  _depFranceDepuisArchive = false;
+  var btn = document.querySelector('#s-france .header .btn-back');
+  if(!btn) return;
+  btn.innerHTML = '&larr; Accueil';
+  btn.onclick = function(){ goTo('s-home'); };
+}
+window.depArchiveOuvrirCollecteFr = function(id){
+  try{
+    goTo('s-france');
+    ouvrirCollecteFrance(id);
+  }catch(e){ console.error('departs: collecte France archivée', e); return; }
+  var btn = document.querySelector('#s-france .header .btn-back');
+  if(btn){
+    _depFranceDepuisArchive = true;
+    btn.innerHTML = '&larr; Archivage';
+    btn.onclick = function(){ _depRestaurerRetourFrance(); goTo('s-archive'); depRenderArchive(); };
+  }
+};
+if(typeof window.goTo === 'function' && !window.goTo._depPatchArchiveFr){
+  var origGoToArchiveFr = window.goTo;
+  window.goTo = function(id){
+    if(id === 's-home' || id === 's-espaces' || id === 's-archive') _depRestaurerRetourFrance();
+    return origGoToArchiveFr.apply(this, arguments);
+  };
+  window.goTo._depPatchArchiveFr = true;
+}
 
 window.depArchiveOuvrirDepart = function(id){
   try{ depDetail(id); }catch(e){ console.error('departs: container archivé', e); }
@@ -7555,13 +7624,15 @@ window.depRenderArchive = function(){
     var colsTerminees = (window.collectes || []).filter(function(c){ return c && c.statut === 'terminee'; });
     html += _depArchiveCarteDossier('&#128230;', 'Départs clôturés', departsClotures.length+' départ'+(departsClotures.length>1?'s':''), 'depArchiveOuvrir(\'departs\')');
     html += _depArchiveCarteDossier('&#128203;', 'Collectes terminées', colsTerminees.length+' collecte'+(colsTerminees.length>1?'s':''), 'depArchiveOuvrir(\'collectes\')');
+    var nbColsFr = _depArchiveItemsBruts('collectesFr').length;
+    html += _depArchiveCarteDossier('&#127467;&#127479;', 'Collectes France terminées', nbColsFr+' collecte'+(nbColsFr>1?'s':''), 'depArchiveOuvrir(\'collectesFr\')');
     box.innerHTML = html;
     return;
   }
 
   var items = _depArchiveItemsBruts(etat.type).filter(function(o){ return o.date && !isNaN(o.date.getTime()); });
   var groupe = _depArchiveGrouper(items);
-  var nomCategorie = (etat.type === 'departs') ? 'Départs clôturés' : 'Collectes terminées';
+  var nomCategorie = (etat.type === 'departs') ? 'Départs clôturés' : (etat.type === 'collectesFr' ? 'Collectes France terminées' : 'Collectes terminées');
 
   if(!etat.annee){
     // Niveau 1 : années
@@ -7631,12 +7702,12 @@ window.depRenderArchive = function(){
   var itemsTries = g.items.slice().sort(function(x,y){
     // v1.92.0 : _depQuandDepart plutôt que new Date() — une date au vieux
     // format « 05/10/2026 » donnait NaN, et l'élément se plaçait au hasard.
-    var dx = (etat.type === 'departs') ? _depQuandDepart(x) : parseDate(x.date);
-    var dy = (etat.type === 'departs') ? _depQuandDepart(y) : parseDate(y.date);
+    var dx = (etat.type === 'departs') ? _depQuandDepart(x) : (etat.type === 'collectesFr' ? _depDateCollecteFr(x) : parseDate(x.date));
+    var dy = (etat.type === 'departs') ? _depQuandDepart(y) : (etat.type === 'collectesFr' ? _depDateCollecteFr(y) : parseDate(y.date));
     return dy - dx;
   });
   itemsTries.forEach(function(it){
-    html += (etat.type === 'departs') ? _depArchiveCarteDepart(it) : _depArchiveCarteCollecte(it);
+    html += (etat.type === 'departs') ? _depArchiveCarteDepart(it) : (etat.type === 'collectesFr' ? _depArchiveCarteCollecteFr(it) : _depArchiveCarteCollecte(it));
   });
   box.innerHTML = html;
 };
@@ -25641,8 +25712,46 @@ function _depHtmlOutils(){
     + '<button type="button" class="btn btn-gray" style="color:#1a237e;border:1.5px solid #1a237e;" onclick="afficherReferencesOrphelines()">🔍 Analyser</button>'
     + '<button type="button" class="btn btn-gray" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;margin-top:8px;" onclick="nettoyerOrphelinsCollecteEnCours()">🧹 Nettoyer la collecte en cours</button>'
     + '<div style="font-size:11.5px;color:#999;margin-top:8px;line-height:1.55;">Retire uniquement les r&eacute;f&eacute;rences sans fiche client, sur la collecte en cours. Les clients existants ne sont jamais touch&eacute;s.</div>'
+    + '<div style="height:22px;"></div>'
+    + _depHtmlViderActivite();
+}
+
+/* v2.21.24 — Cobey, 26/10/2026 : « Tu peux supprimer pour Samba, Boubacar
+   et Ibrahim les notifications. Ils n'ont pas le réflexe de supprimer
+   l'historique et ça va ralentir l'application pour eux. » Le fil
+   d'Activité est un seul nœud partagé (activite_items) ; ce que « Effacer »
+   fait chez chacun, c'est poser SA date de coupure (dct_config/
+   activite_deleted/<id>) : tout ce qui est plus ancien n'est plus affiché
+   ni chargé chez lui. Ici l'administrateur pose cette date à leur place,
+   sans toucher au fil des autres. */
+var DEP_PROFILS_ACTIVITE = [
+  { id:'SA', nom:'Samba' }, { id:'BO', nom:'Boubacar' }, { id:'IB', nom:'Ibrahima' }
+];
+function _depHtmlViderActivite(){
+  var st = 'margin-top:8px;background:#fff;color:#992020;border:1.5px solid #c0392b;';
+  return '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128465;&#65039; Vider l\'historique d\'un profil</div>'
+    + '<div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.55;">Efface le fil d\'Activit&eacute; de la personne (comme si elle avait appuy&eacute; sur &laquo; Effacer &raquo;). Les autres profils gardent le leur. Irr&eacute;versible.</div>'
+    + DEP_PROFILS_ACTIVITE.map(function(p){
+        return '<button type="button" class="btn btn-gray" style="'+st+'" onclick="depViderActiviteProfil(\''+p.id+'\')">Vider l\'historique : '+p.nom+'</button>';
+      }).join('')
+    + '<button type="button" class="btn btn-gray" style="'+st+'font-weight:800;" onclick="depViderActiviteProfil(\'TOUS\')">Vider pour les trois</button>'
     + '<div style="height:22px;"></div>';
 }
+window.depViderActiviteProfil = function(id){
+  var cibles = (id === 'TOUS') ? DEP_PROFILS_ACTIVITE : DEP_PROFILS_ACTIVITE.filter(function(p){ return p.id === id; });
+  if(!cibles.length) return;
+  if(typeof firebaseReady === 'undefined' || !firebaseReady || !db){ showToastNew('\u274c Pas de connexion, r\u00e9essaie'); return; }
+  var noms = cibles.map(function(p){ return p.nom; }).join(', ');
+  if(!confirm('Vider l\u2019historique d\u2019activit\u00e9 de ' + noms + ' ? Irr\u00e9versible. Les autres profils gardent le leur.')) return;
+  var now = Date.now(), maj = {};
+  cibles.forEach(function(p){ maj[p.id] = now; });
+  db.ref('dct_config/activite_deleted').update(maj).then(function(){
+    showToastNew('\u2705 Historique vid\u00e9 : ' + noms);
+  }).catch(function(e){
+    console.error('departs: vider l\u2019activit\u00e9', e);
+    showToastNew('\u274c \u00c9chec : ' + ((e && e.message) || '\u00e9criture refus\u00e9e'));
+  });
+};
 
 
 /* ─────────────────────────────────────────────

@@ -5308,3 +5308,26 @@ France).
 Non testé contre le vrai Firebase (sandbox sans réseau) : si les règles
 Firebase refusent l'écriture de `wazeAnnules`, le bouton affichera « Échec ».
 Aussi : retrait de trois captures de test (enc_*.png) commises par erreur.
+
+**26/10, dct-app.html v3.99.92 / departs.js v2.21.24 — collectes France
+terminées dans l'Archivage ; vider l'historique d'activité d'un profil.**
+1. Cobey : « dans le parcours France, les collectes finies doivent aller dans
+   l'archivage, dans une propre catégorie à eux France. » L'onglet Collectes
+   de France n'a plus d'« Historique » : il ne montre que En cours / À venir,
+   plus une ligne « 📦 N collectes terminées · Archivage › » qui ouvre le
+   dossier. Archivage a un 3e dossier « 🇫🇷 Collectes France terminées »
+   (Année > Mois > Semaine comme les autres, `_depArchiveItemsBruts
+   ('collectesFr')`), avec crayon (date/nom/statut) et corbeille pour la
+   direction ; une carte ouvre la collecte dans France (bouton « ← Archivage »
+   pour y revenir, remis à « ← Accueil » ensuite). Le compteur de la case
+   Archivage de l'accueil compte aussi ces collectes. Rafraîchissement de
+   l'archive quand `france/` change.
+2. Cobey : « Tu peux supprimer pour Samba, Boubacar et Ibrahim les
+   notifications. Ils n'ont pas le réflexe de supprimer l'historique et ça va
+   ralentir l'application pour eux. » Le fil d'Activité est un seul nœud
+   partagé ; « Effacer » pose la date de coupure du profil dans
+   `dct_config/activite_deleted/<id>`. Nouveaux boutons dans Réglages >
+   Outils : « Vider l'historique : Samba / Boubacar / Ibrahima » et « Vider
+   pour les trois » (confirmation, écrit ces dates, les autres profils gardent
+   leur fil). Pas exécutable depuis ici (pas d'accès à Firebase) : à appuyer
+   une fois par Cobey.
