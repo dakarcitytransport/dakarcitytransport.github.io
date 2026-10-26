@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.30';
+var DEP_VERSION = 'v2.21.31';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14324,7 +14324,7 @@ window.depOuvrirHistoriqueContact = function(){
         +     '<span>&#128176; <b>'+(c.prixADefinir ? '&agrave; d&eacute;finir' : (pay.total+' &euro;'))+'</b></span>'
         +   '</div>'
         +   '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
-        +     (d ? ('<button type="button" class="dep-cli-btn" onclick="depDetail(\''+d._id+'\')">&#128230; Voir le d&eacute;part</button>') : '')
+        +     (d ? ('<button type="button" class="dep-cli-btn" onclick="depDetail(\''+c.departId+'\')">&#128230; Voir le d&eacute;part</button>') : '')
         +     '<button type="button" class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
         +       (e.france
                   ? 'onclick="depOuvrirFactureFrance(\''+e.clientId+'\')">&#129534; Facture</button>'

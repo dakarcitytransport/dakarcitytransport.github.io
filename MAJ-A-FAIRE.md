@@ -5401,3 +5401,11 @@ partir du 1er septembre 2026 (`DEP_HISTO_DEPUIS`) ; sans container, date de la
 collecte, sinon date de création de la fiche ; sans aucune date, écarté.
 Si la limite doit être un container précis plutôt que le 1er septembre, changer
 cette constante.
+
+**26/10, dct-app.html v3.99.96 / departs.js v2.21.31 — « Voir le départ » de
+l'Historique d'envoi : « Départ introuvable ».** Cobey (capture, 09:11) : le
+bouton « Voir le départ » d'un envoi (Chargement DKR) affichait « ⚠️ Départ
+introuvable ». Le bouton passait `d._id`, or `d` vient de `departsData[...]`
+brut, sans `_id` : l'appel partait avec « undefined ». Bug présent depuis
+v1.19.x, invisible tant que l'historique restait vide. Il passe maintenant
+`c.departId`.
