@@ -5563,3 +5563,10 @@ récupérer sur la ligne) ; 🗑️ Vider l'historique d'un profil ; 🔧 Avanc�
 (recherche par l'Activité, collectes en mémoire + recalcul des statuts,
 diagnostic, civilités, relevé de lenteur). Aucune fonction retirée : tout est
 rangé, plus rien n'est supprimé.
+
+**26/10, dct-app.html v3.99.108 / departs.js v2.21.41 — Outils : bloc « Vider
+l'historique d'un profil » retiré.** Cobey : « Le 3 ne sert à rien vu qu'on a
+supprimé pour ces collaborateurs-là l'onglet des activités. » Samba, Ibrahima
+et Boubacar n'ont plus de bouton Activité (v3.99.93) : plus rien à vider pour
+eux. Bloc et code supprimés (`_depHtmlViderActivite`, `depViderActiviteProfil`,
+`DEP_PROFILS_ACTIVITE`). Outils = Sauvegardes, Retrouver une collecte, Avancé.

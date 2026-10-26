@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.40';
+var DEP_VERSION = 'v2.21.41';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25817,7 +25817,6 @@ function _depHtmlOutils(){
     + _depAccordeon('sauv', '&#128190; Sauvegardes', 'Une copie par jour, ' + DEP_SAUV_JOURS + ' jours gard&eacute;s', _depHtmlSauvegardes())
     + _depAccordeon('retrouver', '&#128737;&#65039; Retrouver une collecte', nbOrph ? (nbOrph + ' &agrave; r&eacute;cup&eacute;rer') : 'Si une collecte a disparu',
         '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Relire la base (clients et camions)</button>' + _depHtmlCollectesDisparues())
-    + _depAccordeon('histo', '&#128465;&#65039; Vider l\'historique d\'un profil', 'Samba, Boubacar, Ibrahima', _depHtmlViderActivite())
     + _depAccordeon('avance', '&#128295; Avanc&eacute;', 'Activit&eacute;, statuts, diagnostic, lenteur',
         _depHtmlReconstituer() + _depHtmlToutesCollectes() + diag + _htmlCorrectionCivilites() + _depHtmlReleveLenteur());
 }
@@ -26196,41 +26195,6 @@ window.depRecreerCollecte = function(id){
   window.renderAdminOutils();
 };
 
-/* v2.21.24 — Cobey, 26/10/2026 : « Tu peux supprimer pour Samba, Boubacar
-   et Ibrahim les notifications. Ils n'ont pas le réflexe de supprimer
-   l'historique et ça va ralentir l'application pour eux. » Le fil
-   d'Activité est un seul nœud partagé (activite_items) ; ce que « Effacer »
-   fait chez chacun, c'est poser SA date de coupure (dct_config/
-   activite_deleted/<id>) : tout ce qui est plus ancien n'est plus affiché
-   ni chargé chez lui. Ici l'administrateur pose cette date à leur place,
-   sans toucher au fil des autres. */
-var DEP_PROFILS_ACTIVITE = [
-  { id:'SA', nom:'Samba' }, { id:'BO', nom:'Boubacar' }, { id:'IB', nom:'Ibrahima' }
-];
-function _depHtmlViderActivite(){
-  var st = 'margin-top:8px;background:#fff;color:#992020;border:1.5px solid #c0392b;';
-  return '<div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.55;">Efface le fil d\'Activit&eacute; de la personne (comme si elle avait appuy&eacute; sur &laquo; Effacer &raquo;). Les autres profils gardent le leur. Irr&eacute;versible.</div>'
-    + DEP_PROFILS_ACTIVITE.map(function(p){
-        return '<button type="button" class="btn btn-gray" style="'+st+'" onclick="depViderActiviteProfil(\''+p.id+'\')">Vider l\'historique : '+p.nom+'</button>';
-      }).join('')
-    + '<button type="button" class="btn btn-gray" style="'+st+'font-weight:800;" onclick="depViderActiviteProfil(\'TOUS\')">Vider pour les trois</button>'
-    + '<div style="height:22px;"></div>';
-}
-window.depViderActiviteProfil = function(id){
-  var cibles = (id === 'TOUS') ? DEP_PROFILS_ACTIVITE : DEP_PROFILS_ACTIVITE.filter(function(p){ return p.id === id; });
-  if(!cibles.length) return;
-  if(typeof firebaseReady === 'undefined' || !firebaseReady || !db){ showToastNew('\u274c Pas de connexion, r\u00e9essaie'); return; }
-  var noms = cibles.map(function(p){ return p.nom; }).join(', ');
-  if(!confirm('Vider l\u2019historique d\u2019activit\u00e9 de ' + noms + ' ? Irr\u00e9versible. Les autres profils gardent le leur.')) return;
-  var now = Date.now(), maj = {};
-  cibles.forEach(function(p){ maj[p.id] = now; });
-  db.ref('dct_config/activite_deleted').update(maj).then(function(){
-    showToastNew('\u2705 Historique vid\u00e9 : ' + noms);
-  }).catch(function(e){
-    console.error('departs: vider l\u2019activit\u00e9', e);
-    showToastNew('\u274c \u00c9chec : ' + ((e && e.message) || '\u00e9criture refus\u00e9e'));
-  });
-};
 
 
 /* ─────────────────────────────────────────────
