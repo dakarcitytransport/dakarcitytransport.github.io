@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.38';
+var DEP_VERSION = 'v2.21.39';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5695,6 +5695,7 @@ function _depNettoyerClientsSupprimes(){
 
 window.depRenderEspaces = function(){
   var u = window.currentUser || {};
+  try{ if(!_depSauvPlanifiee){ _depSauvPlanifiee = true; setTimeout(function(){ try{ depSauvegardeQuotidienne(); }catch(e){ console.error('departs: sauvegarde quotidienne', e); } }, 6000); } }catch(e){}
   try{ if(typeof _appliquerSansActivite === 'function') _appliquerSansActivite(); }catch(e){}
   var g = $('dep-esp-greet');   if(g) g.textContent = 'Bonjour ' + (u.name||'') + ' !';
   var a = $('dep-esp-av');
@@ -26013,9 +26014,127 @@ window.depRelireBaseCollectes = function(){
     window.renderAdminOutils();
   }).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'lecture refusée')); });
 };
+/* ─────────────────────────────────────────────
+   SAUVEGARDE QUOTIDIENNE (v2.21.39) — Cobey, 26/10/2026, après la perte de la
+   collecte du 1er novembre : « sauvegarde auto, c'est payant » donc maison.
+   Une fois par jour, la première fois que la direction ouvre l'appli, copie de
+   tout dct (collectes, clients, camions, contacts) dans dct_sauvegardes/<jour>,
+   15 jours gardés. Restauration collecte par collecte (Réglages > Outils).
+   ───────────────────────────────────────────── */
+var DEP_SAUV_JOURS = 15;
+var _depSauvPlanifiee = false, _depSauvFaite = false, _depSauvCourante = null;
+function _depJourIso(){
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function _depSauvCompter(d){
+  var nbCl = 0, cl = d.clients || {};
+  Object.keys(cl).forEach(function(k){ nbCl += Object.keys(cl[k] || {}).length; });
+  var col = d.collectes || [];
+  return { collectes: (Array.isArray(col) ? col : Object.keys(col)).length, clients: nbCl };
+}
+window.depSauvegardeQuotidienne = function(force){
+  if((_depSauvFaite && !force) || !window.db || !window.firebaseReady) return;
+  if(typeof estDirection !== 'function' || !estDirection()) return;
+  _depSauvFaite = true;
+  var jour = _depJourIso();
+  db.ref('dct_sauvegardes_index/' + jour).once('value', function(s){
+    if(s.val() && !force){ return; }
+    db.ref('dct').once('value', function(sd){
+      var d = sd.val();
+      // Jamais de copie d'une base vide ou anormale : elle chasserait une bonne copie.
+      if(!d || !d.collectes || !d.clients){ if(force) toast('⚠️ Base vide : copie annulée.'); return; }
+      delete d.activite;
+      var n = _depSauvCompter(d), u = window.currentUser || {};
+      var maj = {};
+      maj['dct_sauvegardes/' + jour] = { ts: Date.now(), par: u.name || '', data: d };
+      maj['dct_sauvegardes_index/' + jour] = { ts: Date.now(), collectes: n.collectes, clients: n.clients, par: u.name || '' };
+      db.ref().update(maj).then(function(){
+        if(force) toast('✅ Copie faite : ' + n.collectes + ' collectes, ' + n.clients + ' clients');
+        return db.ref('dct_sauvegardes_index').once('value');
+      }).then(function(si){
+        var idx = (si && si.val()) || {}, jours = Object.keys(idx).sort().reverse(), purge = {};
+        jours.slice(DEP_SAUV_JOURS).forEach(function(k){ purge['dct_sauvegardes/' + k] = null; purge['dct_sauvegardes_index/' + k] = null; });
+        if(Object.keys(purge).length) return db.ref().update(purge);
+      }).catch(function(e){
+        console.error('departs: sauvegarde quotidienne', e);
+        if(force) toast('❌ Échec de la copie : ' + ((e && e.message) || 'écriture refusée'));
+      });
+    });
+  });
+};
+function _depHtmlSauvegardes(){
+  return '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128190; Sauvegardes (' + DEP_SAUV_JOURS + ' derniers jours)</div>'
+    + '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Une copie de toutes les collectes, clients, camions et contacts est faite chaque jour. On restaure une collecte &agrave; la fois.</div>'
+    + '<button type="button" class="btn btn-gray" onclick="depSauvListe()">&#128194; Voir les sauvegardes</button>'
+    + '<button type="button" class="btn btn-gray" style="margin-top:8px;" onclick="depSauvegardeQuotidienne(true)">&#10133; Faire une copie maintenant</button>'
+    + '<div id="dep-sauv-zone" style="margin-top:10px;"></div>'
+    + '<div style="height:22px;"></div>';
+}
+window.depSauvListe = function(){
+  var z = document.getElementById('dep-sauv-zone'); if(!z) return;
+  z.innerHTML = '<div style="font-size:12px;color:#888;">Lecture&hellip;</div>';
+  db.ref('dct_sauvegardes_index').once('value', function(s){
+    var idx = s.val() || {}, jours = Object.keys(idx).sort().reverse();
+    if(!jours.length){ z.innerHTML = '<div style="font-size:12px;color:#888;">Aucune copie pour l\'instant. La premi&egrave;re se fait &agrave; la prochaine ouverture par la direction, ou avec &laquo; Faire une copie maintenant &raquo;.</div>'; return; }
+    z.innerHTML = jours.map(function(j){
+      var i = idx[j] || {}, p = j.split('-');
+      var h = i.ts ? new Date(i.ts) : null;
+      return '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+        + '<div><div style="font-size:13px;font-weight:800;">' + p[2] + '/' + p[1] + '/' + p[0] + (h ? ' &agrave; ' + String(h.getHours()).padStart(2,'0') + 'h' + String(h.getMinutes()).padStart(2,'0') : '') + '</div>'
+        + '<div style="font-size:12px;color:#666;">' + (i.collectes || 0) + ' collectes &middot; ' + (i.clients || 0) + ' clients</div></div>'
+        + '<span class="btn" style="padding:8px 12px;" onclick="depSauvOuvrir(\'' + j + '\')">Ouvrir</span></div>';
+    }).join('');
+  }, function(e){ z.innerHTML = '<div style="font-size:12px;color:#c0392b;">Lecture refus&eacute;e : ' + esc((e && e.message) || 'erreur') + '</div>'; });
+};
+window.depSauvOuvrir = function(jour){
+  var z = document.getElementById('dep-sauv-zone'); if(!z) return;
+  z.innerHTML = '<div style="font-size:12px;color:#888;">Chargement de la copie du ' + esc(jour) + '&hellip;</div>';
+  db.ref('dct_sauvegardes/' + jour + '/data').once('value', function(s){
+    var d = s.val();
+    if(!d){ z.innerHTML = '<div style="font-size:12px;color:#c0392b;">Copie introuvable.</div>'; return; }
+    _depSauvCourante = { jour: jour, data: d };
+    var cols = d.collectes ? (Array.isArray(d.collectes) ? d.collectes : Object.keys(d.collectes).map(function(k){ return d.collectes[k]; })) : [];
+    cols = cols.filter(Boolean).slice().sort(function(a,b){ return _depParseDateSure(b.date) - _depParseDateSure(a.date); });
+    var presentes = {}; (window.collectes || []).forEach(function(c){ if(c && c.id) presentes[c.id] = true; });
+    var h = '<div style="font-size:13px;font-weight:800;margin-bottom:8px;">Copie du ' + esc(jour) + ' : choisis la collecte &agrave; restaurer</div>';
+    cols.slice(0, 12).forEach(function(c){
+      var g = (d.clients || {})[c.id] || {}, ks = Object.keys(g).filter(function(k){ return g[k]; });
+      var tot = ks.reduce(function(a,k){ return a + (parseFloat(g[k].prix) || 0); }, 0);
+      h += '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;">'
+        + '<div style="font-size:13px;font-weight:800;">' + esc(c.date || '(sans date)') + '</div>'
+        + '<div style="font-size:12px;color:#666;margin:2px 0 8px;">' + ks.length + ' client' + (ks.length>1?'s':'') + ' &middot; ' + (Math.round(tot*100)/100) + ' &euro; &middot; ' + (presentes[c.id] ? 'pr&eacute;sente dans l\'appli' : '<b style="color:#c0392b;">absente de l\'appli</b>') + '</div>'
+        + '<span class="btn" style="padding:8px 12px;display:inline-block;" onclick="depSauvRestaurer(\'' + esc(c.id) + '\')">&#8617; Restaurer cette collecte</span></div>';
+    });
+    z.innerHTML = h;
+  }, function(e){ z.innerHTML = '<div style="font-size:12px;color:#c0392b;">Lecture refus&eacute;e : ' + esc((e && e.message) || 'erreur') + '</div>'; });
+};
+window.depSauvRestaurer = function(id){
+  var c0 = _depSauvCourante; if(!c0 || !c0.data) return;
+  var d = c0.data;
+  var cols = d.collectes ? (Array.isArray(d.collectes) ? d.collectes : Object.keys(d.collectes).map(function(k){ return d.collectes[k]; })) : [];
+  var col = cols.filter(function(c){ return c && c.id === id; })[0];
+  if(!col){ toast('Collecte introuvable dans la copie.'); return; }
+  var existe = (window.collectes || []).some(function(c){ return c && c.id === id; });
+  if(!confirm('Restaurer la collecte du ' + col.date + ' depuis la copie du ' + c0.jour + ' ?'
+      + (existe ? '\n\nAttention : elle existe déjà, ses clients actuels seront REMPLACÉS par ceux de la copie.' : ''))) return;
+  var copie = JSON.parse(JSON.stringify(col));
+  if(existe){ window.collectes = window.collectes.map(function(c){ return (c && c.id === id) ? copie : c; }); }
+  else { window.collectes.unshift(copie); }
+  window.clientsParCollecte[id] = JSON.parse(JSON.stringify((d.clients || {})[id] || {}));
+  if((d.dispatch || {})[id]) window.dispatchParCollecte[id] = JSON.parse(JSON.stringify(d.dispatch[id]));
+  else if(!window.dispatchParCollecte[id]) window.dispatchParCollecte[id] = { trucks:{}, assigned:{} };
+  try{ delete _collectesSupprimees[id]; db.ref('dct/collectes_supprimees/' + id).remove(); }catch(e){}
+  try{ _mettreAJourStatuts(); }catch(e){}
+  sauvegarder();
+  try{ renderCollectesList(); }catch(e){}
+  toast('✅ Collecte du ' + col.date + ' restaurée');
+  window.renderAdminOutils();
+};
+
 function _depHtmlCollectesDisparues(){
   var o = _depCollectesOrphelines();
-  var h = '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Relire la base (clients et camions)</button>'
+  var h = _depHtmlSauvegardes() + '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Relire la base (clients et camions)</button>'
     + _depHtmlReconstituer() + _depHtmlToutesCollectes()
     + '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128269; Collectes disparues</div>';
   if(!o.length){

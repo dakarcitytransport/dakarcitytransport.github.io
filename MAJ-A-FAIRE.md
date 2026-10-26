@@ -5536,3 +5536,19 @@ un téléphone en retard modifie G1, supprime k1, ajoute k3 pendant que d'autres
 ont ajouté la collecte N, un client dans G2 et le contact k4 : seuls
 `clients/G1` et les contacts k1/k3 sont écrits, N, le client de G2 et k4
 restent ; une 2e sauvegarde sans changement n'écrit rien.
+
+**26/10, dct-app.html v3.99.106 / departs.js v2.21.39 — SAUVEGARDE QUOTIDIENNE
+(15 jours) + restauration par collecte.** Fin du plan validé par Cobey (pas de
+sauvegarde Firebase automatique : payante). `depSauvegardeQuotidienne` (lancée
+6 s après l'ouverture de l'écran des espaces par la direction, une fois par
+jour) copie tout `dct` (sauf `activite`) dans `dct_sauvegardes/<AAAA-MM-JJ>` et
+écrit un index léger `dct_sauvegardes_index/<jour>` {ts, collectes, clients,
+par}; ne copie jamais une base vide ; purge au-delà de 15 jours
+(`DEP_SAUV_JOURS`). Réglages > Outils > « Sauvegardes » : liste des copies
+(date, nb collectes/clients), « Faire une copie maintenant », ouverture d'une
+copie (collectes, clients, €, « absente de l'appli ») et « Restaurer cette
+collecte » (réinsère la collecte, ses clients et ses camions, lève la trace de
+suppression, sauvegarde). Pas de restauration globale (trop risquée).
+Testé avec une fausse base : copie, purge à 15, restauration d'une collecte
+absente avec ses clients et son camion. Les règles Firebase doivent autoriser
+l'écriture de `dct_sauvegardes*` : sinon un message d'échec s'affiche à la copie manuelle.
