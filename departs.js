@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.28';
+var DEP_VERSION = 'v2.21.29';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14200,22 +14200,29 @@ function _depTousEnvoisContact(contactKey){
   // écrit à l'identique : on compare maintenant les 9 derniers chiffres
   // (+33 6 52…, 06 52…, 06.52… sont le même numéro).
   var refs = [telRef, contactKey, contact && contact.tel2].map(_depTelNorm).filter(Boolean);
+  // v2.21.29 : quand le contact ou la fiche n'a pas de vrai numéro, on
+  // rapproche aussi par le nom (mots dans n'importe quel ordre, sans
+  // accents ni majuscules) — beaucoup de fiches n'ont qu'un nom.
+  var nomRef = _depNomNorm(contact || {});
+  var contactSansTel = !refs.length;
   function memeContact(c){
     var k = c.tel ? c.tel.replace(/\s/g,'') : ((c.prenom||'')+'_'+(c.nom||'')).toLowerCase();
     if(k === contactKey || (telRef && k === telRef)) return true;
     var n = _depTelNorm(c.tel);
-    return !!(n && refs.indexOf(n) !== -1);
+    if(n && refs.length) return refs.indexOf(n) !== -1;
+    return !!(nomRef && (contactSansTel || !n) && _depNomNorm(c) === nomRef);
   }
 
   Object.keys(window.clientsParCollecte||{}).forEach(function(collecteId){
+    // v2.21.29 : une collecte qui n'est plus dans la liste (supprimée) peut
+    // encore avoir ses fiches rattachées à un container : on les garde.
     var col = (window.collectes||[]).filter(function(x){ return x && x.id === collecteId; })[0];
-    if(!col) return;
     var cls = window.clientsParCollecte[collecteId] || {};
     Object.keys(cls).forEach(function(clientId){
       var c = cls[clientId];
       if(!c) return;
       if(memeContact(c)){
-        resultats.push({ c: c, collecteId: collecteId, clientId: clientId, depot: false, terminee: col.statut === 'terminee' });
+        resultats.push({ c: c, collecteId: collecteId, clientId: clientId, depot: false, terminee: !!col && col.statut === 'terminee' });
       }
     });
   });
@@ -14244,6 +14251,13 @@ function _depTousEnvoisContact(contactKey){
 // Un numéro réduit à ses 9 derniers chiffres (null s'il en a moins) :
 // « +33 6 52 32 15 79 », « 06 52 32 15 79 » et « 0652321579 » donnent
 // le même résultat.
+function _depNomNorm(c){
+  var n = (c && (c.name || ((c.prenom||'') + ' ' + (c.nom||'')))) || '';
+  var mots = String(n).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .split(/[^a-z0-9]+/).filter(Boolean);
+  return mots.length >= 2 ? mots.sort().join(' ') : '';
+}
+
 function _depTelNorm(tel){
   var d = String(tel||'').replace(/\D/g, '');
   return d.length >= 9 ? d.slice(-9) : null;

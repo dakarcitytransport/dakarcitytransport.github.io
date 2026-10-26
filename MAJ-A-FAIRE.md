@@ -5377,3 +5377,18 @@ France », bouton Facture France), et comparaison par les 9 derniers chiffres du
 numéro (`_depTelNorm` : +33 6 52…, 06 52…, 06.52… = même numéro, tel2 compris).
 La Fidélité garde son propre compte des envois (`_depFideliteEnvoisContact`),
 non modifié.
+
+**26/10, dct-app.html v3.99.94 / departs.js v2.21.29 — Historique d'envoi,
+suite : toujours vide.** Cobey : « Il n'y a toujours rien sur son historique
+et j'ai vu que c'est surtout des clients qu'il n'y a rien du tout. »
+Deux causes. (a) **Mon oubli de version** : departs.js est chargé avec
+`?v=APP_VERSION` ; le correctif v2.21.28 était sorti SANS changer APP_VERSION
+(resté v3.99.93), donc les téléphones ayant déjà chargé `departs.js?v=v3.99.93`
+gardaient l'ancien fichier en cache. Règle : tout changement de departs.js
+exige un bump d'APP_VERSION. (b) Rapprochement trop strict : les fiches sans
+numéro (ou contact sans numéro) ne se retrouvaient jamais, et une collecte
+retirée de la liste faisait écarter ses fiches. Maintenant : sans vrai numéro
+d'un côté ou de l'autre, on rapproche par le nom (`_depNomNorm` : mots dans
+n'importe quel ordre, sans accents/majuscules, 2 mots minimum) ; un numéro
+différent écarte les homonymes ; les fiches d'une collecte supprimée sont
+gardées.
