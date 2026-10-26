@@ -5364,3 +5364,16 @@ masqués (`_appliquerSansActivite`, rappelé à la connexion et à chaque
 `dct_connexions`) — plus de pastille ni de travail pour rien. Les autres
 profils ne changent pas. Leurs propres actions continuent d'alimenter le fil
 vu par la direction. Le vidage d'historique fait la veille reste en place.
+
+**26/10, departs.js v2.21.28 — Historique d'envoi d'un contact : retrouve les
+anciens envois.** Cobey : « je sais que ce client a déjà fait plusieurs envois
+[...] mais quand je regarde l'historique, je ne trouve rien. Pourquoi ? » puis
+« Ok » sur ma proposition. Causes dans `_depTousEnvoisContact` : (1) les
+collectes terminées étaient écartées (choix de v1.19.5) — or les anciens
+envois y sont ; (2) les clients France n'étaient jamais cherchés ; (3) le
+numéro devait être identique au caractère près. Maintenant : collectes
+terminées incluses (mention « (terminée) »), clients France inclus (« Ramassage
+France », bouton Facture France), et comparaison par les 9 derniers chiffres du
+numéro (`_depTelNorm` : +33 6 52…, 06 52…, 06.52… = même numéro, tel2 compris).
+La Fidélité garde son propre compte des envois (`_depFideliteEnvoisContact`),
+non modifié.

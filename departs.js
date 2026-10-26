@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.27';
+var DEP_VERSION = 'v2.21.28';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14192,21 +14192,30 @@ function _depTousEnvoisContact(contactKey){
   var resultats = [];
   var contact = (window.dctContacts||{})[contactKey];
   var telRef = contact ? (contact.tel||'').replace(/\s/g,'') : '';
+  // v2.21.28 — Cobey, 26/10/2026 : « ce client a déjà fait plusieurs envois
+  // [...] mais quand je regarde l'historique je ne trouve rien. » Trois
+  // trous bouchés : (1) les collectes TERMINÉES étaient écartées depuis
+  // v1.19.5 — or les anciens envois y sont presque tous ; (2) les clients
+  // France & Europe n'étaient jamais cherchés ; (3) le numéro devait être
+  // écrit à l'identique : on compare maintenant les 9 derniers chiffres
+  // (+33 6 52…, 06 52…, 06.52… sont le même numéro).
+  var refs = [telRef, contactKey, contact && contact.tel2].map(_depTelNorm).filter(Boolean);
+  function memeContact(c){
+    var k = c.tel ? c.tel.replace(/\s/g,'') : ((c.prenom||'')+'_'+(c.nom||'')).toLowerCase();
+    if(k === contactKey || (telRef && k === telRef)) return true;
+    var n = _depTelNorm(c.tel);
+    return !!(n && refs.indexOf(n) !== -1);
+  }
 
   Object.keys(window.clientsParCollecte||{}).forEach(function(collecteId){
-    // v1.19.5 : on ne remonte l'historique que pour les collectes en cours
-    // ou à venir — les collectes déjà terminées (souvent d'anciennes fiches
-    // jamais complétées) ne sont plus comptabilisées ici, elles restent
-    // consultables dans ARCHIVAGE.
     var col = (window.collectes||[]).filter(function(x){ return x && x.id === collecteId; })[0];
-    if(!col || col.statut === 'terminee') return;
+    if(!col) return;
     var cls = window.clientsParCollecte[collecteId] || {};
     Object.keys(cls).forEach(function(clientId){
       var c = cls[clientId];
       if(!c) return;
-      var k = c.tel ? c.tel.replace(/\s/g,'') : (c.prenom+'_'+c.nom).toLowerCase();
-      if(k === contactKey || (telRef && k === telRef)){
-        resultats.push({ c: c, collecteId: collecteId, clientId: clientId, depot: false });
+      if(memeContact(c)){
+        resultats.push({ c: c, collecteId: collecteId, clientId: clientId, depot: false, terminee: col.statut === 'terminee' });
       }
     });
   });
@@ -14214,14 +14223,30 @@ function _depTousEnvoisContact(contactKey){
   Object.keys(window.depotClients||{}).forEach(function(id){
     var c = window.depotClients[id];
     if(!c) return;
-    var k = c.tel ? c.tel.replace(/\s/g,'') : (c.prenom+'_'+c.nom).toLowerCase();
-    if(k === contactKey || (telRef && k === telRef)){
+    if(memeContact(c)){
       resultats.push({ c: c, collecteId: '', clientId: id, depot: true });
+    }
+  });
+
+  var fc = (window.franceData||{}).clients || {};
+  Object.keys(fc).forEach(function(id){
+    var c = fc[id];
+    if(!c) return;
+    if(memeContact(c)){
+      resultats.push({ c: c, collecteId: '', clientId: id, depot: false, france: true });
     }
   });
 
   resultats.sort(function(a,b){ return (b.c.creeLe||0) - (a.c.creeLe||0); });
   return resultats;
+}
+
+// Un numéro réduit à ses 9 derniers chiffres (null s'il en a moins) :
+// « +33 6 52 32 15 79 », « 06 52 32 15 79 » et « 0652321579 » donnent
+// le même résultat.
+function _depTelNorm(tel){
+  var d = String(tel||'').replace(/\D/g, '');
+  return d.length >= 9 ? d.slice(-9) : null;
 }
 
 // v1.19.0 : rend fonctionnels les deux boutons "À venir" du menu Actions
@@ -14251,9 +14276,11 @@ window.depOuvrirHistoriqueContact = function(){
       var origine;
       if(e.depot){
         origine = 'D&eacute;p&ocirc;t direct';
+      } else if(e.france){
+        origine = 'Ramassage France';
       } else {
         var colOrig = (window.collectes||[]).filter(function(x){ return x && x.id === e.collecteId; })[0];
-        origine = colOrig ? ('Collecte du ' + esc(colOrig.date||'')) : 'Collecte';
+        origine = (colOrig ? ('Collecte du ' + esc(colOrig.date||'')) : 'Collecte') + (e.terminee ? ' (termin&eacute;e)' : '');
       }
       h += '<div class="dep-card" style="border-left-color:'+(st ? st.dot : '#ccc')+';">'
         +   '<div class="dep-card-top">'
@@ -14268,7 +14295,9 @@ window.depOuvrirHistoriqueContact = function(){
         +   '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
         +     (d ? ('<button type="button" class="dep-cli-btn" onclick="depDetail(\''+d._id+'\')">&#128230; Voir le d&eacute;part</button>') : '')
         +     '<button type="button" class="dep-cli-btn" style="background:#EAF7EE;border-color:#C8E6D0;color:#006b2d;" '
-        +       'onclick="depOuvrirFacture(\''+(e.collecteId||'')+'\',\''+e.clientId+'\','+(e.depot?'true':'false')+',false,false,true)">&#129534; Facture</button>'
+        +       (e.france
+                  ? 'onclick="depOuvrirFactureFrance(\''+e.clientId+'\')">&#129534; Facture</button>'
+                  : 'onclick="depOuvrirFacture(\''+(e.collecteId||'')+'\',\''+e.clientId+'\','+(e.depot?'true':'false')+',false,false,true)">&#129534; Facture</button>')
         +   '</div>'
         + '</div>';
     });
