@@ -5595,3 +5595,19 @@ Samba, Boubacar » (4 prénoms au plus, puis « +N »), « personne pour
 l'instant » si tous ont répondu non, « pas encore de réponses » sinon. Mêmes
 règles que la ligne « DISPONIBLES » des cartes de collecte (`_depGensPourJour`,
 `_depDispoDe`).
+
+**26/10, mamadou.html v1.18.0 — Containers de Mamadou : couleur selon l'état.**
+Cobey (capture de la liste, deux « Chargement DKR » indiscernables) : « fais bien
+une distinction des conteneurs pour Mamadou [...] s'ils sont arrivés ou pas »,
+puis « plutôt que des pastilles, des couleurs directement dans les espaces,
+couleur pastel », « Mamadou ne voit que les conteneurs à partir du statut
+parti » et « les containers clos on les retire pour lui ». Liste
+(`ouvrirContainers`) : carte VERTE pastel = « ✅ Arrivé à Dakar · le <date> »
+avec « N à remettre sur M clients · part le … » ; carte BLEUE pastel = « 🚢 En
+route · pas encore arrivé » (reste cliquable : c'est de là qu'il valide
+l'arrivée au dépôt). Dates en français. Arrivés d'abord (récents en tête), puis
+en route. Containers clôturés retirés de la liste (le Dépôt reste, neutre).
+`_cdEtat(d)` : « arrivé » = étape « Arrivée au dépôt » faite ou statut
+« arrivé » ; « clôturé » = statut cloture. En tête de la fiche d'un container,
+la ligne de suivi prend la même couleur avec l'état. `containerAutorise` n'est
+pas modifié (scan, Dépôt Dakar et saisie de secours fonctionnent comme avant).

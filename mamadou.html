@@ -59,6 +59,15 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
 .scan-msg{text-align:center;font-size:13px;color:#555;margin-bottom:14px;}
 
 /* Liste containers / clients */
+.cont-item.arrive{background:#E3F4EA;border-color:#BFE3CC;}
+.cont-item.arrive .cont-nom{color:#0a5a2c;}
+.cont-item.route{background:#E4ECFA;border-color:#C4D3F1;}
+.cont-item.route .cont-nom{color:#26407e;}
+.cont-etat{font-size:12px;font-weight:800;margin-top:3px;}
+.cont-item.arrive .cont-etat{color:#0a6b30;}
+.cont-item.route .cont-etat{color:#2f4f9a;}
+.cd-suivi-ligne.arrive{background:#E3F4EA;color:#0a5a2c;}
+.cd-suivi-ligne.route{background:#E4ECFA;color:#26407e;}
 .cont-item{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:9px;cursor:pointer;}
 .cont-nom{font-size:14px;font-weight:800;color:#111;}
 .cont-sub{font-size:11.5px;color:#888;margin-top:2px;}
@@ -507,7 +516,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.17.2';
+var MAMADOU_VERSION = 'v1.18.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1037,22 +1046,64 @@ function _secoursErreur(msg){
 }
 
 /* ─────────── Containers ─────────── */
+// v1.18.0 — Cobey, 26/10/2026 : « fais bien une distinction des conteneurs
+// pour Mamadou, qui voit quel conteneur est à quel statut, s'ils sont
+// arrivés ou pas. » Deux « Chargement DKR » ne se distinguaient que par une
+// date en 2026-09-20. Maintenant : carte verte pastel = arrivé au dépôt de
+// Dakar, bleu pastel = en route ; les containers clôturés ne lui sont plus
+// montrés. « Arrivé » = étape « Arrivée au dépôt » validée (par lui) ou
+// statut « arrivé ».
+function _cdEtat(d){
+  if(d && d.statut === 'cloture') return 'cloture';
+  var e = d && d.etapesTransport && d.etapesTransport.arrivee_depot;
+  return ((e && e.fait) || (d && d.statut === 'arrive')) ? 'arrive' : 'route';
+}
+function _mnMsDate(s){
+  s = String(s || '').trim();
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1], +m[2]-1, +m[3], 12).getTime();
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m) return new Date(+m[3], +m[2]-1, +m[1], 12).getTime();
+  return 0;
+}
+function _mnDateFr(ms){
+  if(!ms) return '';
+  var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var d = new Date(ms), an = new Date().getFullYear();
+  return d.getDate() + ' ' + MOIS[d.getMonth()] + (d.getFullYear() !== an ? ' ' + d.getFullYear() : '');
+}
 function ouvrirContainers(){
   goTo('ecran-containers');
-  var ids = Object.keys(departsData).filter(function(id){ return containerAutorise(id) && clientsDuContainer(id).length > 0; });
+  var ids = Object.keys(departsData).filter(function(id){
+    if(!containerAutorise(id) || clientsDuContainer(id).length === 0) return false;
+    return id === DEP_ID_DEPOT || _cdEtat(departsData[id]) !== 'cloture';
+  });
   ids.sort(function(a,b){
     if(a === DEP_ID_DEPOT) return 1;
     if(b === DEP_ID_DEPOT) return -1;
-    return String((departsData[a]||{}).nom||'').localeCompare(String((departsData[b]||{}).nom||''));
+    var ea = _cdEtat(departsData[a]) === 'arrive' ? 0 : 1, eb = _cdEtat(departsData[b]) === 'arrive' ? 0 : 1;
+    if(ea !== eb) return ea - eb;
+    return _mnMsDate((departsData[b]||{}).dateDepart) - _mnMsDate((departsData[a]||{}).dateDepart);
   });
   var h = ids.length ? '' : '<div class="vide">Aucun client pour le moment.</div>';
   ids.forEach(function(id){
     var d = departsData[id] || {};
     var n = clientsDuContainer(id).length;
     var drapeau = (id !== DEP_ID_DEPOT) ? ((DEP_PAYS_DEST[depPaysDepart(d)] || {}).drapeau || '') + ' ' : '📦 ';
-    h += '<div class="cont-item" onclick="ouvrirContainerDetail(\''+esc(id)+'\')">'
+    var etat = (id === DEP_ID_DEPOT) ? '' : _cdEtat(d);
+    var dep = _mnMsDate(d.dateDepart);
+    var etatTxt = '', sub = n+' client'+(n>1?'s':'');
+    if(etat === 'arrive'){
+      var arr = d.etapesTransport && d.etapesTransport.arrivee_depot;
+      var aRemettre = clientsDuContainer(id).filter(function(x){ return !_mnColisRemis(x.c); }).length;
+      etatTxt = '✅ Arrivé à Dakar' + ((arr && arr.ts) ? ' · le ' + _mnDateFr(arr.ts) : '');
+      sub = aRemettre + ' à remettre sur ' + n + ' client' + (n>1?'s':'') + (dep ? ' · part le ' + _mnDateFr(dep) : '');
+    } else if(etat === 'route'){
+      etatTxt = '🚢 En route · pas encore arrivé';
+      sub = n + ' client' + (n>1?'s':'') + (dep ? ' · part le ' + _mnDateFr(dep) : (d.dateDepart ? ' · ' + esc(d.dateDepart) : ''));
+    } else if(d.dateDepart){ sub += ' · ' + esc(d.dateDepart); }
+    h += '<div class="cont-item'+(etat ? ' '+etat : '')+'" onclick="ouvrirContainerDetail(\''+esc(id)+'\')">'
       +   '<div><div class="cont-nom">'+drapeau+esc(d.nom||id)+'</div>'
-      +     '<div class="cont-sub">'+n+' client'+(n>1?'s':'')+(d.dateDepart?(' · '+esc(d.dateDepart)):'')+'</div></div>'
+      +     (etatTxt ? '<div class="cont-etat">'+etatTxt+'</div>' : '')
+      +     '<div class="cont-sub">'+sub+'</div></div>'
       +   '<div class="cont-fleche">›</div>'
       + '</div>';
   });
@@ -1221,14 +1272,17 @@ function fermerContainerDetail(){ goTo('ecran-containers'); }
 function _cdMajBlocArrivee(){
   var bloc = $('cd-arrivee-bloc');
   var ligne = $('cd-suivi-ligne');
-  if(_cdDepartId === DEP_ID_DEPOT){ bloc.hidden = true; ligne.innerHTML = ''; return; }
+  if(_cdDepartId === DEP_ID_DEPOT){ bloc.hidden = true; ligne.className = 'cd-suivi-ligne'; ligne.innerHTML = ''; return; }
   var d = departsData[_cdDepartId] || {};
   var suivante = etapeSuivante(d);
   bloc.hidden = !(suivante && suivante.key === 'arrivee_depot');
   var affichee = etapeAffichee(d);
-  ligne.innerHTML = affichee
-    ? ('📍 Étape en cours : <strong>' + esc(affichee.label) + '</strong>')
-    : '✅ Toutes les étapes du suivi sont validées.';
+  var etat = _cdEtat(d);
+  ligne.className = 'cd-suivi-ligne ' + (etat === 'cloture' ? '' : etat);
+  ligne.innerHTML = (etat === 'arrive' ? '<strong>✅ Arrivé à Dakar</strong><br>' : (etat === 'route' ? '<strong>🚢 En route · pas encore arrivé</strong><br>' : ''))
+    + (affichee
+      ? ('📍 Étape en cours : <strong>' + esc(affichee.label) + '</strong>')
+      : (etat === 'arrive' ? '' : '✅ Toutes les étapes du suivi sont validées.'));
 }
 // v1.6.0 — Cobey : « Niass a besoin de savoir le total facturé en
 // livraison du container, le total encaissé et le total restant [...]
