@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.39';
+var DEP_VERSION = 'v2.21.40';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25789,16 +25789,37 @@ window.depSupprimerPhotosDepart = function(departId){
 // "🔧 Outils" (voir DEP_REGLAGES_ITEMS + Section Z2 dans greffer()) —
 // affichés directement, plus besoin de les replier puisqu'ils ne sont
 // plus mélangés avec autre chose sur le même écran.
+/* v2.21.40 — Cobey, 26/10/2026 : « dans le réglage outils, il y a trop de
+   menus. Il faut alléger ça. Garder le plus simple et le plus utile. » Quatre
+   blocs repliés au lieu d'une longue page : Sauvegardes, Retrouver une
+   collecte, Vider l'historique d'un profil, et « Avancé » pour le reste
+   (Activité, collectes en mémoire, diagnostic, civilités, relevé de lenteur). */
+window._depOutilsOuverts = window._depOutilsOuverts || {};
+function _depAccordeon(cle, titre, sous, corps){
+  return '<details ' + (window._depOutilsOuverts[cle] ? 'open ' : '') + 'ontoggle="_depOutilsOuverts[\'' + cle + '\']=this.open" '
+    + 'style="background:#fff;border:1.5px solid #e0e0e0;border-radius:14px;margin-bottom:10px;overflow:hidden;">'
+    + '<summary style="cursor:pointer;padding:14px;display:flex;align-items:center;gap:10px;">'
+    +   '<span style="flex:1;min-width:0;font-size:15px;font-weight:800;color:#1a1a2e;">' + titre
+    +     '<span style="display:block;font-size:12px;font-weight:500;color:#888;margin-top:2px;">' + sous + '</span></span>'
+    +   '<span style="color:#888;font-size:16px;">&#9662;</span></summary>'
+    + '<div style="padding:0 14px 14px;">' + corps + '</div></details>';
+}
 function _depHtmlOutils(){
-  return _htmlCorrectionCivilites()
-    + '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🔍 Diagnostic</div>'
+  var limite = Date.now() - 45*24*3600*1000;
+  var nbOrph = _depCollectesOrphelines().filter(function(g){ return g.cree >= limite; }).length;
+  var diag = '<div style="font-size:13px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">🔍 Diagnostic</div>'
     + '<div style="font-size:12px;color:#888;margin-bottom:12px;">Cherche les clients supprim&eacute;s encore r&eacute;f&eacute;renc&eacute;s dans un camion. L\'analyse ne modifie rien.</div>'
     + '<button type="button" class="btn btn-gray" style="color:#1a237e;border:1.5px solid #1a237e;" onclick="afficherReferencesOrphelines()">🔍 Analyser</button>'
     + '<button type="button" class="btn btn-gray" style="background:#fff3e0;color:#e65100;border:1.5px solid #e65100;margin-top:8px;" onclick="nettoyerOrphelinsCollecteEnCours()">🧹 Nettoyer la collecte en cours</button>'
     + '<div style="font-size:11.5px;color:#999;margin-top:8px;line-height:1.55;">Retire uniquement les r&eacute;f&eacute;rences sans fiche client, sur la collecte en cours. Les clients existants ne sont jamais touch&eacute;s.</div>'
-    + '<div style="height:22px;"></div>'
-    + _depHtmlCollectesDisparues()
-    + _depHtmlViderActivite();
+    + '<div style="height:18px;"></div>';
+  return '<style>#admin-section-outils summary{list-style:none}#admin-section-outils summary::-webkit-details-marker{display:none}</style>'
+    + _depAccordeon('sauv', '&#128190; Sauvegardes', 'Une copie par jour, ' + DEP_SAUV_JOURS + ' jours gard&eacute;s', _depHtmlSauvegardes())
+    + _depAccordeon('retrouver', '&#128737;&#65039; Retrouver une collecte', nbOrph ? (nbOrph + ' &agrave; r&eacute;cup&eacute;rer') : 'Si une collecte a disparu',
+        '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Relire la base (clients et camions)</button>' + _depHtmlCollectesDisparues())
+    + _depAccordeon('histo', '&#128465;&#65039; Vider l\'historique d\'un profil', 'Samba, Boubacar, Ibrahima', _depHtmlViderActivite())
+    + _depAccordeon('avance', '&#128295; Avanc&eacute;', 'Activit&eacute;, statuts, diagnostic, lenteur',
+        _depHtmlReconstituer() + _depHtmlToutesCollectes() + diag + _htmlCorrectionCivilites() + _depHtmlReleveLenteur());
 }
 
 /* v2.21.33 — Cobey, 26/10/2026 : « il y avait des collectes pour les
@@ -25846,7 +25867,7 @@ function _depProchainDimancheIso(){
 function _depHtmlToutesCollectes(){
   var cols = (window.collectes || []).filter(Boolean).slice().sort(function(a,b){ return _depParseDateSure(b.date) - _depParseDateSure(a.date); });
   var lib = { en_cours:'En cours', a_venir:'À venir', terminee:'Terminée' };
-  var h = '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128203; Collectes en m&eacute;moire (' + cols.length + ')</div>'
+  var h = '<div style="font-size:13px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128203; Collectes en m&eacute;moire (' + cols.length + ')</div>'
     + '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Tout ce que l\'appli a sur ce t&eacute;l&eacute;phone, avec le statut qui d&eacute;cide de l\'endroit o&ugrave; la collecte s\'affiche.</div>';
   cols.slice(0, 8).forEach(function(c){
     var cls = (window.clientsParCollecte || {})[c.id] || {};
@@ -25883,7 +25904,7 @@ function _depNormNom(s){
 }
 function _depHtmlReconstituer(){
   var st = 'margin-bottom:10px;';
-  return '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#129520; Retrouver une collecte par l\'Activit&eacute;</div>'
+  return '<div style="font-size:13px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#129520; Retrouver une collecte par l\'Activit&eacute;</div>'
     + '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Relit le fil d\'Activit&eacute; : chaque client ajout&eacute; &agrave; une collecte y est not&eacute; avec son colis et son prix.</div>'
     + '<input class="fi" id="dep-act-motif" value="1 novembre" style="' + st + '" placeholder="ex. 1 novembre">'
     + '<button type="button" class="btn btn-gray" onclick="depActiviteChercher()">&#128269; Chercher dans l\'Activit&eacute;</button>'
@@ -26064,8 +26085,7 @@ window.depSauvegardeQuotidienne = function(force){
   });
 };
 function _depHtmlSauvegardes(){
-  return '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128190; Sauvegardes (' + DEP_SAUV_JOURS + ' derniers jours)</div>'
-    + '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Une copie de toutes les collectes, clients, camions et contacts est faite chaque jour. On restaure une collecte &agrave; la fois.</div>'
+  return '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Une copie de toutes les collectes, clients, camions et contacts est faite chaque jour. On restaure une collecte &agrave; la fois.</div>'
     + '<button type="button" class="btn btn-gray" onclick="depSauvListe()">&#128194; Voir les sauvegardes</button>'
     + '<button type="button" class="btn btn-gray" style="margin-top:8px;" onclick="depSauvegardeQuotidienne(true)">&#10133; Faire une copie maintenant</button>'
     + '<div id="dep-sauv-zone" style="margin-top:10px;"></div>'
@@ -26134,9 +26154,7 @@ window.depSauvRestaurer = function(id){
 
 function _depHtmlCollectesDisparues(){
   var o = _depCollectesOrphelines();
-  var h = _depHtmlSauvegardes() + '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Relire la base (clients et camions)</button>'
-    + _depHtmlReconstituer() + _depHtmlToutesCollectes()
-    + '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128269; Collectes disparues</div>';
+  var h = '';
   if(!o.length){
     return h + '<div style="font-size:12px;color:#888;margin-bottom:22px;line-height:1.55;">Aucun client orphelin : toutes les fiches clients sont rattach&eacute;es &agrave; une collecte existante.</div>';
   }
@@ -26191,8 +26209,7 @@ var DEP_PROFILS_ACTIVITE = [
 ];
 function _depHtmlViderActivite(){
   var st = 'margin-top:8px;background:#fff;color:#992020;border:1.5px solid #c0392b;';
-  return '<div style="font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">&#128465;&#65039; Vider l\'historique d\'un profil</div>'
-    + '<div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.55;">Efface le fil d\'Activit&eacute; de la personne (comme si elle avait appuy&eacute; sur &laquo; Effacer &raquo;). Les autres profils gardent le leur. Irr&eacute;versible.</div>'
+  return '<div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.55;">Efface le fil d\'Activit&eacute; de la personne (comme si elle avait appuy&eacute; sur &laquo; Effacer &raquo;). Les autres profils gardent le leur. Irr&eacute;versible.</div>'
     + DEP_PROFILS_ACTIVITE.map(function(p){
         return '<button type="button" class="btn btn-gray" style="'+st+'" onclick="depViderActiviteProfil(\''+p.id+'\')">Vider l\'historique : '+p.nom+'</button>';
       }).join('')
@@ -26554,7 +26571,7 @@ window._depReleveTexte = _depReleveTexte;
 window.renderAdminOutils = function(){
   var sec = document.getElementById('admin-section-outils');
   if(!sec) return;
-  sec.innerHTML = _depHtmlOutils() + _depHtmlReleveLenteur();
+  sec.innerHTML = _depHtmlOutils();
 };
 
 // v1.21.9 : les 4 sous-carrés qui remplacent l'ancien carré unique

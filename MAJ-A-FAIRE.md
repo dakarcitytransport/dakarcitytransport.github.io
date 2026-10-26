@@ -5552,3 +5552,14 @@ suppression, sauvegarde). Pas de restauration globale (trop risquée).
 Testé avec une fausse base : copie, purge à 15, restauration d'une collecte
 absente avec ses clients et son camion. Les règles Firebase doivent autoriser
 l'écriture de `dct_sauvegardes*` : sinon un message d'échec s'affiche à la copie manuelle.
+
+**26/10, dct-app.html v3.99.107 / departs.js v2.21.40 — Réglages > Outils
+allégé.** Cobey : « dans le réglage outils, il y a trop de menus. Il faut
+alléger ça. Garder le plus simple et le plus utile. » Une longue page de huit
+blocs remplacée par QUATRE blocs repliés (`<details>`, `_depAccordeon`, état
+ouvert/fermé retenu dans `_depOutilsOuverts`) : 💾 Sauvegardes ; 🛡️ Retrouver
+une collecte (Relire la base + collectes disparues, avec le nombre à
+récupérer sur la ligne) ; 🗑️ Vider l'historique d'un profil ; 🔧 Avancé
+(recherche par l'Activité, collectes en mémoire + recalcul des statuts,
+diagnostic, civilités, relevé de lenteur). Aucune fonction retirée : tout est
+rangé, plus rien n'est supprimé.
