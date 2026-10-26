@@ -5337,3 +5337,17 @@ Aminata et « Autre » ajoutés.** Cobey : « Ajoute Aminata et Autre » (liste 
 noms du poste Salaires). `_depCollabsPourSalaire` ne retire plus Aminata (AM)
 et ajoute l'entrée « Autre » (id `AUTRE`). Nouvelle liste : Issyaka,
 Abdoulaye, Samba, Ibrahima, Boubacar, Aminata, Eric, Autre.
+
+**26/10, departs.js v2.21.26 — « Inscription au dépôt » : uniquement les
+inscriptions au dépôt.** Cobey : « Pourquoi inscription au dépôt marque 82
+clients ? » puis « ici, on doit parler que de clients qui sont inscrits au
+dépôt. J'avais mis le récap du conteneur pour les autres collaborateurs [...]
+mais ici il faut vraiment qu'on soit ciblé sur les inscriptions au dépôt. »
+Le 82 était la somme des clients de tous les containers ouverts à
+l'inscription (collecte + France + dépôt, `compteursDepart`), choix de
+v1.19.69 (29/08). Maintenant, `_depNbInscritsDepot(departId)` ne compte que les
+clients inscrits directement au dépôt (`depotClients`) : la case de l'accueil
+des espaces (« N clients inscrits au dépôt »), les cartes de départ de la
+liste (« N inscrits au dépôt ») et l'écran détail d'un départ, qui ne liste
+plus que ces clients (titre « Clients inscrits au dépôt »). Le récap complet
+du container reste dans Départs.

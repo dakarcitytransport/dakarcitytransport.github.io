@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.25';
+var DEP_VERSION = 'v2.21.26';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5046,6 +5046,13 @@ var _depDepotViaCarre = false;
 // du Dépôt Dakar (case Stockage) — « retour » doit y ramener.
 var _depDepotViaDakar = false;
 
+// v2.21.26 : clients inscrits DIRECTEMENT au dépôt pour un départ (hors
+// clients venus d'une collecte ou de France & Europe).
+function _depNbInscritsDepot(departId){
+  var dc = window.depotClients || {};
+  return Object.keys(dc).filter(function(k){ return dc[k] && dc[k].departId === departId; }).length;
+}
+
 window.depCarreDepotOuvrir = function(){
   goTo('s-depot-carre-liste');
   var box = $('depot-carre-liste');
@@ -5072,11 +5079,14 @@ window.depCarreDepotOuvrir = function(){
     // équivalente du carré Départs (Collecte + Dépôt + France & Europe),
     // donnant l'impression de clients "manquants" (retour de Cobey du
     // 29/08/2026 : "le nombre" ne correspond pas entre les deux carrés).
-    var nbDp = compteursDepart(id).clients;
+    // v2.21.26 : de nouveau uniquement les inscriptions au dépôt (voir la
+    // case Inscription au dépôt, accueil des espaces) — le total du
+    // container reste dans Départs.
+    var nbDp = _depNbInscritsDepot(id);
     h += '<div class="dep-card" style="cursor:pointer;" onclick="depCarreDepotContainer(\''+id+'\')">'
       +   '<div class="dep-card-top"><div class="dep-nom">'+pays.drapeau+' '+esc(d.nom||'D&eacute;part')+'</div>'
       +     '<div class="dep-badge" style="background:#EDEDED;color:#333;">'+pays.nom+'</div></div>'
-      +   '<div class="dep-meta"><span>Part le '+dateFr(d.dateDepart)+'</span><span>'+nbDp+' client'+(nbDp>1?'s':'')+'</span></div>'
+      +   '<div class="dep-meta"><span>Part le '+dateFr(d.dateDepart)+'</span><span>'+nbDp+' inscrit'+(nbDp>1?'s':'')+' au d&eacute;p&ocirc;t</span></div>'
       + '</div>';
   });
   box.innerHTML = h;
@@ -5107,7 +5117,9 @@ window.depCarreDepotContainer = function(departId){
   // depCarreDepotFiltrer) — retour de Cobey du 28/08/2026.
   _depDepotCarreDepartId = departId;
   _depDepotCarrePeutInscrire = peutInscrire;
-  var _depotTousAffiches = clientsCollecte.concat(clientsDepot).concat(clientsFranceCarre);
+  // v2.21.26 : uniquement les inscriptions directes au dépôt (clientsCollecte
+  // et clientsFranceCarre restent calculés plus haut mais ne sont plus listés).
+  var _depotTousAffiches = clientsDepot;
   // v1.94.35 : même visuel que l'écran Départ — numéro de place (voir
   // _depPastilleRang) et tri du plus récent au plus ancien, plutôt
   // qu'alphabétique (retour de Cobey du 30/09/2026 : « faut juste
@@ -5154,10 +5166,10 @@ function _depDepotCarreRenderListe(filtre){
     h += '<button class="btn btn-gray" style="margin-bottom:14px;border-color:#C8E6D0;background:#EAF7EE;color:#006b2d;" '
       +  'onclick="depOuvrirDepotForm(\''+departId+'\',null,true)">&#127970; Inscrire un client au d&eacute;p&ocirc;t</button>';
   }
-  h += '<div class="dep-sec" style="border-top:none;padding-top:0;margin-top:0;">Clients de ce d&eacute;part'
+  h += '<div class="dep-sec" style="border-top:none;padding-top:0;margin-top:0;">Clients inscrits au d&eacute;p&ocirc;t'
     + (q ? ' &mdash; ' + liste.length + ' r&eacute;sultat' + (liste.length>1?'s':'') : '') + '</div>';
   if(!liste.length){
-    h += '<div class="dep-vide" style="padding:28px 16px;">'+(q ? 'Aucun client ne correspond &agrave; cette recherche.' : 'Aucun client pour l\'instant.')+'</div>';
+    h += '<div class="dep-vide" style="padding:28px 16px;">'+(q ? 'Aucun client ne correspond &agrave; cette recherche.' : 'Aucun client inscrit au d&eacute;p&ocirc;t pour l\'instant.')+'</div>';
   } else {
     liste.forEach(function(x){
       var c = x.c;
@@ -5774,10 +5786,16 @@ window.depRenderEspaces = function(){
   // clients des départs actuellement ouverts à l'inscription.
   var sdp = $('dep-case-sub-depot');
   if(sdp){
+    // v2.21.26 — Cobey, 26/10/2026 : « Pourquoi inscription au dépôt marque
+    // 82 clients ? » puis « ici, on doit parler que de clients qui sont
+    // inscrits au dépôt [...] il faut vraiment qu'on soit ciblé sur les
+    // inscriptions au dépôt. » Le total est celui de tout le container
+    // (collecte + France + dépôt) : on ne compte plus que les inscriptions
+    // directes au dépôt (le récap du container reste dans Départs).
     var nbDp = departsDisponibles().reduce(function(somme, d){
-      return somme + compteursDepart(d._id).clients;
+      return somme + _depNbInscritsDepot(d._id);
     }, 0);
-    sdp.innerHTML = nbDp === 0 ? 'Aucun client' : '<b style="color:#B8720C;">'+nbDp+'</b> client'+(nbDp>1?'s':'')+'<br>au d&eacute;p&ocirc;t';
+    sdp.innerHTML = nbDp === 0 ? 'Aucun client inscrit' : '<b style="color:#B8720C;">'+nbDp+'</b> client'+(nbDp>1?'s':'')+' inscrit'+(nbDp>1?'s':'')+'<br>au d&eacute;p&ocirc;t';
   }
 
   // Case STOCKAGE (v2.20.40) — Mitry (dépôt pré-départ) + Dépôt Dakar
