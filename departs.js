@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.42';
+var DEP_VERSION = 'v2.21.43';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5878,23 +5878,29 @@ window.depRenderEspaces = function(){
      qui organise veut voir qui manque à l'appel. */
   var spl = $('dep-case-sub-planning');
   if(spl && _voit('planning')){
-    var _amoi = (typeof _depDimanchesSansMaReponse === 'function')
-      ? _depDimanchesSansMaReponse() : 0;
-    var _organise = (typeof _depPeutOrganiserPlanning === 'function') && _depPeutOrganiserPlanning();
-    if(_amoi){
-      spl.innerHTML = '<b style="color:#E65100;">' + _amoi + '</b> jour'
-        + (_amoi > 1 ? 's' : '') + '<br>&agrave; renseigner';
-    } else if(_organise){
-      var _muets = 0;
-      try{
-        _depPlanningJours().slice(0, 3).forEach(function(d){ _muets += _depCompteDispo(d.iso).muets.length; });
-      }catch(e){}
-      spl.innerHTML = _muets
-        ? '<b style="color:#E65100;">' + _muets + '</b> sans r&eacute;ponse<br>&agrave; venir'
-        : 'Disponibilit&eacute;s<br>&agrave; jour';
-    } else {
-      spl.innerHTML = 'Disponibilit&eacute;s<br>de l\'&eacute;quipe';
-    }
+    // v2.21.43 — Cobey, 26/10/2026 : « dans le sous-titre de planning, c'est
+    // possible de mettre les disponibilités des gens au lieu de mettre ce
+    // qu'il y a actuellement ? » : le prochain jour du planning et les
+    // prénoms de ceux qui sont disponibles (avant : « N sans réponse à venir »).
+    try{
+      var _auj = _depPlIsoAujourdhui();
+      var _jours = _depPlanningJours();
+      var _prochain = _jours.filter(function(d){ return d.iso >= _auj; })[0] || _jours[0];
+      if(!_prochain){
+        spl.innerHTML = 'Disponibilit&eacute;s<br>de l\'&eacute;quipe';
+      } else {
+        var _dispos = [], _reps = 0;
+        _depGensPourJour(_prochain.iso).forEach(function(c){
+          var r = _depDispoDe(_prochain.iso, c.id);
+          if(r){ _reps++; if(r.dispo) _dispos.push(c.name || c.id); }
+        });
+        var _lib = _depPlLibelleJour(_prochain.iso); _lib = _lib.charAt(0).toUpperCase() + _lib.slice(1);
+        var _suite = _dispos.length
+          ? '<b style="color:#0a6b30;">' + _dispos.slice(0, 4).map(esc).join(', ') + (_dispos.length > 4 ? ' +' + (_dispos.length - 4) : '') + '</b>'
+          : (_reps ? '<span style="color:#992020;">personne pour l&rsquo;instant</span>' : 'pas encore de r&eacute;ponses');
+        spl.innerHTML = esc(_lib) + '<br>' + _suite;
+      }
+    }catch(e){ spl.innerHTML = 'Disponibilit&eacute;s<br>de l\'&eacute;quipe'; }
   }
 
   // v2.3.0 : le bandeau des notifications, au-dessus des cases. Il ne

@@ -5583,3 +5583,15 @@ les sauvegardes quotidiennes et la relecture de la base. Reste, dans
 (relit la base) qui liste les collectes disparues à recréer (`depRecreerCollecte`).
 Outils = 💾 Sauvegardes, 🛡️ Retrouver une collecte, 🔧 Avancé (diagnostic,
 civilités, lenteur).
+
+**26/10, dct-app.html v3.99.110 / departs.js v2.21.43 — Case PLANNING : les
+disponibilités au lieu des compteurs.** Cobey (capture des espaces) : « dans le
+sous-titre de planning, c'est possible de mettre les disponibilités des gens
+au lieu de mettre ce qu'il y a actuellement ? » Le sous-titre « 14 sans réponse
+à venir » (ou « N jours à renseigner », « Disponibilités à jour » selon le
+profil) est remplacé, pour tout le monde, par le prochain jour du Planning et
+les prénoms de ceux qui sont disponibles : « Dimanche 1 novembre / Issyaka,
+Samba, Boubacar » (4 prénoms au plus, puis « +N »), « personne pour
+l'instant » si tous ont répondu non, « pas encore de réponses » sinon. Mêmes
+règles que la ligne « DISPONIBLES » des cartes de collecte (`_depGensPourJour`,
+`_depDispoDe`).
