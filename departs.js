@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.33';
+var DEP_VERSION = 'v2.21.34';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25818,9 +25818,17 @@ function _depCollectesOrphelines(){
     var cles = Object.keys(cls).filter(function(k){ return cls[k]; });
     if(!cles.length) return;
     var d = (window.dispatchParCollecte || {})[id] || {};
-    out.push({ id:id, n:cles.length, noms:cles.slice(0,3).map(function(k){ return cls[k].name || ((cls[k].prenom||'')+' '+(cls[k].nom||'')).trim() || 'Client'; }),
+    var mt = /^col_(\d{10,})$/.exec(id);
+    var total = cles.reduce(function(s, k){ return s + (parseFloat(cls[k].prix) || 0); }, 0);
+    out.push({ id:id, cree: mt ? +mt[1] : 0, total: total, n:cles.length, noms:cles.slice(0,3).map(function(k){ return cls[k].name || ((cls[k].prenom||'')+' '+(cls[k].nom||'')).trim() || 'Client'; }),
                camions:Object.keys(d.trucks || {}).length });
   });
+  // v2.21.34 : « Ya trop » (Cobey, 09:39) — beaucoup de vieilles collectes
+  // supprimées laissaient leurs fiches sur le téléphone. L'identifiant d'une
+  // collecte est « col_ » + l'heure de sa création : on trie de la plus
+  // récente à la plus ancienne et on ne montre d'abord que les 45 derniers
+  // jours.
+  out.sort(function(a,b){ return b.cree - a.cree; });
   return out;
 }
 function _depProchainDimancheIso(){
@@ -25834,15 +25842,25 @@ function _depHtmlCollectesDisparues(){
   if(!o.length){
     return h + '<div style="font-size:12px;color:#888;margin-bottom:22px;line-height:1.55;">Aucun client orphelin : toutes les fiches clients sont rattach&eacute;es &agrave; une collecte existante.</div>';
   }
-  h += '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Des clients sont rang&eacute;s sous une collecte qui n\'existe plus dans la liste. Choisissez sa date puis recr&eacute;ez-la : les clients et les camions reviennent.</div>';
-  o.forEach(function(g){
-    h += '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:12px;margin-bottom:10px;">'
-      + '<div style="font-size:13px;font-weight:800;">' + g.n + ' client' + (g.n>1?'s':'') + (g.camions ? ' &middot; ' + g.camions + ' camion' + (g.camions>1?'s':'') : '') + '</div>'
+  h += '<div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.55;">Des clients sont rang&eacute;s sous une collecte qui n\'existe plus dans la liste. Les plus r&eacute;centes sont en premier. Choisissez sa date puis recr&eacute;ez-la : les clients et les camions reviennent.</div>';
+  var limite = Date.now() - 45*24*3600*1000;
+  var recentes = o.filter(function(g){ return g.cree >= limite; });
+  var anciennes = o.filter(function(g){ return g.cree < limite; });
+  function carte(g){
+    var cr = g.cree ? new Date(g.cree) : null;
+    var crTxt = cr ? ('Cr&eacute;&eacute;e le ' + String(cr.getDate()).padStart(2,'0') + '/' + String(cr.getMonth()+1).padStart(2,'0') + ' &middot; ') : '';
+    return '<div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;padding:12px;margin-bottom:10px;">'
+      + '<div style="font-size:13px;font-weight:800;">' + crTxt + g.n + ' client' + (g.n>1?'s':'') + ' &middot; ' + (Math.round(g.total*100)/100) + ' &euro;' + (g.camions ? ' &middot; ' + g.camions + ' camion' + (g.camions>1?'s':'') : '') + '</div>'
       + '<div style="font-size:12px;color:#666;margin:3px 0 8px;">' + g.noms.map(esc).join(', ') + (g.n>3 ? '&hellip;' : '') + '</div>'
       + '<input type="date" class="fi" id="dep-orph-date-' + esc(g.id) + '" value="' + _depProchainDimancheIso() + '" style="margin-bottom:8px;">'
       + '<button type="button" class="btn btn-green" onclick="depRecreerCollecte(\'' + esc(g.id) + '\')">&#10133; Recr&eacute;er cette collecte</button>'
       + '</div>';
-  });
+  }
+  h += recentes.length ? recentes.map(carte).join('') : '<div style="font-size:12px;color:#888;margin-bottom:10px;">Aucune collecte supprim&eacute;e ces 45 derniers jours.</div>';
+  if(anciennes.length){
+    h += '<button type="button" class="btn btn-gray" onclick="var b=document.getElementById(\'dep-orph-anciennes\');b.style.display=b.style.display===\'none\'?\'block\':\'none\';">Voir les plus anciennes (' + anciennes.length + ')</button>'
+      + '<div id="dep-orph-anciennes" style="display:none;margin-top:10px;">' + anciennes.map(carte).join('') + '</div>';
+  }
   return h + '<div style="height:12px;"></div>';
 }
 window.depRecreerCollecte = function(id){

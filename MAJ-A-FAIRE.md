@@ -5445,3 +5445,12 @@ groupes de clients sans collecte, avec noms/camions ; `depRecreerCollecte(id)`
 recrée la collecte (même id, date choisie) et sauvegarde, ce qui rebranche
 clients et camions. À faire si Cobey le valide : empêcher qu'un appareil
 écrase les listes entières (écriture par collecte plutôt qu'en bloc).
+
+**26/10, dct-app.html v3.99.99 / departs.js v2.21.34 — « Collectes disparues » :
+trop de lignes.** Cobey (captures 09:39, des dizaines de blocs « N clients ») :
+« Ya trop ». Les anciennes collectes supprimées laissent leurs fiches dans la
+mémoire du téléphone, donc elles apparaissaient toutes. L'identifiant d'une
+collecte est `col_` + l'heure de création : le panneau trie de la plus récente
+à la plus ancienne, indique « Créée le JJ/MM · N clients · X € · N camions »,
+n'affiche d'abord que les 45 derniers jours, le reste derrière « Voir les plus
+anciennes (N) ».
