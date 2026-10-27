@@ -5694,3 +5694,18 @@ Chargement DKR », la date en premier car c'est elle qui les distingue), puis
 mois, puis années ; un lien « Intervertir A et B » ; au premier passage, les
 deux derniers containers sont proposés. Sous-titre : « Deux containers, deux
 mois ou deux années ». Plus d'onglet de type ni de grille.
+
+**27/10, dct-app.html v3.99.117 / departs.js v2.21.50 — Statistiques :
+nouvel écran « Évolution » (graphique sur plusieurs containers).** Cobey, après
+avoir vu la démo : « Il est où cette interphase ? » (il avait demandé : « Et on
+pourra comparer sur une période donnée ? Voir un graphique sur plusieurs
+containers ? », et « trop fouilli » pour les boutons). Statistiques > ÉVOLUTION
+(carte verte, au-dessus de « Un container »). Seulement deux menus : *Période*
+(3 / 6 derniers containers, 3 / 6 derniers mois, cette année, tous, ou dates à
+choisir) et *Ce qu'on suit* (dépenses, bénéfice, chiffre d'affaires, encaissé,
+dépenses par client, ou un poste précis : dédouanement, salaire d'une personne,
+carburant d'une tournée…). Un graphique en barres (ligne pointillée = moyenne,
+deux derniers containers en bleu/vert, négatif en rouge) puis la liste avec la
+variation vs le précédent (vert = bonne nouvelle, rouge = mauvaise). Toucher un
+container l'ouvre dans Comparer avec le précédent. Fonctions : `depOuvrirStatsEvo`,
+`depRenderEvo`, `_depEvoValeur`, `_depEvoPostes`, `depEvoComparer`.

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.49';
+var DEP_VERSION = 'v2.21.50';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4254,6 +4254,11 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#4527A0;">COMPARER</div>'
   +         '<div class="dep-case-sub">Deux p&eacute;riodes, ou deux containers, c&ocirc;te &agrave; c&ocirc;te</div>'
   +       '</div>'
+  +       '<div class="dep-case" style="background:#E3F4EA;text-align:left;" onclick="depOuvrirStatsEvo()">'
+  +         '<div class="dep-case-ico">&#128202;</div>'
+  +         '<div class="dep-case-tit" style="color:#0E5A3C;">&Eacute;VOLUTION</div>'
+  +         '<div class="dep-case-sub">Plusieurs containers, sur une p&eacute;riode : b&eacute;n&eacute;fice, d&eacute;penses, un poste&hellip;</div>'
+  +       '</div>'
   +       '<div class="dep-case" style="background:#DCEEF7;text-align:left;" onclick="depOuvrirStatsEvol()">'
   +         '<div class="dep-case-ico">&#128201;</div>'
   +         '<div class="dep-case-tit" style="color:#01579B;">UN CONTAINER</div>'
@@ -4261,6 +4266,17 @@ function injecterEcrans(){
   +       '</div>'
   +     '</div>'
   +   '</div>'
+  + '</div>'
+
+  /* ---- ÉCRAN (v2.21.50) : STATISTIQUES > ÉVOLUTION — plusieurs containers
+     sur une période, en graphique. ---- */
+  + '<div class="screen" id="s-stats-evo">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-stats-menu\')">&larr; Statistiques</button>'
+  +     '<div class="h-title">&Eacute;volution<div class="h-sub">Plusieurs containers, sur une p&eacute;riode</div></div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content"><div id="dep-evo-multi"></div></div>'
   + '</div>'
 
   /* ---- ÉCRAN (v1.94.20) : STATISTIQUES > UN CONTAINER — l'évolution
@@ -7403,6 +7419,131 @@ function _depCmpGroupesEnc(da, db_){
       + _depCmpBarres(x[1], x[2], true) + '</div>';
   }).join('');
 }
+
+/* v2.21.50 — Cobey, 27/10/2026 : « on pourra comparer sur une période
+   donnée ? voir un graphique sur plusieurs containers ? » (aperçu validé,
+   puis « il est où cette interface ? »). Une colonne par container, dans
+   l'ordre des départs ; deux menus seulement (la période, ce qu'on suit) ;
+   le tableau dessous donne l'écart avec le container précédent, et toucher
+   une ligne ouvre la comparaison de ce container avec le précédent. */
+var _depEvo = { per:'3c', met:'depenses', poste:'', du:'', au:'' };
+var DEP_EVO_PERIODES = [
+  ['3c', '3 derniers containers'], ['6c', '6 derniers containers'],
+  ['3m', '3 derniers mois'], ['6m', '6 derniers mois'],
+  ['an', 'Cette ann&eacute;e'], ['tous', 'Tous les containers'], ['dates', 'Choisir des dates&hellip;']
+];
+var DEP_EVO_MESURES = [
+  ['depenses', 'D&eacute;penses'], ['benefice', 'B&eacute;n&eacute;fice'], ['ca', 'Chiffre d\'affaires'],
+  ['encaisse', 'Encaiss&eacute;'], ['parClient', 'D&eacute;penses par client'], ['poste', 'Un poste pr&eacute;cis']
+];
+window.depOuvrirStatsEvo = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  goTo('s-stats-evo');
+  depRenderEvo();
+};
+window.depEvoChoisir = function(cle, v){ _depEvo[cle] = v; depRenderEvo(); };
+window.depEvoComparer = function(a, b){
+  _depCmp.a = 'C:' + a; _depCmp.b = 'C:' + b;
+  goTo('s-stats-cmp'); depRenderComparer();
+};
+function _depEvoContainers(){
+  var maintenant = Date.now();
+  var liste = tousLesDeparts().filter(function(d){ return _depQuandDepart(d); })
+    .sort(function(x, y){ return _depQuandDepart(x) - _depQuandDepart(y); });
+  var per = _depEvo.per;
+  if(per === '3c' || per === '6c') return liste.slice(-(per === '3c' ? 3 : 6));
+  var debut = 0, fin = Infinity;
+  if(per === '3m' || per === '6m'){ var dt = new Date(maintenant); dt.setMonth(dt.getMonth() - (per === '3m' ? 3 : 6)); debut = dt.getTime(); }
+  else if(per === 'an'){ debut = Date.UTC(new Date().getFullYear(), 0, 1); }
+  else if(per === 'dates'){
+    if(_depEvo.du) debut = new Date(_depEvo.du + 'T00:00:00Z').getTime();
+    if(_depEvo.au) fin = new Date(_depEvo.au + 'T23:59:59Z').getTime();
+  }
+  return liste.filter(function(d){ var q = _depQuandDepart(d); return q >= debut && q <= fin; });
+}
+function _depEvoValeur(d){
+  var cle = 'C:' + d._id, g = _depCmpAgreger(cle), m = _depEvo.met;
+  if(m === 'depenses') return g.depenses;
+  if(m === 'benefice') return g.benefice;
+  if(m === 'ca') return g.ca;
+  if(m === 'encaisse') return g.encaisse;
+  if(m === 'parClient') return g.clients ? g.depenses / g.clients : 0;
+  var det = _depCmpDetails(cle), k = _depEvo.poste;
+  if(k === 'Salaires') return Object.keys(det.salaires).reduce(function(s, x){ return s + det.salaires[x]; }, 0);
+  if(k.indexOf('Salaire · ') === 0) return det.salaires[k.slice(10)] || 0;
+  return (det.fixes[k] || 0) + (det.tournees[k] || 0);
+}
+function _depEvoPostes(liste){
+  var noms = {};
+  liste.forEach(function(d){
+    var det = _depCmpDetails('C:' + d._id);
+    Object.keys(det.fixes).forEach(function(k){ noms[k] = 1; });
+    Object.keys(det.tournees).forEach(function(k){ noms[k] = 1; });
+    var sal = Object.keys(det.salaires);
+    if(sal.length){ noms['Salaires'] = 1; sal.forEach(function(k){ noms['Salaire · ' + k] = 1; }); }
+  });
+  return Object.keys(noms).sort();
+}
+window.depRenderEvo = function(){
+  var box = $('dep-evo-multi'); if(!box) return;
+  var liste = _depEvoContainers();
+  var postes = _depEvoPostes(liste);
+  if(_depEvo.met === 'poste' && postes.indexOf(_depEvo.poste) === -1) _depEvo.poste = postes[0] || '';
+  var opt = function(tab, cur){ return tab.map(function(x){ return '<option value="' + x[0] + '"' + (x[0] === cur ? ' selected' : '') + '>' + x[1] + '</option>'; }).join(''); };
+  var chev = "url(&quot;data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23555' stroke-width='2'/></svg>&quot;)";
+  var sty = 'width:100%;appearance:none;-webkit-appearance:none;background:#fff ' + chev + ' no-repeat right 12px center;border:1px solid var(--border);border-radius:12px;padding:11px 30px 11px 12px;font:700 13px var(--font);color:var(--text);';
+  var etiq = function(t){ return '<div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--text3);margin:0 2px 4px;">' + t + '</div>'; };
+  var h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">'
+    + '<div>' + etiq('P&Eacute;RIODE') + '<select aria-label="Période" style="' + sty + '" onchange="depEvoChoisir(\'per\',this.value)">' + opt(DEP_EVO_PERIODES, _depEvo.per) + '</select></div>'
+    + '<div>' + etiq('CE QU\'ON SUIT') + '<select aria-label="Ce qu\'on suit" style="' + sty + '" onchange="depEvoChoisir(\'met\',this.value)">' + opt(DEP_EVO_MESURES, _depEvo.met) + '</select></div></div>';
+  if(_depEvo.met === 'poste'){
+    h += '<div style="margin-bottom:10px;">' + etiq('QUEL POSTE') + '<select aria-label="Poste" style="' + sty + '" onchange="depEvoChoisir(\'poste\',this.value)">'
+      + postes.map(function(k){ return '<option' + (k === _depEvo.poste ? ' selected' : '') + '>' + k + '</option>'; }).join('') + '</select></div>';
+  }
+  if(_depEvo.per === 'dates'){
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">'
+      + '<div>' + etiq('DU') + '<input type="date" value="' + esc(_depEvo.du) + '" style="' + sty.replace(/background:[^;]*;/, 'background:#fff;') + '" onchange="depEvoChoisir(\'du\',this.value)"></div>'
+      + '<div>' + etiq('AU') + '<input type="date" value="' + esc(_depEvo.au) + '" style="' + sty.replace(/background:[^;]*;/, 'background:#fff;') + '" onchange="depEvoChoisir(\'au\',this.value)"></div></div>';
+  }
+  if(liste.length < 2){
+    h += '<div class="dep-vide" style="padding:26px 16px;">' + (liste.length ? 'Un seul container sur cette p&eacute;riode : il en faut au moins deux pour voir une &eacute;volution.' : 'Aucun container sur cette p&eacute;riode.') + '</div>';
+    box.innerHTML = h; return;
+  }
+  var euro = true;
+  var vals = liste.map(_depEvoValeur);
+  var max = Math.max.apply(null, vals.map(Math.abs).concat([1])) * 1.12;
+  var moy = vals.reduce(function(a, b){ return a + b; }, 0) / vals.length;
+  var mes = (_depEvo.met === 'poste') ? _depEvo.poste : (DEP_EVO_MESURES.filter(function(x){ return x[0] === _depEvo.met; })[0] || ['', ''])[1];
+  var bas = (_depEvo.met === 'depenses' || _depEvo.met === 'parClient' || _depEvo.met === 'poste');
+  var n = liste.length, petit = n > 7;
+  var lab = function(d){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d.dateDepart || ''); return m ? (m[3] + '/' + m[2]) : '?'; };
+  h += '<div style="background:#fff;border-radius:20px;padding:14px 12px 10px;border:1.5px solid var(--border);margin-bottom:12px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:0 4px 8px;"><b style="font-size:13.5px;">' + mes + '</b>'
+    + '<span style="font-size:11.5px;color:var(--text3);font-weight:700;">' + n + ' containers &middot; moyenne ' + _depCmpE(moy) + '</span></div>'
+    + '<div style="position:relative;display:flex;align-items:flex-end;gap:' + (petit ? 4 : 8) + 'px;height:170px;padding:0 4px;border-bottom:1px solid var(--border);">'
+    + '<div style="position:absolute;left:0;right:0;bottom:' + Math.round(Math.max(moy, 0) / max * 100) + '%;border-top:1.5px dashed #8a948f;opacity:.6;"></div>'
+    + vals.map(function(v, i){
+        var der = (i === n - 1), av = (i === n - 2), neg = v < 0;
+        var coul = neg ? '#B3281F' : (der ? '#0E7A4A' : (av ? '#1E2B8A' : '#9CC9B0'));
+        return '<div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;">'
+          + '<div style="font-size:' + (petit ? 9 : 10.5) + 'px;font-weight:800;margin-bottom:3px;white-space:nowrap;font-variant-numeric:tabular-nums;">' + _depCmpE(v) + '</div>'
+          + '<div style="width:100%;height:' + Math.max(Math.round(Math.abs(v) / max * 100), v ? 2 : 0) + '%;border-radius:7px 7px 0 0;background:' + coul + ';"></div></div>';
+      }).join('')
+    + '</div><div style="display:flex;gap:' + (petit ? 4 : 8) + 'px;padding:5px 4px 0;">'
+    + liste.map(function(d){ return '<span style="flex:1;text-align:center;font-size:' + (petit ? 9 : 10.5) + 'px;font-weight:700;color:var(--text3);min-width:0;">' + lab(d) + '</span>'; }).join('')
+    + '</div></div>';
+  h += '<div style="background:#fff;border-radius:20px;padding:4px 14px;border:1.5px solid var(--border);margin-bottom:12px;">'
+    + liste.map(function(d, i){ return i; }).reverse().map(function(i, k){
+        var d = liste[i], v = vals[i], prec = i ? liste[i - 1] : null;
+        var clic = prec ? ' onclick="depEvoComparer(\'' + prec._id + '\',\'' + d._id + '\')" style="cursor:pointer;' : ' style="';
+        return '<div' + clic + 'display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:11px 0;' + (k ? 'border-top:1px solid var(--border);' : '') + 'font-variant-numeric:tabular-nums;">'
+          + '<span><b style="font-size:12.5px;">' + esc(d.nom || 'Container') + '</b><br><span style="font-size:11.5px;color:var(--text3);">parti le ' + esc(dateFr(d.dateDepart)) + '</span></span>'
+          + '<b style="font-size:13px;">' + _depCmpE(v) + '</b>'
+          + (prec ? _depCmpPastille(vals[i - 1], v, bas) : '<span style="color:var(--text3);">&mdash;</span>') + '</div>';
+      }).join('') + '</div>'
+    + '<div style="font-size:11.5px;color:var(--text3);margin:0 4px 12px;line-height:1.5;">Touche un container pour le comparer au pr&eacute;c&eacute;dent. Vert = bonne nouvelle, rouge = mauvaise nouvelle.</div>';
+  box.innerHTML = h;
+};
 
 window.depRenderComparer = function(){
   var box = $('dep-cmp-content');
