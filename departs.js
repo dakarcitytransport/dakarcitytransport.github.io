@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.46';
+var DEP_VERSION = 'v2.21.47';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -7282,6 +7282,116 @@ function _depCmpGraphique(m, ga, gb){
     + '</div>';
 }
 
+/* v2.21.47 — Les briques du nouvel écran Comparer. */
+function _depCmpE(v){ return Math.round(v).toLocaleString('fr-FR').replace(/[  ]/g, '&nbsp;') + '&nbsp;&euro;'; }
+function _depCmpN(v){ return Math.round(v).toLocaleString('fr-FR').replace(/[  ]/g, '&nbsp;'); }
+function _depCmpPastille(va, vb, bas){
+  var d = vb - va, pct = va ? Math.round(Math.abs(d) / Math.abs(va) * 100) : null;
+  if(Math.round(d * 100) === 0) return '<span style="font-size:12px;font-weight:800;padding:3px 9px;border-radius:99px;background:#EEEBE5;color:#5B685F;">=</span>';
+  var bon = bas ? d < 0 : d > 0;
+  return '<span style="font-size:12px;font-weight:800;padding:3px 9px;border-radius:99px;white-space:nowrap;'
+    + 'background:' + (bon ? '#DDF0E5' : '#F8DEDA') + ';color:' + (bon ? '#0E7A4A' : '#B3281F') + ';">'
+    + (d > 0 ? '+' : '&minus;') + (pct === null ? '' : pct + '&nbsp;%') + (pct === null ? _depCmpE(Math.abs(d)) : '') + '</span>';
+}
+function _depCmpBarres(va, vb, euro){
+  var max = Math.max(Math.abs(va), Math.abs(vb), 1);
+  var f = function(v){ return euro === false ? _depCmpN(v) : _depCmpE(v); };
+  var barre = function(v, coul){
+    return '<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;margin-top:6px;font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums;">'
+      + '<div style="height:9px;border-radius:5px;background:#EEEBE5;overflow:hidden;"><div style="height:100%;width:' + Math.max(Math.round(Math.abs(v) / max * 100), v ? 3 : 0) + '%;background:' + coul + ';border-radius:5px;"></div></div>'
+      + '<span style="color:' + coul + ';">' + f(v) + '</span></div>';
+  };
+  return barre(va, '#1E2B8A') + barre(vb, '#0E7A4A');
+}
+function _depCmpLigne(m, va, vb, det, ouvert, premiere){
+  var euro = m.euro;
+  var tete = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+    + '<span style="font-size:13px;font-weight:800;">' + m.lib + (det ? ' <span style="font-size:11px;font-weight:700;color:var(--text3);">&#9662; d&eacute;tail</span>' : '') + '</span>'
+    + _depCmpPastille(va, vb, !!m.bas) + '</div>' + _depCmpBarres(va, vb, euro);
+  var bord = premiere ? '' : 'border-top:1px solid var(--border);';
+  if(!det) return '<div style="padding:12px 0;' + bord + '">' + tete + '</div>';
+  return '<div style="padding:12px 0;' + bord + '"><details' + (ouvert ? ' open' : '') + '><summary style="list-style:none;cursor:pointer;">' + tete + '</summary>'
+    + '<div style="margin-top:10px;padding:2px 12px 6px;background:#F6F4EF;border-radius:14px;">' + det + '</div></details></div>';
+}
+function _depCmpEntete(ga, gb){
+  var carte = function(lettre, cle, g, fond, coul){
+    return '<div style="flex:1;min-width:0;border-radius:16px;padding:11px 12px;background:' + fond + ';color:' + coul + ';">'
+      + '<div style="font-size:11px;font-weight:800;letter-spacing:.06em;">' + lettre + '</div>'
+      + '<div style="font-size:13.5px;font-weight:800;margin-top:2px;line-height:1.3;">' + _depCmpLibelle(cle) + '</div>'
+      + '<div style="font-size:11.5px;font-weight:600;opacity:.85;margin-top:2px;">' + g.nb + ' container' + (g.nb > 1 ? 's' : '') + ' &middot; ' + g.clients + ' client' + (g.clients > 1 ? 's' : '') + '</div></div>';
+  };
+  return '<div style="display:flex;gap:10px;margin-bottom:12px;">' + carte('A', _depCmp.a, ga, '#E4E8FA', '#1E2B8A') + carte('B', _depCmp.b, gb, '#DDF0E5', '#0E7A4A') + '</div>';
+}
+function _depCmpHero(ga, gb){
+  var ecart = depArrondi2(gb.benefice - ga.benefice);
+  var potA = depArrondi2(ga.ca - ga.depenses), potB = depArrondi2(gb.ca - gb.depenses);
+  var raisons = [];
+  var dEnc = depArrondi2(gb.encaisse - ga.encaisse), dDep = depArrondi2(gb.depenses - ga.depenses);
+  if(dEnc) raisons.push('B a encaiss&eacute; <strong>' + _depCmpE(Math.abs(dEnc)) + (dEnc < 0 ? ' de moins' : ' de plus') + '</strong>');
+  if(gb.du > ga.du && gb.du > 0) raisons.push('il reste <strong>' + _depCmpE(gb.du) + ' &agrave; recevoir</strong> sur B');
+  if(dDep) raisons.push('les d&eacute;penses ont ' + (dDep < 0 ? 'baiss&eacute;' : 'augment&eacute;') + ' de <strong>' + _depCmpE(Math.abs(dDep)) + '</strong>');
+  var phrase = ecart === 0 ? 'Le b&eacute;n&eacute;fice est identique des deux c&ocirc;t&eacute;s.'
+    : ('B rapporte <strong>' + _depCmpE(Math.abs(ecart)) + (ecart < 0 ? ' de moins' : ' de plus') + '</strong> que A'
+       + (raisons.length ? ' : ' + raisons.join(', ') : '') + '.');
+  var potentiel = (gb.du > 0 || ga.du > 0)
+    ? '<div style="margin-top:8px;font-size:12.5px;color:var(--text3);line-height:1.5;">B&eacute;n&eacute;fice <strong style="color:var(--text);">une fois tout encaiss&eacute;</strong> : '
+      + 'A <strong style="color:#1E2B8A;">' + _depCmpE(potA) + '</strong>, B <strong style="color:#0E7A4A;">' + _depCmpE(potB) + '</strong>.</div>'
+    : '';
+  return '<div style="background:#fff;border-radius:20px;padding:14px 16px;margin-bottom:12px;border:1.5px solid var(--border);">'
+    + '<div style="font-size:11px;font-weight:800;letter-spacing:.07em;color:var(--text3);">B&Eacute;N&Eacute;FICE <span style="font-weight:600;letter-spacing:0;">(encaiss&eacute; &minus; d&eacute;penses)</span></div>'
+    + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:6px;font-variant-numeric:tabular-nums;">'
+    +   '<b style="font-size:22px;color:#1E2B8A;">' + _depCmpE(ga.benefice) + '</b><span style="color:var(--text3);">&rarr;</span>'
+    +   '<b style="font-size:22px;color:#0E7A4A;">' + _depCmpE(gb.benefice) + '</b>' + _depCmpPastille(ga.benefice, gb.benefice, false) + '</div>'
+    + '<div style="font-size:13px;line-height:1.5;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);color:var(--text3);">' + phrase + '</div>' + potentiel + '</div>';
+}
+
+// Le détail d'un choix (un ou plusieurs containers), poste par poste.
+function _depCmpDetails(cle){
+  var r = { dct:0, mamadou:0, fixes:{}, salaires:{}, tournees:{} };
+  if(!cle) return r;
+  var lib = {}; DEP_POSTES_FIXES.forEach(function(t){ lib[t.cle] = t.label; });
+  _depCmpContainersDe(cle).forEach(function(d){
+    var cp = compteursDepart(d._id);
+    r.mamadou += cp.colisMamadou || 0;
+    r.dct += (cp.colisPaye || 0) - (cp.colisMamadou || 0);
+    _depFixesDe(d._id).forEach(function(o){
+      var mt = parseFloat(o.montant) || 0;
+      if(o.poste === 'salaires'){ var n = o.collabNom || 'Non pr&eacute;cis&eacute;'; r.salaires[n] = (r.salaires[n] || 0) + mt; }
+      else { var k = lib[o.poste || 'autre'] || 'Autre'; r.fixes[k] = (r.fixes[k] || 0) + mt; }
+    });
+    _depRepartitionDepensesContainer(d._id).forEach(function(x){ r.tournees[x.label] = (r.tournees[x.label] || 0) + x.montant; });
+  });
+  return r;
+}
+// Les lignes d'un groupe : tous les postes vus d'un côté ou de l'autre.
+function _depCmpGroupe(titre, ma, mb){
+  var noms = {}; Object.keys(ma).forEach(function(k){ noms[k] = 1; }); Object.keys(mb).forEach(function(k){ noms[k] = 1; });
+  var cles = Object.keys(noms).sort(function(x, y){ return ((mb[y] || 0) + (ma[y] || 0)) - ((mb[x] || 0) + (ma[x] || 0)); });
+  if(!cles.length) return '';
+  var ta = 0, tb = 0; cles.forEach(function(k){ ta += ma[k] || 0; tb += mb[k] || 0; });
+  return '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--text3);margin:12px 0 2px;">'
+    + '<span>' + titre + '</span><b style="color:var(--text);letter-spacing:0;font-size:12px;">' + _depCmpE(ta) + ' &rarr; ' + _depCmpE(tb) + '</b></div>'
+    + cles.map(function(k, i){
+      var va = ma[k] || 0, vb = mb[k] || 0;
+      return '<div style="padding:8px 0;' + (i ? 'border-top:1px solid var(--border);' : '') + '">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;font-weight:700;"><span>' + k + '</span>' + _depCmpPastille(va, vb, true) + '</div>'
+        + _depCmpBarres(va, vb, true) + '</div>';
+    }).join('');
+}
+function _depCmpGroupesDep(da, db_){
+  return _depCmpGroupe('FRAIS DU CONTAINER', da.fixes, db_.fixes)
+    + _depCmpGroupe('SALAIRES', da.salaires, db_.salaires)
+    + _depCmpGroupe('TOURN&Eacute;ES DES CAMIONS', da.tournees, db_.tournees);
+}
+function _depCmpGroupesEnc(da, db_){
+  var lignes = [['DCT', da.dct, db_.dct], ['Mamadou Niass (esp&egrave;ces)', da.mamadou, db_.mamadou]].filter(function(x){ return x[1] || x[2]; });
+  return lignes.map(function(x, i){
+    return '<div style="padding:8px 0;' + (i ? 'border-top:1px solid var(--border);' : '') + '">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;font-weight:700;"><span>' + x[0] + '</span>' + _depCmpPastille(x[1], x[2], false) + '</div>'
+      + _depCmpBarres(x[1], x[2], true) + '</div>';
+  }).join('');
+}
+
 window.depRenderComparer = function(){
   var box = $('dep-cmp-content');
   if(!box) return;
@@ -7326,49 +7436,31 @@ window.depRenderComparer = function(){
 
   var ga = _depCmpAgreger(_depCmp.a), gb = _depCmpAgreger(_depCmp.b);
 
-  // Le rappel de ce que chaque côté recouvre.
-  h += '<div style="display:flex;gap:8px;font-size:11px;color:var(--text3);font-weight:600;'
-    +   'margin-bottom:12px;">'
-    +   '<div style="flex:1;">' + ga.nb + ' container' + (ga.nb>1?'s':'') + '</div>'
-    +   '<div style="flex:1;text-align:right;">' + gb.nb + ' container' + (gb.nb>1?'s':'') + '</div>'
-    + '</div>';
-
-  // Les cases pour choisir le chiffre mis en colonnes.
-  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">';
-  DEP_CMP_MESURES.forEach(function(m){
-    var on = (m.cle === _depCmp.mesure);
-    h += '<div onclick="depCmpMesure(\''+m.cle+'\')" style="cursor:pointer;font-size:11.5px;'
-      +   'font-weight:800;padding:6px 11px;border-radius:20px;'
-      +   (on ? 'background:#111;color:#fff;border:1.5px solid #111;'
-           : 'background:#fff;color:var(--text3);border:1.5px solid var(--border);')
-      +   '">' + m.court + '</div>';
+  // v2.21.47 — Cobey, 27/10/2026 : « je trouve rien d'esthétique, c'est pas
+  // facile à lire [...] je veux comparer les différents détails par items,
+  // précis comme les différentes dépenses ». Écran refait : cartes A et B,
+  // bénéfice en tête avec une phrase d'explication, une ligne par chiffre
+  // (deux barres, pastille verte/rouge selon que c'est bon ou mauvais pour
+  // l'entreprise) et, dépliable, le détail poste par poste.
+  var da = _depCmpDetails(_depCmp.a), db_ = _depCmpDetails(_depCmp.b);
+  h += _depCmpEntete(ga, gb);
+  h += _depCmpHero(ga, gb);
+  var lignes = [
+    { m:'ca',       det:null },
+    { m:'encaisse', det:_depCmpGroupesEnc(da, db_) },
+    { m:'du',       det:null },
+    { m:'depenses', det:_depCmpGroupesDep(da, db_), ouvert:true },
+    { m:'clients',  det:null },
+    { m:'colis',    det:null }
+  ];
+  h += '<div style="background:#fff;border-radius:20px;padding:4px 16px;margin-bottom:12px;border:1.5px solid var(--border);">';
+  lignes.forEach(function(l, k){
+    var m = DEP_CMP_MESURES.filter(function(x){ return x.cle === l.m; })[0];
+    h += _depCmpLigne(m, ga[m.cle], gb[m.cle], l.det, l.ouvert, k === 0);
   });
   h += '</div>';
-
-  var mes = DEP_CMP_MESURES.filter(function(m){ return m.cle === _depCmp.mesure; })[0]
-          || DEP_CMP_MESURES[4];
-  h += _depCmpGraphique(mes, ga, gb);
-
-  // Le tableau complet, sous le graphique.
-  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
-    +   'padding:6px 14px 12px;margin-bottom:12px;">';
-  DEP_CMP_MESURES.forEach(function(m){
-    var va = ga[m.cle], vb = gb[m.cle];
-    var e = _depCmpEcart(m, va, vb);
-    var fort = (m.cle === 'benefice');
-    h += '<div style="padding:9px 0;border-bottom:1px dashed var(--border);">'
-      + '<div style="font-size:'+(fort?'13px':'12px')+';font-weight:'+(fort?800:700)+';'
-      +   'color:var(--text'+(fort?'':'3')+');">' + m.lib + '</div>'
-      + '<div style="display:flex;align-items:baseline;gap:8px;margin-top:3px;flex-wrap:wrap;">'
-      +   '<b style="font-size:'+(fort?'15px':'13.5px')+';color:#1a237e;">' + _depCmpVal(m, va) + '</b>'
-      +   '<span style="color:var(--text3);">&rarr;</span>'
-      +   '<b style="font-size:'+(fort?'15px':'13.5px')+';color:#006b2d;">' + _depCmpVal(m, vb) + '</b>'
-      +   '<span style="margin-left:auto;font-size:11.5px;font-weight:800;color:'+e.coul+';'
-      +     'white-space:nowrap;">' + e.txt + '</span>'
-      + '</div>'
-      + '</div>';
-  });
-  h += '</div>';
+  h += '<div style="font-size:11.5px;color:var(--text3);margin:0 4px 12px;line-height:1.5;">'
+    +  'Vert = bonne nouvelle, rouge = mauvaise nouvelle. Pour les d&eacute;penses et le reste d&ucirc;, une baisse est verte.</div>';
 
   // La livraison, à part — comme partout ailleurs.
   var eLiv = _depCmpEcart({ euro:true }, ga.livPaye, gb.livPaye);

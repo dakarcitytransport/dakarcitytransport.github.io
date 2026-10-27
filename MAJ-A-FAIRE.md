@@ -5661,3 +5661,26 @@ Niass ajouté.** Cobey : « J'ai oublié de mettre Mamadou Niass dans les
 salaires. » Liste du poste « Salaires » (Dépenses du container,
 `_depCollabsPourSalaire`) : Issyaka, Abdoulaye, Samba, Ibrahima, Boubacar,
 Aminata, Eric, **Mamadou Niass** (id `MN`), Autre.
+
+**27/10, dct-app.html v3.99.114 / departs.js v2.21.47 — Statistiques > Comparer :
+résultat refait, avec le détail par poste.** Cobey (capture de l'écran, « rien
+d'esthétique, c'est pas facile à lire ») puis : « je veux pouvoir comparer les
+différents détails par items, précis comme les différentes dépenses [...] le but
+est d'analyser pour les prochains containers » et « fais l'interface pour la
+comparaison des deux containers » (après aperçu validé en artifact). Le choix
+des deux côtés (Année / Mois / Container, grilles de cases) est conservé ; ce
+qui était en dessous est refait : plus de sept boutons de mesure, un seul
+écran lisible : (1) deux cartes A (bleu pastel) et B (vert pastel) avec nom,
+date, nombre de containers et de clients ; (2) le BÉNÉFICE en tête, avec une
+phrase d'explication de l'écart (encaissé en plus/moins, reste dû, dépenses) et
+le bénéfice « une fois tout encaissé » (CA − dépenses) ; (3) une ligne par
+chiffre (chiffre d'affaires, encaissé, reste dû, dépenses, clients, colis) avec
+deux barres à la même échelle et une pastille verte/rouge selon le sens des
+affaires (dépenses et reste dû : une baisse est verte) ; (4) dépliable, le
+détail poste par poste : ENCAISSÉ (DCT / Mamadou Niass en espèces) et DÉPENSES
+(frais du container : dédouanement, loyer, container, chargeur...; salaires par
+personne grâce à `collabNom`; tournées des camions : carburant, déjeuner...).
+Fonctions : `_depCmpDetails`, `_depCmpGroupe`, `_depCmpLigne`, `_depCmpHero`.
+Montants arrondis à l'euro. La carte « Livraison, caisse séparée » est gardée.
+Non fait (à voir) : vue Évolution sur plusieurs containers (graphique) et détail
+du chiffre d'affaires, dont la donnée par type de colis n'existe pas.
