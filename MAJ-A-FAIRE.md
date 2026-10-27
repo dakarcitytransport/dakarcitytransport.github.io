@@ -5655,3 +5655,9 @@ affectations, ramasses...). Corrigés :
   date (ancienne → nouvelle) et de statut avec avant → après.
 - **Doublons** : une même ligne de la même personne répétée en moins d'une
   minute n'est écrite qu'une fois (`addActivity` et `depActivite`).
+
+**27/10, dct-app.html v3.99.113 / departs.js v2.21.46 — Salaires : Mamadou
+Niass ajouté.** Cobey : « J'ai oublié de mettre Mamadou Niass dans les
+salaires. » Liste du poste « Salaires » (Dépenses du container,
+`_depCollabsPourSalaire`) : Issyaka, Abdoulaye, Samba, Ibrahima, Boubacar,
+Aminata, Eric, **Mamadou Niass** (id `MN`), Autre.

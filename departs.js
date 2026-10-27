@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.45';
+var DEP_VERSION = 'v2.21.46';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -23675,7 +23675,7 @@ window.depOuvrirRapfinFixes = function(departId){
 // rejoint la liste, et « Autre » couvre quelqu'un qui n'est pas un profil.
 function _depCollabsPourSalaire(){
   return (window.COLLABS || []).filter(function(c){ return c; })
-    .concat([{ id:'AUTRE', name:'Autre' }]);
+    .concat([{ id:'MN', name:'Mamadou Niass' }, { id:'AUTRE', name:'Autre' }]);
 }
 
 // v1.94.15 : le champ "Nombre de personnes" ne concerne que le poste
