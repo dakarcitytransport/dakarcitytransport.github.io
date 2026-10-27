@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.47';
+var DEP_VERSION = 'v2.21.49';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3234,7 +3234,7 @@ function injecterEcrans(){
   // v1.94.20 : retour au sous-menu Statistiques, pas droit au Rapport —
   // Comparer s'ouvre maintenant depuis ce sous-menu (voir s-stats-menu).
   +     '<button class="btn-back" onclick="goTo(\'s-stats-menu\')">&larr; Statistiques</button>'
-  +     '<div class="h-title">Statistiques<div class="h-sub">Comparer deux p&eacute;riodes, ou deux containers</div></div>'
+  +     '<div class="h-title">Statistiques<div class="h-sub">Deux containers, deux mois ou deux ann&eacute;es</div></div>'
   +     '<div style="width:60px;"></div>'
   +   '</div>'
   +   '<div class="content">'
@@ -7041,19 +7041,13 @@ window.depRenderStatsEvol = function(){
 window.depOuvrirComparer = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   var o = _depCmpOptions();
-  // Au premier passage, on propose les deux mois les plus récents —
-  // l'avant-dernier à gauche, le dernier à droite, pour lire l'évolution
-  // dans le sens de la lecture. v1.90.0 : chaque côté emporte l'année du
-  // mois proposé, pour que les grilles s'ouvrent au bon endroit.
+  // Au premier passage, on propose les deux derniers containers : l'avant-
+  // dernier à gauche (A), le dernier à droite (B), pour lire l'évolution dans
+  // le sens de la lecture.
   if(!_depCmp.a && !_depCmp.b){
-    var an = function(cle){ return +String(cle).slice(2).split('-')[0]; };
-    if(o.mois.length >= 2){
-      _depCmp.a = o.mois[1].cle; _depCmp.anneeA = an(o.mois[1].cle);
-      _depCmp.b = o.mois[0].cle; _depCmp.anneeB = an(o.mois[0].cle);
-    } else if(o.mois.length === 1){
-      _depCmp.b = o.mois[0].cle;
-      _depCmp.anneeA = _depCmp.anneeB = an(o.mois[0].cle);
-    }
+    var recents = o.containers.filter(function(c){ return c.q; }).sort(function(x, y){ return y.q - x.q; });
+    if(recents.length >= 2){ _depCmp.a = recents[1].cle; _depCmp.b = recents[0].cle; }
+    else if(recents.length === 1){ _depCmp.b = recents[0].cle; }
   }
   if(_depCmp.anneeA === null && o.annees.length) _depCmp.anneeA = +String(o.annees[0].cle).slice(2);
   if(_depCmp.anneeB === null && o.annees.length) _depCmp.anneeB = +String(o.annees[0].cle).slice(2);
@@ -7313,14 +7307,32 @@ function _depCmpLigne(m, va, vb, det, ouvert, premiere){
   return '<div style="padding:12px 0;' + bord + '"><details' + (ouvert ? ' open' : '') + '><summary style="list-style:none;cursor:pointer;">' + tete + '</summary>'
     + '<div style="margin-top:10px;padding:2px 12px 6px;background:#F6F4EF;border-radius:14px;">' + det + '</div></details></div>';
 }
-function _depCmpEntete(ga, gb){
-  var carte = function(lettre, cle, g, fond, coul){
-    return '<div style="flex:1;min-width:0;border-radius:16px;padding:11px 12px;background:' + fond + ';color:' + coul + ';">'
-      + '<div style="font-size:11px;font-weight:800;letter-spacing:.06em;">' + lettre + '</div>'
-      + '<div style="font-size:13.5px;font-weight:800;margin-top:2px;line-height:1.3;">' + _depCmpLibelle(cle) + '</div>'
-      + '<div style="font-size:11.5px;font-weight:600;opacity:.85;margin-top:2px;">' + g.nb + ' container' + (g.nb > 1 ? 's' : '') + ' &middot; ' + g.clients + ' client' + (g.clients > 1 ? 's' : '') + '</div></div>';
+function _depCmpSelecteurs(){
+  var o = _depCmpOptions();
+  var conts = o.containers.slice().sort(function(x, y){ return (y.q || 0) - (x.q || 0); });
+  var opts = function(cle){
+    var oui = function(c){ return c === cle ? ' selected' : ''; };
+    return '<option value=""' + (cle ? '' : ' selected') + ' disabled>Choisir&hellip;</option>'
+      + '<optgroup label="Containers">' + conts.map(function(c){
+        var d = (window.departsData || {})[c.cle.slice(2)] || {};
+        var lib = (depPaysDepart(d) === 'ML' ? '🇲🇱 ' : '') + (d.dateDepart ? esc(dateFr(d.dateDepart)) : 'Sans date') + ' &middot; ' + esc(d.nom || 'Container');
+        return '<option value="' + c.cle + '"' + oui(c.cle) + '>' + lib + '</option>'; }).join('') + '</optgroup>'
+      + '<optgroup label="Mois">' + o.mois.map(function(c){ return '<option value="' + c.cle + '"' + oui(c.cle) + '>' + c.lib + '</option>'; }).join('') + '</optgroup>'
+      + '<optgroup label="Ann&eacute;es">' + o.annees.map(function(c){ return '<option value="' + c.cle + '"' + oui(c.cle) + '>' + c.lib + '</option>'; }).join('') + '</optgroup>';
   };
-  return '<div style="display:flex;gap:10px;margin-bottom:12px;">' + carte('A', _depCmp.a, ga, '#E4E8FA', '#1E2B8A') + carte('B', _depCmp.b, gb, '#DDF0E5', '#0E7A4A') + '</div>';
+  var chevron = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23555' stroke-width='2'/></svg>\")";
+  var carte = function(lettre, cote, fond, coul){
+    var cle = _depCmp[cote], g = cle ? _depCmpAgreger(cle) : null;
+    return '<div style="flex:1;min-width:0;border-radius:16px;padding:10px 10px 12px;background:' + fond + ';color:' + coul + ';">'
+      + '<div style="font-size:11px;font-weight:800;letter-spacing:.06em;margin:0 2px 5px;">' + lettre + '</div>'
+      + '<select aria-label="Choisir ' + lettre + '" onchange="depCmpChoisir(\'' + cote + '\',this.value)" '
+      +   'style="width:100%;appearance:none;-webkit-appearance:none;background:#fff ' + chevron + ' no-repeat right 10px center;border:0;border-radius:10px;'
+      +   'padding:10px 26px 10px 10px;font:800 12.5px var(--font);color:' + coul + ';text-overflow:ellipsis;">' + opts(cle) + '</select>'
+      + (g ? '<div style="font-size:11.5px;font-weight:700;opacity:.85;margin:7px 2px 0;">' + g.nb + ' container' + (g.nb > 1 ? 's' : '') + ' &middot; ' + g.clients + ' client' + (g.clients > 1 ? 's' : '') + '</div>' : '')
+      + '</div>';
+  };
+  return '<div style="display:flex;gap:10px;margin-bottom:6px;">' + carte('A', 'a', '#E4E8FA', '#1E2B8A') + carte('B', 'b', '#DDF0E5', '#0E7A4A') + '</div>'
+    + '<div style="text-align:right;margin:0 2px 12px;"><span onclick="depCmpInverser()" style="font-size:12px;font-weight:800;color:var(--text3);cursor:pointer;">&#8646; Intervertir A et B</span></div>';
 }
 function _depCmpHero(ga, gb){
   var ecart = depArrondi2(gb.benefice - ga.benefice);
@@ -7396,40 +7408,15 @@ window.depRenderComparer = function(){
   var box = $('dep-cmp-content');
   if(!box) return;
 
-  // 1. Le type, choisi une fois pour les deux côtés.
-  var TYPES = [ {c:'A', l:'&#128198; Ann&eacute;e'}, {c:'M', l:'&#128197; Mois'},
-                {c:'C', l:'&#128230; Container'} ];
-  var h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;">';
-  TYPES.forEach(function(t){
-    var on = (_depCmp.type === t.c);
-    h += '<div onclick="depCmpType(\''+t.c+'\')" style="cursor:pointer;text-align:center;'
-      +   'padding:9px 4px;border-radius:10px;font-size:12px;font-weight:800;'
-      +   (on ? 'background:#111;color:#fff;border:1.5px solid #111;'
-           : 'background:#fff;color:var(--text3);border:1.5px solid var(--border);')
-      +   '">' + t.l + '</div>';
-  });
-  h += '</div>';
-
-  // 2. Le choix de chaque côté, jamais plus de douze cases.
-  h += '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;">'
-    + '<div style="flex:1;min-width:0;">'
-    +   '<div style="font-size:10.5px;font-weight:800;color:#1a237e;letter-spacing:.04em;margin-bottom:5px;">A</div>'
-    +   _depCmpChoixDe('a')
-    + '</div>'
-    + '<div onclick="depCmpInverser()" style="flex:none;margin-top:18px;cursor:pointer;'
-    +   'background:#f2f2f4;border:1.5px solid var(--border);border-radius:10px;'
-    +   'padding:9px 10px;font-size:15px;" title="Intervertir">&#8646;</div>'
-    + '<div style="flex:1;min-width:0;">'
-    +   '<div style="font-size:10.5px;font-weight:800;color:#006b2d;letter-spacing:.04em;margin-bottom:5px;">B</div>'
-    +   _depCmpChoixDe('b')
-    + '</div>'
-    + '</div>';
+  // v2.21.48 — Cobey, 27/10/2026 : « les dates aussi c'est trop fouilli ».
+  // Les trois onglets (Année / Mois / Container) et les deux grilles de mois
+  // sont remplacés par UN menu dans chaque carte A et B : les containers
+  // d'abord (les plus récents en haut), puis les mois, puis les années.
+  var h = _depCmpSelecteurs();
 
   if(!_depCmp.a || !_depCmp.b){
-    var quoi = _depCmp.type === 'A' ? 'deux ann&eacute;es'
-             : (_depCmp.type === 'M' ? 'deux mois' : 'deux containers');
     h += '<div class="dep-vide" style="padding:26px 16px;margin-top:4px;">'
-      +  'Choisissez ' + quoi + ' pour voir l\'&eacute;volution.</div>';
+      +  'Choisissez A et B pour comparer.</div>';
     box.innerHTML = h;
     return;
   }
@@ -7443,7 +7430,6 @@ window.depRenderComparer = function(){
   // (deux barres, pastille verte/rouge selon que c'est bon ou mauvais pour
   // l'entreprise) et, dépliable, le détail poste par poste.
   var da = _depCmpDetails(_depCmp.a), db_ = _depCmpDetails(_depCmp.b);
-  h += _depCmpEntete(ga, gb);
   h += _depCmpHero(ga, gb);
   var lignes = [
     { m:'ca',       det:null },

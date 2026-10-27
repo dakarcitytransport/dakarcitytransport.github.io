@@ -5684,3 +5684,13 @@ Fonctions : `_depCmpDetails`, `_depCmpGroupe`, `_depCmpLigne`, `_depCmpHero`.
 Montants arrondis à l'euro. La carte « Livraison, caisse séparée » est gardée.
 Non fait (à voir) : vue Évolution sur plusieurs containers (graphique) et détail
 du chiffre d'affaires, dont la donnée par type de colis n'existe pas.
+
+**27/10, dct-app.html v3.99.116 / departs.js v2.21.49 — Comparer : choix des
+dates simplifié.** Cobey (capture 21:43) : « les dates aussi c'est trop
+fouilli » (trois onglets Année/Mois/Container + deux grilles de douze mois,
+libellés coupés « S… », « N… »). Remplacés par UN menu dans chaque carte A et B
+(`_depCmpSelecteurs`) : containers d'abord (récents en haut, « 20/09/2026 ·
+Chargement DKR », la date en premier car c'est elle qui les distingue), puis
+mois, puis années ; un lien « Intervertir A et B » ; au premier passage, les
+deux derniers containers sont proposés. Sous-titre : « Deux containers, deux
+mois ou deux années ». Plus d'onglet de type ni de grille.
