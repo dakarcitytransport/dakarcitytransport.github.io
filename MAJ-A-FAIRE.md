@@ -5709,3 +5709,18 @@ deux derniers containers en bleu/vert, négatif en rouge) puis la liste avec la
 variation vs le précédent (vert = bonne nouvelle, rouge = mauvaise). Toucher un
 container l'ouvre dans Comparer avec le précédent. Fonctions : `depOuvrirStatsEvo`,
 `depRenderEvo`, `_depEvoValeur`, `_depEvoPostes`, `depEvoComparer`.
+
+**29/10, dct-app.html v3.99.118 / departs.js v2.21.51 / mamadou.html v1.18.1 —
+Clôturer un container ne retire plus ses colis du Dépôt Dakar.** Cobey : « quand
+je clôturais un conteneur dans départ, ça retirait les colis qui étaient dans le
+dépôt à Dakar [...] le conteneur est déjà parti, tout est dans le dépôt à Dakar,
+c'est juste que dans l'application on classe les colis par conteneur [...]
+Mamadou ne voit plus le conteneur clôturé mais il peut toujours voir les colis
+du dépôt. » Cause : `_depListeDepotDakar` (DCT) et `_mnListeDepotDakar`
+(Mamadou) ne prenaient que les départs `statut === 'arrive'`. Maintenant :
+`_depDepartAuDepotDakar(d)` / `_mnAuDepotDakar(d)` = « Arrivé » OU « Clôturé »
+avec l'étape « Arrivée au dépôt » validée (un container clôturé encore en mer
+n'est pas compté). Un colis ne sort du dépôt que quand il est remis. Compteur
+Stockage idem ; badges « en attente de livraison / remis » et couleurs de la
+liste des clients d'un container clôturé aussi. La liste « Containers » de
+Mamadou cache toujours les clôturés (inchangé).

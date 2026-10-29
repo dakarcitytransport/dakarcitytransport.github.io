@@ -516,7 +516,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.18.0';
+var MAMADOU_VERSION = 'v1.18.1';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1127,11 +1127,20 @@ function ouvrirDepotDakar(){
   _mnRenderDepotDakar();
 }
 
+// v1.18.1 — un container clôturé (côté DCT) reste au dépôt tant que ses colis
+// ne sont pas remis : la clôture ne sert qu'au classement (Cobey, 29/10/2026).
+function _mnAuDepotDakar(d){
+  if(!d) return false;
+  if(d.statut === 'arrive') return true;
+  var e = d.etapesTransport && d.etapesTransport.arrivee_depot;
+  return d.statut === 'cloture' && !!(e && e.fait);
+}
+
 function _mnListeDepotDakar(){
   var out = [];
   Object.keys(departsData).forEach(function(did){
     var d = departsData[did] || {};
-    if(d.statut !== 'arrive' || !containerAutorise(did, d)) return;
+    if(!_mnAuDepotDakar(d) || !containerAutorise(did, d)) return;
     var etape = d.etapesTransport && d.etapesTransport.arrivee_depot;
     var tsArrivee = (etape && etape.fait && etape.ts) || null;
     clientsDuContainer(did).forEach(function(x){

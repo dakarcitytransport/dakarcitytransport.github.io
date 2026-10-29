@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.50';
+var DEP_VERSION = 'v2.21.51';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5208,7 +5208,7 @@ function _depDepotCarreRenderListe(filtre){
         // voir depDetail/_depLienTelIcone) — retour de Cobey du 03/09/2026.
         +       _depLienTelIcone(c.tel)
         +     '</div>'
-        +     _depBadgeLivraison(c, ((window.departsData||{})[departId]||{}).statut === 'arrive')
+        +     _depBadgeLivraison(c, _depDepartAuDepotDakar((window.departsData||{})[departId]))
         +   '</div>'
         // v1.20.11 : Facture/Photos remis ici — sans ça, un collaborateur
         // non-direction (Déplacer/Détacher restent réservés à Issyaka) n'a
@@ -8711,7 +8711,7 @@ window.depDetail = function(id, gardeFiltres){
       // ci-dessus reste donc affichée). Le badge et le bouton Facture,
       // ci-dessous, passent en fond blanc sur une carte colorée, sinon
       // ils s'y fondraient (même teintes #EAF7EE/#FFF3E0).
-      var _cliColoree = (d.statut === 'arrive');
+      var _cliColoree = _depDepartAuDepotDakar(d);
       var _bordureCli = _cliColoree
         ? (_depColisRemis(c) ? 'background:#EAF7EE;' : 'background:#FFF3E0;')
         : (_nbFus ? 'border-left:4px solid #00b34e;' : (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : ''));
@@ -8728,7 +8728,7 @@ window.depDetail = function(id, gardeFiltres){
         +     _depLienTelIcone(c.tel)
         +   '</div>'
         +   _depLignePaiementCarte(c)
-        +   _depBadgeLivraison(c, d.statut === 'arrive', _cliColoree)
+        +   _depBadgeLivraison(c, _depDepartAuDepotDakar(d), _cliColoree)
         +   '<div class="dep-cli-btns" style="margin-top:12px;">'
               + '<button class="dep-cli-btn" style="background:' + (_cliColoree ? '#fff' : '#EAF7EE') + ';border-color:#C8E6D0;color:#006b2d;" '
                 + (x.france
@@ -12342,7 +12342,7 @@ function depRenderFicheLecture(colId, clientId, depot, france){
                 + (c.destinataireTel ? ('<br>'+_depLienTel(c.destinataireTel, c.destinataireTel)) : '')
                 + (c.destinataireTel2 ? ('<br>'+_depLienTel(c.destinataireTel2, c.destinataireTel2)) : ''))
             + kv('Livraison', _depLivraisonLibelle(c) + '<br>' + ((c.prixLivraison||0)+'&nbsp;&euro;'))
-            + kv('Statut de livraison', _depBadgeLivraison(c, ((window.departsData||{})[c.departId]||{}).statut === 'arrive')))
+            + kv('Statut de livraison', _depBadgeLivraison(c, _depDepartAuDepotDakar((window.departsData||{})[c.departId]))))
           : kv('Livraison', 'Retrait sur place'))
     + '</div>'
     // v1.19.57 : photos du colis + possibilité d'en reprendre une (retour
@@ -12969,6 +12969,19 @@ function _depBadgeLivraison(c, arrive, fondBlanc){
 // livraison validée par Mamadou Niass (livraisonValidee.fait) ou remise en
 // main propre (remisAuClient). Les deux sont posés ensemble par sa
 // validation ; on teste les deux pour couvrir aussi les anciennes fiches.
+// v2.21.51 — Cobey, 29/10/2026 : « quand je clôture un conteneur, ça retire
+// les colis du dépôt à Dakar [...] le conteneur est déjà parti, tout est
+// dans le dépôt, on classe juste par conteneur dans l'application. » Un
+// colis est au dépôt dès l'arrivée du container et jusqu'à sa remise,
+// que le container soit « Arrivé » ou « Clôturé » (clôturé seulement si
+// l'étape « Arrivée au dépôt » a été validée : sinon il est encore en mer).
+function _depDepartAuDepotDakar(d){
+  if(!d) return false;
+  if(d.statut === 'arrive') return true;
+  var e = d.etapesTransport && d.etapesTransport.arrivee_depot;
+  return d.statut === 'cloture' && !!(e && e.fait);
+}
+
 function _depColisRemis(c){
   return !!(c && ((c.livraisonValidee && c.livraisonValidee.fait) || c.remisAuClient));
 }
@@ -12978,7 +12991,7 @@ function _depListeDepotDakar(){
   var departs = window.departsData || {};
   Object.keys(departs).forEach(function(did){
     var d = departs[did];
-    if(!d || d.statut !== 'arrive') return;
+    if(!_depDepartAuDepotDakar(d)) return;
     var etape = d.etapesTransport && d.etapesTransport.arrivee_depot;
     var tsArrivee = (etape && etape.fait && etape.ts) || null;
     var clients = tousLesClients().filter(function(x){ return x.c && x.c.departId === did; })
