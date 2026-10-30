@@ -2111,7 +2111,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.118';
+var APP_VERSION = 'v3.99.119';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -12551,10 +12551,11 @@ function _activiteHtmlPourStockage(al){
 // v3.99.112 : la même ligne, de la même personne, répétée en moins d'une
 // minute (double appui, double enregistrement) n'est écrite qu'une fois.
 var _dernAct = { texte:'', ts:0 };
-function addActivity(emoji,bg,text,time){
+// memeAdmin : le Planning doit montrer le nom de l'admin aussi (Cobey, 30/10/2026).
+function addActivity(emoji,bg,text,time,memeAdmin){
   if(text === _dernAct.texte && Date.now() - _dernAct.ts < 60000) return;
   _dernAct = { texte:text, ts:Date.now() };
-  if(currentUser && currentUser.admin) return; // Admin invisible
+  if(currentUser && currentUser.admin && !memeAdmin) return; // Admin invisible (sauf Planning)
   var now=new Date();
   var dateStr=now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
   var heureStr=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});

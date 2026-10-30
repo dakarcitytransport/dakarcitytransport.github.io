@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.51';
+var DEP_VERSION = 'v2.21.52';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -17303,11 +17303,11 @@ function greffer(){
   }
   if(typeof window.addActivity === 'function' && !window.addActivity._depPatch){
     var origAddActivity = window.addActivity;
-    window.addActivity = function(emoji, bg, text, time){
+    window.addActivity = function(emoji, bg, text, time, memeAdmin){
       if(_depViaPassePartout && text){
         text = text + ' <span style="color:#c0392b;font-weight:700;">🗝️ via passe-partout</span>';
       }
-      return origAddActivity.call(this, emoji, bg, text, time);
+      return origAddActivity.call(this, emoji, bg, text, time, memeAdmin);
     };
     window.addActivity._depPatch = true;
   }
@@ -27438,7 +27438,7 @@ window.depPlanningPoser = function(iso, dispo){
       addActivity(dispo ? '✅' : '❌', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> '
         + (dispo ? 'se dit disponible' : 'se dit pas disponible')
-        + ' pour ' + _depPlNomJourPhrase(iso), "À l'instant");
+        + ' pour ' + _depPlNomJourPhrase(iso), "À l'instant", true);
     }catch(e){}
   }).catch(function(e){
     console.error('departs: pose disponibilité', e);
@@ -27464,7 +27464,7 @@ window.depPlanningRetirer = function(iso){
     try{
       addActivity('↩️', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a retiré sa réponse '
-        + 'pour ' + _depPlNomJourPhrase(iso), "À l'instant");
+        + 'pour ' + _depPlNomJourPhrase(iso), "À l'instant", true);
     }catch(e){}
   }).catch(function(e){
     console.error('departs: retrait disponibilité', e);
@@ -27541,7 +27541,7 @@ window.depPlanningForcer = function(iso, id, dispo, nomExterne){
       addActivity('✏️', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a corrigé la réponse '
         + 'de <strong>' + nom + '</strong> (' + (dispo ? 'disponible' : 'pas disponible') + ') '
-        + 'pour ' + _depPlNomJourPhrase(iso), "À l'instant");
+        + 'pour ' + _depPlNomJourPhrase(iso), "À l'instant", true);
     }catch(e){}
   }).catch(function(e){
     console.error('departs: forcer disponibilité', e);
@@ -27563,7 +27563,7 @@ window.depPlanningForcerRetirer = function(iso, id){
     try{
       addActivity('↩️', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a effacé la réponse '
-        + 'de <strong>' + nom + '</strong> pour ' + _depPlNomJourPhrase(iso), "À l'instant");
+        + 'de <strong>' + nom + '</strong> pour ' + _depPlNomJourPhrase(iso), "À l'instant", true);
     }catch(e){}
   }).catch(function(e){
     console.error('departs: retrait (admin) disponibilité', e);
@@ -27644,7 +27644,7 @@ window.depPlanningExterneAjouter = function(iso, dispo){
       addActivity('➕', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a ajouté '
         + '<strong>' + nom + '</strong> (intervenant ponctuel) pour '
-        + _depPlNomJourPhrase(iso), "À l'instant");
+        + _depPlNomJourPhrase(iso), "À l'instant", true);
     }catch(e){}
   }).catch(function(e){
     console.error('departs: ajout intervenant ponctuel', e);
@@ -27803,7 +27803,7 @@ window.depPlanningRelancer = function(iso){
       addActivity('🔔', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a relancé '
         + aRelancer.length + ' personne' + (aRelancer.length > 1 ? 's' : '')
-        + ' pour ' + (horsDimanche ? 'le ' : 'le dimanche ') + '<strong>' + esc(quand) + '</strong>', "À l'instant");
+        + ' pour ' + (horsDimanche ? 'le ' : 'le dimanche ') + '<strong>' + esc(quand) + '</strong>', "À l'instant", true);
     }catch(e){}
     // v1.94.24 : Cobey : « il faudrait inscrire aussi les rappels [...]
     // et à qui ils ont été envoyés » — même trace que les rappels

@@ -5724,3 +5724,14 @@ n'est pas compté). Un colis ne sort du dépôt que quand il est remis. Compteur
 Stockage idem ; badges « en attente de livraison / remis » et couleurs de la
 liste des clients d'un container clôturé aussi. La liste « Containers » de
 Mamadou cache toujours les clôturés (inchangé).
+
+**30/10, dct-app.html v3.99.119 / departs.js v2.21.52 — Planning : le nom de
+l'admin apparaît dans les notifications.** Cobey : « dans les notifications pour
+les plannings, il n'y a pas mon nom. Je me suis noté pas dispo, mais il n'y a pas
+marqué mon nom [...] Eric, mon nom. » Cause : `addActivity` n'écrit rien dans le
+fil quand l'utilisateur est admin (« Admin invisible »), donc ses actions de
+Planning n'y étaient jamais. Ajout d'un 5e paramètre `memeAdmin` (dct-app.html,
+et dans l'enrobage « passe-partout » de departs.js) passé à `true` pour les 6
+lignes du Planning : dispo / pas dispo, réponse retirée, correction de la réponse
+d'un autre, intervenant ponctuel, relance. Le reste de ce que fait un admin
+reste invisible dans le fil (comportement d'origine inchangé).
