@@ -5767,3 +5767,11 @@ clients d'Île-de-France. Il n'y a aucun client du carnet de France. » Le carne
 75/77/78/91-95) ; `_depCarnetARecreer` les écarte, ainsi que tout contact déjà
 client d'une collecte (`clientsParCollecte`) ou du dépôt. Le code postal est
 affiché sur chaque ligne.
+
+**01/11, dct-app.html v3.99.122 / departs.js v2.21.55 — Outils : « Chercher dans
+l'historique ».** Cobey, pour retrouver le 3e client rangé par le chauffeur
+externe le 02/10 (n° 38-39-40 manquants dans le container, tournée absente de
+Firebase) : « Activité j'ai plus, j'ai effacé l'historique depuis. » « Effacer »
+ne cache les lignes que sur le téléphone ; elles restent dans `activite_items`.
+Nouveau panneau (mot à chercher + dates du/au, lecture seule, 200 lignes max,
+sans accents ni majuscules) : `_depHtmlHistorique`, `depHistoChercher`.

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.54';
+var DEP_VERSION = 'v2.21.55';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -26299,6 +26299,63 @@ window.depRecupFranceValider = function(){
   }).catch(function(err){ toast('❌ Échec : ' + ((err && err.message) || 'refusé')); });
 };
 
+/* v2.21.55 — Cobey, 01/11/2026 : « Activité j'ai plus, j'ai effacé l'historique
+   depuis. » « Effacer » (effacerActivite) ne cache les lignes que sur CE
+   téléphone : elles restent toutes dans activite_items. Ce panneau les relit,
+   avec un mot à chercher et deux dates, sans rien modifier. */
+var _depHisto = { q: '', du: '', au: '', html: '' };
+
+function _depHistoNorm(t){
+  return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function _depHtmlHistorique(){
+  var sty = 'width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:600 13px var(--font);background:#fff;';
+  var etiq = function(t){ return '<div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--text3);margin:0 2px 4px;">' + t + '</div>'; };
+  return '<div style="font-size:12px;color:#888;line-height:1.5;margin-bottom:10px;">Retrouve les lignes de l\'Activit&eacute; m&ecirc;me effac&eacute;es : elles restent dans la base. Ne modifie rien.</div>'
+    + '<div style="margin-bottom:8px;">' + etiq('MOT &Agrave; CHERCHER') + '<input id="dh-q" style="' + sty + '" placeholder="ex. excterne, Aminata, ramass&eacute;" value="' + esc(_depHisto.q) + '"></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">'
+    +   '<div>' + etiq('DU') + '<input id="dh-du" type="date" style="' + sty + '" value="' + esc(_depHisto.du) + '"></div>'
+    +   '<div>' + etiq('AU') + '<input id="dh-au" type="date" style="' + sty + '" value="' + esc(_depHisto.au) + '"></div></div>'
+    + '<button type="button" class="btn btn-gray" style="color:#1a237e;border:1.5px solid #1a237e;" onclick="depHistoChercher()">&#128269; Chercher</button>'
+    + '<div id="dh-res" style="margin-top:12px;">' + _depHisto.html + '</div>';
+}
+
+window.depHistoChercher = function(){
+  var g = function(id){ return ((document.getElementById(id) || {}).value || '').trim(); };
+  _depHisto.q = g('dh-q'); _depHisto.du = g('dh-du'); _depHisto.au = g('dh-au');
+  var res = document.getElementById('dh-res');
+  if(!window.db || !window.firebaseReady){ if(res) res.innerHTML = '<div style="color:#992020;font-size:13px;">Connexion indisponible.</div>'; return; }
+  if(res) res.innerHTML = '<div style="color:#888;font-size:13px;">Recherche&hellip;</div>';
+  var ref = db.ref('activite_items').orderByChild('ts');
+  var deb = _depHisto.du ? new Date(_depHisto.du + 'T00:00:00').getTime() : null;
+  var fin = _depHisto.au ? new Date(_depHisto.au + 'T23:59:59').getTime() : null;
+  if(deb !== null) ref = ref.startAt(deb);
+  if(fin !== null) ref = ref.endAt(fin);
+  if(deb === null && fin === null) ref = ref.limitToLast(1500);
+  ref.once('value').then(function(snap){
+    var v = snap.val() || {}, q = _depHistoNorm(_depHisto.q);
+    var tmp = document.createElement('div');
+    var lignes = Object.keys(v).map(function(k){
+      var it = v[k] || {};
+      tmp.innerHTML = it.text || '';
+      return { ts: it.ts || 0, emoji: it.emoji || '', texte: tmp.textContent || '', label: it.timeLabel || '' };
+    }).filter(function(l){ return !q || _depHistoNorm(l.texte).indexOf(q) !== -1; })
+      .sort(function(a, b){ return b.ts - a.ts; });
+    var total = lignes.length;
+    var h = '<div style="font-size:12px;font-weight:800;color:#1a237e;margin-bottom:6px;">' + total + ' ligne' + (total > 1 ? 's' : '') + ' trouv&eacute;e' + (total > 1 ? 's' : '') + (total > 200 ? ' (200 affich&eacute;es)' : '') + '</div>';
+    lignes.slice(0, 200).forEach(function(l){
+      h += '<div style="padding:8px 0;border-top:1px solid #eee;font-size:13px;line-height:1.45;color:#1a1a2e;">' + esc(l.emoji) + ' ' + esc(l.texte)
+        + '<div style="font-size:11px;color:#888;margin-top:2px;">' + esc(l.label || (l.ts ? new Date(l.ts).toLocaleString('fr-FR') : '')) + '</div></div>';
+    });
+    if(!total) h += '<div style="font-size:13px;color:#888;">Aucune ligne. Essaie un autre mot ou plus de dates.</div>';
+    _depHisto.html = h;
+    var r2 = document.getElementById('dh-res'); if(r2) r2.innerHTML = h;
+  }).catch(function(e){
+    var r2 = document.getElementById('dh-res'); if(r2) r2.innerHTML = '<div style="color:#992020;font-size:13px;">&Eacute;chec : ' + esc((e && e.message) || 'lecture refus&eacute;e') + '</div>';
+  });
+};
+
 function _depHtmlOutils(){
   var limite = Date.now() - 45*24*3600*1000;
   var nbOrph = _depCollectesOrphelines().filter(function(g){ return g.cree >= limite; }).length;
@@ -26313,6 +26370,7 @@ function _depHtmlOutils(){
     + _depAccordeon('retrouver', '&#128737;&#65039; Retrouver une collecte', nbOrph ? (nbOrph + ' &agrave; r&eacute;cup&eacute;rer') : 'Si une collecte a disparu',
         '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Chercher les collectes manquantes</button>' + _depHtmlCollectesDisparues())
     + _depAccordeon('retrouverfr', '&#129489; Retrouver un client France', 'Supprim&eacute; par erreur', _depHtmlRecupFrance())
+    + _depAccordeon('histo', '&#128269; Chercher dans l\'historique', 'M&ecirc;me les lignes effac&eacute;es', _depHtmlHistorique())
     + _depAccordeon('avance', '&#128295; Avanc&eacute;', 'Diagnostic, civilit&eacute;s, lenteur',
         diag + _htmlCorrectionCivilites() + _depHtmlReleveLenteur());
 }
