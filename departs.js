@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.0';
+var DEP_VERSION = 'v2.22.1';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -6044,6 +6044,9 @@ var DEP_REGLAGES_ITEMS = [
   // et Diagnostic n'ont rien à voir avec le stockage (Données), chaque
   // fonction doit avoir sa propre case plutôt que d'être mélangée ailleurs.
   { tab:'outils',       icone:'&#128295;',           titre:'OUTILS',               couleur:'#6D4C41', fond:'#EFE3DD' },
+  // v2.22.1 — Cobey, 01/11/2026 : « ajoute plutôt une case Corbeille ici, avec
+  // à l'intérieur tout ce qui a été supprimé, classé par objet. »
+  { tab:'corbeille',    icone:'&#128465;&#65039;',   titre:'CORBEILLE',            couleur:'#B23A48', fond:'#F8E3E5' },
   { tab:'message',      icone:'&#128226;',           titre:'MESSAGE',              couleur:'#7c3aed', fond:'#EDE5FC' }
 ];
 
@@ -6052,6 +6055,7 @@ window.depOuvrirEspaceReglages = function(){
   goTo('s-admin');
   _depReglagesPreparerEcran();
   _depReglagesAfficherGrille();
+  try{ window.depChargerCorbeille(); _depCorbMajSub(); }catch(e){}
 };
 
 // v2.20.22 — déplacée hors de Réglages, sur son propre écran (voir
@@ -6090,7 +6094,7 @@ function _depReglagesPreparerEcran(){
   // fois, ici même où vit déjà la création de la grille.
   // v1.21.9 : même chose pour les 4 cases qui remplacent l'ancien carré
   // unique "Accès" (codesadmin/codesespaces/maintenance/alertes).
-  ['outils','codesadmin','maintenance','alertes'].forEach(function(id){
+  ['outils','codesadmin','maintenance','alertes','corbeille'].forEach(function(id){
     if(contenu && !$('admin-section-'+id)){
       var sec = document.createElement('div');
       sec.id = 'admin-section-'+id;
@@ -6139,7 +6143,7 @@ window._depReglagesOuvrirItem = function(tab){
 
 function _depReglagesAfficherGrille(){
   _depReglagesTab = null;
-  ['equipe','codesadmin','maintenance','alertes','donnees','outils','message'].forEach(function(t){
+  ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message'].forEach(function(t){
     var sec = $('admin-section-'+t);
     if(sec) sec.style.display = 'none';
   });
@@ -18976,7 +18980,7 @@ function greffer(){
      plus, aucune case n'y mène. --- */
   if(typeof window.showAdminTab === 'function' && !window.showAdminTab._depPatch){
     window.showAdminTab = function(tab){
-      ['equipe','codesadmin','maintenance','alertes','donnees','outils','message'].forEach(function(t){
+      ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message'].forEach(function(t){
         var sec = document.getElementById('admin-section-'+t);
         var btn = document.getElementById('admin-tab-'+t);
         if(sec) sec.style.display = t === tab ? 'block' : 'none';
@@ -18991,6 +18995,7 @@ function greffer(){
       else if(tab === 'alertes'){ window.renderAdminAlertes(); marquerAlertesVues(); }
       else if(tab === 'donnees') renderAdminDonnees();
       else if(tab === 'outils') window.renderAdminOutils();
+      else if(tab === 'corbeille') window.renderAdminCorbeille();
       else if(tab === 'message') renderAdminMessage();
     };
     window.showAdminTab._depPatch = true;
@@ -26295,12 +26300,12 @@ window.depChargerCorbeille = function(force){
         ecritures: [{ p: 'france/clients/' + id, v: f }], photos: 'france_photos/' + id };
     });
     _depCorb = out;
-    if(typeof window.renderAdminOutils === 'function') window.renderAdminOutils();
+    _depCorbRendre();
   };
   db.ref('dct_corbeille').once('value').then(function(s){ recu.n = s.val() || {}; fin(); }).catch(function(){ _depCorbCharge = false; });
   db.ref('france_corbeille').once('value').then(function(s){ recu.fr = s.val() || {}; fin(); }).catch(function(){ recu.fr = {}; fin(); });
   // Le carnet est relu directement dans Firebase (voir « Retrouvés dans le carnet »).
-  db.ref('dct/contacts').once('value').then(function(sc){ _depContactsFb = sc.val() || {}; if(typeof window.renderAdminOutils === 'function') window.renderAdminOutils(); }).catch(function(){});
+  db.ref('dct/contacts').once('value').then(function(sc){ _depContactsFb = sc.val() || {}; _depCorbRendre(); }).catch(function(){});
 };
 
 function _depCorbLigne(e){
@@ -26353,6 +26358,24 @@ function _depHtmlCorbeille(){
 }
 
 function _depCorbNombre(){ return _depCorb ? Object.keys(_depCorb).length : 0; }
+
+// La tuile « Corbeille » de Réglages annonce combien il y a à retrouver.
+function _depCorbMajSub(){
+  var el = document.getElementById('dep-regl-sub-corbeille'); if(!el) return;
+  var n = _depCorbNombre();
+  el.innerHTML = !_depCorb ? '&mdash;' : (n ? '<b style="color:#B23A48;">' + n + '</b> &agrave; retrouver' : 'Rien &agrave; retrouver');
+}
+function _depCorbRendre(){
+  _depCorbMajSub();
+  if(typeof window.renderAdminCorbeille === 'function') window.renderAdminCorbeille();
+  if(typeof window.renderAdminOutils === 'function') window.renderAdminOutils();
+}
+window.renderAdminCorbeille = function(){
+  var sec = document.getElementById('admin-section-corbeille');
+  if(!sec) return;
+  sec.innerHTML = _depHtmlCorbeille() + _depHtmlRecupFrance();
+  _depCorbMajSub();
+};
 
 function _depNomFicheFr(f){
   return (f && (f.name || ((f.prenom || '') + ' ' + (f.nom || '')).trim() || f.nom)) || 'Client';
@@ -26425,7 +26448,7 @@ window.depCorbRetablir = function(cle){
     delete _depCorb[cle];
     toast('✅ Rétabli : ' + (e.titre || ''));
     depActivite('&#9851;&#65039;', 'a r&eacute;tabli <strong>' + esc(e.titre || '') + '</strong>' + (e.sous ? ' &mdash; ' + esc(e.sous) : ''));
-    window.renderAdminOutils();
+    _depCorbRendre();
   };
   var echec = function(err){ toast('❌ Échec : ' + ((err && err.message) || 'refusé')); };
   if(e.type === 'collecteDk'){
@@ -26525,7 +26548,7 @@ window.depRecupFranceValider = function(){
     closeModal('modal-recup-fr');
     toast('✅ Fiche recréée');
     depActivite('&#9851;&#65039;', 'a recr&eacute;&eacute; la fiche de <strong>' + esc(obj.nom) + '</strong>' + (departId ? ' &mdash; ' + esc(nomDepart(departId)) : ''));
-    window.renderAdminOutils();
+    _depCorbRendre();
   }).catch(function(err){ toast('❌ Échec : ' + ((err && err.message) || 'refusé')); });
 };
 
@@ -26602,7 +26625,6 @@ function _depHtmlOutils(){
     + _depAccordeon('sauv', '&#128190; Sauvegardes', 'Une copie par jour, ' + DEP_SAUV_JOURS + ' jours gard&eacute;s', _depHtmlSauvegardes())
     + _depAccordeon('retrouver', '&#128737;&#65039; Retrouver une collecte', nbOrph ? (nbOrph + ' &agrave; r&eacute;cup&eacute;rer') : 'Si une collecte a disparu',
         '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Chercher les collectes manquantes</button>' + _depHtmlCollectesDisparues())
-    + _depAccordeon('corbeille', '&#128465;&#65039; Corbeille &middot; ' + DEP_CORB_JOURS + ' jours', _depCorbNombre() ? (_depCorbNombre() + ' supprim&eacute;' + (_depCorbNombre() > 1 ? 's' : '') + ' &agrave; retrouver') : 'Tout ce qui est supprim&eacute;, class&eacute;', _depHtmlCorbeille() + _depHtmlRecupFrance())
     + _depAccordeon('histo', '&#128269; Chercher dans l\'historique', 'M&ecirc;me les lignes effac&eacute;es', _depHtmlHistorique())
     + _depAccordeon('avance', '&#128295; Avanc&eacute;', 'Diagnostic, civilit&eacute;s, lenteur',
         diag + _htmlCorrectionCivilites() + _depHtmlReleveLenteur());

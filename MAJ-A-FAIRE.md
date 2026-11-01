@@ -5829,3 +5829,13 @@ container) / Contacts / Factures / Dépenses, avec recherche et « Rétablir »
 entrées `france_corbeille` (v3.99.120) sont relues. Sauvegarde quotidienne :
 15 → 30 jours (`DEP_SAUV_JOURS`). Le bloc « Retrouvés dans le carnet » reste
 dessous. Non couvert : suppressions faites avant le 01/11 (sauf via le carnet).
+
+**01/11, dct-app.html v3.99.127 / departs.js v2.22.1 — La corbeille a sa propre
+case dans Réglages.** Cobey (capture de Administration) : « ajoute plutôt une
+case Corbeille ici, avec à l'intérieur l'espace où on voit tout ce qui a été
+supprimé, classé par objet : le container, les collectes, les clients, chacun a
+sa place. » Nouvelle tuile « CORBEILLE » (rouge pâle, entre Outils et Message ;
+sous-titre « N à retrouver ») dans `DEP_REGLAGES_ITEMS`, section
+`admin-section-corbeille` (`renderAdminCorbeille`) : la liste classée de la
+v3.99.126 + « Retrouvés dans le carnet ». Retirée d'Outils (où ne reste que
+« Chercher dans l'historique »).
