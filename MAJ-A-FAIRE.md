@@ -5801,3 +5801,10 @@ alors que Masamba devrait y être. Ajout sous la liste : « Carnet : N contacts 
 ont déjà une fiche · Y d'Île-de-France » (`_depCarnetStats`), pour voir pourquoi
 un contact est écarté (fiche France recréée entre-temps, client d'une collecte,
 Île-de-France).
+
+**01/11, dct-app.html v3.99.125 / departs.js v2.21.58 — « Retrouver un client
+France » lit le carnet directement dans Firebase.** Cobey : « il n'y a aucun
+contact trouvé » alors que Masamba est bien dans dct/contacts (console Firebase).
+La liste s'appuyait sur `window.dctContacts` (copie en mémoire, vide ou périmée
+sur ce navigateur). Elle relit maintenant `dct/contacts` (`_depContactsFb`) en
+plus de la mémoire.
