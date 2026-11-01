@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.52';
+var DEP_VERSION = 'v2.21.53';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -12426,7 +12426,9 @@ window.depOuvrirSuppressionFrance = function(){
   var c = ((window.franceData||{}).clients||{})[ctx.clientId];
   if(!c) return;
   var el = $('del-fiche-fr-sub');
-  if(el) el.textContent = 'Supprimer la fiche de ' + (c.name || ((c.prenom||'')+' '+(c.nom||'')).trim() || 'ce client') + ' ?';
+  var nomCont = ''; try{ if(c.departId) nomCont = nomDepart(c.departId) || ''; }catch(e){}
+  if(el) el.textContent = 'Supprimer la fiche de ' + (c.name || ((c.prenom||'')+' '+(c.nom||'')).trim() || 'ce client') + ' ?'
+    + (nomCont ? (' \u26a0\ufe0f Il est rang\u00e9 dans le container \u00ab ' + nomCont + ' \u00bb et en sera retir\u00e9.') : '');
   openModal('modal-delete-fr');
 };
 window.depConfirmerSuppressionFrance = function(){
@@ -12451,7 +12453,10 @@ window.depConfirmerSuppressionFrance = function(){
     if(r.assigned) delete r.assigned[id];
     var ic = (r.clients||[]).indexOf(id); if(ic>=0) r.clients.splice(ic,1);
   });
-  try{ db.ref('france_photos/'+id).remove(); }catch(e){}
+  // v2.21.53 : la personne rejoint le carnet et la fiche va en corbeille
+  // (30 jours) avant d'être effacée ; les photos restent, voir _frMettreCorbeille.
+  try{ if(typeof _versCarnet === 'function') _versCarnet(c); }catch(e){}
+  try{ if(typeof _frMettreCorbeille === 'function') _frMettreCorbeille(id, c); }catch(e){}
   db.ref('france/clients/'+id).remove().then(function(){
     toast('🗑️ Fiche supprimée');
     depActivite('&#128465;&#65039;', 'a supprim&eacute; la fiche de <strong>'+esc(nom)+'</strong>');
@@ -18351,7 +18356,7 @@ function greffer(){
             }
           }catch(eClean){ console.error('departs: nettoyage camion après suppression forcée (France)', eClean); }
           try{ _versCarnet(c); }catch(e){}
-          try{ db.ref('france_photos/'+window.franceClientId).remove(); }catch(e){}
+          try{ if(typeof _frMettreCorbeille === 'function') _frMettreCorbeille(window.franceClientId, c); }catch(e){}
           db.ref('france/clients/'+window.franceClientId).remove().then(function(){
             toast('🗑️ Fiche supprimée');
             depActivite('&#128465;&#65039;', 'a supprim&eacute; (forc&eacute;) la fiche de <strong>'+esc(c.name||c.nom||'')+'</strong>');
@@ -26106,6 +26111,181 @@ function _depAccordeon(cle, titre, sous, corps){
     +   '<span style="color:#888;font-size:16px;">&#9662;</span></summary>'
     + '<div style="padding:0 14px 14px;">' + corps + '</div></details>';
 }
+/* v2.21.53 — Cobey, 01/11/2026 : des clients France déjà rangés dans un
+   container ont été supprimés de la liste « en attente » ; fiche, container,
+   prix et photos perdus. Deux choses :
+   - la corbeille (france_corbeille/<id>, 30 jours, remplie par
+     _frMettreCorbeille à chaque suppression) : « Rétablir » remet la fiche
+     telle quelle, container compris, et ses photos (restées sous le même id) ;
+   - pour ce qui a été supprimé avant : le carnet (dct/contacts) garde nom,
+     téléphone et adresse ; « Recréer » refait une fiche et demande le
+     container, le colis et le prix. */
+var _depCorbFr = null, _depCorbFrCharge = false, _depRecupCarnet = [], _depRecupIdx = -1;
+
+function _depTelNorm(t){
+  var n = String(t || '').replace(/\D/g, '');
+  if(n.indexOf('33') === 0 && n.length >= 11) n = '0' + n.slice(2);
+  return n;
+}
+
+window.depChargerCorbeilleFrance = function(force){
+  if(!window.db || !window.firebaseReady) return;
+  if(_depCorbFrCharge && !force) return;
+  _depCorbFrCharge = true;
+  db.ref('france_corbeille').once('value').then(function(snap){
+    _depCorbFr = snap.val() || {};
+    var lim = Date.now() - 30 * 86400000;
+    Object.keys(_depCorbFr).forEach(function(id){
+      var e = _depCorbFr[id];
+      if(e && e.ts && e.ts < lim){
+        try{ db.ref('france_corbeille/' + id).remove(); db.ref('france_photos/' + id).remove(); }catch(x){}
+        delete _depCorbFr[id];
+      }
+    });
+    if(typeof window.renderAdminOutils === 'function') window.renderAdminOutils();
+  }).catch(function(){ _depCorbFrCharge = false; });
+};
+
+function _depNomFicheFr(f){
+  return (f && (f.name || ((f.prenom || '') + ' ' + (f.nom || '')).trim() || f.nom)) || 'Client';
+}
+
+function _depCarnetARecreer(){
+  var tels = {};
+  var cls = (window.franceData || {}).clients || {};
+  Object.keys(cls).forEach(function(k){ if(cls[k]) tels[_depTelNorm(cls[k].tel)] = true; });
+  var corb = _depCorbFr || {};
+  Object.keys(corb).forEach(function(k){ if(corb[k] && corb[k].fiche) tels[_depTelNorm(corb[k].fiche.tel)] = true; });
+  var out = [];
+  var ct = window.dctContacts || {};
+  Object.keys(ct).forEach(function(k){
+    var c = ct[k]; if(!c) return;
+    var t = _depTelNorm(c.tel);
+    if(t && tels[t]) return;
+    out.push(c);
+  });
+  out.sort(function(a, b){ return _depNomFicheFr(a).localeCompare(_depNomFicheFr(b)); });
+  return out;
+}
+
+function _depHtmlRecupFrance(){
+  try{ window.depChargerCorbeilleFrance(); }catch(e){}
+  var titre = function(t){ return '<div style="font-size:13px;font-weight:800;color:#1a1a2e;margin:4px 0 6px;">' + t + '</div>'; };
+  var note = function(t){ return '<div style="font-size:12px;color:#888;line-height:1.5;margin-bottom:10px;">' + t + '</div>'; };
+  var ligne = function(nom, sous, bouton){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #eee;">'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:800;color:#1a1a2e;">' + esc(nom) + '</div>'
+      + '<div style="font-size:11.5px;color:#888;margin-top:2px;">' + sous + '</div></div>' + bouton + '</div>';
+  };
+  var h = titre('&#128465;&#65039; Supprim&eacute;s r&eacute;cemment')
+    + note('Tout revient tel quel : container, colis, prix, photos. Gard&eacute;s 30 jours.');
+  var corb = _depCorbFr;
+  if(!corb){
+    h += '<div style="font-size:12.5px;color:#888;padding:6px 0;">Chargement&hellip;</div>';
+  } else {
+    var ids = Object.keys(corb).filter(function(k){ return corb[k] && corb[k].fiche; })
+      .sort(function(a, b){ return (corb[b].ts || 0) - (corb[a].ts || 0); });
+    if(!ids.length) h += '<div style="font-size:12.5px;color:#888;padding:6px 0;">Rien &agrave; r&eacute;tablir pour l\'instant.</div>';
+    ids.forEach(function(id){
+      var e = corb[id], f = e.fiche;
+      var cont = ''; try{ if(f.departId) cont = ' &middot; ' + esc(nomDepart(f.departId) || ''); }catch(x){}
+      h += ligne(_depNomFicheFr(f), 'supprim&eacute; ' + esc(_depDateHeureCourte(e.ts)) + (e.par ? ' par ' + esc(e.par) : '') + cont
+        + (f.prix ? ' &middot; ' + esc(String(f.prix)) + '&nbsp;&euro;' : ''),
+        '<button type="button" class="btn btn-gray" style="margin:0;width:auto;padding:8px 12px;" onclick="depRetablirFicheFrance(\'' + id + '\')">R&eacute;tablir</button>');
+    });
+  }
+  _depRecupCarnet = _depCarnetARecreer();
+  h += '<div style="height:14px;"></div>' + titre('&#128210; Retrouv&eacute;s dans le carnet')
+    + note('Pour les clients supprim&eacute;s avant la corbeille : le carnet garde le nom, le t&eacute;l&eacute;phone et l\'adresse. Il faudra redonner le container, le colis et le prix.');
+  if(!_depRecupCarnet.length) h += '<div style="font-size:12.5px;color:#888;padding:6px 0;">Aucun contact sans fiche.</div>';
+  _depRecupCarnet.forEach(function(c, i){
+    h += ligne(_depNomFicheFr(c), esc(c.tel || '') + (c.ville ? ' &middot; ' + esc(c.ville) : ''),
+      '<button type="button" class="btn btn-gray" style="margin:0;width:auto;padding:8px 12px;" onclick="depRecupFranceOuvrir(' + i + ')">Recr&eacute;er</button>');
+  });
+  return h;
+}
+
+window.depRetablirFicheFrance = function(id){
+  var e = (_depCorbFr || {})[id];
+  if(!e || !e.fiche) return;
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  if(((window.franceData || {}).clients || {})[id]){ toast('⚠️ Cette fiche existe déjà.'); return; }
+  var f = JSON.parse(JSON.stringify(e.fiche));
+  var u = window.currentUser || {};
+  f.hist = (Array.isArray(f.hist) ? f.hist : []).concat([{ q: u.name || '', a: 'a rétabli la fiche', ts: Date.now() }]);
+  db.ref('france/clients/' + id).set(f).then(function(){
+    try{ db.ref('france_corbeille/' + id).remove(); }catch(x){}
+    delete _depCorbFr[id];
+    toast('✅ Fiche rétablie');
+    depActivite('&#9851;&#65039;', 'a r&eacute;tabli la fiche de <strong>' + esc(_depNomFicheFr(f)) + '</strong>');
+    window.renderAdminOutils();
+  }).catch(function(err){ toast('❌ Échec : ' + ((err && err.message) || 'refusé')); });
+};
+
+window.depRecupFranceOuvrir = function(i){
+  var c = _depRecupCarnet[i]; if(!c) return;
+  _depRecupIdx = i;
+  var modal = document.getElementById('modal-recup-fr');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'modal-recup-fr';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+  var deps = tousLesDeparts().filter(function(d){ return d && d.special !== 'depot' && d.statut !== 'cloture'; })
+    .sort(function(a, b){ return String(b.dateDepart || '').localeCompare(String(a.dateDepart || '')); });
+  modal.innerHTML = '<div class="modal-sheet">'
+    + '<div class="modal-title">Recréer ' + esc(_depNomFicheFr(c)) + '</div>'
+    + '<div style="font-size:12.5px;color:#666;line-height:1.5;margin-bottom:10px;">' + esc((c.tel || '') + ' · ' + (c.adresse || '') + ' ' + (c.cp || '') + ' ' + (c.ville || '')) + '</div>'
+    + '<label class="fl">Container</label><select class="fi" id="rf-depart"><option value="">— Pas de container (en attente) —</option>'
+    + deps.map(function(d){ return '<option value="' + d._id + '">' + esc(d.nom || '') + ' — part le ' + esc(dateFr(d.dateDepart)) + '</option>'; }).join('')
+    + '</select>'
+    + '<label class="fl">Colis</label><input class="fi" id="rf-colis" placeholder="ex. Machine à laver, Fût 270 L">'
+    + '<div style="display:flex;gap:8px;">'
+    +   '<div style="flex:1;"><label class="fl">Nombre</label><input class="fi" id="rf-nb" type="number" inputmode="numeric" value="1"></div>'
+    +   '<div style="flex:1;"><label class="fl">Prix (€)</label><input class="fi" id="rf-prix" type="number" inputmode="numeric" value="0"></div>'
+    +   '<div style="flex:1;"><label class="fl">Ramassage (€)</label><input class="fi" id="rf-ram" type="number" inputmode="numeric" value="0"></div>'
+    + '</div>'
+    + '<button class="btn btn-green" style="margin-top:6px;" onclick="depRecupFranceValider()">✅ Recréer la fiche</button>'
+    + '<button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal(\'modal-recup-fr\')">✕ Annuler</button>'
+    + '</div>';
+  openModal('modal-recup-fr');
+};
+
+window.depRecupFranceValider = function(){
+  var c = _depRecupCarnet[_depRecupIdx]; if(!c) return;
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  var g = function(id){ return ((document.getElementById(id) || {}).value || '').trim(); };
+  var u = window.currentUser || {}, now = Date.now();
+  var z = {}; try{ z = zoneDepuisCP(c.cp, c.pays || 'FR') || {}; }catch(x){}
+  var departId = g('rf-depart');
+  var obj = {
+    civilite: c.civilite || '',
+    nom: ((c.prenom || '') + ' ' + (c.nom || '')).trim() || c.name || '',
+    tel: c.tel || '', tel2: c.tel2 || '', adresse: c.adresse || '', infos: c.infos || '',
+    cp: c.cp || '', ville: c.ville || '',
+    pays: z.ok ? z.pays : (c.pays || 'FR'), region: z.ok ? z.region : '', dept: z.ok ? (z.dept || '') : (c.dept || ''),
+    nb: parseInt(g('rf-nb') || '1', 10) || 1,
+    colis: g('rf-colis'),
+    prix: parseInt(g('rf-prix') || '0', 10) || 0,
+    prixRamassage: parseInt(g('rf-ram') || '0', 10) || 0,
+    statut: 'attente', lieu: '',
+    creePar: u.name || '', creeTs: now,
+    hist: [{ q: u.name || '', a: 'a recréé la fiche depuis le carnet', ts: now }]
+  };
+  if(departId){
+    obj.departId = departId;
+    _depAssignerRangDepart(obj, departId);
+  }
+  var id = 'c' + now;
+  db.ref('france/clients/' + id).set(obj).then(function(){
+    closeModal('modal-recup-fr');
+    toast('✅ Fiche recréée');
+    depActivite('&#9851;&#65039;', 'a recr&eacute;&eacute; la fiche de <strong>' + esc(obj.nom) + '</strong>' + (departId ? ' &mdash; ' + esc(nomDepart(departId)) : ''));
+    window.renderAdminOutils();
+  }).catch(function(err){ toast('❌ Échec : ' + ((err && err.message) || 'refusé')); });
+};
+
 function _depHtmlOutils(){
   var limite = Date.now() - 45*24*3600*1000;
   var nbOrph = _depCollectesOrphelines().filter(function(g){ return g.cree >= limite; }).length;
@@ -26119,6 +26299,7 @@ function _depHtmlOutils(){
     + _depAccordeon('sauv', '&#128190; Sauvegardes', 'Une copie par jour, ' + DEP_SAUV_JOURS + ' jours gard&eacute;s', _depHtmlSauvegardes())
     + _depAccordeon('retrouver', '&#128737;&#65039; Retrouver une collecte', nbOrph ? (nbOrph + ' &agrave; r&eacute;cup&eacute;rer') : 'Si une collecte a disparu',
         '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Chercher les collectes manquantes</button>' + _depHtmlCollectesDisparues())
+    + _depAccordeon('retrouverfr', '&#129489; Retrouver un client France', 'Supprim&eacute; par erreur', _depHtmlRecupFrance())
     + _depAccordeon('avance', '&#128295; Avanc&eacute;', 'Diagnostic, civilit&eacute;s, lenteur',
         diag + _htmlCorrectionCivilites() + _depHtmlReleveLenteur());
 }

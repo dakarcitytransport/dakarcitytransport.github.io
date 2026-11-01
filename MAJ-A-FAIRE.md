@@ -5735,3 +5735,27 @@ et dans l'enrobage « passe-partout » de departs.js) passé à `true` pour les 
 lignes du Planning : dispo / pas dispo, réponse retirée, correction de la réponse
 d'un autre, intervenant ponctuel, relance. Le reste de ce que fait un admin
 reste invisible dans le fil (comportement d'origine inchangé).
+
+**01/11, dct-app.html v3.99.120 / departs.js v2.21.53 — Clients France supprimés :
+corbeille + outil « Retrouver un client France ».** Cobey : des clients France
+« déjà ramassés par un chauffeur externe » (donc rangés dans un container mais
+encore « en attente » dans la liste) ont été supprimés par Aminata : la fiche,
+son container, son prix et ses photos ont disparu (Masamba Mbaye, Aliou Mansaly,
+et sans doute d'autres de la même tournée). « Ok, vas-y, fais ça. »
+- Toute suppression de fiche France (poubelle de la liste, bouton de la fiche,
+  suppression forcée direction, « vider l'historique ») copie d'abord la fiche
+  complète dans `france_corbeille/<id>` (`_frMettreCorbeille`, dct-app.html) ;
+  les photos ne sont plus effacées (même id, elles reviennent avec la fiche).
+  Corbeille et photos purgées après 30 jours.
+- Défaut corrigé : le bouton « Supprimer cette fiche » de la fiche ouverte
+  (`depConfirmerSuppressionFrance`) ne copiait PAS la personne dans le carnet
+  (dct/contacts), contrairement à la poubelle de la liste — d'où Aliou absent
+  du carnet.
+- Les deux écrans de confirmation disent maintenant « ce client est rangé dans
+  le container X et en sera retiré ».
+- Outils > « Retrouver un client France » : (1) « Supprimés récemment » =
+  corbeille, bouton Rétablir (tout revient tel quel, container compris) ;
+  (2) « Retrouvés dans le carnet » = contacts sans fiche, bouton Recréer : refait
+  une fiche (nom/tél/adresse du carnet) et demande container, colis, nombre, prix.
+  Pour les suppressions faites AVANT la corbeille, seul (2) est possible.
+Non fait : sauvegarde quotidienne des clients France (comme pour la Collecte).

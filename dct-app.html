@@ -2111,7 +2111,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.119';
+var APP_VERSION = 'v3.99.120';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3492,6 +3492,21 @@ function _versCarnet(c){
   return true;
 }
 
+// v3.99.120 — Cobey, 01/11/2026 : des clients France déjà rangés dans un
+// container ont été supprimés de la liste « en attente » ; la fiche, son
+// container, son prix et ses photos étaient perdus. Désormais toute
+// suppression de fiche France met d'abord une copie complète dans
+// france_corbeille/<id> (30 jours, voir « Retrouver un client » dans
+// Outils, departs.js). Les photos ne sont plus effacées au même moment : elles
+// restent sous le même identifiant et reviennent avec la fiche.
+function _frMettreCorbeille(id,c){
+  try{
+    if(!db || !firebaseReady || !c) return;
+    var fiche=JSON.parse(JSON.stringify(c)); delete fiche._id;
+    db.ref('france_corbeille/'+id).set({ ts:Date.now(), par:(currentUser||{}).name||'', fiche:fiche });
+  }catch(e){ console.error('corbeille France', e); }
+}
+
 // ═══════════ PHOTOS DES COLIS — v3.31.0 ═══════════
 // Personne chez Dakar City ne voit les colis avant Mitry-Mory :
 // c'est le chauffeur qui les charge. La photo fait le lien entre
@@ -4585,9 +4600,10 @@ function _supprimerFiches(ids, libelle){
   var maj={};
   // La personne rejoint le carnet avant que son dossier disparaisse.
   ids.forEach(function(id){ try{ _versCarnet((franceData.clients||{})[id]); }catch(e){} });
+  ids.forEach(function(id){ _frMettreCorbeille(id,(franceData.clients||{})[id]); });
   ids.forEach(function(id){ maj['clients/'+id]=null; });
-  // Les photos vivent ailleurs : on les emporte avec la fiche.
-  ids.forEach(function(id){ try{ db.ref('france_photos/'+id).remove(); }catch(e){} });
+  // Les photos restent (france_photos/<id>) : elles reviennent avec la fiche
+  // si on la rétablit, et sont retirées avec la corbeille après 30 jours.
   _frUpdate(maj).then(function(){
     dannySel=[];
     showToastNew('🗑️ '+ids.length+' fiche'+(ids.length>1?'s':'')+' supprimée'+(ids.length>1?'s':''));
@@ -4610,7 +4626,8 @@ function supprimerClientFranceListe(id){
   var c=(franceData.clients||{})[id];
   if(!c){ showToastNew('⚠️ Client introuvable.'); return; }
   if(c.statut!=='attente'){ showToastNew('⚠️ Impossible : le colis est déjà engagé.'); return; }
-  if(!confirm('Supprimer la fiche de '+(_nomAffiche(c))+' ?')) return;
+  var _nc=''; try{ if(c.departId && window._depNomDepart) _nc=window._depNomDepart(c.departId)||''; }catch(e){}
+  if(!confirm('Supprimer la fiche de '+(_nomAffiche(c))+' ?'+(_nc?('\n\n⚠️ Ce client est rangé dans le container « '+_nc+' ». Il en sera retiré. (Rétablissement possible 30 jours : Outils > Retrouver un client.)'):''))) return;
   _supprimerFiches([id], 'depuis la liste');
 }
 
@@ -8075,7 +8092,7 @@ function supprimerClientFrance(){
   if(c.statut!=='attente'){ showToastNew('⚠️ Impossible : le colis est déjà engagé.'); return; }
   if(!confirm('Supprimer la fiche de '+(c.nom||'ce client')+' ?')) return;
   try{ _versCarnet(c); }catch(e){}
-  try{ db.ref('france_photos/'+franceClientId).remove(); }catch(e){}
+  _frMettreCorbeille(franceClientId,c);
   db.ref('france/clients/'+franceClientId).remove().then(function(){
     showToastNew('🗑️ Fiche supprimée');
     _activiteFrance('🗑️', 'a supprimé la fiche de <strong>'+_nomAffiche(c)+'</strong>');
