@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.58';
+var DEP_VERSION = 'v2.22.0';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8183,6 +8183,11 @@ window.depSupprimer = function(){
   var dSupp = (window.departsData||{})[_depEditId] || {};
   var mSupp = /^(\d{4})-(\d{2})-(\d{2})/.exec(dSupp.dateDepart || '');
   var dateSupp = mSupp ? (mSupp[3]+'/'+mSupp[2]+'/'+mSupp[1]) : esc(dSupp.dateDepart || '');
+  try{
+    var copieDep = JSON.parse(JSON.stringify(dSupp)); delete copieDep._id;
+    window._depCorbeille('depart', _depEditId, { titre: nom || 'Container', sous: dateSupp ? 'd\u00e9part du ' + dateSupp : '', conteneur: '',
+      ecritures: [{ p: 'departs/' + _depEditId, v: copieDep }] });
+  }catch(eDp){}
   db.ref('departs/'+_depEditId).remove().then(function(){
     toast('🗑 Départ supprimé');
     depActivite('&#128465;', 'a supprim&eacute; le d&eacute;part <strong>'+esc(nom)+'</strong>' + (dateSupp ? ' (d&eacute;part du ' + dateSupp + ', sans client)' : ''));
@@ -13903,10 +13908,14 @@ window.depSupprimerDepot = function(){
   var id = _depDepotEditId;
   var departId = _depDepotDepart;
   var nom = (((window.depotClients||{})[id])||{}).name || '';
+  var copieDepot = (window.depotClients||{})[id];
 
   if(window.db && window.firebaseReady){
+    // v2.22.0 : copie en corbeille (30 jours) ; les photos restent, elles
+    // partent avec l'entrée.
+    if(copieDepot) window._depCorbeille('clientDepot', id, { titre: nom || 'Client', sous: 'D\u00e9p\u00f4t direct', departId: copieDepot.departId || departId || '',
+      ecritures: [{ p: 'dct_depot/' + id, v: copieDepot }], photos: 'dct_photos_colis/' + id });
     db.ref('dct_depot/'+id).remove();
-    db.ref('dct_photos_colis/'+id).remove();
   }
   depActivite('&#128465;', 'a supprim&eacute; <strong>'+esc(nom)+'</strong> du d&eacute;p&ocirc;t');
   toast('🗑️ Client supprimé');
@@ -17853,8 +17862,10 @@ function greffer(){
       var key = ($('del-contact-key')||{}).value || '';
       var name = '';
 
+      var copieContact = null, copiesClients = [];
       if(window.dctContacts && window.dctContacts[key]){
         name = window.dctContacts[key].name || '';
+        copieContact = JSON.parse(JSON.stringify(window.dctContacts[key]));
         delete window.dctContacts[key];
       }
 
@@ -17881,6 +17892,7 @@ function greffer(){
               if(asgn) delete asgn[clientId];
             }
             if(!name && c.name) name = c.name;
+            try{ copiesClients.push({ colId: colId, clientId: clientId, v: JSON.parse(JSON.stringify(c)) }); }catch(eCl){}
             delete cls[clientId];
             removed++;
             paires.push({ colId: colId, clientId: clientId });
@@ -17888,6 +17900,15 @@ function greffer(){
         });
       });
 
+      try{
+        // v2.22.0 : le contact ET les fiches de cette personne dans toutes les
+        // collectes partent en corbeille (30 jours).
+        var ecrC = [];
+        if(copieContact) ecrC.push({ p: 'dct/contacts/' + key, v: copieContact });
+        var apresC = [];
+        copiesClients.forEach(function(x){ ecrC.push({ p: 'dct/clients/' + x.colId + '/' + x.clientId, v: x.v }); apresC.push('dct_supprimes/' + x.colId + '/' + x.clientId); });
+        if(ecrC.length) window._depCorbeille('contact', key, { titre: name || 'Contact', sous: 'Carnet' + (copiesClients.length ? ' + ' + copiesClients.length + ' fiche' + (copiesClients.length > 1 ? 's' : '') + ' de collecte' : ''), conteneur: '', ecritures: ecrC, apres: apresC });
+      }catch(eCt){ console.error('departs: corbeille contact', eCt); }
       if(firebaseReady && db){
         var updates = {};
         updates['dct/contacts/'+key] = null;
@@ -18780,6 +18801,48 @@ function greffer(){
     };
     window.confirmerSupprimerCollecte._depPatch = true;
   }
+  /* --- X0 (v2.22.0). Corbeille de 30 jours : copie d'une collecte (Dakar)
+     ou d'une collecte France avant sa suppression — voir _depCorbeille. --- */
+  if(typeof window._effacerCollecte === 'function' && !window._effacerCollecte._depPatch){
+    var origEffacerCollecte = window._effacerCollecte;
+    window._effacerCollecte = function(idToDelete){
+      try{
+        var colE = (window.collectes || []).filter(function(c){ return c && c.id === idToDelete; })[0];
+        if(colE){
+          var cls = (window.clientsParCollecte || {})[idToDelete] || {};
+          var nbC = Object.keys(cls).filter(function(k){ return cls[k]; }).length;
+          var totC = Object.keys(cls).reduce(function(t, k){ return t + (parseFloat((cls[k] || {}).prix) || 0); }, 0);
+          window._depCorbeille('collecteDk', idToDelete, { titre: 'Collecte du ' + (colE.date || ''), sous: nbC + ' client' + (nbC > 1 ? 's' : '') + ' · ' + Math.round(totC) + ' €', conteneur: '',
+            extra: { collecte: colE, clients: cls, dispatch: (window.dispatchParCollecte || {})[idToDelete] || null, depenses: (window.depensesData || {})[idToDelete] || null } });
+        }
+      }catch(eC){ console.error('departs: corbeille collecte', eC); }
+      return origEffacerCollecte.apply(this, arguments);
+    };
+    window._effacerCollecte._depPatch = true;
+  }
+  if(typeof window.confirmerSupprimerCollecteFrance === 'function' && !window.confirmerSupprimerCollecteFrance._depPatchCorb){
+    var origSupprCollFr = window.confirmerSupprimerCollecteFrance;
+    window.confirmerSupprimerCollecteFrance = function(){
+      try{
+        var idF = window._frCollecteASupprimer;
+        var rF = idF ? ((window.franceData || {}).collectes || {})[idF] : null;
+        if(rF){
+          var copF = JSON.parse(JSON.stringify(rF)); delete copF._id;
+          var ecr = [{ p: 'france/collectes/' + idF, v: copF }];
+          var idsF = (typeof _frClientsDeCollecte === 'function') ? _frClientsDeCollecte(rF) : [];
+          idsF.forEach(function(cid){
+            var cF = ((window.franceData || {}).clients || {})[cid] || {};
+            ['statut', 'collecteId', 'camionId', 'dateLib'].forEach(function(ch){
+              if(cF[ch] != null) ecr.push({ p: 'france/clients/' + cid + '/' + ch, v: cF[ch] });
+            });
+          });
+          window._depCorbeille('collecteFr', idF, { titre: 'Collecte France du ' + (rF.dateLib || rF.dateIso || ''), sous: idsF.length + ' client' + (idsF.length > 1 ? 's' : '') + ' (retour à leur place)', conteneur: '', ecritures: ecr });
+        }
+      }catch(eF){ console.error('departs: corbeille collecte France', eF); }
+      return origSupprCollFr.apply(this, arguments);
+    };
+    window.confirmerSupprimerCollecteFrance._depPatchCorb = true;
+  }
   /* --- X (v1.20.8). Rafraîchit l'écran détail Départ après suppression
      d'un client depuis sa fiche (bouton corbeille), pour qu'il disparaisse
      tout de suite du container au lieu de rester affiché jusqu'à sortie/
@@ -18792,7 +18855,24 @@ function greffer(){
       // exécuté par confirmDelete() lui-même.
       var _delClientId = window.currentClientId;
       var _delCollecteId = window.currentCollecteId;
+      // v2.22.0 : copie pour la corbeille, prise avant que le natif n'efface.
+      var _delCopie = null, _delColLib = '';
+      try{
+        var _c0 = ((window.clientsParCollecte || {})[_delCollecteId] || {})[_delClientId];
+        if(_c0){
+          _delCopie = JSON.parse(JSON.stringify(_c0));
+          var _col0 = (window.collectes || []).filter(function(x){ return x && x.id === _delCollecteId; })[0];
+          _delColLib = _col0 ? (_col0.date || '') : '';
+        }
+      }catch(eCp){}
       origConfirmDelete.apply(this, arguments);
+      try{
+        if(_delCopie) window._depCorbeille('clientCol', _delCollecteId + '_' + _delClientId, {
+          titre: _delCopie.name || ((_delCopie.prenom || '') + ' ' + (_delCopie.nom || '')).trim() || 'Client',
+          sous: 'Collecte' + (_delColLib ? ' du ' + _delColLib : ''), departId: _delCopie.departId || '',
+          ecritures: [{ p: 'dct/clients/' + _delCollecteId + '/' + _delClientId, v: _delCopie }],
+          apres: ['dct_supprimes/' + _delCollecteId + '/' + _delClientId] });
+      }catch(eCo){}
       // v1.20.15 : suppression Firebase CIBLÉE et immédiate, en plus du
       // sauvegarder() natif — celui-ci réécrit TOUT l'arbre
       // clientsParCollecte, en debounce 800ms. Si un autre appareil
@@ -20837,6 +20917,13 @@ window.depSupprimerDepense = function(id){
     || (((window.currentUser||{}).id === o.parId) && (Date.now() - (o.ts||0)) <= DEP_VERSEMENT_DELAI_SUPPR);
   if(!permis){ toast('🔒 Passé 30 minutes, seule la direction peut retirer une dépense.'); return; }
   if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  try{
+    var tp = DEP_TYPES_DEPENSE.filter(function(x){ return x.cle === o.type; })[0];
+    var colD = (window.collectes || []).filter(function(c){ return c && c.id === ctx.colId; })[0];
+    window._depCorbeille('depense', ctx.colId + '_' + ctx.camion + '_' + id, { titre: _depTexteBrut(tp ? tp.label : (o.type || 'D\u00e9pense')) + ' \u00b7 ' + (o.montant != null ? o.montant : '') + ' \u20ac',
+      sous: 'D\u00e9pense de tourn\u00e9e' + (colD ? ' \u00b7 collecte du ' + colD.date : ''), conteneur: 'Tourn\u00e9es de camions',
+      ecritures: [{ p: 'dct_depenses/' + ctx.colId + '/' + ctx.camion + '/' + id, v: o }] });
+  }catch(eDe){}
   db.ref('dct_depenses/' + ctx.colId + '/' + ctx.camion + '/' + id).remove().then(function(){
     toast('🗑 Dépense retirée');
   }).catch(function(e){
@@ -24225,6 +24312,9 @@ window.depSupprimerDepenseFixe = function(idLigne){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   var id = _depRapfinId;
   if(!id || !idLigne || !window.db || !window.firebaseReady) return;
+  var lf = (((window.financeData||{}).fixes||{})[id]||{})[idLigne];
+  if(lf) window._depCorbeille('depense', id + '_' + idLigne, { titre: _depTexteBrut(_depLibellePosteFixe(lf.poste)) + (lf.collabNom ? ' \u00b7 ' + lf.collabNom : '') + ' \u00b7 ' + (lf.montant != null ? lf.montant : '') + ' \u20ac',
+    sous: 'D\u00e9pense fixe du container', departId: id, ecritures: [{ p: 'dct_finance/fixes/' + id + '/' + idLigne, v: lf }] });
   db.ref('dct_finance/fixes/' + id + '/' + idLigne).remove().then(function(){
     toast('🗑 Dépense retirée');
   }).catch(function(e){
@@ -24458,6 +24548,9 @@ window.depFactureManuelleEnregistrer = function(){
 window.depFactureManuelleSupprimer = function(id){
   if(!confirm('Supprimer définitivement cette facture manuelle ?')) return;
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  var fm = (window.facturesManuellesData||{})[id];
+  if(fm) window._depCorbeille('facture', id, { titre: (fm.nom || 'Facture') + (fm.montant ? ' \u00b7 ' + fm.montant + ' \u20ac' : ''), sous: 'Facture manuelle', departId: fm.departId || '',
+    ecritures: [{ p: 'dct_factures_manuelles/' + id, v: fm }] });
   db.ref('dct_factures_manuelles/'+id).remove().then(function(){
     toast('🗑️ Facture manuelle supprimée.');
   }).catch(function(e){
@@ -26111,18 +26204,30 @@ function _depAccordeon(cle, titre, sous, corps){
     +   '<span style="color:#888;font-size:16px;">&#9662;</span></summary>'
     + '<div style="padding:0 14px 14px;">' + corps + '</div></details>';
 }
-/* v2.21.53 — Cobey, 01/11/2026 : des clients France déjà rangés dans un
-   container ont été supprimés de la liste « en attente » ; fiche, container,
-   prix et photos perdus. Deux choses :
-   - la corbeille (france_corbeille/<id>, 30 jours, remplie par
-     _frMettreCorbeille à chaque suppression) : « Rétablir » remet la fiche
-     telle quelle, container compris, et ses photos (restées sous le même id) ;
-   - pour ce qui a été supprimé avant : le carnet (dct/contacts) garde nom,
-     téléphone et adresse ; « Recréer » refait une fiche et demande le
-     container, le colis et le prix. */
+/* v2.22.0 — CORBEILLE DE 30 JOURS, classée. Cobey, 01/11/2026, après la
+   suppression par erreur de clients France déjà rangés dans un container :
+   « une sauvegarde des suppressions des 30 derniers jours [...] même si on
+   supprime un client, une collecte ou autre, on puisse la retrouver [...]
+   mais on garde un classement : par container, par collecte, par client. »
+   Chaque suppression écrit d'abord une copie dans dct_corbeille/<clé> :
+   { ts, par, type, titre, sous, conteneur, ecritures:[{p,v}], apres:[...],
+     extra, photos }. « ecritures » = ce qu'il faut réécrire pour tout
+   remettre (chemin Firebase + valeur) ; « apres » = les traces à effacer
+   (ex. dct_supprimes/…) ; « photos » = chemin des photos, supprimées avec
+   l'entrée au bout de 30 jours. Les anciennes entrées france_corbeille
+   (v2.21.53) sont relues telles quelles. */
+var DEP_CORB_JOURS = 30;
+var DEP_CORB_SECTIONS = [
+  { cle:'depart',   ico:'&#128230;', titre:'Containers',          types:['depart'] },
+  { cle:'collecte', ico:'&#128197;', titre:'Collectes',           types:['collecteDk', 'collecteFr'] },
+  { cle:'client',   ico:'&#128100;', titre:'Clients',             types:['clientFr', 'clientCol', 'clientDepot'], parConteneur:true },
+  { cle:'contact',  ico:'&#128210;', titre:'Contacts du carnet',  types:['contact'] },
+  { cle:'facture',  ico:'&#129534;', titre:'Factures manuelles',  types:['facture'] },
+  { cle:'depense',  ico:'&#128182;', titre:'D&eacute;penses',     types:['depense'], parConteneur:true }
+];
 var _depCarnetStats = { total: 0, fiche: 0, idf: 0, lu: false };
 var _depContactsFb = null;
-var _depCorbFr = null, _depCorbFrCharge = false, _depRecupCarnet = [], _depRecupIdx = -1;
+var _depCorb = null, _depCorbCharge = false, _depCorbFiltre = '', _depRecupCarnet = [], _depRecupIdx = -1;
 
 function _depTelNorm(t){
   var n = String(t || '').replace(/\D/g, '');
@@ -26130,27 +26235,124 @@ function _depTelNorm(t){
   return n;
 }
 
-window.depChargerCorbeilleFrance = function(force){
-  if(!window.db || !window.firebaseReady) return;
-  if(_depCorbFrCharge && !force) return;
-  _depCorbFrCharge = true;
-  // v2.21.58 : le carnet est relu directement dans Firebase (dct/contacts) :
-  // la copie en mémoire de l'appli pouvait être vide ou périmée (Cobey : « aucun
-  // contact trouvé » alors que Masamba y était).
-  db.ref('dct/contacts').once('value').then(function(sc){ _depContactsFb = sc.val() || {}; if(typeof window.renderAdminOutils === 'function') window.renderAdminOutils(); }).catch(function(){});
-  db.ref('france_corbeille').once('value').then(function(snap){
-    _depCorbFr = snap.val() || {};
-    var lim = Date.now() - 30 * 86400000;
-    Object.keys(_depCorbFr).forEach(function(id){
-      var e = _depCorbFr[id];
-      if(e && e.ts && e.ts < lim){
-        try{ db.ref('france_corbeille/' + id).remove(); db.ref('france_photos/' + id).remove(); }catch(x){}
-        delete _depCorbFr[id];
-      }
-    });
-    if(typeof window.renderAdminOutils === 'function') window.renderAdminOutils();
-  }).catch(function(){ _depCorbFrCharge = false; });
+function _depTexteBrut(h){
+  var t = document.createElement('div'); t.innerHTML = String(h == null ? '' : h); return t.textContent || '';
+}
+
+// « Chargement DKR · 08/11/2026 » : sert à ranger une suppression par container.
+function _depLibContainer(departId){
+  var d = departId ? (window.departsData || {})[departId] : null;
+  if(!d || d.special === 'depot') return '';
+  return (d.nom || 'Container') + (d.dateDepart ? ' · ' + dateFr(d.dateDepart) : '');
+}
+
+// o : { titre, sous, departId, ecritures:[{p,v}], apres:[chemins], extra, photos }
+window._depCorbeille = function(type, id, o){
+  try{
+    if(!window.db || !window.firebaseReady || !o) return;
+    var u = window.currentUser || {};
+    var clone = function(v){ return v === undefined ? null : JSON.parse(JSON.stringify(v)); };
+    var entree = {
+      ts: Date.now(), par: u.name || '', type: type, ref: id || '',
+      titre: o.titre || 'Sans nom', sous: o.sous || '',
+      conteneur: o.conteneur != null ? o.conteneur : _depLibContainer(o.departId),
+      ecritures: (o.ecritures || []).filter(function(w){ return w && w.v != null; }).map(function(w){ return { p: w.p, v: clone(w.v) }; })
+    };
+    if(o.apres && o.apres.length) entree.apres = o.apres;
+    if(o.extra) entree.extra = clone(o.extra);
+    if(o.photos) entree.photos = o.photos;
+    var cle = db.ref('dct_corbeille').push().key;
+    db.ref('dct_corbeille/' + cle).set(entree).catch(function(e){ console.error('corbeille', e); });
+    if(_depCorb){ entree._cle = cle; _depCorb[cle] = entree; }
+  }catch(e){ console.error('departs: corbeille', e); }
 };
+
+window.depChargerCorbeille = function(force){
+  if(!window.db || !window.firebaseReady) return;
+  if(_depCorbCharge && !force) return;
+  _depCorbCharge = true;
+  var recu = { n: null, fr: null };
+  var fin = function(){
+    if(recu.n === null || recu.fr === null) return;
+    var out = {}, lim = Date.now() - DEP_CORB_JOURS * 86400000;
+    Object.keys(recu.n).forEach(function(k){
+      var e = recu.n[k]; if(!e) return;
+      if((e.ts || 0) < lim){
+        try{ db.ref('dct_corbeille/' + k).remove(); if(e.photos) db.ref(e.photos).remove(); }catch(x){}
+        return;
+      }
+      e._cle = k; out[k] = e;
+    });
+    Object.keys(recu.fr).forEach(function(id){
+      var e = recu.fr[id]; if(!e || !e.fiche) return;
+      if((e.ts || 0) < lim){
+        try{ db.ref('france_corbeille/' + id).remove(); db.ref('france_photos/' + id).remove(); }catch(x){}
+        return;
+      }
+      var f = e.fiche;
+      out['fr_' + id] = { _cle: 'fr_' + id, legacy: 'france_corbeille/' + id, type: 'clientFr', ts: e.ts, par: e.par || '',
+        titre: _depNomFicheFr(f), sous: 'France & Europe', conteneur: _depLibContainer(f.departId),
+        ecritures: [{ p: 'france/clients/' + id, v: f }], photos: 'france_photos/' + id };
+    });
+    _depCorb = out;
+    if(typeof window.renderAdminOutils === 'function') window.renderAdminOutils();
+  };
+  db.ref('dct_corbeille').once('value').then(function(s){ recu.n = s.val() || {}; fin(); }).catch(function(){ _depCorbCharge = false; });
+  db.ref('france_corbeille').once('value').then(function(s){ recu.fr = s.val() || {}; fin(); }).catch(function(){ recu.fr = {}; fin(); });
+  // Le carnet est relu directement dans Firebase (voir « Retrouvés dans le carnet »).
+  db.ref('dct/contacts').once('value').then(function(sc){ _depContactsFb = sc.val() || {}; if(typeof window.renderAdminOutils === 'function') window.renderAdminOutils(); }).catch(function(){});
+};
+
+function _depCorbLigne(e){
+  var reste = Math.max(0, Math.ceil(((e.ts || 0) + DEP_CORB_JOURS * 86400000 - Date.now()) / 86400000));
+  return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #eee;">'
+    + '<div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:800;color:#1a1a2e;">' + esc(e.titre || '') + '</div>'
+    + '<div style="font-size:11.5px;color:#888;margin-top:2px;line-height:1.45;">' + (e.sous ? esc(e.sous) + ' &middot; ' : '')
+    + 'supprim&eacute; ' + esc(_depDateHeureCourte(e.ts)) + (e.par ? ' par ' + esc(e.par) : '') + ' &middot; encore ' + reste + '&nbsp;j</div></div>'
+    + '<button type="button" class="btn btn-gray" style="margin:0;width:auto;padding:8px 12px;" onclick="depCorbRetablir(\'' + e._cle + '\')">R&eacute;tablir</button></div>';
+}
+
+function _depCorbListe(){
+  var q = _depHistoNorm(_depCorbFiltre);
+  var tous = Object.keys(_depCorb || {}).map(function(k){ return _depCorb[k]; })
+    .filter(function(e){ return !q || _depHistoNorm((e.titre || '') + ' ' + (e.conteneur || '') + ' ' + (e.sous || '')).indexOf(q) !== -1; });
+  if(!tous.length) return '<div style="font-size:12.5px;color:#888;padding:6px 0;">' + (q ? 'Rien ne correspond.' : 'Rien &agrave; r&eacute;tablir pour l\'instant.') + '</div>';
+  var h = '';
+  DEP_CORB_SECTIONS.forEach(function(sec){
+    var l = tous.filter(function(e){ return sec.types.indexOf(e.type) !== -1; }).sort(function(a, b){ return (b.ts || 0) - (a.ts || 0); });
+    if(!l.length) return;
+    var corps = '';
+    if(sec.parConteneur){
+      var groupes = {};
+      l.forEach(function(e){ var g = e.conteneur || ''; (groupes[g] = groupes[g] || []).push(e); });
+      Object.keys(groupes).sort(function(a, b){ if(!a) return 1; if(!b) return -1; return a.localeCompare(b); }).forEach(function(g){
+        corps += '<div style="font-size:11px;font-weight:800;letter-spacing:.05em;color:#1a237e;margin:10px 0 2px;">&#128230; ' + (g ? esc(g) : 'SANS CONTAINER') + ' (' + groupes[g].length + ')</div>'
+          + groupes[g].map(_depCorbLigne).join('');
+      });
+    } else corps = l.map(_depCorbLigne).join('');
+    var ouv = (window._depOutilsOuverts || {})['corb_' + sec.cle] || !!q;
+    h += '<details ' + (ouv ? 'open ' : '') + 'ontoggle="_depOutilsOuverts[\'corb_' + sec.cle + '\']=this.open" style="border:1.5px solid #e6e6ee;border-radius:12px;margin-bottom:8px;overflow:hidden;">'
+      + '<summary style="cursor:pointer;padding:11px 12px;font-size:13.5px;font-weight:800;color:#1a1a2e;">' + sec.ico + ' ' + sec.titre + ' <span style="color:#888;font-weight:600;">(' + l.length + ')</span></summary>'
+      + '<div style="padding:0 12px 10px;">' + corps + '</div></details>';
+  });
+  return h;
+}
+
+window.depCorbFiltrer = function(v){
+  _depCorbFiltre = v || '';
+  var z = document.getElementById('dc-liste'); if(z) z.innerHTML = _depCorbListe();
+};
+
+function _depHtmlCorbeille(){
+  try{ window.depChargerCorbeille(); }catch(e){}
+  var h = '<div style="font-size:12px;color:#888;line-height:1.5;margin-bottom:10px;">Tout ce qui est supprim&eacute; (clients, collectes, containers, factures, d&eacute;penses, contacts) est gard&eacute; ' + DEP_CORB_JOURS + ' jours, class&eacute; ci-dessous. &laquo;&nbsp;R&eacute;tablir&nbsp;&raquo; remet tout comme avant.</div>';
+  if(!_depCorb) return h + '<div style="font-size:12.5px;color:#888;padding:6px 0;">Chargement&hellip;</div>';
+  return h + '<input id="dc-q" placeholder="&#128269; Nom, container&hellip;" value="' + esc(_depCorbFiltre) + '" oninput="depCorbFiltrer(this.value)" '
+    + 'style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:600 13px var(--font);background:#fff;margin-bottom:10px;">'
+    + '<div id="dc-liste">' + _depCorbListe() + '</div>';
+}
+
+function _depCorbNombre(){ return _depCorb ? Object.keys(_depCorb).length : 0; }
 
 function _depNomFicheFr(f){
   return (f && (f.name || ((f.prenom || '') + ' ' + (f.nom || '')).trim() || f.nom)) || 'Client';
@@ -26160,8 +26362,11 @@ function _depCarnetARecreer(){
   var tels = {};
   var cls = (window.franceData || {}).clients || {};
   Object.keys(cls).forEach(function(k){ if(cls[k]) tels[_depTelNorm(cls[k].tel)] = true; });
-  var corb = _depCorbFr || {};
-  Object.keys(corb).forEach(function(k){ if(corb[k] && corb[k].fiche) tels[_depTelNorm(corb[k].fiche.tel)] = true; });
+  var corb = _depCorb || {};
+  Object.keys(corb).forEach(function(k){
+    var w = ((corb[k] || {}).ecritures || [])[0];
+    if(corb[k] && corb[k].type === 'clientFr' && w && w.v) tels[_depTelNorm(w.v.tel)] = true;
+  });
   // v2.21.54 — Cobey : « il m'a retrouvé des clients d'Île-de-France, aucun
   // client du carnet de France ». Le carnet contient aussi les clients de la
   // Collecte (Paris et petite couronne, créés dans une collecte Paris, pas en
@@ -26190,7 +26395,6 @@ function _depCarnetARecreer(){
 }
 
 function _depHtmlRecupFrance(){
-  try{ window.depChargerCorbeilleFrance(); }catch(e){}
   var titre = function(t){ return '<div style="font-size:13px;font-weight:800;color:#1a1a2e;margin:4px 0 6px;">' + t + '</div>'; };
   var note = function(t){ return '<div style="font-size:12px;color:#888;line-height:1.5;margin-bottom:10px;">' + t + '</div>'; };
   var ligne = function(nom, sous, bouton){
@@ -26198,23 +26402,7 @@ function _depHtmlRecupFrance(){
       + '<div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:800;color:#1a1a2e;">' + esc(nom) + '</div>'
       + '<div style="font-size:11.5px;color:#888;margin-top:2px;">' + sous + '</div></div>' + bouton + '</div>';
   };
-  var h = titre('&#128465;&#65039; Supprim&eacute;s r&eacute;cemment')
-    + note('Tout revient tel quel : container, colis, prix, photos. Gard&eacute;s 30 jours.');
-  var corb = _depCorbFr;
-  if(!corb){
-    h += '<div style="font-size:12.5px;color:#888;padding:6px 0;">Chargement&hellip;</div>';
-  } else {
-    var ids = Object.keys(corb).filter(function(k){ return corb[k] && corb[k].fiche; })
-      .sort(function(a, b){ return (corb[b].ts || 0) - (corb[a].ts || 0); });
-    if(!ids.length) h += '<div style="font-size:12.5px;color:#888;padding:6px 0;">Rien &agrave; r&eacute;tablir pour l\'instant.</div>';
-    ids.forEach(function(id){
-      var e = corb[id], f = e.fiche;
-      var cont = ''; try{ if(f.departId) cont = ' &middot; ' + esc(nomDepart(f.departId) || ''); }catch(x){}
-      h += ligne(_depNomFicheFr(f), 'supprim&eacute; ' + esc(_depDateHeureCourte(e.ts)) + (e.par ? ' par ' + esc(e.par) : '') + cont
-        + (f.prix ? ' &middot; ' + esc(String(f.prix)) + '&nbsp;&euro;' : ''),
-        '<button type="button" class="btn btn-gray" style="margin:0;width:auto;padding:8px 12px;" onclick="depRetablirFicheFrance(\'' + id + '\')">R&eacute;tablir</button>');
-    });
-  }
+  var h = '';
   _depRecupCarnet = _depCarnetARecreer();
   h += '<div style="height:14px;"></div>' + titre('&#128210; Retrouv&eacute;s dans le carnet')
     + note('Pour les clients supprim&eacute;s avant la corbeille : le carnet garde le nom, le t&eacute;l&eacute;phone et l\'adresse. Il faudra redonner le container, le colis et le prix.');
@@ -26228,21 +26416,53 @@ function _depHtmlRecupFrance(){
   return h;
 }
 
-window.depRetablirFicheFrance = function(id){
-  var e = (_depCorbFr || {})[id];
-  if(!e || !e.fiche) return;
+
+window.depCorbRetablir = function(cle){
+  var e = (_depCorb || {})[cle]; if(!e) return;
   if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
-  if(((window.franceData || {}).clients || {})[id]){ toast('⚠️ Cette fiche existe déjà.'); return; }
-  var f = JSON.parse(JSON.stringify(e.fiche));
-  var u = window.currentUser || {};
-  f.hist = (Array.isArray(f.hist) ? f.hist : []).concat([{ q: u.name || '', a: 'a rétabli la fiche', ts: Date.now() }]);
-  db.ref('france/clients/' + id).set(f).then(function(){
-    try{ db.ref('france_corbeille/' + id).remove(); }catch(x){}
-    delete _depCorbFr[id];
-    toast('✅ Fiche rétablie');
-    depActivite('&#9851;&#65039;', 'a r&eacute;tabli la fiche de <strong>' + esc(_depNomFicheFr(f)) + '</strong>');
+  var fini = function(){
+    try{ if(e.legacy) db.ref(e.legacy).remove(); else db.ref('dct_corbeille/' + cle).remove(); }catch(x){}
+    delete _depCorb[cle];
+    toast('✅ Rétabli : ' + (e.titre || ''));
+    depActivite('&#9851;&#65039;', 'a r&eacute;tabli <strong>' + esc(e.titre || '') + '</strong>' + (e.sous ? ' &mdash; ' + esc(e.sous) : ''));
     window.renderAdminOutils();
-  }).catch(function(err){ toast('❌ Échec : ' + ((err && err.message) || 'refusé')); });
+  };
+  var echec = function(err){ toast('❌ Échec : ' + ((err && err.message) || 'refusé')); };
+  if(e.type === 'collecteDk'){
+    var x = e.extra || {}, col = x.collecte;
+    if(!col || !col.id){ toast('Copie incomplète.'); return; }
+    var id = col.id;
+    if((window.collectes || []).some(function(c){ return c && c.id === id; })){ toast('⚠️ Cette collecte existe déjà.'); return; }
+    var cp = function(v){ return JSON.parse(JSON.stringify(v)); };
+    window.collectes.unshift(cp(col));
+    window.clientsParCollecte[id] = cp(x.clients || {});
+    window.dispatchParCollecte[id] = x.dispatch ? cp(x.dispatch) : { trucks: {}, assigned: {} };
+    if(x.depenses){ try{ window.depensesData[id] = cp(x.depenses); db.ref('dct_depenses/' + id).set(cp(x.depenses)); }catch(z){} }
+    try{ delete _collectesSupprimees[id]; db.ref('dct/collectes_supprimees/' + id).remove(); }catch(z){}
+    try{ _mettreAJourStatuts(); }catch(z){}
+    sauvegarder();
+    try{ renderCollectesList(); }catch(z){}
+    fini();
+    return;
+  }
+  var maj = {}, n = 0;
+  (e.ecritures || []).forEach(function(w){ if(w && w.p && w.v != null){ maj[w.p] = w.v; n++; } });
+  (e.apres || []).forEach(function(p){ maj[p] = null; });
+  if(!n){ toast('Copie vide.'); return; }
+  var existe = (e.type === 'clientFr' || e.type === 'clientDepot') && e.ecritures[0] && (function(){
+    var m = /^(france\/clients|dct_depot)\/([^\/]+)$/.exec(e.ecritures[0].p);
+    if(!m) return false;
+    return m[1] === 'dct_depot' ? !!(window.depotClients || {})[m[2]] : !!((window.franceData || {}).clients || {})[m[2]];
+  })();
+  if(existe){ toast('⚠️ Cette fiche existe déjà.'); return; }
+  db.ref().update(maj).then(function(){
+    // la copie en mémoire de la Collecte ne se relit pas toute seule
+    (e.ecritures || []).forEach(function(w){
+      var m = /^dct\/clients\/([^\/]+)\/([^\/]+)$/.exec((w && w.p) || '');
+      if(m && w.v){ window.clientsParCollecte[m[1]] = window.clientsParCollecte[m[1]] || {}; window.clientsParCollecte[m[1]][m[2]] = JSON.parse(JSON.stringify(w.v)); }
+    });
+    fini();
+  }).catch(echec);
 };
 
 window.depRecupFranceOuvrir = function(i){
@@ -26382,7 +26602,7 @@ function _depHtmlOutils(){
     + _depAccordeon('sauv', '&#128190; Sauvegardes', 'Une copie par jour, ' + DEP_SAUV_JOURS + ' jours gard&eacute;s', _depHtmlSauvegardes())
     + _depAccordeon('retrouver', '&#128737;&#65039; Retrouver une collecte', nbOrph ? (nbOrph + ' &agrave; r&eacute;cup&eacute;rer') : 'Si une collecte a disparu',
         '<button type="button" class="btn btn-gray" style="margin-bottom:12px;" onclick="depRelireBaseCollectes()">&#128260; Chercher les collectes manquantes</button>' + _depHtmlCollectesDisparues())
-    + _depAccordeon('retrouverfr', '&#129489; Retrouver un client France', 'Supprim&eacute; par erreur', _depHtmlRecupFrance())
+    + _depAccordeon('corbeille', '&#128465;&#65039; Corbeille &middot; ' + DEP_CORB_JOURS + ' jours', _depCorbNombre() ? (_depCorbNombre() + ' supprim&eacute;' + (_depCorbNombre() > 1 ? 's' : '') + ' &agrave; retrouver') : 'Tout ce qui est supprim&eacute;, class&eacute;', _depHtmlCorbeille() + _depHtmlRecupFrance())
     + _depAccordeon('histo', '&#128269; Chercher dans l\'historique', 'M&ecirc;me les lignes effac&eacute;es', _depHtmlHistorique())
     + _depAccordeon('avance', '&#128295; Avanc&eacute;', 'Diagnostic, civilit&eacute;s, lenteur',
         diag + _htmlCorrectionCivilites() + _depHtmlReleveLenteur());
@@ -26450,9 +26670,9 @@ window.depRelireBaseCollectes = function(){
    collecte du 1er novembre : « sauvegarde auto, c'est payant » donc maison.
    Une fois par jour, la première fois que la direction ouvre l'appli, copie de
    tout dct (collectes, clients, camions, contacts) dans dct_sauvegardes/<jour>,
-   15 jours gardés. Restauration collecte par collecte (Réglages > Outils).
+   30 jours gardés (15 avant le 01/11/2026). Restauration collecte par collecte (Réglages > Outils).
    ───────────────────────────────────────────── */
-var DEP_SAUV_JOURS = 15;
+var DEP_SAUV_JOURS = 30;
 var _depSauvPlanifiee = false, _depSauvFaite = false, _depSauvCourante = null;
 function _depJourIso(){
   var d = new Date();

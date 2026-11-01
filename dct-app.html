@@ -2111,7 +2111,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.125';
+var APP_VERSION = 'v3.99.126';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -3503,7 +3503,14 @@ function _frMettreCorbeille(id,c){
   try{
     if(!db || !firebaseReady || !c) return;
     var fiche=JSON.parse(JSON.stringify(c)); delete fiche._id;
-    db.ref('france_corbeille/'+id).set({ ts:Date.now(), par:(currentUser||{}).name||'', fiche:fiche });
+    var nom=fiche.name||((fiche.prenom||'')+' '+(fiche.nom||'')).trim()||fiche.nom||'Client';
+    if(typeof window._depCorbeille==='function'){
+      // v3.99.126 : corbeille unifiée et classée (dct_corbeille, departs.js).
+      window._depCorbeille('clientFr', id, { titre:nom, sous:'France & Europe', departId:fiche.departId||'',
+        ecritures:[{ p:'france/clients/'+id, v:fiche }], photos:'france_photos/'+id });
+    } else {
+      db.ref('france_corbeille/'+id).set({ ts:Date.now(), par:(currentUser||{}).name||'', fiche:fiche });
+    }
   }catch(e){ console.error('corbeille France', e); }
 }
 

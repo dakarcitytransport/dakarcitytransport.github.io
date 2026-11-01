@@ -5808,3 +5808,24 @@ contact trouvé » alors que Masamba est bien dans dct/contacts (console Firebas
 La liste s'appuyait sur `window.dctContacts` (copie en mémoire, vide ou périmée
 sur ce navigateur). Elle relit maintenant `dct/contacts` (`_depContactsFb`) en
 plus de la mémoire.
+
+**01/11, dct-app.html v3.99.126 / departs.js v2.22.0 — CORBEILLE DE 30 JOURS,
+classée.** Cobey, après les clients France supprimés : « une sauvegarde des
+suppressions des 30 derniers jours, même si on supprime un client, une collecte
+ou autre, on puisse la retrouver [...] mais on garde un classement : par
+container, par collecte, par client. » Chaque suppression écrit d'abord une
+copie dans `dct_corbeille/<clé>` (`_depCorbeille`, departs.js) : { ts, par,
+type, titre, sous, conteneur, ecritures:[{p,v}], apres, extra, photos }.
+Couvert : client France (`_frMettreCorbeille`, dct-app), client de Collecte
+(patch de `confirmDelete`, + trace `dct_supprimes` effacée au rétablissement),
+client du dépôt direct (`depSupprimerDepot`, photos conservées), collecte Dakar
+entière (patch de `_effacerCollecte` : collecte, clients, camions, dépenses),
+collecte France (clients remis à leur état), container (`depSupprimer`),
+facture manuelle, dépenses (fixes et tournées), contact du carnet + toutes ses
+fiches de collecte (`confirmerSupprimerContact`). Écran : Outils > « Corbeille ·
+30 jours », classé en Containers / Collectes / Clients (sous-titres par
+container) / Contacts / Factures / Dépenses, avec recherche et « Rétablir »
+(`depCorbRetablir`). Purge au-delà de 30 jours (avec photos). Les anciennes
+entrées `france_corbeille` (v3.99.120) sont relues. Sauvegarde quotidienne :
+15 → 30 jours (`DEP_SAUV_JOURS`). Le bloc « Retrouvés dans le carnet » reste
+dessous. Non couvert : suppressions faites avant le 01/11 (sauf via le carnet).
