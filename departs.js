@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.53';
+var DEP_VERSION = 'v2.21.54';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -26156,12 +26156,25 @@ function _depCarnetARecreer(){
   Object.keys(cls).forEach(function(k){ if(cls[k]) tels[_depTelNorm(cls[k].tel)] = true; });
   var corb = _depCorbFr || {};
   Object.keys(corb).forEach(function(k){ if(corb[k] && corb[k].fiche) tels[_depTelNorm(corb[k].fiche.tel)] = true; });
+  // v2.21.54 — Cobey : « il m'a retrouvé des clients d'Île-de-France, aucun
+  // client du carnet de France ». Le carnet contient aussi les clients de la
+  // Collecte (Paris et petite couronne, créés dans une collecte Paris, pas en
+  // France & Europe) : on les écarte, ainsi que tout contact déjà client d'une
+  // collecte ou du dépôt.
+  Object.keys(window.clientsParCollecte || {}).forEach(function(col){
+    var l = window.clientsParCollecte[col] || {};
+    Object.keys(l).forEach(function(k){ if(l[k]) tels[_depTelNorm(l[k].tel)] = true; });
+  });
+  Object.keys(window.depotClients || {}).forEach(function(k){ var d = window.depotClients[k]; if(d) tels[_depTelNorm(d.tel)] = true; });
+  var IDF = ['75', '77', '78', '91', '92', '93', '94', '95'];
   var out = [];
   var ct = window.dctContacts || {};
   Object.keys(ct).forEach(function(k){
     var c = ct[k]; if(!c) return;
     var t = _depTelNorm(c.tel);
     if(t && tels[t]) return;
+    var dep = String(c.dept || c.cp || '').replace(/\s/g, '').substring(0, 2);
+    if((c.pays || 'FR') === 'FR' && IDF.indexOf(dep) !== -1) return;
     out.push(c);
   });
   out.sort(function(a, b){ return _depNomFicheFr(a).localeCompare(_depNomFicheFr(b)); });
@@ -26199,7 +26212,7 @@ function _depHtmlRecupFrance(){
     + note('Pour les clients supprim&eacute;s avant la corbeille : le carnet garde le nom, le t&eacute;l&eacute;phone et l\'adresse. Il faudra redonner le container, le colis et le prix.');
   if(!_depRecupCarnet.length) h += '<div style="font-size:12.5px;color:#888;padding:6px 0;">Aucun contact sans fiche.</div>';
   _depRecupCarnet.forEach(function(c, i){
-    h += ligne(_depNomFicheFr(c), esc(c.tel || '') + (c.ville ? ' &middot; ' + esc(c.ville) : ''),
+    h += ligne(_depNomFicheFr(c), esc(c.tel || '') + ((c.cp || c.ville) ? ' &middot; ' + esc(((c.cp || '') + ' ' + (c.ville || '')).trim()) : ''),
       '<button type="button" class="btn btn-gray" style="margin:0;width:auto;padding:8px 12px;" onclick="depRecupFranceOuvrir(' + i + ')">Recr&eacute;er</button>');
   });
   return h;

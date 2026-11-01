@@ -5759,3 +5759,11 @@ et sans doute d'autres de la même tournée). « Ok, vas-y, fais ça. »
   une fiche (nom/tél/adresse du carnet) et demande container, colis, nombre, prix.
   Pour les suppressions faites AVANT la corbeille, seul (2) est possible.
 Non fait : sauvegarde quotidienne des clients France (comme pour la Collecte).
+
+**01/11, dct-app.html v3.99.121 / departs.js v2.21.54 — « Retrouver un client
+France » : plus de clients d'Île-de-France.** Cobey : « il m'a retrouvé des
+clients d'Île-de-France. Il n'y a aucun client du carnet de France. » Le carnet
+(dct/contacts) contient aussi les clients de la Collecte (Paris, départements
+75/77/78/91-95) ; `_depCarnetARecreer` les écarte, ainsi que tout contact déjà
+client d'une collecte (`clientsParCollecte`) ou du dépôt. Le code postal est
+affiché sur chaque ligne.
