@@ -5794,3 +5794,10 @@ décodé dans `depHistoChercher`.
 Trou noté : `depConfirmerSuppressionFrance` (fiche ouverte) n'a aucune garde sur
 le statut (« parti » inclus) — seul l'avertissement « rangé dans le container X »
 et la corbeille 30 jours (v3.99.120) protègent maintenant.
+
+**01/11, dct-app.html v3.99.124 / departs.js v2.21.57 — « Retrouver un client
+France » : ligne de diagnostic.** Cobey (capture) : « Aucun contact sans fiche »
+alors que Masamba devrait y être. Ajout sous la liste : « Carnet : N contacts · X
+ont déjà une fiche · Y d'Île-de-France » (`_depCarnetStats`), pour voir pourquoi
+un contact est écarté (fiche France recréée entre-temps, client d'une collecte,
+Île-de-France).

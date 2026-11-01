@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.56';
+var DEP_VERSION = 'v2.21.57';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -26120,6 +26120,7 @@ function _depAccordeon(cle, titre, sous, corps){
    - pour ce qui a été supprimé avant : le carnet (dct/contacts) garde nom,
      téléphone et adresse ; « Recréer » refait une fiche et demande le
      container, le colis et le prix. */
+var _depCarnetStats = { total: 0, fiche: 0, idf: 0 };
 var _depCorbFr = null, _depCorbFrCharge = false, _depRecupCarnet = [], _depRecupIdx = -1;
 
 function _depTelNorm(t){
@@ -26169,12 +26170,14 @@ function _depCarnetARecreer(){
   var IDF = ['75', '77', '78', '91', '92', '93', '94', '95'];
   var out = [];
   var ct = window.dctContacts || {};
+  _depCarnetStats = { total: 0, fiche: 0, idf: 0 };
   Object.keys(ct).forEach(function(k){
     var c = ct[k]; if(!c) return;
+    _depCarnetStats.total++;
     var t = _depTelNorm(c.tel);
-    if(t && tels[t]) return;
+    if(t && tels[t]){ _depCarnetStats.fiche++; return; }
     var dep = String(c.dept || c.cp || '').replace(/\s/g, '').substring(0, 2);
-    if((c.pays || 'FR') === 'FR' && IDF.indexOf(dep) !== -1) return;
+    if((c.pays || 'FR') === 'FR' && IDF.indexOf(dep) !== -1){ _depCarnetStats.idf++; return; }
     out.push(c);
   });
   out.sort(function(a, b){ return _depNomFicheFr(a).localeCompare(_depNomFicheFr(b)); });
@@ -26211,6 +26214,8 @@ function _depHtmlRecupFrance(){
   h += '<div style="height:14px;"></div>' + titre('&#128210; Retrouv&eacute;s dans le carnet')
     + note('Pour les clients supprim&eacute;s avant la corbeille : le carnet garde le nom, le t&eacute;l&eacute;phone et l\'adresse. Il faudra redonner le container, le colis et le prix.');
   if(!_depRecupCarnet.length) h += '<div style="font-size:12.5px;color:#888;padding:6px 0;">Aucun contact sans fiche.</div>';
+  h += '<div style="font-size:11px;color:#aaa;margin-top:6px;">Carnet : ' + _depCarnetStats.total + ' contact' + (_depCarnetStats.total > 1 ? 's' : '')
+    + ' &middot; ' + _depCarnetStats.fiche + ' ont d&eacute;j&agrave; une fiche &middot; ' + _depCarnetStats.idf + ' d\'&Icirc;le-de-France</div>';
   _depRecupCarnet.forEach(function(c, i){
     h += ligne(_depNomFicheFr(c), esc(c.tel || '') + ((c.cp || c.ville) ? ' &middot; ' + esc(((c.cp || '') + ' ' + (c.ville || '')).trim()) : ''),
       '<button type="button" class="btn btn-gray" style="margin:0;width:auto;padding:8px 12px;" onclick="depRecupFranceOuvrir(' + i + ')">Recr&eacute;er</button>');
