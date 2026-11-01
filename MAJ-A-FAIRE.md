@@ -5784,3 +5784,13 @@ d'Activité du chauffeur externe.** Trouvé grâce à « Chercher dans l'histori
 par `nomChartres(c)`. Les anciennes lignes restent sans nom (le 02/10 : 3 colis
 récupérés à 15:11, 18:42 et 21:11 ; Issyaka a mis 5 clients dans le camion le
 01/10 à 15:43).
+
+**01/11, dct-app.html v3.99.123 / departs.js v2.21.56 — « Chercher dans
+l'historique » : émojis lisibles.** Cobey a trouvé le 3e client (Mamadou Loum :
+« Eric a ramassé / déclaré parti pour Dakar — Chargement DKR » le 04/10 à 15:52,
+puis Aliou 15:54 et Masamba 17:06 = n° 38-39-40). Les lignes affichaient
+« &#9999;&#65039; » en toutes lettres : certaines gardent leur émoji en entité HTML ;
+décodé dans `depHistoChercher`.
+Trou noté : `depConfirmerSuppressionFrance` (fiche ouverte) n'a aucune garde sur
+le statut (« parti » inclus) — seul l'avertissement « rangé dans le container X »
+et la corbeille 30 jours (v3.99.120) protègent maintenant.

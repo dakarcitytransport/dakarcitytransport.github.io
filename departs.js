@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.21.55';
+var DEP_VERSION = 'v2.21.56';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -26338,8 +26338,11 @@ window.depHistoChercher = function(){
     var tmp = document.createElement('div');
     var lignes = Object.keys(v).map(function(k){
       var it = v[k] || {};
+      // v2.21.56 : certaines lignes gardent leur émoji en entité (&#9999;&#65039;) :
+      // on le décode au lieu de l'afficher tel quel.
+      tmp.innerHTML = it.emoji || ''; var em = tmp.textContent || '';
       tmp.innerHTML = it.text || '';
-      return { ts: it.ts || 0, emoji: it.emoji || '', texte: tmp.textContent || '', label: it.timeLabel || '' };
+      return { ts: it.ts || 0, emoji: em, texte: tmp.textContent || '', label: it.timeLabel || '' };
     }).filter(function(l){ return !q || _depHistoNorm(l.texte).indexOf(q) !== -1; })
       .sort(function(a, b){ return b.ts - a.ts; });
     var total = lignes.length;
