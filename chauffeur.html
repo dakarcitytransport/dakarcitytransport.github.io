@@ -186,7 +186,7 @@ input{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:10p
 // Repère visible en bas de l'écran de tournée (#tr-version) pour vérifier
 // rapidement qu'une mise à jour est bien en ligne, sans deviner via le
 // comportement — même principe que "Module départs vX.X.X" dans departs.js.
-var CHAUFFEUR_VERSION = 'v1.8.0';
+var CHAUFFEUR_VERSION = 'v1.8.1';
 
 function $(id){ return document.getElementById(id); }
 function esc(s){
@@ -1111,11 +1111,11 @@ function _executerCloture(){
     var cheminMajClient = ctx.france ? 'france/clients/' + id : 'dct/clients/' + ctx.collecteId + '/' + id;
     return db.ref(cheminMajClient).update(majColis).then(function(){
       _activiteExterne('📦', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> a mis à jour les colis de <strong>'
-        + esc(c ? c.name : '') + '</strong> — ' + nbColisLignes() + ' colis'
+        + esc(c ? nomChartres(c) : '') + '</strong> — ' + nbColisLignes() + ' colis'
         + (aChiffrer ? (', dont ' + aChiffrer + ' à chiffrer') : ''));
     });
   }).then(function(){
-    _activiteExterne('🚚', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> a récupéré le colis de <strong>' + esc(c ? c.name : '') + '</strong>');
+    _activiteExterne('🚚', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> a récupéré le colis de <strong>' + esc(c ? nomChartres(c) : '') + '</strong>');
     fermerEcranPhoto();
   }).catch(function(e){
     console.error('chauffeur: enregistrement récupération', e);
@@ -1154,7 +1154,7 @@ function choisirMotif(motifId, motifLib){
     // finTs = heure de fin, comme côté DCT natif (confirmRefus).
     return db.ref(_cheminTruck('finTs/' + id)).set(ts);
   }).then(function(){
-    _activiteExterne('❌', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> — colis non récupéré chez <strong>' + esc(c ? c.name : '') + '</strong> (' + esc(motifLib) + ')');
+    _activiteExterne('❌', 'Le chauffeur <strong>' + esc(ctx.nom || '') + '</strong> — colis non récupéré chez <strong>' + esc(c ? nomChartres(c) : '') + '</strong> (' + esc(motifLib) + ')');
     fermerEcranMotif();
   }).catch(function(e){
     console.error('chauffeur: enregistrement refus', e);

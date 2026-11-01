@@ -5775,3 +5775,12 @@ Firebase) : « Activité j'ai plus, j'ai effacé l'historique depuis. » « Effa
 ne cache les lignes que sur le téléphone ; elles restent dans `activite_items`.
 Nouveau panneau (mot à chercher + dates du/au, lecture seule, 200 lignes max,
 sans accents ni majuscules) : `_depHtmlHistorique`, `depHistoChercher`.
+
+**01/11, chauffeur.html v1.8.1 — le nom du client manquait dans les lignes
+d'Activité du chauffeur externe.** Trouvé grâce à « Chercher dans l'historique »
+(Cobey) : « Le chauffeur Chauffeur excterne a récupéré le colis de » — rien après.
+`_activiteExterne` (récupéré / colis mis à jour / non récupéré) écrivait
+`c.name`, qui n'existe pas sur une fiche France (champs `nom`/`prenom`). Remplacé
+par `nomChartres(c)`. Les anciennes lignes restent sans nom (le 02/10 : 3 colis
+récupérés à 15:11, 18:42 et 21:11 ; Issyaka a mis 5 clients dans le camion le
+01/10 à 15:43).
