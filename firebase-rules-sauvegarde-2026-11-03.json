@@ -1,0 +1,33 @@
+{
+  "rules": {
+    ".read": "auth != null && auth.token.email == 'staff@dakarcitytransport.app'",
+    ".write": "auth != null && auth.token.email == 'staff@dakarcitytransport.app'",
+
+    "france": {
+      "clients": {
+        "$clientId": { ".read": "auth != null" }
+      }
+    },
+    "france_archive": {
+      "clients": {
+        "$clientId": { ".read": "auth != null" }
+      }
+    },
+    "dct": {
+      "clients": {
+        "$collecteId": {
+          "$clientId": { ".read": "auth != null" }
+        }
+      }
+    },
+    "dct_depot": {
+      "$clientId": { ".read": "auth != null" }
+    },
+    "dct_refs_clients": {
+      "$cle": { ".read": "auth != null" }
+    },
+    "departs": {
+      "$departId": { ".read": "auth != null" }
+    }
+  }
+}

@@ -5913,3 +5913,13 @@ ligne sous la carte (`_depLigneDisposJour`) affichait « DISPONIBLES · pas enco
 de réponses ». Pour un jour « chauffeur externe » (`_depPlSansEquipe`), elle dit
 maintenant « 🚚 Chauffeur externe · personne à solliciter ». Les cartes (Collecte
 et France) se redessinent dès que le choix change (listener `dct_planning_ext`).
+
+**03/11 — Sauvegarde des règles Firebase (Realtime Database) avant d'ajouter un
+compte lecteur.** Cobey a collé les règles en vigueur ; copie dans
+`firebase-rules-sauvegarde-2026-11-03.json` (à recoller telles quelles dans
+Console Firebase > Realtime Database > Règles pour revenir en arrière). Projet
+Dakar Collecte (forfait Spark). Compte `lecteur@dakarcitytransport.app` créé par
+Cobey dans Authentication ; la modification prévue des règles ne touche que la
+ligne `.read` racine (ajout du lecteur, écriture inchangée). À traiter à part :
+le mot de passe du compte staff est écrit en clair dans departs.js (dépôt
+public ?) — changer le mot de passe et revoir la connexion.
