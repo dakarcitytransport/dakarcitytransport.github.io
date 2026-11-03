@@ -6047,3 +6047,9 @@ arriver prochainement dans notre dépôt aux Parcelles Assainies. Veuillez régl
 du solde ne finit plus par « avant l'arrivée » (Sénégal). Mali : texte d'origine remis (« arrivent bientôt à Bamako » / « sont bien
 arrivés à Bamako », « avant l'arrivée »). Même fonction pour la fiche du container et le Rapport financier. Testé : 7 cas (3 phases
 colis, 2 livraison, 2 Mali), IBAN présent.
+
+### 03/11/2026 — Relance de paiement : message 1 sans « Pour récupérer votre colis » (dct-app v3.99.142, departs v2.22.15)
+> Cobey : « supprime "pour récupérer vos colis" du 1, pour le 2 et le 3 tu peux laisser ».
+
+Sénégal, avant « Arrivée au port de Dakar » (colis) : la phrase du solde commence par « Merci de bien vouloir régler le solde restant de X € (sur un
+total de Y €). » Moments 2 et 3 inchangés. La phrase de livraison (« Pour que nous puissions vous livrer votre colis… ») n'a pas été touchée.

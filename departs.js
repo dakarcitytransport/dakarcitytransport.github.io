@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.14';
+var DEP_VERSION = 'v2.22.15';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10610,8 +10610,11 @@ function _depTexteRelancePaiement(c, d, p, estLiv){
     demande = estLiv
       ? ('Pour que nous puissions vous livrer votre colis, merci de bien vouloir régler le solde restant de '
          + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison.')
-      : ('Pour récupérer votre colis, merci de bien vouloir régler le solde restant de '
+      : ((depotFait || portFait ? 'Pour récupérer votre colis, merci' : 'Merci')
+         + ' de bien vouloir régler le solde restant de '
          + p.reste + ' € (sur un total de ' + p.total + ' €).');
+    // v2.22.15 — Cobey : « supprime "pour récupérer vos colis" du 1, pour le
+    // 2 et le 3 tu peux laisser » : en route, il n'y a encore rien à récupérer.
   }
   // v3.99.45 — Cobey : « le RIB à ajouter [...] sur les messages de
   // relance qu'on a mis en place sur les boutons WhatsApp pour les
