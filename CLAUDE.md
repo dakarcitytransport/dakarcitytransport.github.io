@@ -4,7 +4,8 @@ Fichiers : `dct-app.html` (appli principale, `APP_VERSION`), `departs.js` (modul
 dct-app.html, `DEP_VERSION` ; à chaque modification de departs.js, monter aussi `APP_VERSION`,
 sinon les téléphones gardent l'ancienne copie en cache), `mamadou.html` (`MAMADOU_VERSION`),
 `chauffeur.html` (`CHAUFFEUR_VERSION`), `facture.html`. Historique détaillé de tout ce qui a été fait,
-avec les phrases de Cobey : **`MAJ-A-FAIRE.md`** (à lire en premier).
+avec les phrases de Cobey : **`MAJ-A-FAIRE.md`**. **À lire en premier : `RESUME-CONVERSATION-2026-11-03.md`**
+(contexte, décisions, incident des fiches France, ce qui reste à faire).
 
 ## Comment travailler avec Cobey (Eric Koy)
 - Non technique, parle en français, messages dictés à la voix (souvent déformés) : comprendre
