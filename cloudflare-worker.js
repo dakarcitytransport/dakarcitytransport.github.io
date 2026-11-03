@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.9.0 · 03/11/2026
+   v1.10.0 · 03/11/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -787,6 +787,17 @@ async function verifierIdentite(corps, env){
     return { refus:'incorrect' };
   }
 
+  // Première création du mot de passe de Mamadou (4 chiffres), seulement s'il
+  // n'en a pas encore.
+  if(mode === 'mamadou_creer'){
+    const mdp = String(corps.motDePasse || '');
+    if(!/^[0-9]{4}$/.test(mdp)) return { refus:'invalide' };
+    const acces = await lireValeur('dct_acces_mamadou', env);
+    if(acces && typeof acces === 'object' && acces.motDePasse) return { refus:'invalide' };
+    await poserValeur('dct_acces_mamadou/motDePasse', mdp, env);
+    return { uid:'mamadou', role:'mamadou' };
+  }
+
   if(mode === 'mamadou'){
     const saisie = String(corps.motDePasse || '');
     const jetonLien = String(corps.token || '');
@@ -831,6 +842,12 @@ async function traiterAuth(request, env){
     const bl = {};
     if(bloques && typeof bloques === 'object') Object.keys(bloques).forEach(k => { if(bloques[k]) bl[k] = true; });
     return repJson({ collabs: collabs || null, message: message || null, aPin, bloques: bl }, 200, request);
+  }
+
+  // Page de Mamadou, avant son mot de passe : en a-t-il déjà un ? (jamais le mot de passe)
+  if(corps.mode === 'mamadou_public'){
+    const acces = await lireValeur('dct_acces_mamadou', env);
+    return repJson({ aMotDePasse: !!(acces && typeof acces === 'object' && acces.motDePasse) }, 200, request);
   }
 
   const ip = request.headers.get('CF-Connecting-IP') || 'inconnue';
