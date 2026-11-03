@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.8.1 · 03/11/2026
+   v1.9.0 · 03/11/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -713,13 +713,14 @@ async function verifierIdentite(corps, env){
     const id  = String(corps.id || '');
     const pin = String(corps.pin || '').trim();
     if(!/^[A-Za-z0-9_-]{1,40}$/.test(id) || !pin) return { refus:'invalide' };
+    // Passe-partout de la direction (voir dct_config/passe_partout, appli) :
+    // ouvre n'importe quel profil, même bloqué ou sans PIN.
+    const pp = await lireValeur('dct_config/passe_partout', env);
+    if(pp && String(pp).length >= 6 && egauxConstant(String(pp), pin)) return { uid:'equipe-' + id, role:'equipe', passePartout:true };
     if(await lireValeur('dct_config/pins_blocked/' + id, env)) return { refus:'bloque' };
     const stocke = await lireValeur('dct_config/pins/' + id, env);
     if(stocke === null || stocke === undefined || stocke === '') return { refus:'invalide' };
     if(egauxConstant(String(stocke).trim(), pin)) return { uid:'equipe-' + id, role:'equipe' };
-    // Passe-partout de la direction (voir dct_config/passe_partout, appli).
-    const pp = await lireValeur('dct_config/passe_partout', env);
-    if(pp && String(pp).length >= 6 && egauxConstant(String(pp), pin)) return { uid:'equipe-' + id, role:'equipe' };
     // Mauvais PIN : on compte, et on bloque le profil au 5e échec.
     const e = await lireValeur('dct_config/auth_echecs/' + id, env);
     if(AUTH_ADMINS.indexOf(id) !== -1) return { refus:'incorrect' };
@@ -731,6 +732,59 @@ async function verifierIdentite(corps, env){
       return { refus:'bloque' };
     }
     return { refus:'incorrect', restants: 5 - n };
+  }
+
+  // Première création du PIN d'un profil qui n'en a pas encore (comme dans
+  // l'appli). Jamais pour les administrateurs, jamais pour un profil inconnu.
+  if(mode === 'creer_pin'){
+    const id  = String(corps.id || '');
+    const pin = String(corps.pin || '').trim();
+    if(!/^[A-Za-z0-9_-]{1,40}$/.test(id) || !/^[0-9]{4}$/.test(pin)) return { refus:'invalide' };
+    if(AUTH_ADMINS.indexOf(id) !== -1) return { refus:'invalide' };
+    const collabs = await lireValeur('dct_config/collabs', env);
+    const liste = Array.isArray(collabs) ? collabs : (collabs && typeof collabs === 'object' ? Object.values(collabs) : []);
+    if(!liste.some(c => c && c.id === id)) return { refus:'invalide' };
+    const dejaPin = await lireValeur('dct_config/pins/' + id, env);
+    if(dejaPin !== null && dejaPin !== undefined && dejaPin !== '') return { refus:'invalide' };
+    await poserValeur('dct_config/pins/' + id, pin, env);
+    return { uid:'equipe-' + id, role:'equipe' };
+  }
+
+  // Lever le blocage d'un profil avec le code de maintenance (passe-partout).
+  if(mode === 'debloquer'){
+    const id   = String(corps.id || '');
+    const code = String(corps.code || '').trim();
+    if(!/^[A-Za-z0-9_-]{1,40}$/.test(id) || !code) return { refus:'invalide' };
+    const pp = await lireValeur('dct_config/passe_partout', env);
+    if(pp && String(pp).length >= 6 && egauxConstant(String(pp), code)){
+      await poserValeur('dct_config/pins_blocked/' + id, null, env);
+      await poserValeur('dct_config/auth_echecs/' + id, 0, env);
+      return { uid:'equipe-' + id, role:'equipe', passePartout:true };
+    }
+    return { refus:'incorrect' };
+  }
+
+  // Face ID / empreinte : le téléphone reçoit un petit code secret propre à
+  // lui, créé juste après un PIN correct. Ensuite la biométrie (vérifiée sur
+  // le téléphone) présente ce secret. Retirer dct_config/appareils/<id>
+  // coupe tous les téléphones de la personne.
+  if(mode === 'appareil_creer'){
+    const r = await verifierIdentite({ mode:'equipe', id:corps.id, pin:corps.pin }, env);
+    if(!r.uid) return r;
+    const id = String(corps.id);
+    const brut = crypto.getRandomValues(new Uint8Array(32));
+    const secret = octetsVersB64url(brut);
+    await poserValeur('dct_config/appareils/' + id + '/' + await empreinte(secret), Date.now(), env);
+    return { uid:r.uid, role:r.role, secret };
+  }
+  if(mode === 'appareil'){
+    const id = String(corps.id || '');
+    const secret = String(corps.secret || '');
+    if(!/^[A-Za-z0-9_-]{1,40}$/.test(id) || secret.length < 20) return { refus:'invalide' };
+    if(await lireValeur('dct_config/pins_blocked/' + id, env)) return { refus:'bloque' };
+    const trouve = await lireValeur('dct_config/appareils/' + id + '/' + await empreinte(secret), env);
+    if(trouve) return { uid:'equipe-' + id, role:'equipe' };
+    return { refus:'incorrect' };
   }
 
   if(mode === 'mamadou'){
@@ -764,6 +818,21 @@ async function traiterAuth(request, env){
   try{ corps = await request.json(); }catch(e){ return repJson({ erreur:'invalide' }, 400, request); }
   if(!corps || typeof corps !== 'object') return repJson({ erreur:'invalide' }, 400, request);
 
+  // Ce que l'écran des profils a le droit de savoir avant tout PIN : la liste
+  // des profils, le message d'accueil, qui est bloqué, qui a déjà un PIN.
+  // Jamais un PIN, jamais le passe-partout.
+  if(corps.mode === 'public'){
+    const [collabs, message, pins, bloques] = await Promise.all([
+      lireValeur('dct_config/collabs', env), lireValeur('dct_config/message', env),
+      lireValeur('dct_config/pins', env), lireValeur('dct_config/pins_blocked', env)
+    ]);
+    const aPin = {};
+    if(pins && typeof pins === 'object') Object.keys(pins).forEach(k => { if(pins[k] !== null && pins[k] !== '') aPin[k] = true; });
+    const bl = {};
+    if(bloques && typeof bloques === 'object') Object.keys(bloques).forEach(k => { if(bloques[k]) bl[k] = true; });
+    return repJson({ collabs: collabs || null, message: message || null, aPin, bloques: bl }, 200, request);
+  }
+
   const ip = request.headers.get('CF-Connecting-IP') || 'inconnue';
   const etatIp = await ipBloquee(ip, env);
   if(etatIp.bloque) return repJson({ erreur:'trop_essais' }, 429, request);
@@ -774,9 +843,12 @@ async function traiterAuth(request, env){
     return repJson({ erreur: r.refus || 'incorrect', restants: r.restants },
                    r.refus === 'bloque' ? 423 : 401, request);
   }
-  if(r.role === 'equipe') await poserValeur('dct_config/auth_echecs/' + r.uid.slice(7), 0, env);
+  if(r.role === 'equipe' && r.uid.indexOf('equipe-') === 0) await poserValeur('dct_config/auth_echecs/' + r.uid.slice(7), 0, env);
   const token = await jetonPersonnalise(r.uid, { staff:true, role:r.role }, env);
-  return repJson({ token, role:r.role }, 200, request);
+  const rep = { token, role:r.role };
+  if(r.secret) rep.secret = r.secret;
+  if(r.passePartout) rep.passePartout = true;
+  return repJson(rep, 200, request);
 }
 
 export default {
