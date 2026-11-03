@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.2';
+var DEP_VERSION = 'v2.22.3';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3312,6 +3312,16 @@ function injecterEcrans(){
   +         '<div><div class="dep-switch-lab">Cl&ocirc;turer ce container</div>'
   +         '<div class="dep-switch-sub">Ferme d&eacute;finitivement le container (action administrative)</div></div>'
   +         '<div class="dep-toggle" id="dep-f-toggle-cloture"><i></i></div>'
+  +       '</div>'
+  // v2.22.3 — Cobey, 03/11/2026 : « le container parti a son statut en cours de
+  // navigation, du coup Mamadou a la visibilité du container [...] mais il a
+  // accès aux clients qui n'ont pas forcément tout payé, trop de vue. On met un
+  // bouton qui donne la visibilité du container à Mamadou au moment où on le
+  // décidera. »
+  +       '<div class="dep-switch" id="dep-f-vis-mn-bloc" onclick="depToggleVisMamadou()" style="border-color:#b9d7c3;margin-top:10px;">'
+  +         '<div><div class="dep-switch-lab">Visible par Mamadou</div>'
+  +         '<div class="dep-switch-sub" id="dep-f-vis-mn-sub">Il voit ce container et ses clients quand tu l\'actives</div></div>'
+  +         '<div class="dep-toggle" id="dep-f-toggle-vismn"><i></i></div>'
   +       '</div>'
   +     '</div>'
   +     '<div style="margin-top:18px;">'
@@ -8040,11 +8050,24 @@ var _depFormOuvert = false;
 // "Clôturé", la seule action encore purement administrative (fermer le
 // container) — indépendante du suivi montré au client.
 var _depFormCloture = false;
+var _depFormVisMamadou = false; // v2.22.3 : visible par Mamadou Niass
+
+// Ancienne règle (v1.13.0) tant que la direction n'a rien décidé : visible
+// dès que l'étape « Départ de Mitry » est cochée. Voir containerAutorise
+// (mamadou.html), qui applique la même règle.
+function _depVisibleMamadou(d){
+  d = d || {};
+  if(d.visibleMamadou === true) return true;
+  if(d.visibleMamadou === false) return false;
+  var e = d.etapesTransport && d.etapesTransport.depart_mitry;
+  return !!(e && e.fait);
+}
 
 window.depNouveau = function(){
   _depEditId = null;
   _depFormOuvert = false;
   _depFormCloture = false;
+  _depFormVisMamadou = false;
   // v1.19.16 : le pays du nouveau container est celui du sous-carré dans
   // lequel on se trouve déjà (voir depOuvrirDepartsPays) — pas de choix
   // supplémentaire à ce niveau, juste un rappel visuel dans le titre.
@@ -8065,6 +8088,8 @@ window.depModifier = function(id){
   _depEditId = id;
   _depFormOuvert = (d.ouvertInscription === true);
   _depFormCloture = (d.statut === 'cloture');
+  _depFormVisMamadou = _depVisibleMamadou(d);
+  var blocVis = $('dep-f-vis-mn-bloc'); if(blocVis) blocVis.style.display = (depPaysDepart(d) === 'SN') ? '' : 'none';
   var pM = DEP_PAYS_DEST[depPaysDepart(d)] || {};
   var t = $('dep-form-titre'); if(t) t.innerHTML = 'Modifier le d&eacute;part &middot; ' + pM.drapeau + ' ' + pM.nom;
   var apercuM = $('dep-f-nom-apercu'); if(apercuM) apercuM.textContent = d.nom || depNomParDefaut(depPaysDepart(d));
@@ -8096,6 +8121,11 @@ window.depToggleOuvert = function(){
   depMajToggle();
 };
 
+window.depToggleVisMamadou = function(){
+  _depFormVisMamadou = !_depFormVisMamadou;
+  depMajToggle();
+};
+
 window.depToggleCloture = function(){
   _depFormCloture = !_depFormCloture;
   depMajToggle();
@@ -8106,6 +8136,10 @@ function depMajToggle(){
   if(t) t.className = 'dep-toggle' + (_depFormOuvert ? ' on' : '');
   var tc = $('dep-f-toggle-cloture');
   if(tc) tc.className = 'dep-toggle' + (_depFormCloture ? ' on' : '');
+  var tv = $('dep-f-toggle-vismn');
+  if(tv) tv.className = 'dep-toggle' + (_depFormVisMamadou ? ' on' : '');
+  var sv = $('dep-f-vis-mn-sub');
+  if(sv) sv.innerHTML = _depFormVisMamadou ? 'Mamadou voit ce container et ses clients' : 'Mamadou ne le voit pas (ni ses clients)';
 }
 
 window.depEnregistrer = function(){
@@ -8121,7 +8155,8 @@ window.depEnregistrer = function(){
     dateDepart             : date,
     dateArriveePrevue      : arrivee || '',
     dateArriveeDepotPrevue : arriveeDepot || '',
-    ouvertInscription      : !!_depFormOuvert
+    ouvertInscription      : !!_depFormOuvert,
+    visibleMamadou         : !!_depFormVisMamadou
   };
   // v1.49.0 : ce formulaire ne décide que de la clôture. Il écrivait
   // "preparation" dès qu'elle n'était pas cochée — corriger la date d'un
@@ -8159,6 +8194,7 @@ window.depEnregistrer = function(){
     if((dActuel.dateDepart||'') !== (obj.dateDepart||'')) diffsDep.push('date de d&eacute;part : ' + _fd(dActuel.dateDepart) + ' &rarr; <strong>' + _fd(obj.dateDepart) + '</strong>');
     if((dActuel.dateArriveePrevue||'') !== (obj.dateArriveePrevue||'')) diffsDep.push('arriv&eacute;e pr&eacute;vue (port) : ' + _fd(dActuel.dateArriveePrevue) + ' &rarr; <strong>' + _fd(obj.dateArriveePrevue) + '</strong>');
     if((dActuel.dateArriveeDepotPrevue||'') !== (obj.dateArriveeDepotPrevue||'')) diffsDep.push('arriv&eacute;e pr&eacute;vue (d&eacute;p&ocirc;t) : ' + _fd(dActuel.dateArriveeDepotPrevue) + ' &rarr; <strong>' + _fd(obj.dateArriveeDepotPrevue) + '</strong>');
+    if(_depVisibleMamadou(dActuel) !== !!obj.visibleMamadou) diffsDep.push(obj.visibleMamadou ? '<strong>visible par Mamadou</strong>' : '<strong>cach&eacute; &agrave; Mamadou</strong>');
     if(!!dActuel.ouvertInscription !== !!obj.ouvertInscription) diffsDep.push(obj.ouvertInscription ? '<strong>inscriptions ouvertes</strong>' : '<strong>inscriptions ferm&eacute;es</strong>');
     if((dActuel.statut || 'preparation') !== obj.statut) diffsDep.push('statut : ' + _ls(dActuel.statut) + ' &rarr; <strong>' + _ls(obj.statut) + '</strong>');
     db.ref('departs/'+_depEditId).update(obj).then(function(){

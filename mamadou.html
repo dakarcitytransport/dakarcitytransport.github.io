@@ -516,7 +516,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.18.1';
+var MAMADOU_VERSION = 'v1.18.2';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -574,6 +574,12 @@ function containerAutorise(departId, d){
   d = d || departsData[departId] || {};
   if(departId === DEP_ID_DEPOT) return true;
   if((d.pays || DEP_PAYS_DEFAUT) === 'ML') return false;
+  // v1.18.2 — Cobey, 03/11/2026 : la direction décide quand Mamadou voit un
+  // container (bouton « Visible par Mamadou », departs/<id>/visibleMamadou) :
+  // il ne doit pas voir les clients qui n'ont pas encore tout payé. Sans
+  // décision (anciens containers), l'ancienne règle s'applique.
+  if(d.visibleMamadou === true) return true;
+  if(d.visibleMamadou === false) return false;
   var etape1 = d.etapesTransport && d.etapesTransport.depart_mitry;
   return !!(etape1 && etape1.fait);
 }

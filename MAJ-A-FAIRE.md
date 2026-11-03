@@ -5847,3 +5847,17 @@ dans les archives. » `depRenderListe` n'affiche plus les départs au statut
 Les compteurs (case Départs des Espaces, choix du pays) disent « N en cours »
 au lieu de « N au total ». Les clôturés restent dans Archives > Départs
 clôturés (existant) et dans les rapports financiers / statistiques.
+
+**03/11, dct-app.html v3.99.129 / departs.js v2.22.3 / mamadou.html v1.18.2 —
+Bouton « Visible par Mamadou » sur le container.** Cobey : « le container parti
+a son statut en cours de navigation, du coup Mamadou a la visibilité du
+container [...] le problème, c'est qu'il a accès aux clients qui n'ont pas
+forcément tout payé, trop de vue. On va mettre un bouton en dessous de "ouvert à
+l'inscription" et "clôturer le container" qui va donner la visibilité du
+container à Mamadou au moment où on le décidera. » Interrupteur dans Modifier le
+départ (Sénégal seulement), champ `departs/<id>/visibleMamadou` ; les nouveaux
+containers sont créés cachés. `containerAutorise` (mamadou.html) : true/false
+explicite prime ; sans décision (anciens containers), l'ancienne règle (étape
+« Départ de Mitry » cochée) continue de s'appliquer, jusqu'à ce qu'on enregistre
+le container. Le Dépôt Dakar de Mamadou passe par la même fonction : les colis
+d'un container caché n'y figurent pas non plus. Changement tracé dans l'Activité.
