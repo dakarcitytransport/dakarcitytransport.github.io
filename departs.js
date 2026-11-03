@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.11';
+var DEP_VERSION = 'v2.22.12';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8868,6 +8868,7 @@ window.depDetail = function(id, gardeFiltres){
                     + 'onclick="event.stopPropagation();depCopierArriveeExpediteur(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">'
                     + '&#128203; Copier</button>')
                   : ''))
+            + _depBoutonsRelancePaiement(c, x, d, id, _cliColoree)
             + '</div>'
         + '</div>';
     });
@@ -10627,14 +10628,19 @@ function _depMarquerRelancePaiement(c, p, action, src, colId, clientId, estLiv){
   if($('s-rapfin-container') && $('s-rapfin-container').classList.contains('active') && id){
     depRapfinContainer(id);
   }
+  // v2.22.12 : et la fiche du container (case Départs), où le bouton existe aussi.
+  if($('s-depart-detail') && $('s-depart-detail').classList.contains('active') && _depDetailId){
+    window.depDetail(_depDetailId, true);
+  }
+  try{ var mr = $('dep-modal-relance'); if(mr && mr.parentNode) mr.parentNode.removeChild(mr); }catch(e){}
 }
 
 // Appelé depuis l'écran "qui doit" (depRapfinContainer, voir
 // restants.forEach) — src/colId/clientId comme depRapfinOuvrirFacture,
 // estLiv pour savoir laquelle des deux caisses (colis/livraison) est
 // concernée, et donc quel calcul de reste et quel champ dédié utiliser.
-window.depRelancerPaiement = function(src, colId, clientId, estLiv){
-  var d = (window.departsData || {})[_depRapfinId];
+window.depRelancerPaiement = function(src, colId, clientId, estLiv, departId){
+  var d = (window.departsData || {})[departId || _depRapfinId];
   var c = _depClientRelancePaiement(src, colId, clientId);
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   var p = estLiv ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
@@ -10647,13 +10653,89 @@ window.depRelancerPaiement = function(src, colId, clientId, estLiv){
 // v2.20.57 — Cobey : « un bouton copier-coller au cas où si le client
 // n'a pas WhatsApp, qu'on puisse copier-coller pour envoyer autre
 // part. »
-window.depCopierRelancePaiement = function(src, colId, clientId, estLiv){
-  var d = (window.departsData || {})[_depRapfinId];
+window.depCopierRelancePaiement = function(src, colId, clientId, estLiv, departId){
+  var d = (window.departsData || {})[departId || _depRapfinId];
   var c = _depClientRelancePaiement(src, colId, clientId);
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   var p = estLiv ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
   _depCopierTexteRelance(_depTexteRelancePaiement(c, d, p, estLiv));
   _depMarquerRelancePaiement(c, p, 'a copié le message', src, colId, clientId, estLiv);
+};
+
+/* v2.22.12 — Cobey, 03/11/2026 : « il faudrait qu'on puisse mettre un
+   bouton de relance des paiements dans la case des départs, par
+   container, pour chaque client qui a un manquement de paiement, colis
+   ou livraison [...] pour Aminata, comme elle n'a pas accès au bilan
+   financier [...] ce bouton doit être visible par tout ce qui a la case
+   départ. » Même message, mêmes boutons Relancer / Copier et même
+   marquage « relancé » que l'écran « Qui doit » du Rapport financier
+   (depRelancerPaiement) — ici dans la ligne du client, sans aucun total. */
+function _depRelanceInfos(c){
+  var pc = depCalculerPaiement(c), pl = depCalculerPaiementLivraison(c);
+  return {
+    colis: (!c.prixADefinir && pc.total > 0 && pc.reste > 0) ? pc : null,
+    liv:   (c.livraisonDakar && pl.total > 0 && pl.reste > 0) ? pl : null
+  };
+}
+
+function _depBoutonsRelancePaiement(c, x, d, departId, fondBlanc){
+  var inf = _depRelanceInfos(c);
+  if(!inf.colis && !inf.liv) return '';
+  var src = x.depot ? 'depot' : (x.france ? 'france' : 'col');
+  var args = "'" + src + "','" + (x.collecteId || '') + "','" + x.clientId + "'";
+  var did = "'" + departId + "'";
+  var seul = inf.colis ? false : true;     // une seule caisse due ?
+  var deuxDues = !!(inf.colis && inf.liv);
+  var rel = deuxDues ? (c.relancePaiementColis && c.relancePaiementLivraison ? c.relancePaiementColis : null)
+                     : (seul ? c.relancePaiementLivraison : c.relancePaiementColis);
+  var style = rel ? 'background:#D4F0E0;border-color:#009A44;color:#006b2d;'
+                  : 'background:#FFF4E0;border-color:#E58A00;color:#A04800;';
+  if(fondBlanc && !rel) style = 'background:#fff;border-color:#E58A00;color:#A04800;';
+  var label = rel ? ('&#9989; Relanc&eacute; &mdash; ' + esc(_depDateHeureCourte(rel.ts)))
+                  : '&#128172; Relancer le paiement';
+  if(deuxDues){
+    return '<button class="dep-cli-btn" style="' + style + '" '
+      + 'onclick="event.stopPropagation();depChoisirRelance(' + args + ',' + did + ')">' + label + '</button>';
+  }
+  var estLiv = !inf.colis;
+  return '<button class="dep-cli-btn" style="' + style + '" '
+    + 'onclick="event.stopPropagation();depRelancerPaiement(' + args + ',' + (estLiv ? 'true' : 'false') + ',' + did + ')">' + label + '</button>'
+    + '<button class="dep-cli-btn" style="background:#1a237e;border-color:#1a237e;color:#fff;" '
+    + 'onclick="event.stopPropagation();depCopierRelancePaiement(' + args + ',' + (estLiv ? 'true' : 'false') + ',' + did + ')">&#128203; Copier</button>';
+}
+
+// Le client doit le colis ET la livraison : un petit choix, une ligne par caisse.
+window.depChoisirRelance = function(src, colId, clientId, departId){
+  var c = _depClientRelancePaiement(src, colId, clientId);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  var inf = _depRelanceInfos(c);
+  var args = "'" + src + "','" + colId + "','" + clientId + "'";
+  var did = "'" + departId + "'";
+  var ligne = function(titre, p, estLiv, rel){
+    return '<div style="border:1.5px solid #E5E7EB;border-radius:12px;padding:10px 12px;margin:0 0 10px;text-align:left;">'
+      + '<div style="font-weight:800;font-size:14px;">' + titre + '</div>'
+      + '<div style="font-size:12.5px;color:#B3261E;font-weight:700;margin:2px 0 8px;">reste ' + p.reste + ' &euro; <span style="color:#666;font-weight:600;">sur ' + p.total + ' &euro;</span>'
+      +   (rel ? ' <span style="color:#006b2d;">&middot; &#9989; relanc&eacute; ' + esc(_depDateHeureCourte(rel.ts)) + '</span>' : '') + '</div>'
+      + '<div style="display:flex;gap:6px;">'
+      +   '<button class="dep-cli-btn" style="background:#FFF4E0;border-color:#E58A00;color:#A04800;" onclick="depRelancerPaiement(' + args + ',' + (estLiv ? 'true' : 'false') + ',' + did + ')">&#128172; WhatsApp</button>'
+      +   '<button class="dep-cli-btn" style="background:#1a237e;border-color:#1a237e;color:#fff;" onclick="depCopierRelancePaiement(' + args + ',' + (estLiv ? 'true' : 'false') + ',' + did + ')">&#128203; Copier</button>'
+      + '</div></div>';
+  };
+  var ancien = $('dep-modal-relance'); if(ancien) ancien.remove();
+  var div = document.createElement('div');
+  div.id = 'dep-modal-relance';
+  div.className = 'modal-overlay';
+  div.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
+    + '<div class="modal-emoji">&#128172;</div>'
+    + '<div class="modal-confirm-title">Relancer ' + esc(c.name || c.prenom || '') + '</div>'
+    + '<div style="margin:6px 0 4px;">'
+    +   ligne('&#128230; Colis', inf.colis, false, c.relancePaiementColis)
+    +   ligne('&#128666; Livraison', inf.liv, true, c.relancePaiementLivraison)
+    + '</div>'
+    + '<div class="modal-confirm-btns"><button class="btn-modal-cancel" onclick="var m=document.getElementById(\'dep-modal-relance\');if(m)m.remove();">Fermer</button></div>'
+    + '</div></div>';
+  document.body.appendChild(div);
+  if(typeof openModal === 'function') openModal('dep-modal-relance');
 };
 
 window.depCopierMessageWhatsapp = function(){

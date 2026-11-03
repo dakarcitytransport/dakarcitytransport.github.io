@@ -6017,3 +6017,13 @@ ne peut pas écrire. Retiré : `DEP_STAFF_PASSWORD` (departs.js), les 2 copies d
 Worker (modes `mamadou_public`, `mamadou_creer`) ; une ancienne session « compte staff » sur son téléphone est refusée.
 Plus de repli : Worker coupé = « Connexion impossible ». Testé (faux Firebase + vraies données) : 74 écrans, 12 scénarios appli,
 12 scénarios Mamadou/chauffeur. **À faire par Cobey** : désactiver le compte `staff@` dans Firebase après quelques jours.
+
+### 03/11/2026 — Bouton « Relancer le paiement » dans la fiche d'un container (dct-app v3.99.139, departs v2.22.12)
+> Cobey : « il faudrait qu'on puisse mettre un bouton de relance des paiements dans la case des départs, par container, pour chaque client qui a un manquement de paiement, colis ou livraison » — puis : « un bouton par client, c'est pour Aminata, comme elle n'a pas accès au bilan financier, on veut rajouter ce bouton-là » et « ce bouton doit être visible par tout ce qui a la case départ ».
+
+Dans Départs > un container, chaque client qui doit encore quelque chose (colis ou livraison) a « 💬 Relancer le paiement »
+(+ « 📋 Copier » s'il ne doit qu'une des deux caisses). S'il doit le colis ET la livraison, le bouton ouvre un petit choix (une ligne
+par caisse, WhatsApp / Copier). Même message, même marquage « relancé » (vert + date, historique du client) que « Qui doit »
+du Rapport financier (`depRelancerPaiement`, qui accepte maintenant le départ en 5e paramètre). Aucun total de container n'est
+affiché ; visible par toute personne qui a la case Départs (Aminata incluse). Testé avec les vraies données (en lecture) : boutons
+= clients qui doivent, message WhatsApp correct, bouton vert après relance, choix colis/livraison.
