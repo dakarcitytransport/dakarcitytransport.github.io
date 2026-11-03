@@ -516,7 +516,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.19.0';
+var MAMADOU_VERSION = 'v1.20.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -747,16 +747,10 @@ var db = firebase.database();
 // avec repli sur l'anonyme UNIQUEMENT si cette connexion échoue — le
 // vrai contrôle d'accès à cet espace reste le mot de passe propre à
 // Mamadou (dct_acces_mamadou), inchangé.
-function _ancienneConnexion(){
-  return firebase.auth
-    ? firebase.auth().signInWithEmailAndPassword('staff@dakarcitytransport.app', 's46AU54ODQWmLfKEOEg3edm5')
-        .catch(function(e){
-          console.error('mamadou: connexion staff — repli sur la connexion anonyme', e);
-          return firebase.auth().signInAnonymously().catch(function(e2){ console.error('mamadou: connexion anonyme (repli)', e2); });
-        })
-    : Promise.resolve();
-}
-var _connexionAnonyme = _ancienneConnexion();
+// v1.20.0 — plus aucun mot de passe de compte dans ce fichier : l'accès à la
+// base vient d'un laissez-passer remis par le Worker Cloudflare (voir plus bas).
+function _ancienneConnexion(){ return Promise.resolve(); }
+var _connexionAnonyme = Promise.resolve();
 
 // v1.19.0 — sécurité (03/11/2026) : le mot de passe du compte staff@ est
 // écrit ci-dessus, dans un code public. Étape 3 pour le retirer : le mot de
@@ -2230,7 +2224,11 @@ function mnCreerMotDePasse(){
   if(!/^[0-9]{4}$/.test(p1)){ err.textContent = '⚠️ Le mot de passe doit contenir exactement 4 chiffres.'; return; }
   if(p1 !== p2){ err.textContent = '⚠️ Les deux mots de passe ne correspondent pas.'; return; }
   err.textContent = '';
-  db.ref('dct_acces_mamadou/motDePasse').set(p1).then(function(){
+  fetch(DCT_AUTH_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'mamadou_creer', motDePasse: p1 }) })
+  .then(function(r){ if(!r.ok) throw new Error('création refusée ' + r.status); return r.json(); })
+  .then(function(j){ return firebase.auth().signInWithCustomToken(j.token); })
+  .then(function(){
     activiteExterne('🔑', '<strong>Mamadou Niass</strong> a choisi son mot de passe.');
     try{ localStorage.setItem(LOCALSTORAGE_CLE, '1'); }catch(e){}
     mnAccueilOuvrir();
@@ -2248,17 +2246,10 @@ function mnEntrer(){
     try{ localStorage.setItem(LOCALSTORAGE_CLE, '1'); }catch(e){}
     mnAccueilOuvrir();
   };
-  var ancienne = function(){
-    return db.ref('dct_acces_mamadou/motDePasse').once('value').then(function(snap){
-      var mdp = snap.val();
-      if(!mdp || saisie !== mdp){ err.textContent = '⚠️ Mot de passe incorrect.'; return; }
-      reussi();
-    });
-  };
   _laissezPasserMamadou({ motDePasse: saisie }).then(function(res){
     if(res === 'ok') return reussi();
     if(res === 'refus'){ err.textContent = '⚠️ Mot de passe incorrect.'; return; }
-    return ancienne();
+    err.textContent = '⚠️ Connexion impossible, réessayez dans un instant.';
   }).catch(function(e){
     console.error('mamadou: échec vérification mot de passe', e);
     err.textContent = '⚠️ Échec, réessayez (vérifiez la connexion).';
@@ -2317,13 +2308,7 @@ function mnValiderChangementMotDePasse(){
     _laissezPasserMamadou({ token: jetonDir }).then(function(res){
       if(res === 'ok') return ouvrirDirection();
       if(res === 'refus'){ goTo('ecran-erreur'); return; }
-      return _connexionAnonyme.then(function(){
-        return db.ref('dct_acces_mamadou/token').once('value');
-      }).then(function(snap){
-        var token = snap.val();
-        if(!token || token !== jetonDir){ goTo('ecran-erreur'); return; }
-        ouvrirDirection();
-      });
+      goTo('ecran-erreur');
     }).catch(function(e){
       console.error('mamadou: vérification du lien direction', e);
       goTo('ecran-erreur');
@@ -2333,19 +2318,36 @@ function mnValiderChangementMotDePasse(){
 
   var dejaConnecte = false;
   try{ dejaConnecte = localStorage.getItem(LOCALSTORAGE_CLE) === '1'; }catch(e){}
+
+  // Écran de connexion : « a-t-il déjà un mot de passe ? » vient du Worker.
+  var demarrerLogin = function(){
+    fetch(DCT_AUTH_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'mamadou_public' }) })
+    .then(function(r){ if(!r.ok) throw new Error('statut ' + r.status); return r.json(); })
+    .then(function(j){ mnAfficherEcranLogin(!!j.aMotDePasse); })
+    .catch(function(e){
+      console.error('mamadou: vérification du mot de passe', e);
+      goTo('ecran-erreur');
+    });
+  };
+
   if(dejaConnecte){
-    _connexionAnonyme.then(function(){ mnAccueilOuvrir(); });
+    // Déjà connecté sur ce téléphone : la session Firebase (laissez-passer du
+    // Worker) est conservée par le navigateur. Une ancienne session « compte
+    // staff » n'est plus acceptée : on redemande le mot de passe.
+    var vu = false;
+    var fin = function(user){
+      if(vu) return; vu = true;
+      if(user && !user.email){ mnAccueilOuvrir(); return; }
+      try{ localStorage.removeItem(LOCALSTORAGE_CLE); }catch(e){}
+      demarrerLogin();
+    };
+    try{ var off = firebase.auth().onAuthStateChanged(function(u){ try{ off && off(); }catch(e){} fin(u); }); }catch(e){ fin(null); }
+    setTimeout(function(){ fin(null); }, 6000);
     return;
   }
 
-  _connexionAnonyme.then(function(){
-    return db.ref('dct_acces_mamadou/motDePasse').once('value');
-  }).then(function(snap){
-    mnAfficherEcranLogin(!!snap.val());
-  }).catch(function(e){
-    console.error('mamadou: vérification du mot de passe', e);
-    goTo('ecran-erreur');
-  });
+  demarrerLogin();
 })();
 </script>
 </body>

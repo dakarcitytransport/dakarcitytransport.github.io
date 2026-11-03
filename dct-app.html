@@ -1445,7 +1445,7 @@ function _dctAfficherMessage(data){
 
 // Appel générique au Worker Cloudflare. Renvoie { status, json } ou null si
 // le Worker ne répond pas.
-var DCT_ANCIEN_MDP = true;   // passe à false quand l'ancien mot de passe est retiré
+var DCT_ANCIEN_MDP = false;  // v3.99.138 : l'ancien mot de passe est retiré du code
 function _dctAppelWorker(corps){
   if(!window.fetch) return Promise.resolve(null);
   var ctrl = window.AbortController ? new AbortController() : null;
@@ -2194,7 +2194,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.137';
+var APP_VERSION = 'v3.99.138';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -9055,6 +9055,7 @@ function login(id){
       else _ouvrirModalPinCollab(collab, false, !st.aPin);
       return;
     }
+    if(DCT_ANCIEN_MDP === false){ showToastNew(DCT_MSG_CONNEXION); return; }
     _loginAncien(id, collab);
   });
 }
@@ -9154,7 +9155,14 @@ function _debloquerParMaintenance(){
       var i1 = document.getElementById('collab-pin-input'); if(i1) i1.value = '';
       return;
     }
+    if(DCT_ANCIEN_MDP === false){
+      if(err){ err.textContent = DCT_MSG_CONNEXION; err.style.display = 'block'; }
+      return;
+    }
     _debloquerParMaintenanceAncien(pin, id, err);
+  }).catch(function(e){
+    console.error('déblocage', e);
+    if(err){ err.textContent = DCT_MSG_CONNEXION; err.style.display = 'block'; }
   });
 }
 
@@ -9211,7 +9219,14 @@ function _creerPinCollab(){
         showToastNew('✅ PIN créé !');
       });
     }
+    if(DCT_ANCIEN_MDP === false){
+      if(err){ err.textContent = DCT_MSG_CONNEXION; err.style.display = 'block'; }
+      return;
+    }
     _creerPinCollabAncien(pin, id);
+  }).catch(function(e){
+    console.error('création du PIN', e);
+    if(err){ err.textContent = DCT_MSG_CONNEXION; err.style.display = 'block'; }
   });
 }
 
@@ -9277,6 +9292,10 @@ function _validerPinCollab(){
       var inp0 = document.getElementById('collab-pin-input'); if(inp0) inp0.value = '';
       return;
     }
+    if(DCT_ANCIEN_MDP === false){
+      if(err){ err.textContent = DCT_MSG_CONNEXION; err.style.display = 'block'; }
+      return;
+    }
     _validerPinCollabAncien(id, pin, err);
   });
 }
@@ -9337,6 +9356,7 @@ function validerPinAdmin(){
     finalisLogin(collab);
   };
   var refusAdmin = function(){
+    document.getElementById('admin-pin-error').textContent = '❌ Code incorrect';
     document.getElementById('admin-pin-error').style.display = 'block';
     document.getElementById('admin-pin-input').value = '';
   };
@@ -9346,7 +9366,11 @@ function validerPinAdmin(){
   _dctVerifierPinEquipe(id, pin).then(function(res){
     if(res.verdict === 'ok') return okAdmin();
     if(res.verdict === 'incorrect' || res.verdict === 'trop' || res.verdict === 'bloque') return refusAdmin();
-    if(pin === '1010') return okAdmin();
+    if(DCT_ANCIEN_MDP !== false && pin === '1010') return okAdmin();
+    if(res.verdict === 'indispo'){
+      var ea = document.getElementById('admin-pin-error');
+      ea.textContent = DCT_MSG_CONNEXION; ea.style.display = 'block'; return;
+    }
     refusAdmin();
   });
 }
@@ -9409,7 +9433,7 @@ window._dctLoginAppareil = function(id, secret){
     if(r.status === 423) return 'bloque';
     if(r.status === 401) return 'refus';
     if(r.status !== 200 || !r.json || !r.json.token) return 'indispo';
-    return _dctSeReconnecter(r.json.token).then(function(){ return 'ok'; });
+    return _dctSeReconnecter(r.json.token).then(function(){ return 'ok'; }).catch(function(){ return 'indispo'; });
   });
 };
 
@@ -9435,8 +9459,14 @@ function _dctSeReconnecter(token){
     if(!r.ok) throw new Error('règles Firebase : ' + r.status);
     return firebase.auth().signInWithCustomToken(token);
   }).then(function(){ return true; })
-    .catch(function(e){ console.error('laissez-passer non accepté (normal avant la mise à jour des règles)', e); return false; });
+    .catch(function(e){
+      console.error('laissez-passer non accepté', e);
+      if(DCT_ANCIEN_MDP === false) throw e;   // plus de mot de passe de secours
+      return false;
+    });
 }
+
+var DCT_MSG_CONNEXION = '⚠️ Connexion impossible. Vérifiez le réseau et réessayez.';
 
 function finalisLogin(collab){
   // v3.99.136 : les écoutes de données démarrent maintenant, pas avant le PIN.

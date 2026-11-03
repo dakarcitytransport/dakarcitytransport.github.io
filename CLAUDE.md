@@ -32,6 +32,14 @@ avec les phrases de Cobey : **`MAJ-A-FAIRE.md`**. **À lire en premier : `RESUME
 - Règles Firebase d'avant l'ajout du lecteur : `firebase-rules-sauvegarde-2026-11-03.json`.
 - Corbeille de 30 jours : `dct_corbeille/` (voir « Corbeille » dans Réglages de l'appli).
 
-## À traiter avec Cobey (sécurité)
-- Le mot de passe du compte `staff@` est écrit en clair dans `departs.js` (dépôt probablement public) :
-  à changer et à sortir du code, en discutant d'abord de la connexion.
+## Sécurité — connexion à la base (état au 03/11/2026)
+- Plus aucun mot de passe de compte dans le code. Le **Worker Cloudflare** (`cloudflare-worker.js`, route `POST /auth`)
+  vérifie le PIN / le mot de passe de Mamadou / le code chauffeur / le code secret d'un téléphone (Face ID), puis
+  remet un jeton Firebase portant `staff:true` ; les règles Firebase l'acceptent (`auth.token.staff == true`).
+  Avant le PIN, l'appli ne lit que ce que le Worker lui donne (`mode: 'public'`). Si le Worker est coupé, personne
+  ne peut se connecter (message « Connexion impossible »).
+- **Reste à faire par Cobey** : désactiver le compte `staff@dakarcitytransport.app` dans Firebase (Authentication >
+  Users) après quelques jours stables, puis retirer `auth.token.email == 'staff@…'` des règles (garder `lecteur@…`
+  en `.read` seulement). L'ancien mot de passe reste lisible dans l'historique GitHub : tant que le compte n'est pas
+  désactivé, il ouvre encore la base.
+- Mamadou a un mot de passe de 4 chiffres seulement (le Worker limite à 10 essais / 15 min / adresse).

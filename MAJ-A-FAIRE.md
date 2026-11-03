@@ -6007,3 +6007,13 @@ et création de PIN via le Worker ; Face ID ; règles Firebase.
   sans toucher à la connexion de l'appli.
 - Testé : faux Firebase + vraies données, 12 scénarios (Worker ok / coupé, règles ok / refusées, PIN créé, passe-partout,
   Face ID avec/sans code secret/refusé) et 74 écrans identiques à la v3.99.136.
+
+### 03/11/2026 — Étape 5 : l'ancien mot de passe est retiré du code (dct-app v3.99.138, departs v2.22.11, mamadou v1.20.0, chauffeur v1.10.0, Worker v1.10.0)
+> Cobey : « c'est fait » (Worker v1.10.0 collé), après avoir publié les règles Firebase (`|| auth.token.staff == true`, lecteur gardé en lecture).
+
+Vérifié en réel avant le retrait : un laissez-passer du Worker lit la base (200), sans rien 401, le compte lecteur lit mais
+ne peut pas écrire. Retiré : `DEP_STAFF_PASSWORD` (departs.js), les 2 copies dans mamadou.html et chauffeur.html, le PIN admin
+« 1010 » (les admins utilisent leur code dans `dct_config/pins`). Mamadou : « a-t-il un mot de passe ? » et création via le
+Worker (modes `mamadou_public`, `mamadou_creer`) ; une ancienne session « compte staff » sur son téléphone est refusée.
+Plus de repli : Worker coupé = « Connexion impossible ». Testé (faux Firebase + vraies données) : 74 écrans, 12 scénarios appli,
+12 scénarios Mamadou/chauffeur. **À faire par Cobey** : désactiver le compte `staff@` dans Firebase après quelques jours.

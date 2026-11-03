@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.10';
+var DEP_VERSION = 'v2.22.11';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19200,8 +19200,9 @@ function greffer(){
 // exister dans la console (Authentication → Users → Add user), avec
 // exactement cet email et ce mot de passe — sinon l'appli entière
 // perd l'accès à la base dès que les règles changent.
-var DEP_STAFF_EMAIL = 'staff@dakarcitytransport.app';
-var DEP_STAFF_PASSWORD = 's46AU54ODQWmLfKEOEg3edm5';
+// v2.22.11 — plus aucun mot de passe de compte dans ce fichier (03/11/2026) :
+// l'accès à la base vient d'un laissez-passer remis par le Worker Cloudflare
+// après le PIN (voir _dctVerifierPinEquipe, dct-app.html).
 
 // v2.20.39 — filet de sécurité : ce commit a été mis en ligne avant la
 // confirmation de Cobey que le compte staff@dakarcitytransport.app
@@ -19232,30 +19233,10 @@ var DEP_STAFF_PASSWORD = 's46AU54ODQWmLfKEOEg3edm5';
 // anonyme) — le greffe attend cette promesse avant de laisser
 // initFirebase() attacher la moindre écoute.
 function _depConnexionStaff(){
-  return new Promise(function(resolve){
-    var tentatives = 0;
-    var essayer = function(){
-      tentatives++;
-      if(typeof firebase !== 'undefined' && firebase.auth){
-        firebase.auth().signInWithEmailAndPassword(DEP_STAFF_EMAIL, DEP_STAFF_PASSWORD)
-          .then(function(){ resolve(); })
-          .catch(function(e){
-            console.error('departs: connexion staff — repli sur la connexion anonyme', e);
-            firebase.auth().signInAnonymously()
-              .then(function(){ resolve(); })
-              .catch(function(e2){ console.error('departs: signInAnonymously (repli)', e2); resolve(); });
-          });
-      } else if(tentatives < 30){
-        // Le SDK firebase-auth-compat.js (préchargé) n'a pas encore fini de
-        // charger — on réessaie brièvement plutôt que d'abandonner.
-        setTimeout(essayer, 250);
-      } else {
-        console.error('departs: firebase-auth-compat.js n\'a jamais chargé');
-        resolve(); // ne bloque jamais indéfiniment le reste de l'appli
-      }
-    };
-    essayer();
-  });
+  // Plus de connexion automatique : avant le PIN l'appli ne lit plus la base
+  // (liste des profils via le Worker) ; après le PIN, le Worker fournit le
+  // laissez-passer. On ne bloque donc plus rien ici.
+  return Promise.resolve();
 }
 
 /* ─────────────────────────────────────────────
