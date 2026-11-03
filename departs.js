@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.1';
+var DEP_VERSION = 'v2.22.2';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5736,12 +5736,12 @@ window.depRenderEspaces = function(){
   // Case DÉPARTS
   if(_voit('departs')){
     var ouverts = departsDisponibles().length;
-    var total   = tousLesDeparts().length;
+    var total   = tousLesDeparts().filter(function(d){ return d.statut !== 'cloture'; }).length;
     var sd = $('dep-case-sub-dep');
     if(sd){
       sd.innerHTML = total === 0
-        ? 'Aucun d&eacute;part<br>&Agrave; cr&eacute;er'
-        : '<b style="color:#252599;">'+ouverts+'</b> ouvert'+(ouverts>1?'s':'')+'<br>'+total+' au total';
+        ? 'Aucun d&eacute;part<br>en cours'
+        : '<b style="color:#252599;">'+ouverts+'</b> ouvert'+(ouverts>1?'s':'')+'<br>'+total+' en cours';
     }
   }
 
@@ -5983,11 +5983,11 @@ function depRenderDepartsPaysChoix(){
   var h = '';
   ['SN','ML'].forEach(function(code){
     var p = DEP_PAYS_DEST[code];
-    var total = tousLesDeparts(code).length;
+    var total = tousLesDeparts(code).filter(function(d){ return d.statut !== 'cloture'; }).length;
     var ouverts = departsDisponibles(code).length;
     var sousTitre = total === 0
-      ? 'Aucun d&eacute;part'
-      : ouverts + ' ouvert' + (ouverts>1?'s':'') + ' &middot; ' + total + ' au total';
+      ? 'Aucun d&eacute;part en cours'
+      : ouverts + ' ouvert' + (ouverts>1?'s':'') + ' &middot; ' + total + ' en cours';
     h += '<div class="dep-card" style="border-left-color:#252599;cursor:pointer;" onclick="depOuvrirDepartsPays(\''+code+'\')">'
       +   '<div class="dep-card-top">'
       +     '<div class="dep-nom">'+p.drapeau+' '+p.nom+'</div>'
@@ -7988,11 +7988,19 @@ window.depRenderListe = function(){
   // depOuvrirDepartsPays) — repli sur Sénégal si jamais on arrivait ici
   // sans être passé par le choix du pays (ex. lien direct/rafraîchissement).
   var pays = _depDepartsPays || DEP_PAYS_DEFAUT;
-  var liste = tousLesDeparts(pays);
+  // v2.22.2 — Cobey, 03/11/2026 : « les containers clôturés doivent aller dans
+  // les archives. » Ils n'encombrent plus la liste : on les retrouve dans
+  // Archives > Départs clôturés (voir depArchiveOuvrir('departs')).
+  var tous = tousLesDeparts(pays);
+  var liste = tous.filter(function(d){ return d.statut !== 'cloture'; });
+  var nbClos = tous.length - liste.length;
 
   if(!liste.length){
     box.innerHTML = '<div class="dep-vide"><div style="font-size:34px;margin-bottom:10px;">&#128230;</div>'
-      + 'Aucun d&eacute;part pour le moment.<br>Cr&eacute;ez le premier pour que l\'&eacute;quipe<br>puisse y rattacher des clients.</div>';
+      + (nbClos
+          ? 'Aucun d&eacute;part en cours.<br>' + nbClos + ' clôtur&eacute;' + (nbClos > 1 ? 's' : '') + ' : voir <b>Archives</b>.'
+          : 'Aucun d&eacute;part pour le moment.<br>Cr&eacute;ez le premier pour que l\'&eacute;quipe<br>puisse y rattacher des clients.')
+      + '</div>';
     return;
   }
 
@@ -8016,6 +8024,7 @@ window.depRenderListe = function(){
           : '')
       + '</div>';
   });
+  if(nbClos) h += '<div style="text-align:center;font-size:12px;color:#888;padding:14px 10px;">&#128451;&#65039; ' + nbClos + ' d&eacute;part' + (nbClos > 1 ? 's' : '') + ' clôtur&eacute;' + (nbClos > 1 ? 's' : '') + ' dans <b>Archives</b></div>';
   box.innerHTML = h;
 };
 

@@ -5839,3 +5839,11 @@ sous-titre « N à retrouver ») dans `DEP_REGLAGES_ITEMS`, section
 `admin-section-corbeille` (`renderAdminCorbeille`) : la liste classée de la
 v3.99.126 + « Retrouvés dans le carnet ». Retirée d'Outils (où ne reste que
 « Chercher dans l'historique »).
+
+**03/11, dct-app.html v3.99.128 / departs.js v2.22.2 — Les containers clôturés
+quittent la liste des départs.** Cobey : « les containers clôturés doivent aller
+dans les archives. » `depRenderListe` n'affiche plus les départs au statut
+« clôturé » : une ligne en bas dit « N départ(s) clôturé(s) dans Archives ».
+Les compteurs (case Départs des Espaces, choix du pays) disent « N en cours »
+au lieu de « N au total ». Les clôturés restent dans Archives > Départs
+clôturés (existant) et dans les rapports financiers / statistiques.
