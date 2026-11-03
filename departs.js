@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.6';
+var DEP_VERSION = 'v2.22.7';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5917,7 +5917,10 @@ window.depRenderEspaces = function(){
     try{
       var _auj = _depPlIsoAujourdhui();
       var _jours = _depPlanningJours();
-      var _prochain = _jours.filter(function(d){ return d.iso >= _auj; })[0] || _jours[0];
+      // v2.22.7 : un jour « chauffeur externe » (personne à solliciter) n'est pas
+      // le prochain jour à pourvoir : on passe au suivant (Cobey, 03/11/2026).
+      var _aVenir = _jours.filter(function(d){ return d.iso >= _auj; });
+      var _prochain = _aVenir.filter(function(d){ return !_depPlSansEquipe(d.iso); })[0] || _aVenir[0] || _jours[0];
       if(!_prochain){
         spl.innerHTML = 'Disponibilit&eacute;s<br>de l\'&eacute;quipe';
       } else {

@@ -5898,3 +5898,10 @@ Ajoutée dans la fenêtre « Modifier la collecte » (`ouvrirStatutCollecteFr`, 
 🚚 Enregistrer → `changerExterneCollecteFr` → `depPlanningExterneBasculer`) ; cochée
 d'office si le jour est déjà grisé au Planning. Si on change la date de la
 collecte (`changerDateCollecteFr`), le choix la suit à la nouvelle date.
+
+**03/11, dct-app.html v3.99.133 / departs.js v2.22.7 — Case Planning : le prochain
+jour à pourvoir.** Cobey (capture des Espaces) : après avoir grisé le jeudi 5
+novembre (chauffeur externe), « ici on devrait voir la collecte du dimanche qui
+suit pour voir qui sera dispo. » Le sous-titre de la tuile Planning sautait pas
+le jour « sans équipe » : il prend le premier jour à venir qui n'est pas grisé
+(`_depPlSansEquipe`), ici le dimanche 8 novembre avec les prénoms des dispos.
