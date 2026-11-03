@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.13';
+var DEP_VERSION = 'v2.22.14';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10576,27 +10576,43 @@ function _depTexteRelancePaiement(c, d, p, estLiv){
   var trajet = 'France-' + (DEP_PAYS_NOM_PLAIN[pays] || 'Sénégal');
   var ville = (pays === 'ML') ? 'Bamako' : 'Dakar';
   var arrive = !!(d && d.statut === 'arrive');
-  // v3.99.56 — Cobey : « remplace "votre container" par "vos colis" »
-  // (retour sur le message de _depTexteMessageArriveeExpediteur,
-  // ci-dessus — même tournure ici, même correction).
-  // v2.22.13 — Cobey, 03/11/2026 : « il faut changer le message et mettre
-  // "vos colis sont en cours d'acheminement", et il doit se changer
-  // automatiquement avec le message actuel uniquement quand le statut du
-  // container est arrivé à Dakar [...] on garde "vos colis France-Sénégal
-  // sont bien arrivés à Dakar" et on ajoute à la suite : "ils vont arriver
-  // prochainement dans notre dépôt aux Parcelles Assainies". » Le dépôt des
-  // Parcelles Assainies est à Dakar : la phrase n'est ajoutée que pour le
-  // Sénégal. Même texte sur le bouton de la fiche du container (Départs) et
-  // sur ceux du Rapport financier (une seule fonction).
-  var intro = arrive
-    ? ('📦 Vos colis ' + trajet + ' sont bien arrivés à ' + ville + '.'
-       + (pays === 'ML' ? '' : ' Ils vont arriver prochainement dans notre dépôt aux Parcelles Assainies.'))
-    : ('📦 Vos colis ' + trajet + ' sont en cours d’acheminement.');
-  var demande = estLiv
-    ? ('Pour que nous puissions vous livrer votre colis, merci de bien vouloir régler le solde restant de '
-       + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison' + (arrive ? '.' : ', avant l’arrivée.'))
-    : ('Pour récupérer votre colis, merci de bien vouloir régler le solde restant de '
-       + p.reste + ' € (sur un total de ' + p.total + ' €)' + (arrive ? '.' : ' avant l’arrivée.'));
+  var etapes = (d && d.etapesTransport) || {};
+  var portFait = !!(etapes.arrivee_port && etapes.arrivee_port.fait);
+  var depotFait = arrive || !!(etapes.arrivee_depot && etapes.arrivee_depot.fait);
+  var intro, demande;
+  if(pays === 'ML'){
+    // Mali : inchangé (Cobey, 03/11/2026 : « pour le Mali fais rien »).
+    intro = arrive
+      ? ('📦 Vos colis ' + trajet + ' sont bien arrivés à ' + ville + '.')
+      : ('📦 Vos colis ' + trajet + ' arrivent bientôt à ' + ville + '.');
+    demande = estLiv
+      ? ('Pour que nous puissions vous livrer votre colis, merci de bien vouloir régler le solde restant de '
+         + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison' + (arrive ? '.' : ', avant l’arrivée.'))
+      : ('Pour récupérer votre colis, merci de bien vouloir régler le solde restant de '
+         + p.reste + ' € (sur un total de ' + p.total + ' €)' + (arrive ? '.' : ' avant l’arrivée.'));
+  } else {
+    // v2.22.14 — Sénégal, trois moments (Cobey, 03/11/2026, messages validés
+    // par Issyaka) : en route ; arrivé au port de Dakar mais pas encore au
+    // dépôt (2 à 3 jours d'attente administrative) ; arrivé au dépôt des
+    // Parcelles Assainies. Ils suivent les étapes « Arrivée au port de
+    // Dakar » et « Arrivée au dépôt » du container.
+    if(depotFait){
+      intro = '📦 Vos colis ' + trajet + ' sont bien arrivés dans notre dépôt aux Parcelles Assainies. '
+            + 'Veuillez régler vos factures avant de récupérer vos colis.';
+    } else if(portFait){
+      intro = '📦 Vos colis ' + trajet + ' sont bien arrivés à Dakar. '
+            + 'Ils vont arriver prochainement dans notre dépôt aux Parcelles Assainies. '
+            + 'Veuillez régler votre facture avant l’arrivée.';
+    } else {
+      intro = '📦 Vos colis ' + trajet + ' sont en cours d’acheminement. '
+            + 'Veuillez régler votre facture avant l’arrivée.';
+    }
+    demande = estLiv
+      ? ('Pour que nous puissions vous livrer votre colis, merci de bien vouloir régler le solde restant de '
+         + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison.')
+      : ('Pour récupérer votre colis, merci de bien vouloir régler le solde restant de '
+         + p.reste + ' € (sur un total de ' + p.total + ' €).');
+  }
   // v3.99.45 — Cobey : « le RIB à ajouter [...] sur les messages de
   // relance qu'on a mis en place sur les boutons WhatsApp pour les
   // clients qui ont des retards de paiement [...] il y a des relances

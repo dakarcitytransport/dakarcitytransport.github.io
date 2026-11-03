@@ -6036,3 +6036,14 @@ affiché ; visible par toute personne qui a la case Départs (Aminata incluse). 
 arriver prochainement dans notre dépôt aux Parcelles Assainies. » (phrase du dépôt seulement pour le Sénégal ; Mali : « arrivés à
 Bamako »). Le reste (montant, RIB, « avant l'arrivée ») est inchangé. Pas encore fait : version « colis déjà au dépôt » (étape
 « Arrivée au dépôt » validée), proposée à Cobey, pas demandée.
+
+### 03/11/2026 — Message de relance de paiement en 3 moments pour le Sénégal (dct-app v3.99.141, departs v2.22.14)
+> Cobey : « il faut avoir arrivé au port de Dakar, après ça l'arrivée au dépôt de DCT, entre les deux il y a souvent 2 ou 3 jours d'attente, pour tout ce qui est administratif » ; « pour le 2 il faut quand même mettre Veuillez régler votre facture avant l'arrivée [...] et pour le 3 veuillez régler vos factures avant de récupérer vos colis » ; « pour le Mali, fais rien » ; « vas-y code » (après validation par Issyaka).
+
+`_depTexteRelancePaiement`, selon les étapes du container (Sénégal) : (1) avant « Arrivée au port de Dakar » : « …sont en cours
+d'acheminement. Veuillez régler votre facture avant l'arrivée. » ; (2) port fait, dépôt pas fait : « …sont bien arrivés à Dakar. Ils vont
+arriver prochainement dans notre dépôt aux Parcelles Assainies. Veuillez régler votre facture avant l'arrivée. » ; (3) dépôt fait :
+« …sont bien arrivés dans notre dépôt aux Parcelles Assainies. Veuillez régler vos factures avant de récupérer vos colis. » La phrase
+du solde ne finit plus par « avant l'arrivée » (Sénégal). Mali : texte d'origine remis (« arrivent bientôt à Bamako » / « sont bien
+arrivés à Bamako », « avant l'arrivée »). Même fonction pour la fiche du container et le Rapport financier. Testé : 7 cas (3 phases
+colis, 2 livraison, 2 Mali), IBAN présent.
