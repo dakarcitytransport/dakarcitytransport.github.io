@@ -5870,3 +5870,23 @@ du container arrivé à Dakar, au cas où on oublie d'appuyer sur le bouton. »
 statut « arrivé » ou étape « Arrivée au dépôt » validée => visible, quoi que dise
 le bouton ; sinon le bouton (true/false) décide ; sans décision, l'ancienne règle
 (« Départ de Mitry » cochée).
+
+**03/11, dct-app.html v3.99.131 / departs.js v2.22.5 — Planning : jour « chauffeur
+externe, personne à solliciter ».** Cobey : « on a créé une collecte France pour
+le 5 novembre, prise en charge par un chauffeur externe, or dans le planning le
+prochain jour de disponibilité qu'on voit est ce jeudi : aucun collaborateur ne
+sera sollicité. » Puis : « on n'a pas encore fait le dispatch [...] le planning
+reste au même statut pendant ce temps » -> choix MANUEL immédiat, pas seulement
+la détection du camion. `dct_planning_ext/<date>` = { externe, par, ts }
+(listener + `window.planningExt`). `_depPlSansEquipe(iso)` : externe:true => jour
+grisé (« Chauffeur externe — personne à solliciter », ni boutons, ni relance, ni
+pastille : `_depDimanchesSansMaReponse` l'ignore) ; externe:false => forcé normal ;
+rien => automatique si une collecte France ce jour-là n'a que des camions
+externes et qu'il n'y a pas de collecte Dakar le même jour. Où le décider : case
+« Faite par un chauffeur externe » à la création d'une collecte France
+(dct-app.html), ou bouton « Chauffeur externe — personne à solliciter » dans
+« Modifier ce jour » du Planning (direction + Aminata) ; « Remettre à l'équipe »
+sur la carte grisée. Tracé dans l'Activité. La date de la collecte n'est pas
+suivie si on la change après coup (le drapeau reste sur l'ancienne date).
+À reprendre : la réponse obligatoire à la connexion (pas encore faite) devra
+ignorer ces jours.

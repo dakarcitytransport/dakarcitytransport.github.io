@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.4';
+var DEP_VERSION = 'v2.22.5';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5542,6 +5542,12 @@ function ecouterDeparts(){
   /* v2.4.0 : les demandes de disponibilité. En écoute permanente, pour
      que Issyaka voie les réponses arriver sans rien rafraîchir, et que la
      pastille de la case Planning soit juste à tout moment. */
+  // v2.22.5 : jours « chauffeur externe » (personne à solliciter), voir _depPlSansEquipe.
+  db.ref('dct_planning_ext').on('value', function(snap){
+    window.planningExt = snap.val() || {};
+    _depRedessinerDiffere('planningExt', 's-planning', function(){ depRenderPlanning(); });
+    _depRedessinerDiffere('espacesExt', 's-espaces', function(){ depRenderEspaces(); });
+  });
   db.ref('dct_planning').on('value', function(snap){
     window.planningData = snap.val() || {};
     _depRedessinerDiffere('planning', 's-planning', function(){ depRenderPlanning(); });
@@ -27951,6 +27957,7 @@ function _depCompteDispo(iso){
 // Rien à remplir pour quelqu'un qui n'est pas dans la liste des
 // participants (Eric, Aminata) : la pastille ne doit pas les relancer
 // pour une réponse qu'on ne leur demande pas.
+function _depSansEquipeJ(j){ return _depPlSansEquipe(j.iso); }
 function _depDimanchesSansMaReponse(){
   var u = window.currentUser || {};
   if(!u.id) return 0;
@@ -27958,7 +27965,7 @@ function _depDimanchesSansMaReponse(){
   // v3.99.65 : compte les jours du Planning (équipe fixe seulement — un
   // volontaire n'a rien d'obligatoire).
   if(!fixe) return 0;
-  return _depPlanningJours().filter(function(j){ return !_depDispoDe(j.iso, u.id); }).length;
+  return _depPlanningJours().filter(function(j){ return !_depSansEquipeJ(j) && !_depDispoDe(j.iso, u.id); }).length;
 }
 window._depDimanchesSansMaReponse = _depDimanchesSansMaReponse;
 
@@ -28234,6 +28241,57 @@ window._depLigneDisposJour = function(iso){
 
 // Le titre d'un jour : « Dimanche 4 octobre », ou « Samedi 4 octobre » +
 // pastille EXCEPTIONNEL + motif.
+/* v2.22.5 — Cobey, 03/11/2026 : « on a créé une collecte France pour le 5
+   novembre, prise en charge par un chauffeur externe [...] aucun collaborateur
+   ne sera sollicité. » Et : « on n'a pas encore fait le dispatch, le planning
+   reste au même statut pendant ce temps » -> choix MANUEL tout de suite
+   (dct_planning_ext/<date>), pas seulement la détection du camion externe.
+   externe:true => jour grisé, rien à répondre, ni pastille ni relance ;
+   externe:false => forcé « normal » ; absent => automatique : une collecte
+   France ce jour-là dont tous les camions sont externes (et aucune collecte de
+   Dakar le même jour). */
+function _depPlSansEquipe(iso){
+  var m = (window.planningExt || {})[iso];
+  if(m && m.externe === true) return true;
+  if(m && m.externe === false) return false;
+  var rs = (window.franceData || {}).collectes || {}, trouve = false, ok = true;
+  Object.keys(rs).forEach(function(k){
+    var r = rs[k]; if(!r || r.dateIso !== iso) return;
+    var tks = Object.keys(r.trucks || {});
+    if(!tks.length){ ok = false; return; }
+    trouve = true;
+    if(tks.some(function(t){ return !(r.trucks[t] || {}).externe; })) ok = false;
+  });
+  if(!trouve || !ok) return false;
+  return !(window.collectes || []).some(function(c){ return c && c.statut !== 'terminee' && _depIsoDeCollecte(c) === iso; });
+}
+window._depPlSansEquipe = _depPlSansEquipe;
+
+window.depPlanningExterneBasculer = function(iso, externe){
+  if(!_depPeutOrganiserPlanning()){ toast('\u26d4 R\u00e9serv\u00e9 \u00e0 la direction.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('\u274c Pas de connexion.'); return; }
+  var u = window.currentUser || {};
+  db.ref('dct_planning_ext/' + iso).set({ externe: !!externe, par: u.name || '', ts: Date.now() }).then(function(){
+    toast(externe ? '\ud83d\ude9a Chauffeur externe : personne \u00e0 solliciter.' : '\u21a9\ufe0f Remis \u00e0 l\'\u00e9quipe.');
+    try{
+      addActivity('\ud83d\ude9a', u.bg, '<strong style="color:' + u.color + '">' + u.name + '</strong> '
+        + (externe ? 'a indiqu\u00e9 : chauffeur externe, personne \u00e0 solliciter' : 'a remis \u00e0 l\'\u00e9quipe')
+        + ' pour ' + _depPlNomJourPhrase(iso), "\u00c0 l'instant", true);
+    }catch(e){}
+  }).catch(function(e){ toast('\u274c \u00c9chec : ' + ((e && e.message) || 'refus\u00e9')); });
+};
+
+function _depPlCarteSansEquipe(dim){
+  var bouton = _depPeutOrganiserPlanning()
+    ? '<div onclick="depPlanningExterneBasculer(\'' + dim.iso + '\',false)" style="margin-top:10px;text-align:center;background:#fff;color:#555;'
+      + 'border:1.5px solid #bbb;border-radius:9px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">&#8617;&#65039; Remettre &agrave; l\'&eacute;quipe</div>'
+    : '';
+  return '<div style="background:#F3F3F5;border:1.5px solid var(--border);border-radius:13px;padding:13px 14px;margin-bottom:10px;">'
+    + _depPlTitreJour(dim, 15)
+    + '<div style="margin-top:9px;font-size:12.5px;font-weight:700;color:#555;line-height:1.45;">&#128666; Chauffeur externe &mdash; personne &agrave; solliciter. Rien &agrave; renseigner pour ce jour.</div>'
+    + bouton + '</div>';
+}
+
 function _depPlTitreJour(dim, taille){
   var base = _depPlEstDimanche(dim.iso) ? ('dimanche ' + dim.libelle) : _depPlLibelleJour(dim.iso);
   base = base.charAt(0).toUpperCase() + base.slice(1);
@@ -28386,6 +28444,7 @@ window.depOuvrirEspacePlanning = function(){
 };
 
 function _depPlanningBlocMien(dim){
+  if(_depPlSansEquipe(dim.iso)) return _depPlCarteSansEquipe(dim);
   var u = window.currentUser || {};
   var col = _depCollecteDuJour(dim);
 
@@ -28479,6 +28538,7 @@ function _depPlanningBlocMien(dim){
 }
 
 function _depPlanningBlocEquipe(dim){
+  if(_depPlSansEquipe(dim.iso)) return _depPlCarteSansEquipe(dim);
   var c = _depCompteDispo(dim.iso);
   var gens = _depGensPourJour(dim.iso).slice();
   // v3.99.72 — Cobey : « pourquoi j'apparais pas sur les autres dates ?
@@ -28637,6 +28697,11 @@ function _depPlanningBlocEquipe(dim){
     +     'background:#e8e8e8;padding:3px 10px;border-radius:20px;">&#128274; verrouill&eacute;</span>' : '')
     + '</div>'
     + boutonModif
+    + ((enModif && _depPeutOrganiserPlanning())
+        ? '<div onclick="depPlanningExterneBasculer(\'' + dim.iso + '\',true)" style="text-align:center;background:#F3F4FB;color:#1a237e;'
+          + 'border:1.5px dashed #1a237e;border-radius:9px;padding:9px;font-size:12.5px;font-weight:800;cursor:pointer;margin-bottom:10px;">'
+          + '&#128666; Chauffeur externe &mdash; personne &agrave; solliciter</div>'
+        : '')
     + lignes
     + relance
     + blocExternes
