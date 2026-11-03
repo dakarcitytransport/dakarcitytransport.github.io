@@ -5943,3 +5943,15 @@ chauffeur (`dct_codes_externe`), puis renvoie un jeton Firebase personnalisé (`
 Suite : 2) règles Firebase (`|| auth.token.staff == true`) + brancher l'appli équipe (avec repli sur l'ancien
 mot de passe) ; 3) Mamadou puis chauffeurs ; 4) retirer le mot de passe du code, Cobey change le mot de passe
 dans la console. Point ouvert : le PIN admin 1010 à déplacer dans la base.
+
+### 03/11/2026 — Étape 3a : page chauffeur externe (chauffeur.html v1.9.0)
+> Cobey : « les chauffeurs ont un code à entrer pour se connecter via leurs liens » ; les « postes » (P1…P4, DD) :
+> « je n'utilise plus, c'était une interface pour une personne qui travaille plus avec nous » (rien à faire pour eux).
+
+Le code saisi est d'abord vérifié par le Worker (`POST /auth`, mode `chauffeur`) ; la page se connecte avec le
+laissez-passer reçu. Si le Worker ne répond pas, ou si Firebase refuse le laissez-passer (règles pas encore à
+jour), repli automatique sur l'ancienne connexion : rien ne change pour le chauffeur. Testé (Playwright, faux
+Firebase) : laissez-passer accepté / refusé / Worker coupé. **Pas encore testé avec le vrai Firebase.**
+Constat : rendre le dépôt privé ne cacherait PAS le mot de passe (le site publie `departs.js` tel quel).
+Reste : règles Firebase (`|| auth.token.staff == true`), Mamadou, appli équipe (démarrage à couper en deux :
+avant/après PIN ; Face ID à rattacher à un code d'appareil), puis retrait de l'ancien mot de passe.
