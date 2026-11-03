@@ -5978,3 +5978,15 @@ remplace « 1010 » ; tant qu'il n'y en a pas, « 1010 » marche encore (à reti
 les profils AD/AI ne se bloquent jamais. Testé (12 cas, faux Firebase). Pas encore fait : démarrage en deux temps
 (avant/après PIN), Face ID, passe-partout/PIN créé via Worker, règles Firebase, retrait de l'ancien mot de passe.
 - 03/11 : dct-app v3.99.135 mis en ligne (main) après « collé » de Cobey (Worker v1.8.1).
+
+### 03/11/2026 — Étape 4b : l'appli ne lit plus la base avant le PIN (dct-app.html v3.99.136, departs.js v2.22.9)
+> Cobey : « ok » (après l'explication du démarrage en deux temps).
+
+Avant le PIN, l'appli ne lit plus que la liste des profils, le message d'accueil et le passe-partout. Les ~25 autres
+écoutes (clients, France, finances, planning, départs…) démarrent au début de `finalisLogin` via
+`_demarrerEcoutesApresPin` (dct-app.html) et `window._depEcouterApresPin` (departs.js). Le mot de passe de l'ancien
+compte sert encore en coulisses : aucun changement visible. Testé : faux Firebase en mémoire + vraies données de la
+base (lecture seule), 74 écrans comparés avant/après, même contenu, aucune erreur.
+Reste avant de retirer l'ancien mot de passe : lecture avant PIN sans compte (profils, « PIN existe ? », « profil
+bloqué ? ») et écritures faites au démarrage (`dct_config/collabs`, `profils_poses`) à déplacer après le PIN ; passe-partout
+et création de PIN via le Worker ; Face ID ; règles Firebase.

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.8';
+var DEP_VERSION = 'v2.22.9';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5539,6 +5539,10 @@ function ecouterDeparts(){
     setTimeout(appliquerProfils, 400);
   });
 
+  // v2.22.9 — sécurité : tout ce qui suit ne démarre qu'après le PIN
+  // (window._depEcouterApresPin, appelée par _demarrerEcoutesApresPin,
+  // dct-app.html). Avant le PIN, seule la liste des profils ci-dessus est lue.
+  window._depEcouterApresPin = function(){
   /* v2.4.0 : les demandes de disponibilité. En écoute permanente, pour
      que Issyaka voie les réponses arriver sans rien rafraîchir, et que la
      pastille de la case Planning soit juste à tout moment. */
@@ -5691,6 +5695,8 @@ function ecouterDeparts(){
   // des ref() ci-dessus ; un délai généreux laisse le temps à la synchro
   // initiale de Firebase de se terminer.
   setTimeout(function(){ try{ _depBackfillRefsClients(); }catch(e){} }, 4000);
+  try{ _depInitStatsStockage(); }catch(e){ console.error('departs: init stats stockage', e); }
+  };
 }
 
 // v1.20.28 : retire de la copie locale (clientsParCollecte) tout client
@@ -25995,7 +26001,6 @@ function demarrer(){
   try{ depSetLivraisonFiche(false); }catch(e){}
   try{ depSetLivraisonDepot(false); }catch(e){}
   try{ ecouterDeparts(); }catch(e){ console.error('departs: firebase', e); }
-  try{ _depInitStatsStockage(); }catch(e){ console.error('departs: init stats stockage', e); }
   console.log('%c[DCT] Module départs ' + DEP_VERSION + ' chargé', 'color:#252599;font-weight:bold;');
 }
 

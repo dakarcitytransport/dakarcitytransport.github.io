@@ -1414,8 +1414,6 @@ function initFirebase(){
 function _demarrerEcoutesFirebase(){
   // Charger le message admin dès que Firebase est prêt
   chargerMessageAdmin();
-  // Migrer les données de l'ancien format si nécessaire
-  _migrerDonneesAncienFormat();
   // Charger la config (collabs, PIN)
   chargerConfigFirebase();
   // Écouter le message admin en temps réel
@@ -1433,13 +1431,36 @@ function _demarrerEcoutesFirebase(){
     zone.style.cssText = 'background:'+c.bg+';border-left:4px solid '+c.border+';padding:10px 14px;border-radius:8px;margin:0 0 16px;font-size:13px;color:'+c.color+';font-weight:600;display:block;';
     zone.textContent = c.icon+' '+data.texte;
   });
+  // v3.99.136 — sécurité : avant le PIN, l'appli ne lit plus que la liste des
+  // profils, le message d'accueil et le passe-partout. Tout le reste (clients,
+  // France, finances…) ne démarre qu'une fois le PIN accepté — voir
+  // _demarrerEcoutesApresPin, appelée au début de finalisLogin.
+  ecouterPassePartout();
+}
+
+var _ecoutesApresPinFaites = false;
+function _demarrerEcoutesApresPin(){
+  if(_ecoutesApresPinFaites) return;
+  if(!db || !firebaseReady) return;
+  _ecoutesApresPinFaites = true;
+  // Migrer les données de l'ancien format si nécessaire
+  try{ _migrerDonneesAncienFormat(); }catch(e){ console.error('migration', e); }
   // Écouter les changements en temps réel
   ecouterChangements();
   ecouterFrance();
   ecouterAlertes();
   ecouterCodesEspaces();
-  ecouterPassePartout();
   ecouterStatsPhotos();
+  // Le module départs (departs.js) a ses propres écoutes.
+  var essaisDep = 0;
+  var lancerDep = function(){
+    if(typeof window._depEcouterApresPin === 'function'){
+      try{ window._depEcouterApresPin(); }catch(e){ console.error('departs: écoutes après PIN', e); }
+    } else if(++essaisDep < 40){
+      setTimeout(lancerDep, 250);   // departs.js n'a pas fini de démarrer
+    }
+  };
+  lancerDep();
 }
 
 
@@ -2117,7 +2138,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.135';
+var APP_VERSION = 'v3.99.136';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -9258,6 +9279,8 @@ function _dctSeReconnecter(token){
 }
 
 function finalisLogin(collab){
+  // v3.99.136 : les écoutes de données démarrent maintenant, pas avant le PIN.
+  try{ _demarrerEcoutesApresPin(); }catch(e){ console.error('écoutes après PIN', e); }
   // Afficher écran de chargement et charger les données fraîches depuis Firebase
   var loadScreen = document.getElementById('login-loading-screen');
   if(loadScreen) loadScreen.classList.add('show');
