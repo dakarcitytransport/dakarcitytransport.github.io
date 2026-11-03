@@ -6027,3 +6027,12 @@ par caisse, WhatsApp / Copier). Même message, même marquage « relancé » (ve
 du Rapport financier (`depRelancerPaiement`, qui accepte maintenant le départ en 5e paramètre). Aucun total de container n'est
 affiché ; visible par toute personne qui a la case Départs (Aminata incluse). Testé avec les vraies données (en lecture) : boutons
 = clients qui doivent, message WhatsApp correct, bouton vert après relance, choix colis/livraison.
+
+### 03/11/2026 — Message de relance de paiement : « en cours d'acheminement » puis « arrivés à Dakar… dépôt » (dct-app v3.99.140, departs v2.22.13)
+> Cobey : « il faut changer le message et mettre "vos colis sont en cours d'acheminement", et il doit se changer automatiquement avec le message actuel uniquement quand le statut du container est arrivé à Dakar, et ça doit être pareil pour les boutons dans le bilan financier » ; puis : « on garde "Vos colis France-Sénégal sont bien arrivés à Dakar" et on ajoute à la suite : ils vont arriver prochainement dans notre dépôt aux Parcelles Assainies ».
+
+`_depTexteRelancePaiement` (une seule fonction pour la fiche du container et le Rapport financier) : tant que le container n'est pas
+« arrivé » → « Vos colis France-Sénégal sont en cours d'acheminement. » ; une fois « arrivé » → « …sont bien arrivés à Dakar. Ils vont
+arriver prochainement dans notre dépôt aux Parcelles Assainies. » (phrase du dépôt seulement pour le Sénégal ; Mali : « arrivés à
+Bamako »). Le reste (montant, RIB, « avant l'arrivée ») est inchangé. Pas encore fait : version « colis déjà au dépôt » (étape
+« Arrivée au dépôt » validée), proposée à Cobey, pas demandée.

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.12';
+var DEP_VERSION = 'v2.22.13';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10579,9 +10579,19 @@ function _depTexteRelancePaiement(c, d, p, estLiv){
   // v3.99.56 — Cobey : « remplace "votre container" par "vos colis" »
   // (retour sur le message de _depTexteMessageArriveeExpediteur,
   // ci-dessus — même tournure ici, même correction).
+  // v2.22.13 — Cobey, 03/11/2026 : « il faut changer le message et mettre
+  // "vos colis sont en cours d'acheminement", et il doit se changer
+  // automatiquement avec le message actuel uniquement quand le statut du
+  // container est arrivé à Dakar [...] on garde "vos colis France-Sénégal
+  // sont bien arrivés à Dakar" et on ajoute à la suite : "ils vont arriver
+  // prochainement dans notre dépôt aux Parcelles Assainies". » Le dépôt des
+  // Parcelles Assainies est à Dakar : la phrase n'est ajoutée que pour le
+  // Sénégal. Même texte sur le bouton de la fiche du container (Départs) et
+  // sur ceux du Rapport financier (une seule fonction).
   var intro = arrive
-    ? ('📦 Vos colis ' + trajet + ' sont bien arrivés à ' + ville + '.')
-    : ('📦 Vos colis ' + trajet + ' arrivent bientôt à ' + ville + '.');
+    ? ('📦 Vos colis ' + trajet + ' sont bien arrivés à ' + ville + '.'
+       + (pays === 'ML' ? '' : ' Ils vont arriver prochainement dans notre dépôt aux Parcelles Assainies.'))
+    : ('📦 Vos colis ' + trajet + ' sont en cours d’acheminement.');
   var demande = estLiv
     ? ('Pour que nous puissions vous livrer votre colis, merci de bien vouloir régler le solde restant de '
        + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison' + (arrive ? '.' : ', avant l’arrivée.'))
