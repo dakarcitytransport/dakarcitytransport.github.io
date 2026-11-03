@@ -5905,3 +5905,11 @@ novembre (chauffeur externe), « ici on devrait voir la collecte du dimanche qui
 suit pour voir qui sera dispo. » Le sous-titre de la tuile Planning sautait pas
 le jour « sans équipe » : il prend le premier jour à venir qui n'est pas grisé
 (`_depPlSansEquipe`), ici le dimanche 8 novembre avec les prénoms des dispos.
+
+**03/11, dct-app.html v3.99.134 / departs.js v2.22.8 — Carte de collecte : mention
+« Chauffeur externe ».** Cobey (capture France > Collectes, « Tournée sud ») :
+« chauffeur externe bien coché pour la tournée, mais zéro indication ici. » La
+ligne sous la carte (`_depLigneDisposJour`) affichait « DISPONIBLES · pas encore
+de réponses ». Pour un jour « chauffeur externe » (`_depPlSansEquipe`), elle dit
+maintenant « 🚚 Chauffeur externe · personne à solliciter ». Les cartes (Collecte
+et France) se redessinent dès que le choix change (listener `dct_planning_ext`).

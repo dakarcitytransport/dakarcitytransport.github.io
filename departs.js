@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.7';
+var DEP_VERSION = 'v2.22.8';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5547,6 +5547,8 @@ function ecouterDeparts(){
     window.planningExt = snap.val() || {};
     _depRedessinerDiffere('planningExt', 's-planning', function(){ depRenderPlanning(); });
     _depRedessinerDiffere('espacesExt', 's-espaces', function(){ depRenderEspaces(); });
+    _depRedessinerDiffere('cartesCollectesExt', 's-home', function(){ if(typeof renderCollectesList === 'function') renderCollectesList(); });
+    _depRedessinerDiffere('cartesFranceExt', 's-france', function(){ if(window.franceTab === 'collectes' && typeof renderFrance === 'function') renderFrance(); });
   });
   db.ref('dct_planning').on('value', function(snap){
     window.planningData = snap.val() || {};
@@ -28224,6 +28226,13 @@ window.depPlanningExterneAjouter = function(iso, dispo){
 window._depLigneDisposJour = function(iso){
   try{
     if(!iso || iso < _depPlIsoAujourdhui()) return '';
+    // v2.22.8 — Cobey, 03/11/2026 : « chauffeur externe bien coché pour la
+    // tournée, mais zéro indication ici » : la carte le dit à la place de
+    // « pas encore de réponses ».
+    if(_depPlSansEquipe(iso)){
+      return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:9px 14px 12px;border-top:1px solid #eceef1;">'
+        + '<span style="font-size:12px;font-weight:700;background:#E3E7FA;color:#1a237e;padding:3px 10px;border-radius:14px;">&#128666; Chauffeur externe &middot; personne &agrave; solliciter</span></div>';
+    }
     var gens = _depGensPourJour(iso), dispos = [], reponses = 0;
     gens.forEach(function(c){
       var r = _depDispoDe(iso, c.id);
