@@ -5990,3 +5990,20 @@ base (lecture seule), 74 écrans comparés avant/après, même contenu, aucune e
 Reste avant de retirer l'ancien mot de passe : lecture avant PIN sans compte (profils, « PIN existe ? », « profil
 bloqué ? ») et écritures faites au démarrage (`dct_config/collabs`, `profils_poses`) à déplacer après le PIN ; passe-partout
 et création de PIN via le Worker ; Face ID ; règles Firebase.
+
+### 03/11/2026 — Étape 4c : profils, PIN et Face ID sans lire la base (dct-app.html v3.99.137, departs.js v2.22.10, Worker v1.9.0)
+> Cobey : « Issyaka a son propre code PIN » (réponse sur le profil admin AI : son code est dans la base, pas 1010).
+
+- Worker v1.9.0 : `public` (profils, message, « a un PIN ? », « bloqué ? » — jamais un PIN), `creer_pin`, `debloquer`
+  (code de maintenance), `appareil_creer` / `appareil` (code secret par téléphone pour Face ID, haché dans
+  `dct_config/appareils/<id>` ; supprimer ce nœud coupe les téléphones), passe-partout accepté même sans PIN.
+- Appli : la liste des profils, le message et le statut d'un profil viennent du Worker (repli sur la base s'il est
+  coupé). Écritures de démarrage (`_completerEquipe`) et passe-partout déplacés après le PIN. Face ID : le code secret du
+  téléphone se crée tout seul à la prochaine saisie du PIN ; tant que l'ancien mot de passe vit (`DCT_ANCIEN_MDP`),
+  un téléphone sans code secret entre comme avant.
+- **Correctif important** : `_dctSeReconnecter` (v3.99.135-136) testait le laissez-passer avec une « 2e appli Firebase »,
+  mais departs.js renvoie toujours l'appli existante (`firebase.initializeApp` enveloppé) : le test touchait la connexion
+  principale et pouvait supprimer l'appli Firebase. Le test se fait maintenant par l'API REST (échange du jeton + lecture),
+  sans toucher à la connexion de l'appli.
+- Testé : faux Firebase + vraies données, 12 scénarios (Worker ok / coupé, règles ok / refusées, PIN créé, passe-partout,
+  Face ID avec/sans code secret/refusé) et 74 écrans identiques à la v3.99.136.

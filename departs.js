@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.9';
+var DEP_VERSION = 'v2.22.10';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5532,6 +5532,11 @@ function ecouterDeparts(){
     setTimeout(ecouterDeparts, 400);
     return;
   }
+  // v2.22.9 — sécurité : tout ce qui suit ne démarre qu'après le PIN
+  // (window._depEcouterApresPin, appelée par _demarrerEcoutesApresPin,
+  // dct-app.html). v2.22.10 : même la liste des profils : avant le PIN elle
+  // vient du Worker (voir _dctChargerPublic), qui rappelle appliquerProfils.
+  window._depEcouterApresPin = function(){
   // Ton code recharge COLLABS depuis Firebase après la connexion :
   // on remet les droits à chaque fois que cette liste change.
   db.ref('dct_config/collabs').on('value', function(){
@@ -5539,10 +5544,6 @@ function ecouterDeparts(){
     setTimeout(appliquerProfils, 400);
   });
 
-  // v2.22.9 — sécurité : tout ce qui suit ne démarre qu'après le PIN
-  // (window._depEcouterApresPin, appelée par _demarrerEcoutesApresPin,
-  // dct-app.html). Avant le PIN, seule la liste des profils ci-dessus est lue.
-  window._depEcouterApresPin = function(){
   /* v2.4.0 : les demandes de disponibilité. En écoute permanente, pour
      que Issyaka voie les réponses arriver sans rien rafraîchir, et que la
      pastille de la case Planning soit juste à tout moment. */
@@ -29122,8 +29123,26 @@ function _depBioConnexion(collab, credIdB64, suite){
         timeout: 30000
       }
     }).then(function(assertion){
-      if(assertion && typeof window.finalisLogin === 'function') window.finalisLogin(collab);
-      suite(!!assertion);
+      if(!assertion){ suite(false); return; }
+      // v2.22.10 — sécurité : la biométrie est vérifiée sur le téléphone ; le
+      // Worker Cloudflare, lui, vérifie le code secret propre à ce téléphone
+      // (créé après un PIN correct, voir _dctAppareilAuto, dct-app.html).
+      var secret = null;
+      try{ secret = localStorage.getItem('dct_dev_' + collab.id); }catch(e){}
+      var ancienneActive = (window.DCT_ANCIEN_MDP !== false);
+      var entrer = function(){ if(typeof window.finalisLogin === 'function') window.finalisLogin(collab); suite(true); };
+      if(secret && typeof window._dctLoginAppareil === 'function'){
+        window._dctLoginAppareil(collab.id, secret).then(function(res){
+          if(res === 'ok') return entrer();
+          if(res === 'indispo' && ancienneActive) return entrer();   // Worker coupé : comme avant
+          suite(false);                                              // sinon : le PIN
+        });
+        return;
+      }
+      // Pas encore de code secret sur ce téléphone : il sera créé à la prochaine
+      // saisie du PIN. En attendant, comme avant — tant que l'ancien mot de passe vit.
+      if(ancienneActive) return entrer();
+      suite(false);
     }).catch(function(e){
       console.warn('departs: connexion biométrique', e);
       suite(false);
@@ -29205,6 +29224,11 @@ window._depBioActiver = function(id){
       }
     }).then(function(cred){
       localStorage.setItem('dct_bio_' + id, _depBioB64url(cred.rawId));
+      // Code secret de ce téléphone, avec le PIN qui vient d'être tapé.
+      try{
+        var dp = window._dctDernierPin;
+        if(dp && dp.id === id && typeof window._dctAppareilAuto === 'function') window._dctAppareilAuto(id, dp.pin);
+      }catch(e){}
       toast('✅ Activé — ' + _depBioLibelle() + ' remplace votre code sur ce téléphone.');
       try{
         // v2.9.0 : _depBioLibelle() est écrite en « votre » (adressée

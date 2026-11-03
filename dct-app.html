@@ -1412,30 +1412,83 @@ function initFirebase(){
 }
 
 function _demarrerEcoutesFirebase(){
-  // Charger le message admin dès que Firebase est prêt
-  chargerMessageAdmin();
-  // Charger la config (collabs, PIN)
-  chargerConfigFirebase();
-  // Écouter le message admin en temps réel
-  db.ref('dct_config/message').on('value', function(snap){
-    var zone = document.getElementById('admin-message-login');
-    if(!zone) return;
-    var data = snap.val();
-    if(!data || !data.texte){ zone.style.display='none'; return; }
-    var colors = {
-      info:{bg:'#e3f8f5',border:'#00897b',color:'#004d40',icon:'✅'},
-      warning:{bg:'#fff8e1',border:'#f57c00',color:'#e65100',icon:'⚠️'},
-      error:{bg:'#fde0e0',border:'#c0392b',color:'#b71c1c',icon:'🔴'}
-    };
-    var c = colors[data.type] || colors.info;
-    zone.style.cssText = 'background:'+c.bg+';border-left:4px solid '+c.border+';padding:10px 14px;border-radius:8px;margin:0 0 16px;font-size:13px;color:'+c.color+';font-weight:600;display:block;';
-    zone.textContent = c.icon+' '+data.texte;
+  // v3.99.137 — sécurité : la liste des profils, le message d'accueil, « ce
+  // profil a-t-il un PIN ? » et « est-il bloqué ? » viennent d'abord du Worker
+  // Cloudflare (aucune connexion Firebase nécessaire). Si le Worker ne répond
+  // pas, on lit la base comme avant.
+  _dctChargerPublic().then(function(ok){
+    if(ok) return;
+    // Charger le message admin dès que Firebase est prêt
+    chargerMessageAdmin();
+    // Charger la config (collabs, PIN)
+    chargerConfigFirebase();
+    // Écouter le message admin en temps réel
+    db.ref('dct_config/message').on('value', function(snap){ _dctAfficherMessage(snap.val()); });
+    ecouterPassePartout();
   });
-  // v3.99.136 — sécurité : avant le PIN, l'appli ne lit plus que la liste des
-  // profils, le message d'accueil et le passe-partout. Tout le reste (clients,
-  // France, finances…) ne démarre qu'une fois le PIN accepté — voir
-  // _demarrerEcoutesApresPin, appelée au début de finalisLogin.
-  ecouterPassePartout();
+}
+
+// Message d'accueil sur l'écran des profils.
+function _dctAfficherMessage(data){
+  var zone = document.getElementById('admin-message-login');
+  if(!zone) return;
+  if(!data || !data.texte){ zone.style.display='none'; return; }
+  var colors = {
+    info:{bg:'#e3f8f5',border:'#00897b',color:'#004d40',icon:'✅'},
+    warning:{bg:'#fff8e1',border:'#f57c00',color:'#e65100',icon:'⚠️'},
+    error:{bg:'#fde0e0',border:'#c0392b',color:'#b71c1c',icon:'🔴'}
+  };
+  var c = colors[data.type] || colors.info;
+  zone.style.cssText = 'background:'+c.bg+';border-left:4px solid '+c.border+';padding:10px 14px;border-radius:8px;margin:0 0 16px;font-size:13px;color:'+c.color+';font-weight:600;display:block;';
+  zone.textContent = c.icon+' '+data.texte;
+}
+
+// Appel générique au Worker Cloudflare. Renvoie { status, json } ou null si
+// le Worker ne répond pas.
+var DCT_ANCIEN_MDP = true;   // passe à false quand l'ancien mot de passe est retiré
+function _dctAppelWorker(corps){
+  if(!window.fetch) return Promise.resolve(null);
+  var ctrl = window.AbortController ? new AbortController() : null;
+  var t = setTimeout(function(){ try{ ctrl && ctrl.abort(); }catch(e){} }, 8000);
+  return fetch(DCT_AUTH_URL, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corps), signal: ctrl ? ctrl.signal : undefined
+  }).then(function(r){
+    clearTimeout(t);
+    return r.json().catch(function(){ return null; }).then(function(j){ return { status: r.status, json: j }; });
+  }).catch(function(e){ clearTimeout(t); console.error('Worker /auth', e); return null; });
+}
+
+var _dctPublic = null;   // { collabs, message, aPin, bloques }
+function _dctChargerPublic(){
+  return _dctAppelWorker({ mode: 'public' }).then(function(r){
+    if(!r || r.status !== 200 || !r.json || !r.json.aPin) return false;
+    _dctPublic = r.json;
+    var data = r.json.collabs;
+    if(data && !Array.isArray(data)) data = Object.keys(data).map(function(k){ return data[k]; });
+    if(data && data.length > 0){
+      var admins = COLLABS.filter(function(c){ return c.admin; });
+      COLLABS = data.filter(function(c){ return c && !c.admin; });
+      admins.forEach(function(a){
+        if(!COLLABS.some(function(c){ return c.id===a.id; })) COLLABS.push(a);
+      });
+      try{ _memoriserCollabs(); }catch(e){}
+      var v=document.getElementById('app-version'); if(v) v.textContent=APP_VERSION;
+      try{ _rafraichirLogin(); }catch(e){}
+      try{ if(typeof window.appliquerProfils === 'function'){ window.appliquerProfils(); setTimeout(window.appliquerProfils, 400); } }catch(e){}
+    }
+    _dctAfficherMessage(r.json.message);
+    return true;
+  });
+}
+
+// Statut d'un profil au moment de le choisir : { bloque, aPin }, ou null si le
+// Worker ne répond pas (on lit alors la base).
+function _dctStatutProfil(id){
+  return _dctAppelWorker({ mode: 'public' }).then(function(r){
+    if(!r || r.status !== 200 || !r.json || !r.json.aPin) return null;
+    return { bloque: !!(r.json.bloques && r.json.bloques[id]), aPin: !!r.json.aPin[id] };
+  });
 }
 
 var _ecoutesApresPinFaites = false;
@@ -1445,6 +1498,9 @@ function _demarrerEcoutesApresPin(){
   _ecoutesApresPinFaites = true;
   // Migrer les données de l'ancien format si nécessaire
   try{ _migrerDonneesAncienFormat(); }catch(e){ console.error('migration', e); }
+  // Profils nouveaux du code, à poser dans la base (écriture : après le PIN seulement)
+  try{ _completerEquipe(); }catch(e){ console.error('équipe', e); }
+  try{ ecouterPassePartout(); }catch(e){ console.error('passe-partout', e); }
   // Écouter les changements en temps réel
   ecouterChangements();
   ecouterFrance();
@@ -2138,7 +2194,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.136';
+var APP_VERSION = 'v3.99.137';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -8992,6 +9048,18 @@ function login(id){
   // Poste chauffeur : place partagée, pas de code (choix v3.0.1)
   if(collab.role === 'poste'){ finalisLogin(collab); return; }
 
+  // v3.99.137 : le Worker dit d'abord si le profil est bloqué / a un PIN.
+  _dctStatutProfil(id).then(function(st){
+    if(st){
+      if(st.bloque) _ouvrirModalPinCollab(collab, true);
+      else _ouvrirModalPinCollab(collab, false, !st.aPin);
+      return;
+    }
+    _loginAncien(id, collab);
+  });
+}
+
+function _loginAncien(id, collab){
   // Vérifier si Firebase est prêt
   if(!firebaseReady || !db){
     // Firebase pas encore prêt → ouvrir directement en mode création PIN
@@ -9071,6 +9139,26 @@ function _debloquerParMaintenance(){
   var pin = String((document.getElementById('collab-pin-input')||{}).value||'');
   var id  = (document.getElementById('collab-pin-id')||{}).value||'';
   var err = document.getElementById('collab-pin-error');
+  _dctAppelWorker({ mode: 'debloquer', id: id, code: pin }).then(function(r){
+    if(r && r.status === 200 && r.json && r.json.token){
+      return _dctSeReconnecter(r.json.token).then(function(){
+        localStorage.setItem('dct_pin_attempts_'+id, '0');
+        closeModal('modal-collab-pin');
+        var vip3 = getProfil(id);
+        try{ _journalPassePartout(id, (vip3||{}).name||id); }catch(e){}
+        if(vip3) finalisLogin(vip3);
+      });
+    }
+    if(r && (r.status === 401 || r.status === 429)){
+      if(err){ err.textContent = '❌ Ce n\'est pas le code de maintenance.'; err.style.display = 'block'; }
+      var i1 = document.getElementById('collab-pin-input'); if(i1) i1.value = '';
+      return;
+    }
+    _debloquerParMaintenanceAncien(pin, id, err);
+  });
+}
+
+function _debloquerParMaintenanceAncien(pin, id, err){
   if(!_estPassePartout(pin)){
     if(err){ err.textContent = '❌ Ce n\'est pas le code de maintenance.'; err.style.display = 'block'; }
     var i0 = document.getElementById('collab-pin-input'); if(i0) i0.value = '';
@@ -9095,10 +9183,39 @@ function _creerPinCollab(){
     if(vip) finalisLogin(vip);
     return;
   }
+  // v3.99.137 : un code de 6 chiffres ou plus est peut-être le passe-partout :
+  // c'est le Worker qui le sait (la liste n'est plus lue avant le PIN).
+  if(pin.length >= 6){
+    _dctVerifierPinEquipe(id, pin).then(function(res){
+      if(res.verdict === 'ok' && res.passePartout){
+        closeModal('modal-collab-pin');
+        var vip2 = getProfil(id);
+        try{ _journalPassePartout(id, (vip2||{}).name||id); }catch(e){}
+        if(vip2) finalisLogin(vip2);
+      } else if(err){ err.textContent = '⚠️ Le PIN doit contenir exactement 4 chiffres.'; err.style.display = 'block'; }
+    });
+    return;
+  }
   if(pin.length !== 4 || !/^[0-9]{4}$/.test(pin)){
     if(err){ err.textContent = '⚠️ Le PIN doit contenir exactement 4 chiffres.'; err.style.display = 'block'; }
     return;
   }
+  _dctAppelWorker({ mode: 'creer_pin', id: id, pin: pin }).then(function(r){
+    if(r && r.status === 200 && r.json && r.json.token){
+      return _dctSeReconnecter(r.json.token).then(function(){
+        window._dctDernierPin = { id: id, pin: pin };
+        localStorage.setItem('dct_pin_attempts_'+id, '0');
+        closeModal('modal-collab-pin');
+        var collabN = getProfil(id);
+        if(collabN) finalisLogin(collabN);
+        showToastNew('✅ PIN créé !');
+      });
+    }
+    _creerPinCollabAncien(pin, id);
+  });
+}
+
+function _creerPinCollabAncien(pin, id){
   if(!firebaseReady || !db){ showToastNew('❌ Connexion Firebase non disponible.'); return; }
   db.ref('dct_config/pins/'+id).set(pin, function(e){
     if(!e){
@@ -9128,7 +9245,7 @@ function _validerPinCollab(){
     if(vip) finalisLogin(vip);
     return;
   }
-  if(pin.length !== 4){
+  if(pin.length !== 4 && pin.length < 6){
     if(err){ err.textContent = '⚠️ Entrez votre PIN à 4 chiffres.'; err.style.display = 'block'; }
     return;
   }
@@ -9141,6 +9258,7 @@ function _validerPinCollab(){
       localStorage.setItem('dct_pin_attempts_'+id, '0');
       closeModal('modal-collab-pin');
       var collabOk = getProfil(id);
+      if(res.passePartout){ try{ _journalPassePartout(id, (collabOk||{}).name||id); }catch(e){} }
       if(collabOk) finalisLogin(collabOk);
       return;
     }
@@ -9258,24 +9376,66 @@ function _dctVerifierPinEquipe(id, pin){
     if(!r.ok) return { verdict: 'indispo' };
     return r.json().then(function(j){
       if(!j || !j.token) return { verdict: 'indispo' };
-      return _dctSeReconnecter(j.token).then(function(){ return { verdict: 'ok' }; });
+      return _dctSeReconnecter(j.token).then(function(){
+        window._dctDernierPin = { id: id, pin: pin };
+        if(!j.passePartout) _dctAppareilAuto(id, pin);
+        return { verdict: 'ok', passePartout: !!j.passePartout };
+      });
     });
   }).catch(function(e){ clearTimeout(t); console.error('Worker /auth', e); return { verdict: 'indispo' }; });
 }
 
-// Ne change de connexion que si les règles Firebase acceptent le laissez-passer
-// (vérifié d'abord avec une connexion à part) : changer pour une connexion
-// refusée couperait pour de bon les écoutes déjà ouvertes.
+// Face ID : ce téléphone reçoit un code secret propre à lui, créé juste après un
+// PIN correct (seulement si Face ID y est déjà activé pour ce profil). Ensuite
+// la biométrie présente ce secret au Worker au lieu du PIN.
+function _dctAppareilAuto(id, pin){
+  try{
+    if(!id || !pin) return;
+    if(!localStorage.getItem('dct_bio_' + id)) return;
+    if(localStorage.getItem('dct_dev_' + id)) return;
+  }catch(e){ return; }
+  _dctAppelWorker({ mode: 'appareil_creer', id: id, pin: pin }).then(function(r){
+    if(r && r.status === 200 && r.json && r.json.secret){
+      try{ localStorage.setItem('dct_dev_' + id, r.json.secret); }catch(e){}
+    }
+  });
+}
+window._dctAppareilAuto = _dctAppareilAuto;
+
+// Connexion par Face ID : 'ok' | 'refus' | 'bloque' | 'indispo'.
+window._dctLoginAppareil = function(id, secret){
+  return _dctAppelWorker({ mode: 'appareil', id: id, secret: secret }).then(function(r){
+    if(!r) return 'indispo';
+    if(r.status === 423) return 'bloque';
+    if(r.status === 401) return 'refus';
+    if(r.status !== 200 || !r.json || !r.json.token) return 'indispo';
+    return _dctSeReconnecter(r.json.token).then(function(){ return 'ok'; });
+  });
+};
+
+// Ne change de connexion que si les règles Firebase acceptent le laissez-passer :
+// changer pour une connexion refusée couperait pour de bon les écoutes déjà
+// ouvertes. Le test se fait SANS toucher à la connexion de l'appli : on échange
+// le laissez-passer contre un jeton (API d'authentification de Google) et on lit
+// une valeur de la base avec ce jeton. (Une 2e « appli » Firebase n'est pas
+// possible ici : departs.js renvoie toujours l'appli existante.)
 function _dctSeReconnecter(token){
-  var app;
-  try{ app = firebase.initializeApp(firebase.app().options, 'sonde' + Date.now()); }
-  catch(e){ return Promise.resolve(false); }
-  return app.auth().signInWithCustomToken(token)
-    .then(function(){ return app.database().ref('dct_config/message').once('value'); })
-    .then(function(){ return firebase.auth().signInWithCustomToken(token); })
-    .then(function(){ return true; })
-    .catch(function(e){ console.error('laissez-passer non accepté par les règles (normal avant la mise à jour des règles)', e); return false; })
-    .then(function(ok){ try{ app.delete(); }catch(e){} return ok; });
+  var o;
+  try{ o = firebase.app().options; }catch(e){ return Promise.resolve(false); }
+  if(!o || !o.apiKey || !o.databaseURL || !window.fetch) return Promise.resolve(false);
+  return fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=' + encodeURIComponent(o.apiKey), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: token, returnSecureToken: true })
+  }).then(function(r){
+    if(!r.ok) throw new Error('échange du laissez-passer : ' + r.status);
+    return r.json();
+  }).then(function(j){
+    return fetch(o.databaseURL.replace(/\/$/, '') + '/dct_config/message.json?shallow=true&auth=' + encodeURIComponent(j.idToken));
+  }).then(function(r){
+    if(!r.ok) throw new Error('règles Firebase : ' + r.status);
+    return firebase.auth().signInWithCustomToken(token);
+  }).then(function(){ return true; })
+    .catch(function(e){ console.error('laissez-passer non accepté (normal avant la mise à jour des règles)', e); return false; });
 }
 
 function finalisLogin(collab){
