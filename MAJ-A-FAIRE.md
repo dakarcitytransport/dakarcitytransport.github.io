@@ -5977,3 +5977,4 @@ le Worker est coupé ou ne connaît pas de PIN pour ce profil. Admins : le code 
 remplace « 1010 » ; tant qu'il n'y en a pas, « 1010 » marche encore (à retirer à la dernière étape). Worker v1.8.1 :
 les profils AD/AI ne se bloquent jamais. Testé (12 cas, faux Firebase). Pas encore fait : démarrage en deux temps
 (avant/après PIN), Face ID, passe-partout/PIN créé via Worker, règles Firebase, retrait de l'ancien mot de passe.
+- 03/11 : dct-app v3.99.135 mis en ligne (main) après « collé » de Cobey (Worker v1.8.1).
