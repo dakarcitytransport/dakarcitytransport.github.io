@@ -6053,3 +6053,9 @@ colis, 2 livraison, 2 Mali), IBAN présent.
 
 Sénégal, avant « Arrivée au port de Dakar » (colis) : la phrase du solde commence par « Merci de bien vouloir régler le solde restant de X € (sur un
 total de Y €). » Moments 2 et 3 inchangés. La phrase de livraison (« Pour que nous puissions vous livrer votre colis… ») n'a pas été touchée.
+
+### 03/11/2026 — Relance de paiement : message 1 livraison sans « Pour que nous puissions vous livrer » (dct-app v3.99.143, departs v2.22.16)
+> Cobey : « Oui retire aussi pour le 1 ».
+
+Sénégal, avant « Arrivée au port de Dakar », livraison : « Merci de bien vouloir régler le solde restant de X € (sur un total de Y €) pour la livraison. »
+Moments 2 et 3 inchangés.

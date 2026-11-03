@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.15';
+var DEP_VERSION = 'v2.22.16';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10608,7 +10608,8 @@ function _depTexteRelancePaiement(c, d, p, estLiv){
             + 'Veuillez régler votre facture avant l’arrivée.';
     }
     demande = estLiv
-      ? ('Pour que nous puissions vous livrer votre colis, merci de bien vouloir régler le solde restant de '
+      ? ((depotFait || portFait ? 'Pour que nous puissions vous livrer votre colis, merci' : 'Merci')
+         + ' de bien vouloir régler le solde restant de '
          + p.reste + ' € (sur un total de ' + p.total + ' €) pour la livraison.')
       : ((depotFait || portFait ? 'Pour récupérer votre colis, merci' : 'Merci')
          + ' de bien vouloir régler le solde restant de '
