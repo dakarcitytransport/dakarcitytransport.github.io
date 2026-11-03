@@ -5923,3 +5923,23 @@ Cobey dans Authentication ; la modification prévue des règles ne touche que la
 ligne `.read` racine (ajout du lecteur, écriture inchangée). À traiter à part :
 le mot de passe du compte staff est écrit en clair dans departs.js (dépôt
 public ?) — changer le mot de passe et revoir la connexion.
+
+---
+
+## 7 · Sécurité — sortir le mot de passe `staff@` du code public
+
+### 03/11/2026 — Étape 1/4 : le Worker remet des laissez-passer (cloudflare-worker.js v1.8.0)
+> Cobey : « on peut le faire maintenant » (changer le mot de passe / ne plus l'avoir dans le code public).
+
+Constat : le dépôt est public ; le mot de passe de `staff@` est écrit en clair dans `departs.js`, `mamadou.html`
+et `chauffeur.html`. De plus le PIN admin « 1010 » est écrit en clair dans `dct-app.html` (`validerPinAdmin`).
+
+Fait (rien ne change encore pour l'équipe) : `POST /auth` sur le Worker. Il vérifie PIN équipe
+(`dct_config/pins`, passe-partout, blocage au 5e échec), mot de passe/lien de Mamadou (`dct_acces_mamadou`) ou code
+chauffeur (`dct_codes_externe`), puis renvoie un jeton Firebase personnalisé (`staff:true`, `role`). Limite : 10
+échecs / 15 min par adresse. Testé avec un faux Firebase (signature, blocage, limites, origine refusée).
+À faire par Cobey : coller le nouveau `cloudflare-worker.js` dans Cloudflare (Deploy). Aucune nouvelle variable.
+
+Suite : 2) règles Firebase (`|| auth.token.staff == true`) + brancher l'appli équipe (avec repli sur l'ancien
+mot de passe) ; 3) Mamadou puis chauffeurs ; 4) retirer le mot de passe du code, Cobey change le mot de passe
+dans la console. Point ouvert : le PIN admin 1010 à déplacer dans la base.

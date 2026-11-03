@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.7.1 · 04/10/2026
+   v1.8.0 · 03/11/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -600,6 +600,179 @@ async function vider(env){
   return journal;
 }
 
+/* ─── LAISSEZ-PASSER FIREBASE (v1.8.0, 03/11/2026) ───
+
+   Cobey : le mot de passe du compte staff@ est écrit en clair dans le
+   code public du site (departs.js, mamadou.html, chauffeur.html) : toute
+   personne qui lit le code peut ouvrir toute la base. Ici, le serveur
+   garde la clé. Une page envoie POST /auth avec ce que la personne a
+   tapé (PIN, mot de passe de Mamadou ou code du chauffeur) ; le Worker
+   le vérifie dans la base avec le compte de service, puis renvoie un
+   « jeton personnalisé » que la page échange contre une connexion
+   Firebase (signInWithCustomToken). Le jeton porte l'étiquette
+   staff:true (même droits qu'aujourd'hui) et role:'equipe' | 'mamadou'
+   | 'chauffeur' (pour resserrer les règles plus tard).
+
+   Aucune nouvelle variable à régler : on réutilise FIREBASE_CLIENT_EMAIL
+   et FIREBASE_PRIVATE_KEY.
+
+   Essais ratés : au bout de 5 sur un même profil, le profil est bloqué
+   (dct_config/pins_blocked, comme dans l'appli) ; au bout de 10 depuis
+   une même adresse en 15 minutes, l'adresse est refusée un moment. */
+
+const AUTH_ORIGINES = ['https://dakarcitytransport.github.io'];
+const AUDIENCE_JETON = 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit';
+
+function enteteCors(request){
+  const o = request.headers.get('Origin') || '';
+  const ok = AUTH_ORIGINES.indexOf(o) !== -1;
+  return {
+    'Access-Control-Allow-Origin' : ok ? o : AUTH_ORIGINES[0],
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin'
+  };
+}
+
+function repJson(obj, statut, request){
+  return new Response(JSON.stringify(obj), { status: statut,
+    headers: Object.assign({ 'Content-Type':'application/json; charset=utf-8',
+                             'Cache-Control':'no-store' }, enteteCors(request)) });
+}
+
+// Jeton personnalisé Firebase : signé par la clé du compte de service.
+async function jetonPersonnalise(uid, claims, env){
+  const maintenant = Math.floor(Date.now() / 1000);
+  const entete = { alg:'RS256', typ:'JWT' };
+  const corps = {
+    iss: env.FIREBASE_CLIENT_EMAIL, sub: env.FIREBASE_CLIENT_EMAIL,
+    aud: AUDIENCE_JETON, iat: maintenant, exp: maintenant + 3600,
+    uid: uid, claims: claims
+  };
+  const aSigner = octetsVersB64url(enc.encode(JSON.stringify(entete)))
+    + '.' + octetsVersB64url(enc.encode(JSON.stringify(corps)));
+  const cle = await _cleServiceCompte(env.FIREBASE_PRIVATE_KEY);
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cle, enc.encode(aSigner));
+  return aSigner + '.' + octetsVersB64url(sig);
+}
+
+// Lecture / écriture d'une valeur simple (lire() renvoie {} pour « rien »).
+async function lireValeur(chemin, env){
+  const t = await jetonAuth(env);
+  const r = await fetch(BASE + '/' + chemin + '.json', { headers: { 'Authorization': 'Bearer ' + t } });
+  if(!r.ok) throw new Error('lecture ' + chemin + ' : ' + r.status);
+  return await r.json();
+}
+async function poserValeur(chemin, valeur, env){
+  const t = await jetonAuth(env);
+  const r = await fetch(BASE + '/' + chemin + '.json', {
+    method:'PUT', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + t },
+    body: JSON.stringify(valeur) });
+  if(!r.ok) throw new Error('écriture ' + chemin + ' : ' + r.status);
+}
+
+// Comparaison en temps constant (pour ne pas deviner un PIN à la durée).
+function egauxConstant(a, b){
+  a = String(a); b = String(b);
+  let diff = a.length ^ b.length;
+  const n = Math.max(a.length, b.length);
+  for(let i = 0; i < n; i++) diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return diff === 0;
+}
+
+async function empreinte(texte){
+  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(texte)));
+  return octetsVersB64url(h).slice(0, 22);
+}
+
+const AUTH_FENETRE_MS = 15 * 60 * 1000;
+const AUTH_MAX_PAR_IP = 10;
+
+async function ipBloquee(ip, env){
+  const cle = 'dct_config/auth_echecs_ip/' + await empreinte(ip);
+  const v = await lireValeur(cle, env);
+  if(!v || typeof v !== 'object') return { cle, n:0, depuis:0, bloque:false };
+  const frais = Date.now() - (v.depuis || 0) < AUTH_FENETRE_MS;
+  return { cle, n: frais ? (v.n || 0) : 0, depuis: frais ? v.depuis : 0,
+           bloque: frais && (v.n || 0) >= AUTH_MAX_PAR_IP };
+}
+async function noterEchecIp(etat, env){
+  await poserValeur(etat.cle, { n: etat.n + 1, depuis: etat.depuis || Date.now() }, env);
+}
+
+// Vérifie ce que la personne a tapé. Renvoie { uid, role } ou null.
+async function verifierIdentite(corps, env){
+  const mode = String(corps.mode || '');
+
+  if(mode === 'equipe'){
+    const id  = String(corps.id || '');
+    const pin = String(corps.pin || '').trim();
+    if(!/^[A-Za-z0-9_-]{1,40}$/.test(id) || !pin) return { refus:'invalide' };
+    if(await lireValeur('dct_config/pins_blocked/' + id, env)) return { refus:'bloque' };
+    const stocke = await lireValeur('dct_config/pins/' + id, env);
+    if(stocke === null || stocke === undefined || stocke === '') return { refus:'invalide' };
+    if(egauxConstant(String(stocke).trim(), pin)) return { uid:'equipe-' + id, role:'equipe' };
+    // Passe-partout de la direction (voir dct_config/passe_partout, appli).
+    const pp = await lireValeur('dct_config/passe_partout', env);
+    if(pp && String(pp).length >= 6 && egauxConstant(String(pp), pin)) return { uid:'equipe-' + id, role:'equipe' };
+    // Mauvais PIN : on compte, et on bloque le profil au 5e échec.
+    const e = await lireValeur('dct_config/auth_echecs/' + id, env);
+    const n = (typeof e === 'number' ? e : 0) + 1;
+    await poserValeur('dct_config/auth_echecs/' + id, n, env);
+    if(n >= 5){
+      await poserValeur('dct_config/pins_blocked/' + id, true, env);
+      await poserValeur('dct_config/auth_echecs/' + id, 0, env);
+      return { refus:'bloque' };
+    }
+    return { refus:'incorrect', restants: 5 - n };
+  }
+
+  if(mode === 'mamadou'){
+    const saisie = String(corps.motDePasse || '');
+    const jetonLien = String(corps.token || '');
+    const acces = await lireValeur('dct_acces_mamadou', env);
+    if(!acces || typeof acces !== 'object') return { refus:'incorrect' };
+    if(saisie && acces.motDePasse && egauxConstant(acces.motDePasse, saisie)) return { uid:'mamadou', role:'mamadou' };
+    if(jetonLien && acces.token && egauxConstant(acces.token, jetonLien)) return { uid:'mamadou-direction', role:'mamadou' };
+    return { refus:'incorrect' };
+  }
+
+  if(mode === 'chauffeur'){
+    const code = String(corps.code || '').trim();
+    if(!/^[A-Za-z0-9_-]{1,40}$/.test(code)) return { refus:'invalide' };
+    const v = await lireValeur('dct_codes_externe/' + code, env);
+    if(v && typeof v === 'object' && v.collecteId && v.camion) return { uid:'chauffeur-' + code, role:'chauffeur' };
+    return { refus:'incorrect' };
+  }
+
+  return { refus:'invalide' };
+}
+
+async function traiterAuth(request, env){
+  if(request.method === 'OPTIONS') return new Response(null, { status:204, headers: enteteCors(request) });
+  if(request.method !== 'POST') return repJson({ erreur:'méthode' }, 405, request);
+  const origine = request.headers.get('Origin') || '';
+  if(origine && AUTH_ORIGINES.indexOf(origine) === -1) return repJson({ erreur:'origine' }, 403, request);
+
+  let corps;
+  try{ corps = await request.json(); }catch(e){ return repJson({ erreur:'invalide' }, 400, request); }
+  if(!corps || typeof corps !== 'object') return repJson({ erreur:'invalide' }, 400, request);
+
+  const ip = request.headers.get('CF-Connecting-IP') || 'inconnue';
+  const etatIp = await ipBloquee(ip, env);
+  if(etatIp.bloque) return repJson({ erreur:'trop_essais' }, 429, request);
+
+  const r = await verifierIdentite(corps, env);
+  if(!r.uid){
+    await noterEchecIp(etatIp, env);
+    return repJson({ erreur: r.refus || 'incorrect', restants: r.restants },
+                   r.refus === 'bloque' ? 423 : 401, request);
+  }
+  if(r.role === 'equipe') await poserValeur('dct_config/auth_echecs/' + r.uid.slice(7), 0, env);
+  const token = await jetonPersonnalise(r.uid, { staff:true, role:r.role }, env);
+  return repJson({ token, role:r.role }, 200, request);
+}
+
 export default {
   // Toutes les minutes, réglé par le déclencheur Cron de Cloudflare. Le
   // planning d'abord (il peut déposer de nouveaux messages dans la
@@ -616,6 +789,11 @@ export default {
   // travail à la main : pratique pour vérifier que tout marche sans
   // attendre la minute suivante.
   async fetch(request, env){
+    const chemin = new URL(request.url).pathname;
+    if(chemin === '/auth'){
+      try{ return await traiterAuth(request, env); }
+      catch(e){ console.error('DCT auth :', e); return repJson({ erreur:'serveur' }, 500, request); }
+    }
     try{
       let planning = {};
       try{ planning = await traitePlanning(env); }
@@ -632,4 +810,5 @@ export default {
 /* Exporté uniquement pour la vérification automatique : Cloudflare ne
    lit que l'export par défaut ci-dessus. */
 export { chiffrer, jeton, b64urlVersOctets, octetsVersB64url, vider,
-         plProchainsDimanches, plDatesCles, traitePlanning, jetonAuth };
+         plProchainsDimanches, plDatesCles, traitePlanning, jetonAuth,
+         jetonPersonnalise, verifierIdentite, traiterAuth };
