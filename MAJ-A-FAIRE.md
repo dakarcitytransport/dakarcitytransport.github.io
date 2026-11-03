@@ -5890,3 +5890,11 @@ sur la carte grisée. Tracé dans l'Activité. La date de la collecte n'est pas
 suivie si on la change après coup (le drapeau reste sur l'ancienne date).
 À reprendre : la réponse obligatoire à la connexion (pas encore faite) devra
 ignorer ces jours.
+
+**03/11, dct-app.html v3.99.132 / departs.js v2.22.6 — « Faite par un chauffeur
+externe » se change aussi sur une collecte France déjà créée.** Cobey : « pour la
+collecte en cours je ne peux pas modifier. » La case n'existait qu'à la création.
+Ajoutée dans la fenêtre « Modifier la collecte » (`ouvrirStatutCollecteFr`, bouton
+🚚 Enregistrer → `changerExterneCollecteFr` → `depPlanningExterneBasculer`) ; cochée
+d'office si le jour est déjà grisé au Planning. Si on change la date de la
+collecte (`changerDateCollecteFr`), le choix la suit à la nouvelle date.

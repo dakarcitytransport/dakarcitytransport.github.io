@@ -2117,7 +2117,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.131';
+var APP_VERSION = 'v3.99.132';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5472,6 +5472,12 @@ function ouvrirStatutCollecteFr(id){
       + '<div class="fg" style="text-align:left;"><label class="fl">Nom <span style="color:#aaa;font-weight:500;">(optionnel)</span></label>'
       +   '<input class="fi" type="text" id="fc-nom-input" placeholder="Zone ou ville"></div>'
       + '<button class="btn btn-gray" style="margin:0 0 14px;" onclick="changerNomCollecteFr()">🏷️ Enregistrer ce nom</button>'
+      // v3.99.132 — Cobey : « pour la collecte en cours je ne peux pas modifier » :
+      // le choix « chauffeur externe » (Planning) se change aussi ici, après coup.
+      + '<label class="fg" style="display:flex;align-items:flex-start;gap:10px;background:#F3F4FB;border:1.5px solid #c5cae9;border-radius:12px;padding:12px;margin:0 0 8px;cursor:pointer;text-align:left;">'
+      +   '<input type="checkbox" id="fc-ext-input" style="width:20px;height:20px;margin-top:1px;flex-shrink:0;">'
+      +   '<span style="font-size:13px;font-weight:700;color:#1a237e;line-height:1.4;">🚚 Faite par un chauffeur externe<br><span style="font-weight:500;color:#666;font-size:12px;">Personne de l\'équipe n\'est sollicité ce jour-là au Planning.</span></span></label>'
+      + '<button class="btn btn-gray" style="margin:0 0 14px;" onclick="changerExterneCollecteFr()">🚚 Enregistrer</button>'
       + '<div class="slabel" style="text-align:left;margin:0 0 8px;">Statut</div>'
       + '<div id="fc-statut-options"></div>'
       + '<button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal(\'modal-fc-statut\')">✕ Fermer</button></div>';
@@ -5479,6 +5485,8 @@ function ouvrirStatutCollecteFr(id){
   }
   var di=document.getElementById('fc-date-input'); if(di) di.value=r.dateIso||'';
   var ni=document.getElementById('fc-nom-input'); if(ni) ni.value=r.nom||'';
+  var ei=document.getElementById('fc-ext-input');
+  if(ei){ ei.checked=!!(r.dateIso && typeof window._depPlSansEquipe==='function' && window._depPlSansEquipe(r.dateIso)); ei.disabled=!r.dateIso; }
   var h='';
   [['en_cours','🟢','En cours'],['a_venir','🔵','À venir'],['terminee','⚫','Terminé']].forEach(function(s){
     var on=(r.statut||'en_cours')===s[0];
@@ -5487,6 +5495,15 @@ function ouvrirStatutCollecteFr(id){
   });
   var o=document.getElementById('fc-statut-options'); if(o) o.innerHTML=h;
   openModal('modal-fc-statut');
+}
+
+function changerExterneCollecteFr(){
+  var id=_fcStatutId, r=_frCollectes()[id];
+  if(!r || !r.dateIso){ showToastNew('⚠️ Fixez d\'abord une date pour cette collecte.'); return; }
+  var oui=!!((document.getElementById('fc-ext-input')||{}).checked);
+  closeModal('modal-fc-statut');
+  if(typeof window.depPlanningExterneBasculer==='function') window.depPlanningExterneBasculer(r.dateIso, oui);
+  else db.ref('dct_planning_ext/'+r.dateIso).set({ externe:oui, par:(currentUser||{}).name||'', ts:Date.now() });
 }
 
 function changerDateCollecteFr(){
@@ -5535,6 +5552,14 @@ function changerDateCollecteFr(){
     maj['collectes/'+id+'/statut']=(dt>=debutSemaine && dt<=finSemaine) ? 'en_cours' : 'a_venir';
   }
   closeModal('modal-fc-statut');
+  // Le choix « chauffeur externe » suit la collecte à sa nouvelle date.
+  try{
+    var _pe=(window.planningExt||{})[r.dateIso];
+    if(r.dateIso && _pe && _pe.externe===true){
+      db.ref('dct_planning_ext/'+v).set({ externe:true, par:(currentUser||{}).name||'', ts:Date.now() });
+      db.ref('dct_planning_ext/'+r.dateIso).remove();
+    }
+  }catch(e){}
   _frUpdate(maj).then(function(){
     showToastNew('📅 Date mise à jour : '+lib);
     _activiteFrance('📅','a changé la date de la collecte'+(r.nom?(' <strong>'+r.nom+'</strong>'):'')+' : '+(r.dateLib||'sans date')+' → <strong>'+lib+'</strong>');
