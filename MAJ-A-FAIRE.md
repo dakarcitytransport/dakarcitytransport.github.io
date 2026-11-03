@@ -5861,3 +5861,12 @@ explicite prime ; sans décision (anciens containers), l'ancienne règle (étape
 « Départ de Mitry » cochée) continue de s'appliquer, jusqu'à ce qu'on enregistre
 le container. Le Dépôt Dakar de Mamadou passe par la même fonction : les colis
 d'un container caché n'y figurent pas non plus. Changement tracé dans l'Activité.
+
+**03/11, dct-app.html v3.99.130 / departs.js v2.22.4 / mamadou.html v1.18.3 —
+« Visible par Mamadou » devient automatique à l'arrivée à Dakar.** Cobey :
+« bien sûr la visibilité sera automatique pour Mamadou Niass une fois le statut
+du container arrivé à Dakar, au cas où on oublie d'appuyer sur le bouton. »
+`containerAutorise` (mamadou.html) et `_depVisibleMamadou` (departs.js) :
+statut « arrivé » ou étape « Arrivée au dépôt » validée => visible, quoi que dise
+le bouton ; sinon le bouton (true/false) décide ; sans décision, l'ancienne règle
+(« Départ de Mitry » cochée).

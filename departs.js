@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.3';
+var DEP_VERSION = 'v2.22.4';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8057,6 +8057,8 @@ var _depFormVisMamadou = false; // v2.22.3 : visible par Mamadou Niass
 // (mamadou.html), qui applique la même règle.
 function _depVisibleMamadou(d){
   d = d || {};
+  var ea = d.etapesTransport && d.etapesTransport.arrivee_depot;
+  if(d.statut === 'arrive' || (ea && ea.fait)) return true; // automatique à l'arrivée à Dakar
   if(d.visibleMamadou === true) return true;
   if(d.visibleMamadou === false) return false;
   var e = d.etapesTransport && d.etapesTransport.depart_mitry;
@@ -8139,7 +8141,7 @@ function depMajToggle(){
   var tv = $('dep-f-toggle-vismn');
   if(tv) tv.className = 'dep-toggle' + (_depFormVisMamadou ? ' on' : '');
   var sv = $('dep-f-vis-mn-sub');
-  if(sv) sv.innerHTML = _depFormVisMamadou ? 'Mamadou voit ce container et ses clients' : 'Mamadou ne le voit pas (ni ses clients)';
+  if(sv) sv.innerHTML = _depFormVisMamadou ? 'Mamadou voit ce container et ses clients' : 'Mamadou ne le voit pas (ni ses clients). Automatique d&egrave;s l\'arriv&eacute;e &agrave; Dakar.';
 }
 
 window.depEnregistrer = function(){

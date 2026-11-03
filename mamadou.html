@@ -516,7 +516,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.18.2';
+var MAMADOU_VERSION = 'v1.18.3';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -578,6 +578,10 @@ function containerAutorise(departId, d){
   // container (bouton « Visible par Mamadou », departs/<id>/visibleMamadou) :
   // il ne doit pas voir les clients qui n'ont pas encore tout payé. Sans
   // décision (anciens containers), l'ancienne règle s'applique.
+  // Automatique dès l'arrivée à Dakar (statut « arrivé » ou étape « Arrivée au
+  // dépôt » validée), même si on a oublié d'appuyer sur le bouton.
+  var etapeArr = d.etapesTransport && d.etapesTransport.arrivee_depot;
+  if(d.statut === 'arrive' || (etapeArr && etapeArr.fait)) return true;
   if(d.visibleMamadou === true) return true;
   if(d.visibleMamadou === false) return false;
   var etape1 = d.etapesTransport && d.etapesTransport.depart_mitry;
