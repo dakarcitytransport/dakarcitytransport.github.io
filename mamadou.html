@@ -516,7 +516,7 @@ input,select{width:100%;padding:13px;border:1.5px solid var(--border);border-rad
    chiffrement). Lecture seule de toute la base utile aux livraisons,
    écriture limitée aux versements et à la validation d'une livraison.
 */
-var MAMADOU_VERSION = 'v1.18.3';
+var MAMADOU_VERSION = 'v1.19.0';
 function $(id){ return document.getElementById(id); }
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -747,13 +747,52 @@ var db = firebase.database();
 // avec repli sur l'anonyme UNIQUEMENT si cette connexion échoue — le
 // vrai contrôle d'accès à cet espace reste le mot de passe propre à
 // Mamadou (dct_acces_mamadou), inchangé.
-var _connexionAnonyme = firebase.auth
-  ? firebase.auth().signInWithEmailAndPassword('staff@dakarcitytransport.app', 's46AU54ODQWmLfKEOEg3edm5')
-      .catch(function(e){
-        console.error('mamadou: connexion staff — repli sur la connexion anonyme', e);
-        return firebase.auth().signInAnonymously().catch(function(e2){ console.error('mamadou: connexion anonyme (repli)', e2); });
-      })
-  : Promise.resolve();
+function _ancienneConnexion(){
+  return firebase.auth
+    ? firebase.auth().signInWithEmailAndPassword('staff@dakarcitytransport.app', 's46AU54ODQWmLfKEOEg3edm5')
+        .catch(function(e){
+          console.error('mamadou: connexion staff — repli sur la connexion anonyme', e);
+          return firebase.auth().signInAnonymously().catch(function(e2){ console.error('mamadou: connexion anonyme (repli)', e2); });
+        })
+    : Promise.resolve();
+}
+var _connexionAnonyme = _ancienneConnexion();
+
+// v1.19.0 — sécurité (03/11/2026) : le mot de passe du compte staff@ est
+// écrit ci-dessus, dans un code public. Étape 3 pour le retirer : le mot de
+// passe de Mamadou (ou le lien Direction) est d'abord vérifié par le Worker
+// Cloudflare (POST /auth, mode 'mamadou'), qui renvoie un laissez-passer
+// Firebase. Résultat : 'ok' (connecté), 'refus' (le Worker dit non), ou
+// 'indispo' (Worker coupé, ou Firebase refuse encore le laissez-passer
+// parce que les règles ne sont pas à jour) — dans ce dernier cas on revient
+// à l'ancienne connexion, rien ne change pour Mamadou. À la dernière étape,
+// l'ancien mot de passe disparaît de ce fichier.
+var DCT_AUTH_URL = 'https://dct-notifications.eric-koy77.workers.dev/auth';
+
+function _laissezPasserMamadou(corps){
+  if(!window.fetch || !firebase.auth) return Promise.resolve('indispo');
+  var ctrl = window.AbortController ? new AbortController() : null;
+  var t = setTimeout(function(){ try{ ctrl && ctrl.abort(); }catch(e){} }, 8000);
+  corps.mode = 'mamadou';
+  return fetch(DCT_AUTH_URL, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corps), signal: ctrl ? ctrl.signal : undefined
+  }).then(function(r){
+    clearTimeout(t);
+    if(r.status === 401 || r.status === 423 || r.status === 429) return 'refus';
+    if(!r.ok) return 'indispo';
+    return r.json().then(function(j){
+      if(!j || !j.token) return 'indispo';
+      return firebase.auth().signInWithCustomToken(j.token).then(function(){
+        // Les règles acceptent-elles ce laissez-passer ? Sinon : ancienne connexion.
+        return db.ref('dct_acces_mamadou').once('value').then(function(){ return 'ok'; });
+      }).catch(function(e){
+        console.error('mamadou: laissez-passer refusé par les règles, ancienne connexion', e);
+        return _ancienneConnexion().then(function(){ return 'indispo'; });
+      });
+    });
+  }).catch(function(e){ clearTimeout(t); console.error('mamadou: laissez-passer', e); return 'indispo'; });
+}
 
 // v1.1.0 — Cobey : « nous, pour accéder à son espace, on n’aura pas
 // besoin de code » — le lien ?direction=JETON (Réglages > Livreur) saute
@@ -2204,12 +2243,22 @@ function mnCreerMotDePasse(){
 function mnEntrer(){
   var saisie = $('mn-pass-saisie').value || '';
   var err = $('mn-login-err');
-  db.ref('dct_acces_mamadou/motDePasse').once('value').then(function(snap){
-    var mdp = snap.val();
-    if(!mdp || saisie !== mdp){ err.textContent = '⚠️ Mot de passe incorrect.'; return; }
+  var reussi = function(){
     err.textContent = '';
     try{ localStorage.setItem(LOCALSTORAGE_CLE, '1'); }catch(e){}
     mnAccueilOuvrir();
+  };
+  var ancienne = function(){
+    return db.ref('dct_acces_mamadou/motDePasse').once('value').then(function(snap){
+      var mdp = snap.val();
+      if(!mdp || saisie !== mdp){ err.textContent = '⚠️ Mot de passe incorrect.'; return; }
+      reussi();
+    });
+  };
+  _laissezPasserMamadou({ motDePasse: saisie }).then(function(res){
+    if(res === 'ok') return reussi();
+    if(res === 'refus'){ err.textContent = '⚠️ Mot de passe incorrect.'; return; }
+    return ancienne();
   }).catch(function(e){
     console.error('mamadou: échec vérification mot de passe', e);
     err.textContent = '⚠️ Échec, réessayez (vérifiez la connexion).';
@@ -2258,16 +2307,23 @@ function mnValiderChangementMotDePasse(){
   var mDir = /[?&]direction=([^&]+)/.exec(location.search);
   if(mDir){
     var jetonDir = decodeURIComponent(mDir[1]);
-    _connexionAnonyme.then(function(){
-      return db.ref('dct_acces_mamadou/token').once('value');
-    }).then(function(snap){
-      var token = snap.val();
-      if(!token || token !== jetonDir){ goTo('ecran-erreur'); return; }
+    var ouvrirDirection = function(){
       _modeDirection = true;
       ACTEUR_NOM = 'Direction (test)';
       try{ $('mn-lien-changer-mdp').style.display = 'none'; }catch(e){}
       try{ $('mn-retour-dct').style.display = 'inline-block'; }catch(e){}
       mnAccueilOuvrir();
+    };
+    _laissezPasserMamadou({ token: jetonDir }).then(function(res){
+      if(res === 'ok') return ouvrirDirection();
+      if(res === 'refus'){ goTo('ecran-erreur'); return; }
+      return _connexionAnonyme.then(function(){
+        return db.ref('dct_acces_mamadou/token').once('value');
+      }).then(function(snap){
+        var token = snap.val();
+        if(!token || token !== jetonDir){ goTo('ecran-erreur'); return; }
+        ouvrirDirection();
+      });
     }).catch(function(e){
       console.error('mamadou: vérification du lien direction', e);
       goTo('ecran-erreur');

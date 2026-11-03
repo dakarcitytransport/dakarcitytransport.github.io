@@ -5955,3 +5955,14 @@ Firebase) : laissez-passer accepté / refusé / Worker coupé. **Pas encore test
 Constat : rendre le dépôt privé ne cacherait PAS le mot de passe (le site publie `departs.js` tel quel).
 Reste : règles Firebase (`|| auth.token.staff == true`), Mamadou, appli équipe (démarrage à couper en deux :
 avant/après PIN ; Face ID à rattacher à un code d'appareil), puis retrait de l'ancien mot de passe.
+
+### 03/11/2026 — Étape 3b : page Mamadou (mamadou.html v1.19.0)
+> Cobey : « ok la suite c'est du coup ? » (après chauffeur.html).
+
+Le mot de passe de Mamadou et le lien Direction sont d'abord vérifiés par le Worker (`POST /auth`, mode
+`mamadou`). Trois résultats : accepté (connexion avec le laissez-passer), refusé (« mot de passe incorrect »),
+ou indisponible (Worker coupé, ou Firebase refuse encore le laissez-passer) → ancienne méthode, rien ne change
+pour Mamadou. Testé (Playwright, faux Firebase) : 8 cas, dont règles pas à jour et Worker coupé. **Pas encore
+testé avec le vrai Firebase.** À noter : son mot de passe n'a que 4 chiffres (le Worker limite à 10 essais par
+15 min et par adresse) ; au retrait de l'ancien mot de passe, la réouverture « déjà connecté » devra s'appuyer
+sur la session Firebase conservée par le navigateur.
