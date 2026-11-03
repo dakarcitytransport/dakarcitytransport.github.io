@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.8.0 · 03/11/2026
+   v1.8.1 · 03/11/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -685,6 +685,11 @@ async function empreinte(texte){
   return octetsVersB64url(h).slice(0, 22);
 }
 
+// Les profils administrateurs ne se bloquent pas (comme dans l'appli : ils
+// n'avaient pas de blocage) — sinon un inconnu pourrait enfermer la direction
+// dehors en tapant 5 mauvais codes. Ils restent protégés par la limite par adresse.
+const AUTH_ADMINS = ['AD', 'AI'];
+
 const AUTH_FENETRE_MS = 15 * 60 * 1000;
 const AUTH_MAX_PAR_IP = 10;
 
@@ -717,6 +722,7 @@ async function verifierIdentite(corps, env){
     if(pp && String(pp).length >= 6 && egauxConstant(String(pp), pin)) return { uid:'equipe-' + id, role:'equipe' };
     // Mauvais PIN : on compte, et on bloque le profil au 5e échec.
     const e = await lireValeur('dct_config/auth_echecs/' + id, env);
+    if(AUTH_ADMINS.indexOf(id) !== -1) return { refus:'incorrect' };
     const n = (typeof e === 'number' ? e : 0) + 1;
     await poserValeur('dct_config/auth_echecs/' + id, n, env);
     if(n >= 5){

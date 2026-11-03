@@ -5966,3 +5966,14 @@ pour Mamadou. Testé (Playwright, faux Firebase) : 8 cas, dont règles pas à jo
 testé avec le vrai Firebase.** À noter : son mot de passe n'a que 4 chiffres (le Worker limite à 10 essais par
 15 min et par adresse) ; au retrait de l'ancien mot de passe, la réouverture « déjà connecté » devra s'appuyer
 sur la session Firebase conservée par le navigateur.
+
+### 03/11/2026 — Étape 4a : appli de l'équipe, PIN vérifié par le Worker (dct-app.html v3.99.135, Worker v1.8.1)
+> Cobey : « ok » (après l'explication de ce que Face ID et PIN changent pour l'équipe).
+
+Le PIN (profils et admins) est d'abord vérifié par le Worker ; l'appli se reconnecte avec le laissez-passer seulement
+si une connexion à part (sonde) prouve que les règles Firebase l'acceptent — sinon la connexion actuelle reste
+(changer pour une connexion refusée couperait les écoutes ouvertes pour de bon). Repli sur l'ancienne vérification si
+le Worker est coupé ou ne connaît pas de PIN pour ce profil. Admins : le code posé dans `dct_config/pins/AD` et `/AI`
+remplace « 1010 » ; tant qu'il n'y en a pas, « 1010 » marche encore (à retirer à la dernière étape). Worker v1.8.1 :
+les profils AD/AI ne se bloquent jamais. Testé (12 cas, faux Firebase). Pas encore fait : démarrage en deux temps
+(avant/après PIN), Face ID, passe-partout/PIN créé via Worker, règles Firebase, retrait de l'ancien mot de passe.
