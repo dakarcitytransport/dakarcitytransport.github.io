@@ -2117,7 +2117,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.134';
+var APP_VERSION = 'v3.99.135';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -9112,6 +9112,39 @@ function _validerPinCollab(){
     return;
   }
   if(!firebaseReady || !db){ showToastNew('❌ Connexion Firebase non disponible.'); return; }
+  // v3.99.135 — sécurité : le PIN est d'abord vérifié par le Worker Cloudflare
+  // (voir _dctVerifierPinEquipe). S'il est indisponible, ou s'il ne connaît pas
+  // de PIN pour ce profil, on retombe sur l'ancienne vérification ci-dessous.
+  _dctVerifierPinEquipe(id, pin).then(function(res){
+    if(res.verdict === 'ok'){
+      localStorage.setItem('dct_pin_attempts_'+id, '0');
+      closeModal('modal-collab-pin');
+      var collabOk = getProfil(id);
+      if(collabOk) finalisLogin(collabOk);
+      return;
+    }
+    if(res.verdict === 'bloque'){
+      var collabBl = getProfil(id);
+      if(collabBl) _ouvrirModalPinCollab(collabBl, true);
+      return;
+    }
+    if(res.verdict === 'trop'){
+      if(err){ err.textContent = '⏳ Trop d\'essais. Réessayez dans quelques minutes.'; err.style.display = 'block'; }
+      return;
+    }
+    if(res.verdict === 'incorrect'){
+      var r = res.restants;
+      if(err){ err.textContent = '❌ PIN incorrect'+(r>0?' — '+r+' essai'+(r>1?'s':'')+' restant'+(r>1?'s':'')+'.':'.'); err.style.display = 'block'; }
+      var inp0 = document.getElementById('collab-pin-input'); if(inp0) inp0.value = '';
+      return;
+    }
+    _validerPinCollabAncien(id, pin, err);
+  });
+}
+
+// L'ancienne vérification, faite sur le téléphone — gardée en secours tant
+// que le retrait de l'ancien mot de passe n'est pas terminé.
+function _validerPinCollabAncien(id, pin, err){
   db.ref('dct_config/pins/'+id).once('value', function(snap){
     var stored = snap.val();
     if(!stored){
@@ -9159,14 +9192,69 @@ function _validerPinCollab(){
 function validerPinAdmin(){
   var pin = document.getElementById('admin-pin-input').value;
   var id  = document.getElementById('admin-pin-id').value;
-  if(pin === '1010'){
+  var okAdmin = function(){
     closeModal('modal-admin-pin');
     var collab = getProfil(id)||COLLABS[0];
     finalisLogin(collab);
-  } else {
+  };
+  var refusAdmin = function(){
     document.getElementById('admin-pin-error').style.display = 'block';
     document.getElementById('admin-pin-input').value = '';
-  }
+  };
+  // v3.99.135 — le Worker vérifie d'abord le code admin rangé dans la base
+  // (dct_config/pins/<id>). Tant qu'aucun code n'y est posé (ou si le Worker
+  // ne répond pas), l'ancien code reste accepté.
+  _dctVerifierPinEquipe(id, pin).then(function(res){
+    if(res.verdict === 'ok') return okAdmin();
+    if(res.verdict === 'incorrect' || res.verdict === 'trop' || res.verdict === 'bloque') return refusAdmin();
+    if(pin === '1010') return okAdmin();
+    refusAdmin();
+  });
+}
+
+// Demande au Worker Cloudflare de vérifier le PIN. Renvoie une promesse de
+// { verdict, restants } : 'ok' (PIN bon — et, si les règles Firebase le
+// permettent, l'appli se reconnecte avec le laissez-passer reçu), 'incorrect',
+// 'bloque', 'trop' (trop d'essais depuis cette adresse), ou 'indispo' (Worker
+// coupé, ou aucun PIN connu pour ce profil → ancienne vérification).
+var DCT_AUTH_URL = 'https://dct-notifications.eric-koy77.workers.dev/auth';
+function _dctVerifierPinEquipe(id, pin){
+  if(!window.fetch || !window.firebase || !firebase.auth) return Promise.resolve({verdict:'indispo'});
+  var ctrl = window.AbortController ? new AbortController() : null;
+  var t = setTimeout(function(){ try{ ctrl && ctrl.abort(); }catch(e){} }, 8000);
+  return fetch(DCT_AUTH_URL, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'equipe', id: id, pin: pin }),
+    signal: ctrl ? ctrl.signal : undefined
+  }).then(function(r){
+    clearTimeout(t);
+    if(r.status === 423) return { verdict: 'bloque' };
+    if(r.status === 429) return { verdict: 'trop' };
+    if(r.status === 401) return r.json().then(function(j){
+      if(j && j.erreur === 'incorrect') return { verdict: 'incorrect', restants: j.restants };
+      return { verdict: 'indispo' };
+    });
+    if(!r.ok) return { verdict: 'indispo' };
+    return r.json().then(function(j){
+      if(!j || !j.token) return { verdict: 'indispo' };
+      return _dctSeReconnecter(j.token).then(function(){ return { verdict: 'ok' }; });
+    });
+  }).catch(function(e){ clearTimeout(t); console.error('Worker /auth', e); return { verdict: 'indispo' }; });
+}
+
+// Ne change de connexion que si les règles Firebase acceptent le laissez-passer
+// (vérifié d'abord avec une connexion à part) : changer pour une connexion
+// refusée couperait pour de bon les écoutes déjà ouvertes.
+function _dctSeReconnecter(token){
+  var app;
+  try{ app = firebase.initializeApp(firebase.app().options, 'sonde' + Date.now()); }
+  catch(e){ return Promise.resolve(false); }
+  return app.auth().signInWithCustomToken(token)
+    .then(function(){ return app.database().ref('dct_config/message').once('value'); })
+    .then(function(){ return firebase.auth().signInWithCustomToken(token); })
+    .then(function(){ return true; })
+    .catch(function(e){ console.error('laissez-passer non accepté par les règles (normal avant la mise à jour des règles)', e); return false; })
+    .then(function(ok){ try{ app.delete(); }catch(e){} return ok; });
 }
 
 function finalisLogin(collab){
