@@ -119,7 +119,8 @@
     var droite = d.statut === 'preparation'
       ? (d.depart ? 'Départ prévu <b>' + dateCourte(d.depart) + '</b>' : '')
       : (d.arrivee ? 'Arrivée prévue <b>' + dateCourte(d.arrivee) + '</b>' : '');
-    return '<button type="button" class="lk-hero lk-slide" data-i="' + i + '" onclick="depDetail(\'' + d.id + '\')">'
+    var classe = d.statut === 'preparation' ? 'lk-prep' : (d.statut === 'arrive' ? 'lk-arr' : 'lk-route-st');
+    return '<button type="button" class="lk-hero lk-slide ' + classe + '" data-i="' + i + '" onclick="depDetail(\'' + d.id + '\')">'
       + '<small>' + etat + (d.statut === 'preparation' ? '' : ' · ' + sous) + '</small><h2>' + esc(d.nom) + '</h2>'
       + '<div class="lk-route"><span>MITRY</span><div class="lk-rail"><i style="width:' + (pct ? Math.max(8, pct) : 0) + '%"></i></div><span>' + dest + '</span></div>'
       + '<div class="lk-foot"><span><b>' + d.clients + '</b> client' + (d.clients > 1 ? 's' : '') + (d.statut === 'preparation' ? (d.ouvert ? ' · inscriptions ouvertes' : ' · inscriptions fermées') : '') + '</span><span>' + droite + '</span></div></button>';

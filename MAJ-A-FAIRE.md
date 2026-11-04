@@ -6111,3 +6111,8 @@ Reste : redessiner les ~70 autres écrans + remappage des couleurs en dur pour l
 La grande carte de l'accueil V2 est un carrousel (`depDepartsCarte`, departs.js ; `carteDepart`, look.js) : tous les départs non clôturés, du plus ancien au plus
 récent, qui s'ouvre sur celui où l'on travaille (le premier « en préparation », sinon le dernier parti). Glisser à droite = le départ d'avant, à gauche = le suivant ;
 points de position ; un appui ouvre le container ; la position est gardée quand l'écran se redessine. Testé avec les vraies données (4 cartes : 2 BMK, DKR 25/10, DKR 22/11 ouvert). V1 inchangée.
+
+### 04/11/2026 — V2 : cartes du carrousel colorées selon le statut (dct-app v3.99.149)
+> Cobey : « ils ont tous la même couleur. Ça serait bien de les différencier selon leur statut, non ? » — « ok vas-y ».
+
+Orange = en préparation, bleu = en route / parti, vert = arrivé (versions plus profondes en mode sombre). V1 inchangée.
