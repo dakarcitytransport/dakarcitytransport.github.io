@@ -6134,3 +6134,8 @@ Barre flottante en verre, V2 seulement (`#lk-dock`, look.js) : visible sur les �
 - Cartes des départs, cartes clients, boutons, pastilles, alertes : surfaces en verre, boutons arrondis (V2 seulement).
 - Mode sombre : `tools/gen_dark_remap.py` génère (depuis les sources) les versions sombres des couleurs écrites en dur (fonds pastel, textes foncés, règles CSS de departs.js / dct-app.html). `look-v2.css` passe à ~245 Ko (à alléger plus tard si besoin). Les teintes en ligne (ex. client livré) restent visibles. Écran « facture manuelle liée » et tuiles de l'accueil / Réglages corrigés.
 - Pas encore fait : bouton d'action principal unique par client (maquette K), balayage des ~70 autres écrans en sombre. V1 inchangée (74 écrans identiques).
+
+### 04/11/2026 — V2 : une action principale par client dans le container (dct-app v3.99.157)
+> Cobey : « ok vas-y » (le gros bouton par client, comme dans la maquette).
+
+Dans le détail d'un container (V2 seulement), chaque client a un grand bouton (Relancer le paiement / Prévenir / Avis demandé, sinon Facture) et les autres actions (Facture, Photos, Copier, Déplacer, Détacher) en petites icônes. Les boutons gardent leur code et leur clic ; `look.js` (`actionsClients`) ne change que la présentation, et la remet comme avant en V1.

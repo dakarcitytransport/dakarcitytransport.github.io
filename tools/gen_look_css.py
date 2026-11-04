@@ -137,6 +137,9 @@ html.look-v2 .dep-cli{padding:14px 15px}
 html.look-v2 .dep-st,html.look-v2 .pa-chip{background:var(--lk-field);border:1px solid var(--lk-edge);border-radius:99px}
 html.look-v2 .dep-st.on,html.look-v2 .pa-chip.on{background:var(--lk-g);border-color:var(--green);color:var(--lk-tg)}
 html.look-v2 .dep-cli-btn{background:var(--lk-b);border:1px solid transparent;color:var(--lk-tb);border-radius:14px;padding:10px 8px;font-size:12px}
+html.look-v2 .dep-cli-btns{gap:8px;align-items:stretch}
+html.look-v2 .dep-cli-btn.lk-main{flex:1 1 0;min-height:46px;border-radius:16px;font-size:13px;font-weight:800;padding:0 10px;white-space:nowrap}
+html.look-v2 .dep-cli-btn.lk-ico{flex:0 0 44px;min-width:44px;width:44px;height:46px;padding:0;border-radius:16px;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center}
 html.look-v2 .dep-alert{background:var(--lk-o);border:1px solid transparent;color:var(--lk-to);border-radius:18px}
 html.look-v2 .dep-photo-box{background:var(--lk-field);border-radius:20px}
 html.look-v2 .dep-badge{border-radius:99px}

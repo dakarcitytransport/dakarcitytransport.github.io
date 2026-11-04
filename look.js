@@ -61,6 +61,7 @@
     boutonTheme();
     carteDepart();
     try{ majDock(); }catch(e){}
+    try{ actionsClients(); }catch(e){}
   }
   window.lookEffectif = effectif;
   window.lookAppliquer = appliquer;
@@ -129,6 +130,7 @@
     var h = document.documentElement;
     var actif = document.querySelector('.screen.active');
     var cle = actif ? DOCK_ECRANS[actif.id] : null;
+    try{ surveillerActions(); actionsClients(); }catch(e){}
     var dock = document.getElementById('lk-dock');
     var voir = effectif() === 'v2' && !!cle && !!window.currentUser;
     if(!voir){ if(dock) dock.style.display = 'none'; h.classList.remove('lk-dock-on'); return; }
@@ -153,6 +155,53 @@
   if(typeof window.goTo === 'function'){
     var origGoTo = window.goTo;
     window.goTo = function(){ var r = origGoTo.apply(this, arguments); try{ majDock(); }catch(e){} return r; };
+  }
+
+
+  /* ---------- une action principale par client, les autres en petites icônes (V2 seulement) ----------
+     Maquette K : « Relancer le paiement » en grand, Facture / Photos / Copier en icônes. On ne touche pas
+     au code des boutons (ils gardent leur clic) : on change seulement leur présentation. */
+  var RE_PRINCIPAL = /Relancer|Relanc|Pr[ée]venir|Pr[ée]venu|Demander un avis|Avis demand/i;
+  var ICONE_DE = { 'Déplacer':'⇄', 'Détacher':'✕' };
+  function actionsClients(){
+    var v2 = effectif() === 'v2';
+    [].forEach.call(document.querySelectorAll('#s-depart-detail .dep-cli-btns'), function(g){
+      if(!v2){
+        if(g.getAttribute('data-lk')){
+          [].forEach.call(g.children, function(b){ if(b.hasAttribute('data-lk-orig')){ b.innerHTML = b.getAttribute('data-lk-orig'); b.removeAttribute('data-lk-orig'); b.removeAttribute('title'); } b.classList.remove('lk-main','lk-ico'); });
+          g.removeAttribute('data-lk');
+        }
+        return;
+      }
+      if(g.getAttribute('data-lk')) return;
+      var btns = [].slice.call(g.children).filter(function(b){ return b.tagName === 'BUTTON'; });
+      if(!btns.length) return;
+      var princ = null;
+      btns.forEach(function(b){ if(!princ && RE_PRINCIPAL.test(b.textContent)) princ = b; });
+      if(!princ) btns.forEach(function(b){ if(!princ && /Facture/.test(b.textContent)) princ = b; });
+      if(!princ) princ = btns[0];
+      g.setAttribute('data-lk', '1');
+      btns.forEach(function(b){
+        if(b === princ){ b.classList.add('lk-main'); return; }
+        var t = b.textContent.trim();
+        var m = /^(\S+)\s+(.*)$/.exec(t);
+        var ico = m ? m[1] : (ICONE_DE[t] || t.charAt(0));
+        var lib = m ? m[2] : t;
+        b.setAttribute('data-lk-orig', b.innerHTML);
+        b.setAttribute('title', lib); b.setAttribute('aria-label', lib);
+        b.innerHTML = '<span aria-hidden="true">' + ico + '</span>';
+        b.classList.add('lk-ico');
+      });
+      g.insertBefore(princ, g.firstChild);
+    });
+  }
+  var obsAction = null;
+  function surveillerActions(){
+    var zone = document.getElementById('s-depart-detail');
+    if(obsAction || !zone || !window.MutationObserver) return;
+    var en = false;
+    obsAction = new MutationObserver(function(){ if(en) return; en = true; try{ actionsClients(); }catch(e){} en = false; });
+    obsAction.observe(zone, { childList:true, subtree:true });
   }
 
   /* ---------- carrousel des départs, sur l'accueil (V2 seulement) ----------
