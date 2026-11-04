@@ -73,8 +73,8 @@ for k, h in sorted(_tuiles.items()):
     _fonce.append("html.look-v2 body #dep-case-%s{background-image:linear-gradient(rgba(%d,%d,%d,.80),rgba(%d,%d,%d,.80)) !important}" % (k, d[0], d[1], d[2], d[0], d[1], d[2]))
 _ESP = [(58, 58, 184), (194, 38, 107), (15, 147, 180), (196, 38, 44)]
 for i, (r, g, b) in enumerate(_ESP, 1):
-    _clair.append("html.look-v2 .dep-esp-c:nth-child(%d){background-image:linear-gradient(135deg,rgba(%d,%d,%d,.20),rgba(%d,%d,%d,.07)) !important}" % (i, r, g, b, r, g, b))
-    _fonce.append("html.look-v2 .dep-esp-c:nth-child(%d){background-image:linear-gradient(135deg,rgba(%d,%d,%d,.34),rgba(%d,%d,%d,.12)) !important}" % (i, r, g, b, r, g, b))
+    _clair.append("html.look-v2 body .dep-esp-c:nth-child(%d){background-image:linear-gradient(135deg,rgba(%d,%d,%d,.20),rgba(%d,%d,%d,.07)) !important}" % (i, r, g, b, r, g, b))
+    _fonce.append("html.look-v2 body .dep-esp-c:nth-child(%d){background-image:linear-gradient(135deg,rgba(%d,%d,%d,.34),rgba(%d,%d,%d,.12)) !important}" % (i, r, g, b, r, g, b))
 TEINTES = "\n/* ── Teintes pastel par case et par espace ── */\n" + "\n".join(_clair) + "\n@media (prefers-color-scheme: dark){\n" + "\n".join('html.look-v2[data-mode="auto"] ' + x[len('html.look-v2 '):] for x in _fonce) + "\n}\n" + "\n".join('html.look-v2[data-mode="dark"] ' + x[len('html.look-v2 '):] for x in _fonce) + "\n"
 
 out = []

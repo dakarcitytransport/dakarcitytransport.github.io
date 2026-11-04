@@ -6159,3 +6159,8 @@ Les lignes de connexion de l'Activité ont un fond bleu sombre ; les traits de s
 > Cobey : « ce qu'on a perdu, que je trouvais pas mal : pour chaque espace une couleur en version pastel, et dans l'accueil pour chaque case des couleurs. Quelle est ton opinion ? » — « ok vas-y ».
 
 Chaque case de l'accueil reprend la couleur pastel de V1 (teinte sur le verre ; version profonde en sombre) ; les 4 cartes d'espace de la connexion sont teintées (indigo, rose, cyan, rouge). Générées par `tools/gen_look_css.py` depuis les couleurs de departs.js. V1 inchangée.
+
+### 04/11/2026 — V2 : teintes de l'écran de choix d'espace (dct-app v3.99.164)
+> Cobey : « t'as pas mis pour l'écran de choix d'espace, celui où on rentre avant le code ».
+
+Les teintes des 4 espaces (Direction, Bureau, Terrain, Administration) étaient écrasées par une règle plus prioritaire : corrigé, vérifié en clair et en sombre. V1 inchangée.
