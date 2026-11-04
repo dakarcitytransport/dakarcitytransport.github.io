@@ -6088,3 +6088,19 @@ terminées » de France ouvre l'Archive (`depOuvrirArchiveDepuisFrance`) ; Retou
 Testé (vraies données, clics réels) : France > archive > Retour ; Départs > container > fiche > Retour x3 ; Rapport financier > container > fiche > Retour x3 ; Archive
 imbriquée ; 74 écrans dont 68 avec bouton Retour, aucun écran blanc ; connexion, Mamadou, chauffeur inchangés.
 Non couvert : un écran retrouvé qui n'est pas dans la liste ci-dessus est montré comme on l'a laissé (non redessiné).
+
+---
+
+## 8 · Nouveau look (V2) — chantier
+
+### 04/11/2026 — Étape 1 : la base, l'écran de connexion et l'accueil (dct-app v3.99.147, departs v2.22.18, look.js v0.1.0)
+> Cobey : « on va appeler le look actuel V1 et le look prochain V2, comme ça au cas où si un jour je voudrais rechanger on aura des versions » ;
+> « je veux que moi je puisse, si je veux, décider de revenir à l'ancienne » ; « quand on va faire le changement, elle sera mise à jour pour
+> tout le monde » ; « il faut aussi modifier l'écran d'accueil [...] l'écran où on choisit notre espace, notre profil avant le code. »
+
+Posé : `look.js` + `look-v2.css` (V2 = couche activée par `html.look-v2`), réglage `dct_config/look` (V1/V2) pour toute l'équipe, bouton
+Eric dans Réglages > APPARENCE (+ essai V2 sur son téléphone seulement), bouton soleil/lune et choix Automatique/Clair/Sombre (personnel, V2).
+V2 déjà dessinée : écran de connexion (choix de l'espace, puis du profil), accueil « Où souhaitez-vous travailler ? » avec carte « Prochain
+départ » et icônes à la place des emojis. **L'équipe reste en V1** (`LOOK_DEFAUT='v1'`) : rien ne change pour elle, hormis la case APPARENCE
+visible d'Eric seul. Testé : V1 identique (74 écrans, 0 erreur), V2 clair et sombre, écriture et retour V1 dans Firebase.
+Reste : redessiner les ~70 autres écrans + remappage des couleurs en dur pour le mode sombre ; puis passer `LOOK_DEFAUT` à `'v2'`.

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.17';
+var DEP_VERSION = 'v2.22.18';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5734,6 +5734,27 @@ function _depNettoyerClientsSupprimes(){
    7. ÉCRAN DE CHOIX D'ESPACE
    ───────────────────────────────────────────── */
 
+// v2.22.18 — pour la carte « Prochain départ » de l'accueil V2 (look.js).
+window.depProchainDepart = function(){
+  var l = tousLesDeparts().filter(function(d){ return d.statut !== 'cloture'; });
+  var enRoute = l.filter(function(d){ return d.statut === 'parti' || d.statut === 'arrive'; });
+  var prep = l.filter(function(d){ return !d.statut || d.statut === 'preparation'; });
+  // En route : le dernier parti d'abord. En préparation : le plus proche d'abord.
+  var liste = enRoute.length
+    ? enRoute.sort(function(a, b){ return _depQuandDepart(b) - _depQuandDepart(a); })
+    : prep.sort(function(a, b){ return _depQuandDepart(a) - _depQuandDepart(b); });
+  var d = liste[0];
+  if(!d) return null;
+  var etapes = depEtapesTransportPour(depPaysDepart(d));
+  var fait = 0;
+  etapes.forEach(function(e){ if(d.etapesTransport && d.etapesTransport[e.key] && d.etapesTransport[e.key].fait) fait++; });
+  var c = {};
+  try{ c = compteursDepart(d._id) || {}; }catch(e){}
+  return { id: d._id, nom: d.nom || 'Container', statut: d.statut || 'preparation',
+           pays: depPaysDepart(d), clients: c.clients || 0, etapes: etapes.length, fait: fait,
+           arrivee: d.dateArriveePrevue || '', depart: d.dateDepart || '' };
+};
+
 window.depRenderEspaces = function(){
   var u = window.currentUser || {};
   try{ if(!_depSauvPlanifiee){ _depSauvPlanifiee = true; setTimeout(function(){ try{ depSauvegardeQuotidienne(); }catch(e){ console.error('departs: sauvegarde quotidienne', e); } }, 6000); } }catch(e){}
@@ -6075,7 +6096,11 @@ var DEP_REGLAGES_ITEMS = [
   // v2.22.1 — Cobey, 01/11/2026 : « ajoute plutôt une case Corbeille ici, avec
   // à l'intérieur tout ce qui a été supprimé, classé par objet. »
   { tab:'corbeille',    icone:'&#128465;&#65039;',   titre:'CORBEILLE',            couleur:'#B23A48', fond:'#F8E3E5' },
-  { tab:'message',      icone:'&#128226;',           titre:'MESSAGE',              couleur:'#7c3aed', fond:'#EDE5FC' }
+  { tab:'message',      icone:'&#128226;',           titre:'MESSAGE',              couleur:'#7c3aed', fond:'#EDE5FC' },
+  // v2.22.18 — Cobey, 04/11/2026 : « on va appeler le look actuel V1 et le look
+  // prochain V2 [...] moi, avec le bouton, si je décide de revenir à l'ancienne,
+  // j'appuierai. » Réglage réservé à Eric (adminOnly = profil AD), voir look.js.
+  { tab:'apparence',    icone:'&#127912;',           titre:'APPARENCE',            couleur:'#0A7A45', fond:'#DCEFE3', adminOnly:true }
 ];
 
 window.depOuvrirEspaceReglages = function(){
@@ -6122,7 +6147,7 @@ function _depReglagesPreparerEcran(){
   // fois, ici même où vit déjà la création de la grille.
   // v1.21.9 : même chose pour les 4 cases qui remplacent l'ancien carré
   // unique "Accès" (codesadmin/codesespaces/maintenance/alertes).
-  ['outils','codesadmin','maintenance','alertes','corbeille'].forEach(function(id){
+  ['outils','codesadmin','maintenance','alertes','corbeille','apparence'].forEach(function(id){
     if(contenu && !$('admin-section-'+id)){
       var sec = document.createElement('div');
       sec.id = 'admin-section-'+id;
@@ -6171,7 +6196,7 @@ window._depReglagesOuvrirItem = function(tab){
 
 function _depReglagesAfficherGrille(){
   _depReglagesTab = null;
-  ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message'].forEach(function(t){
+  ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message','apparence'].forEach(function(t){
     var sec = $('admin-section-'+t);
     if(sec) sec.style.display = 'none';
   });
@@ -19194,7 +19219,7 @@ function greffer(){
      plus, aucune case n'y mène. --- */
   if(typeof window.showAdminTab === 'function' && !window.showAdminTab._depPatch){
     window.showAdminTab = function(tab){
-      ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message'].forEach(function(t){
+      ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message','apparence'].forEach(function(t){
         var sec = document.getElementById('admin-section-'+t);
         var btn = document.getElementById('admin-tab-'+t);
         if(sec) sec.style.display = t === tab ? 'block' : 'none';
@@ -19210,6 +19235,7 @@ function greffer(){
       else if(tab === 'donnees') renderAdminDonnees();
       else if(tab === 'outils') window.renderAdminOutils();
       else if(tab === 'corbeille') window.renderAdminCorbeille();
+      else if(tab === 'apparence' && typeof window.lookRenderApparence === 'function') window.lookRenderApparence();
       else if(tab === 'message') renderAdminMessage();
     };
     window.showAdminTab._depPatch = true;

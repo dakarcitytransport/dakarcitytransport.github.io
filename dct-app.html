@@ -65,6 +65,14 @@ if(/[?&]facture=/.test(location.search)){
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Dakar City Transport</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+// V2 (nouveau look) : la classe est posée AVANT l'affichage pour éviter tout flash.
+// V1 = apparence actuelle (rien ne change). Voir look.js.
+(function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
+  var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
+</script>
+<link rel="stylesheet" href="look-v2.css?v=3.99.147">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -2194,7 +2202,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.146';
+var APP_VERSION = 'v3.99.147';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -15989,5 +15997,6 @@ setTimeout(function(){
      departs.js bump AUSSI APP_VERSION, même si dct-app.html lui-même ne
      change pas d'une ligne — sinon ce fichier ne se retélécharge pas. -->
 <script>document.write('<script src="departs.js?v=' + encodeURIComponent(APP_VERSION) + '"><\/script>');</script>
+<script>document.write('<script src="look.js?v=' + encodeURIComponent(APP_VERSION) + '"><\/script>');</script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Consignes pour Claude — appli « Dakar City Transport » (DCT)
 
-Fichiers : `dct-app.html` (appli principale, `APP_VERSION`), `departs.js` (module chargé par
+Fichiers : `look.js` + `look-v2.css` (**V2**, nouveau look — voir « Look V1 / V2 » plus bas), `dct-app.html` (appli principale, `APP_VERSION`), `departs.js` (module chargé par
 dct-app.html, `DEP_VERSION` ; à chaque modification de departs.js, monter aussi `APP_VERSION`,
 sinon les téléphones gardent l'ancienne copie en cache), `mamadou.html` (`MAMADOU_VERSION`),
 `chauffeur.html` (`CHAUFFEUR_VERSION`), `facture.html`. Historique détaillé de tout ce qui a été fait,
@@ -43,3 +43,15 @@ avec les phrases de Cobey : **`MAJ-A-FAIRE.md`**. **À lire en premier : `RESUME
   en `.read` seulement). L'ancien mot de passe reste lisible dans l'historique GitHub : tant que le compte n'est pas
   désactivé, il ouvre encore la base.
 - Mamadou a un mot de passe de 4 chiffres seulement (le Worker limite à 10 essais / 15 min / adresse).
+
+## Look V1 / V2 (04/11/2026)
+- **V1** = l'apparence actuelle (intacte). **V2** = le nouveau look, posé comme une COUCHE par-dessus : la classe `look-v2` sur
+  `<html>` active `look-v2.css`. Sans elle, l'appli est exactement la V1 : revenir en arrière = retirer la classe.
+- Le look de toute l'équipe est dans Firebase `dct_config/look` (`'v1'`|`'v2'`) ; seul Eric (AD) le change : Réglages > APPARENCE.
+  `LOOK_DEFAUT` (en haut de `look.js`) reste `'v1'` pendant le chantier ; **le jour de la mise en ligne pour tous, le passer à `'v2'`**
+  (une ligne). Eric peut aussi « Essayer V2 » sur son téléphone seulement (`dct_look_test`). Clair / sombre / automatique : choix
+  personnel dans V2 (`dct_look_mode`).
+- `look-v2.css` est GÉNÉRÉ par `tools/gen_look_css.py` (`python3 tools/gen_look_css.py look-v2.css`) : modifier le générateur, pas le fichier.
+  À chaque commit : monter aussi `?v=` du `<link href="look-v2.css?v=…">` dans le `<head>` de `dct-app.html` (même numéro qu'`APP_VERSION`).
+- Fait en V2 : écran de connexion (espaces + profils), accueil (Espaces), Réglages > Apparence. Reste : les ~70 autres écrans, et le
+  remappage automatique des couleurs écrites en dur (pour le mode sombre). Tester V2 avec `localStorage.dct_look_test='v2'`.
