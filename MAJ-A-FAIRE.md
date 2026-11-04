@@ -6184,3 +6184,8 @@ Maquette I/J : en V2 le grand bouton vert du haut de la liste des départs devie
 > Cobey : « l'application ressemble à la V1, il n'y a pas forcément de changement à part les couleurs [...] les nouveautés que tu m'avais montrées en maquette et en PDF, il n'y a rien » — « ok ».
 
 Accueil : barre de recherche (Entrée → liste Clients déjà filtrée). Titres plus gros. Cartes de départ plus grandes. Container : grands chiffres (clients, arrivée) ; filtres Tous / Payés / Non payés en une seule barre. V1 inchangée.
+
+### 04/11/2026 — V2 sombre : palette adoucie (dct-app v3.99.169)
+> Cobey : « en mode sombre les couleurs ne matchent pas entre elles, le vert est assez fluo [...] des incohérences » — « ok vas-y ».
+
+Mode sombre seulement : vert émeraude plus profond (#2E9E68, texte clair dessus) au lieu du vert fluo ; teintes des pastilles, boutons et liens adoucies ; cases de l'accueil moins saturées ; textes remappés moins brillants. Mode clair et V1 inchangés.

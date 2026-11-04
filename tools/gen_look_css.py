@@ -42,16 +42,16 @@ LIGHT = """
   --lk-tg:#0A7A45; --lk-to:#8A5300; --lk-tv:#5B3FD6; --lk-tr:#B02A1F; --lk-tb:#2744B8;
   color-scheme:light;"""
 DARK = """
-  --green:#3DDC84; --green-dark:#3DDC84; --green-light:rgba(61,220,132,.15);
+  --green:#2E9E68; --green-dark:#6CC79A; --green-light:rgba(46,158,104,.18);
   --bg:#080D0B; --white:#121A16; --text:#EDF6F1; --text2:#B7C7BE; --text3:#8CA196; --border:#26352C;
   --shadow:0 14px 30px rgba(0,0,0,.5);
-  --lk-aur1:rgba(61,220,132,.18); --lk-aur2:rgba(110,162,255,.09); --lk-aur3:rgba(255,176,46,.07);
+  --lk-aur1:rgba(46,158,104,.16); --lk-aur2:rgba(110,150,230,.08); --lk-aur3:rgba(220,160,70,.06);
   --lk-glass:rgba(24,35,30,.72); --lk-edge:#26352C; --lk-field:rgba(24,35,30,.8);
   --lk-sheet:#121A16; --lk-veil:rgba(0,0,0,.55); --lk-line:rgba(237,246,241,.10);
-  --lk-on-g:#04170C; --lk-hero-a:#134A2E; --lk-hero-b:#0B2A1B;
+  --lk-on-g:#F2FBF6; --lk-hero-a:#134A2E; --lk-hero-b:#0B2A1B;
   --lk-prep-a:#6B430B; --lk-prep-b:#3A2406; --lk-rte-a:#1B3380; --lk-rte-b:#0F1D4D;
-  --lk-g:rgba(61,220,132,.15); --lk-o:rgba(255,176,46,.16); --lk-v:rgba(150,130,255,.17); --lk-r:rgba(255,107,91,.16); --lk-b:rgba(110,162,255,.17);
-  --lk-tg:#3DDC84; --lk-to:#FFB02E; --lk-tv:#B6A8FF; --lk-tr:#FF8E80; --lk-tb:#8FB5FF;
+  --lk-g:rgba(46,158,104,.20); --lk-o:rgba(214,150,60,.18); --lk-v:rgba(140,125,225,.19); --lk-r:rgba(214,100,88,.18); --lk-b:rgba(100,140,215,.19);
+  --lk-tg:#7BD0A5; --lk-to:#E3B26A; --lk-tv:#B7ACEB; --lk-tr:#E8A196; --lk-tb:#A2BDEB;
   color-scheme:dark;"""
 
 
@@ -64,7 +64,7 @@ def _sombre(h):
     import colorsys
     r, g, b = [v / 255 for v in _rgb(h)]
     hh, ss, vv = colorsys.rgb_to_hsv(r, g, b)
-    r2, g2, b2 = colorsys.hsv_to_rgb(hh, min(1, max(ss * 3.0, .45)), .42)
+    r2, g2, b2 = colorsys.hsv_to_rgb(hh, min(.62, max(ss * 2.0, .38)), .36)
     return (round(r2 * 255), round(g2 * 255), round(b2 * 255))
 _clair, _fonce = [], []
 for k, h in sorted(_tuiles.items()):

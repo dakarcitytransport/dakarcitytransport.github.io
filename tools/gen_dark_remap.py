@@ -32,7 +32,7 @@ def texte_clair(h):
     c = rgb(h); L = lum(c)
     if L > 0.4: return None
     if sat(c) < 0.16: return '#EDF6F1' if L < 0.2 else '#B7C7BE'
-    return hexa(mix(c, (255, 255, 255), 0.58))
+    return hexa(mix(c, (255, 255, 255), 0.50))
 
 def couleurs():
     fonds, textes = set(), set()
