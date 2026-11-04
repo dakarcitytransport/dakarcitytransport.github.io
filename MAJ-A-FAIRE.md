@@ -6194,3 +6194,9 @@ Mode sombre seulement : vert émeraude plus profond (#2E9E68, texte clair dessus
 > Cobey : « Pour le bilan financier, on va changer l'ordre : d'abord Bilan, Statistiques, Container Sénégal, puis Container Mali ».
 
 Ordre : BILAN, STATISTIQUES, CONTAINERS SÉNÉGAL, CONTAINERS MALI. Chaque case ouvre toujours le même écran (testé).
+
+### 04/11/2026 — MISE EN LIGNE DE V2 POUR TOUTE L'ÉQUIPE (dct-app v3.99.171)
+> Cobey : « on déploie ça pour tout le monde, du coup, let's go. »
+
+`LOOK_DEFAUT` passé de `'v1'` à `'v2'` (look.js). `dct_config/look` est vide dans Firebase (null), donc tout le monde prend V2 ; clair / sombre / automatique reste un choix personnel (bouton soleil/lune). **Pour revenir en arrière : Eric, Réglages > Apparence > V1 > Appliquer** (écrit `dct_config/look='v1'`, toute l'équipe repasse en V1 sans mise à jour). Testé : téléphone vierge → V2 dès l'écran de choix d'espace ; connexion ; carrousel et barre du bas ; retour V1 par Eric.
+À savoir : une partie des ~70 écrans n'a que les couleurs / le mode sombre de V2, pas encore la nouvelle mise en page.

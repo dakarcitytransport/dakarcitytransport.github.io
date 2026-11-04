@@ -26,7 +26,7 @@
 (function(){
   'use strict';
 
-  var LOOK_DEFAUT = 'v1';          // ← 'v2' le jour de la mise en ligne pour tous
+  var LOOK_DEFAUT = 'v2';          // V2 en ligne pour tous depuis le 04/11/2026 ; Eric peut tout remettre en V1 (Réglages > Apparence)
   var K_TEST = 'dct_look_test', K_CACHE = 'dct_look_cache', K_MODE = 'dct_look_mode';
 
   function lire(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }

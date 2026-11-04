@@ -48,10 +48,11 @@ avec les phrases de Cobey : **`MAJ-A-FAIRE.md`**. **À lire en premier : `RESUME
 - **V1** = l'apparence actuelle (intacte). **V2** = le nouveau look, posé comme une COUCHE par-dessus : la classe `look-v2` sur
   `<html>` active `look-v2.css`. Sans elle, l'appli est exactement la V1 : revenir en arrière = retirer la classe.
 - Le look de toute l'équipe est dans Firebase `dct_config/look` (`'v1'`|`'v2'`) ; seul Eric (AD) le change : Réglages > APPARENCE.
-  `LOOK_DEFAUT` (en haut de `look.js`) reste `'v1'` pendant le chantier ; **le jour de la mise en ligne pour tous, le passer à `'v2'`**
-  (une ligne). Eric peut aussi « Essayer V2 » sur son téléphone seulement (`dct_look_test`). Clair / sombre / automatique : choix
+  `LOOK_DEFAUT` (en haut de `look.js`) = **`'v2'` depuis le 04/11/2026 (mise en ligne pour toute l'équipe)** ; Eric peut tout remettre en V1
+  d'un geste (Réglages > Apparence, écrit `dct_config/look='v1'`). Eric peut aussi « Essayer V2 » sur son téléphone seulement (`dct_look_test`). Clair / sombre / automatique : choix
   personnel dans V2 (`dct_look_mode`).
 - `look-v2.css` est GÉNÉRÉ par `tools/gen_look_css.py` (`python3 tools/gen_look_css.py look-v2.css`) : modifier le générateur, pas le fichier.
   À chaque commit : monter aussi `?v=` du `<link href="look-v2.css?v=…">` dans le `<head>` de `dct-app.html` (même numéro qu'`APP_VERSION`).
+- IMPORTANT : à chaque commit, monter aussi `?v=` du `<link href="look-v2.css?v=…">` (sinon les téléphones gardent l'ancien style).
 - Fait en V2 : écran de connexion (espaces + profils), accueil (Espaces), Réglages > Apparence. Reste : les ~70 autres écrans, et le
   remappage automatique des couleurs écrites en dur (pour le mode sombre). Tester V2 avec `localStorage.dct_look_test='v2'`.
