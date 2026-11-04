@@ -6189,3 +6189,8 @@ Accueil : barre de recherche (Entrée → liste Clients déjà filtrée). Titres
 > Cobey : « en mode sombre les couleurs ne matchent pas entre elles, le vert est assez fluo [...] des incohérences » — « ok vas-y ».
 
 Mode sombre seulement : vert émeraude plus profond (#2E9E68, texte clair dessus) au lieu du vert fluo ; teintes des pastilles, boutons et liens adoucies ; cases de l'accueil moins saturées ; textes remappés moins brillants. Mode clair et V1 inchangés.
+
+### 04/11/2026 — Rapport financier : nouvel ordre des cases (dct-app v3.99.170, departs v2.22.21)
+> Cobey : « Pour le bilan financier, on va changer l'ordre : d'abord Bilan, Statistiques, Container Sénégal, puis Container Mali ».
+
+Ordre : BILAN, STATISTIQUES, CONTAINERS SÉNÉGAL, CONTAINERS MALI. Chaque case ouvre toujours le même écran (testé).

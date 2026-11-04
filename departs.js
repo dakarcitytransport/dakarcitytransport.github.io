@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.20';
+var DEP_VERSION = 'v2.22.21';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4221,6 +4221,17 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#006b2d;">BILAN</div>'
   +         '<div class="dep-case-sub" id="dep-rf-sub-bilan">&mdash;</div>'
   +       '</div>'
+  // 04/11/2026 — Cobey : « on va mettre d'abord Bilan, Statistiques, Container Sénégal, puis Container Mali ».
+  // v1.94.20 : Cobey : « dans le menu statistique, on va faire deux
+  // sous-menus [...] où on peut voir les stats d'un conteneur [...]
+  // les dépenses au fur et à mesure des collectes » — la case ouvre
+  // maintenant un sous-menu (Comparer / Un container) au lieu d'aller
+  // droit sur Comparer.
+  +       '<div class="dep-case" style="background:#EDE7F6;" onclick="depOuvrirStatsMenu()">'
+  +         '<div class="dep-case-ico">&#128200;</div>'
+  +         '<div class="dep-case-tit" style="color:#4527A0;">STATISTIQUES</div>'
+  +         '<div class="dep-case-sub" id="dep-rf-sub-cmp">&mdash;</div>'
+  +       '</div>'
   // v1.94.17 : deux cases plutôt qu'une, Sénégal et Mali — voir
   // depOuvrirRapfinContainers, juste au-dessus.
   +       '<div class="dep-case" style="background:#E2E2F1;" onclick="depOuvrirRapfinContainers(\'SN\')">'
@@ -4232,16 +4243,6 @@ function injecterEcrans(){
   +         '<div class="dep-case-ico">&#127474;&#127473;</div>'
   +         '<div class="dep-case-tit" style="color:#252599;">CONTAINERS MALI</div>'
   +         '<div class="dep-case-sub" id="dep-rf-sub-cont-ml">&mdash;</div>'
-  +       '</div>'
-  // v1.94.20 : Cobey : « dans le menu statistique, on va faire deux
-  // sous-menus [...] où on peut voir les stats d'un conteneur [...]
-  // les dépenses au fur et à mesure des collectes » — la case ouvre
-  // maintenant un sous-menu (Comparer / Un container) au lieu d'aller
-  // droit sur Comparer.
-  +       '<div class="dep-case" style="background:#EDE7F6;" onclick="depOuvrirStatsMenu()">'
-  +         '<div class="dep-case-ico">&#128200;</div>'
-  +         '<div class="dep-case-tit" style="color:#4527A0;">STATISTIQUES</div>'
-  +         '<div class="dep-case-sub" id="dep-rf-sub-cmp">&mdash;</div>'
   +       '</div>'
   +     '</div>'
   +   '</div>'
