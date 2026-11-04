@@ -6200,3 +6200,8 @@ Ordre : BILAN, STATISTIQUES, CONTAINERS SÉNÉGAL, CONTAINERS MALI. Chaque case 
 
 `LOOK_DEFAUT` passé de `'v1'` à `'v2'` (look.js). `dct_config/look` est vide dans Firebase (null), donc tout le monde prend V2 ; clair / sombre / automatique reste un choix personnel (bouton soleil/lune). **Pour revenir en arrière : Eric, Réglages > Apparence > V1 > Appliquer** (écrit `dct_config/look='v1'`, toute l'équipe repasse en V1 sans mise à jour). Testé : téléphone vierge → V2 dès l'écran de choix d'espace ; connexion ; carrousel et barre du bas ; retour V1 par Eric.
 À savoir : une partie des ~70 écrans n'a que les couleurs / le mode sombre de V2, pas encore la nouvelle mise en page.
+
+### 04/11/2026 — V2 : les cartes de l'accueil ne s'ouvrent que pour la case Départs (dct-app v3.99.173, departs v2.22.22)
+> Cobey : « est-ce que l'équipe terrain voit les cartes que j'ai mises en gros ? En cliquant dessus ça amène à la case départ qu'ils n'ont pas [...] Ou alors ils voient les cartes, mais ils ne peuvent pas cliquer dessus. Juste, ils voient. »
+
+Tout le monde voit les cartes (et peut les faire défiler). Seuls les profils qui ont la case Départs (`_depPeutCase('departs')` : direction, Aminata…) peuvent les ouvrir ; pour les autres elles ne sont pas cliquables (`lk-fixe`). Testé : Eric → clic ouvre le détail ; Samba (terrain) → 4 cartes visibles, clic sans effet, défilement OK.

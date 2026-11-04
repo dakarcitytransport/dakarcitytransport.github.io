@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.21';
+var DEP_VERSION = 'v2.22.22';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5758,7 +5758,8 @@ window.depDepartsCarte = function(){
   for(var i = 0; i < liste.length; i++){ if(liste[i].statut === 'preparation'){ iCourant = i; break; } }
   if(iCourant < 0){ for(var j = liste.length - 1; j >= 0; j--){ if(liste[j].statut === 'parti' || liste[j].statut === 'arrive'){ iCourant = j; break; } } }
   if(iCourant < 0 && liste.length) iCourant = liste.length - 1;
-  return { liste: liste, courant: iCourant };
+  // ouvrable : seuls les profils qui ont la case Départs peuvent ouvrir le détail ; les autres voient les cartes sans pouvoir cliquer.
+  return { liste: liste, courant: iCourant, ouvrable: _depPeutCase('departs') };
 };
 
 window.depRenderEspaces = function(){

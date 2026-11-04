@@ -209,7 +209,7 @@
   var idxCarte = null;   // dernier container regardé, gardé quand l'écran se redessine
   function dateCourte(iso){ return iso ? iso.split('-').reverse().slice(0, 2).join('/') : ''; }
   function esc(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
-  function unDepart(d, i){
+  function unDepart(d, i, ouvrable){
     var dest = d.pays === 'ML' ? 'BAMAKO' : 'DAKAR';
     var etat, sous;
     if(d.statut === 'preparation'){ etat = 'En préparation'; sous = d.ouvert ? 'Ouvert à l’inscription' : 'Inscriptions fermées'; }
@@ -220,7 +220,7 @@
       ? (d.depart ? 'Départ prévu <b>' + dateCourte(d.depart) + '</b>' : '')
       : (d.arrivee ? 'Arrivée prévue <b>' + dateCourte(d.arrivee) + '</b>' : '');
     var classe = d.statut === 'preparation' ? 'lk-prep' : (d.statut === 'arrive' ? 'lk-arr' : 'lk-route-st');
-    return '<button type="button" class="lk-hero lk-slide ' + classe + '" data-i="' + i + '" onclick="depDetail(\'' + d.id + '\')">'
+    return '<button type="button" class="lk-hero lk-slide ' + classe + (ouvrable ? '' : ' lk-fixe') + '" data-i="' + i + '"' + (ouvrable ? ' onclick="depDetail(\'' + d.id + '\')"' : ' tabindex="-1" aria-disabled="true"') + '>'
       + '<span class="lk-pays">' + (d.pays === 'ML' ? '🇲🇱 MALI' : '🇸🇳 SÉNÉGAL') + '</span>'
       + '<small>' + etat + (d.statut === 'preparation' ? '' : ' · ' + sous) + '</small><h2>' + esc(d.nom) + '</h2>'
       + '<div class="lk-route"><span>MITRY</span><div class="lk-rail"><i style="width:' + (pct ? Math.max(8, pct) : 0) + '%"></i></div><span>' + dest + '</span></div>'
@@ -261,7 +261,7 @@
     if(!r || !r.liste.length){ if(vieux) vieux.remove(); return; }
     if(idxCarte === null || idxCarte >= r.liste.length) idxCarte = r.courant;
     var h = '<div id="lk-hero" class="lk-car" role="region" aria-label="Départs en cours">'
-      + '<div class="lk-track">' + r.liste.map(unDepart).join('') + '</div>'
+      + '<div class="lk-track">' + r.liste.map(function(d, i){ return unDepart(d, i, r.ouvrable !== false); }).join('') + '</div>'
       + (r.liste.length > 1 ? '<div class="lk-dots" aria-hidden="true">' + r.liste.map(function(_, i){ return '<i data-d="' + i + '"></i>'; }).join('') + '</div>' : '')
       + '</div>';
     if(vieux) vieux.outerHTML = h;

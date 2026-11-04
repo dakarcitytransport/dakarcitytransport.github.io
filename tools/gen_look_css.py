@@ -196,6 +196,8 @@ html.look-v2 #lk-dock button.on{background:var(--lk-g);color:var(--lk-tg)}
 html.look-v2 #lk-dock .lk-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 html.look-v2.lk-dock-on .screen .content{padding-bottom:110px}
 html.look-v2 .lk-hero{position:relative}
+html.look-v2 .lk-fixe{cursor:default;pointer-events:none}
+html.look-v2 .lk-car .lk-track{pointer-events:auto}
 html.look-v2 .lk-pays{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.06em}
 html.look-v2 .lk-hero small{display:block;opacity:.85;font-weight:700;letter-spacing:.07em;text-transform:uppercase;font-size:11.5px}
 html.look-v2 .lk-hero h2{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:3px 0 14px}
