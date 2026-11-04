@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.18';
+var DEP_VERSION = 'v2.22.19';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5734,25 +5734,30 @@ function _depNettoyerClientsSupprimes(){
    7. ÉCRAN DE CHOIX D'ESPACE
    ───────────────────────────────────────────── */
 
-// v2.22.18 — pour la carte « Prochain départ » de l'accueil V2 (look.js).
-window.depProchainDepart = function(){
-  var l = tousLesDeparts().filter(function(d){ return d.statut !== 'cloture'; });
-  var enRoute = l.filter(function(d){ return d.statut === 'parti' || d.statut === 'arrive'; });
-  var prep = l.filter(function(d){ return !d.statut || d.statut === 'preparation'; });
-  // En route : le dernier parti d'abord. En préparation : le plus proche d'abord.
-  var liste = enRoute.length
-    ? enRoute.sort(function(a, b){ return _depQuandDepart(b) - _depQuandDepart(a); })
-    : prep.sort(function(a, b){ return _depQuandDepart(a) - _depQuandDepart(b); });
-  var d = liste[0];
-  if(!d) return null;
-  var etapes = depEtapesTransportPour(depPaysDepart(d));
-  var fait = 0;
-  etapes.forEach(function(e){ if(d.etapesTransport && d.etapesTransport[e.key] && d.etapesTransport[e.key].fait) fait++; });
-  var c = {};
-  try{ c = compteursDepart(d._id) || {}; }catch(e){}
-  return { id: d._id, nom: d.nom || 'Container', statut: d.statut || 'preparation',
-           pays: depPaysDepart(d), clients: c.clients || 0, etapes: etapes.length, fait: fait,
-           arrivee: d.dateArriveePrevue || '', depart: d.dateDepart || '' };
+// v2.22.19 — pour le carrousel de l'accueil V2 (look.js). Cobey, 04/11/2026 :
+// « le container sur lequel on travaille en ce moment, c'est celui en préparation »
+// puis « on swipe vers la gauche et on voit le conteneur suivant, vers la droite
+// celui d'avant [...] les clôturés, on les prend pas en compte. » Tous les départs
+// non clôturés, du plus ancien au plus récent ; `courant` = celui sur lequel on
+// travaille (le premier en préparation, sinon le dernier parti).
+window.depDepartsCarte = function(){
+  var l = tousLesDeparts().filter(function(d){ return d.statut !== 'cloture'; })
+    .sort(function(a, b){ return _depQuandDepart(a) - _depQuandDepart(b); });
+  var liste = l.map(function(d){
+    var etapes = depEtapesTransportPour(depPaysDepart(d));
+    var fait = 0;
+    etapes.forEach(function(e){ if(d.etapesTransport && d.etapesTransport[e.key] && d.etapesTransport[e.key].fait) fait++; });
+    var c = {};
+    try{ c = compteursDepart(d._id) || {}; }catch(e){}
+    return { id: d._id, nom: d.nom || 'Container', statut: d.statut || 'preparation',
+             pays: depPaysDepart(d), clients: c.clients || 0, etapes: etapes.length, fait: fait,
+             arrivee: d.dateArriveePrevue || '', depart: d.dateDepart || '', ouvert: !!d.ouvertInscription };
+  });
+  var iCourant = -1;
+  for(var i = 0; i < liste.length; i++){ if(liste[i].statut === 'preparation'){ iCourant = i; break; } }
+  if(iCourant < 0){ for(var j = liste.length - 1; j >= 0; j--){ if(liste[j].statut === 'parti' || liste[j].statut === 'arrive'){ iCourant = j; break; } } }
+  if(iCourant < 0 && liste.length) iCourant = liste.length - 1;
+  return { liste: liste, courant: iCourant };
 };
 
 window.depRenderEspaces = function(){

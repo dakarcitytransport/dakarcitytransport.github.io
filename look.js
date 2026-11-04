@@ -102,27 +102,68 @@
   }
   if(window.matchMedia){ try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', boutonTheme); }catch(e){} }
 
-  /* ---------- carte « Prochain départ » de l'accueil (V2 seulement) ---------- */
+  /* ---------- carrousel des départs, sur l'accueil (V2 seulement) ----------
+     Cobey : « on swipe vers la gauche et on voit le conteneur suivant, vers la droite
+     celui d'avant ; les clôturés, on ne les prend pas en compte. » Il s'ouvre sur
+     le container sur lequel on travaille (en préparation). */
+  var idxCarte = null;   // dernier container regardé, gardé quand l'écran se redessine
+  function dateCourte(iso){ return iso ? iso.split('-').reverse().slice(0, 2).join('/') : ''; }
+  function esc(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function unDepart(d, i){
+    var dest = d.pays === 'ML' ? 'BAMAKO' : 'DAKAR';
+    var etat, sous;
+    if(d.statut === 'preparation'){ etat = 'En préparation'; sous = d.ouvert ? 'Ouvert à l’inscription' : 'Inscriptions fermées'; }
+    else if(d.statut === 'arrive'){ etat = 'Arrivé'; sous = d.pays === 'ML' ? 'à Bamako' : 'à Dakar'; }
+    else { etat = 'En route'; sous = d.pays === 'ML' ? 'vers Bamako' : 'vers Dakar'; }
+    var pct = d.statut === 'preparation' ? 0 : (d.etapes ? Math.round(100 * d.fait / d.etapes) : 0);
+    var droite = d.statut === 'preparation'
+      ? (d.depart ? 'Départ prévu <b>' + dateCourte(d.depart) + '</b>' : '')
+      : (d.arrivee ? 'Arrivée prévue <b>' + dateCourte(d.arrivee) + '</b>' : '');
+    return '<button type="button" class="lk-hero lk-slide" data-i="' + i + '" onclick="depDetail(\'' + d.id + '\')">'
+      + '<small>' + etat + (d.statut === 'preparation' ? '' : ' · ' + sous) + '</small><h2>' + esc(d.nom) + '</h2>'
+      + '<div class="lk-route"><span>MITRY</span><div class="lk-rail"><i style="width:' + (pct ? Math.max(8, pct) : 0) + '%"></i></div><span>' + dest + '</span></div>'
+      + '<div class="lk-foot"><span><b>' + d.clients + '</b> client' + (d.clients > 1 ? 's' : '') + (d.statut === 'preparation' ? (d.ouvert ? ' · inscriptions ouvertes' : ' · inscriptions fermées') : '') + '</span><span>' + droite + '</span></div></button>';
+  }
   function carteDepart(){
     var contenu = document.querySelector('#s-espaces .content');
     if(!contenu) return;
-    var vieille = document.getElementById('lk-hero');
-    if(effectif() !== 'v2' || typeof window.depProchainDepart !== 'function'){ if(vieille) vieille.remove(); return; }
-    var d = null;
-    try{ d = window.depProchainDepart(); }catch(e){}
-    if(!d){ if(vieille) vieille.remove(); return; }
-    var pct = d.etapes ? Math.round(100 * d.fait / d.etapes) : 0;
-    var arr = d.arrivee ? d.arrivee.split('-').reverse().slice(0, 2).join('/') : '';
-    var dest = d.pays === 'ML' ? 'BAMAKO' : 'DAKAR';
-    var h = '<button type="button" class="lk-hero" id="lk-hero" onclick="depDetail(\'' + d.id + '\')">'
-      + '<small>Prochain départ</small><h2>' + String(d.nom).replace(/</g, '&lt;') + '</h2>'
-      + '<div class="lk-route"><span>MITRY</span><div class="lk-rail"><i style="width:' + Math.max(8, pct) + '%"></i></div><span>' + dest + '</span></div>'
-      + '<div class="lk-foot"><span><b>' + d.clients + '</b> client' + (d.clients > 1 ? 's' : '') + '</span>' + (arr ? '<span>Arrivée prévue <b>' + arr + '</b></span>' : '') + '</div></button>';
-    if(vieille) vieille.outerHTML = h;
+    var vieux = document.getElementById('lk-hero');
+    var r = null;
+    if(effectif() === 'v2' && typeof window.depDepartsCarte === 'function'){ try{ r = window.depDepartsCarte(); }catch(e){} }
+    if(!r || !r.liste.length){ if(vieux) vieux.remove(); return; }
+    if(idxCarte === null || idxCarte >= r.liste.length) idxCarte = r.courant;
+    var h = '<div id="lk-hero" class="lk-car" role="region" aria-label="Départs en cours">'
+      + '<div class="lk-track">' + r.liste.map(unDepart).join('') + '</div>'
+      + (r.liste.length > 1 ? '<div class="lk-dots" aria-hidden="true">' + r.liste.map(function(_, i){ return '<i data-d="' + i + '"></i>'; }).join('') + '</div>' : '')
+      + '</div>';
+    if(vieux) vieux.outerHTML = h;
     else {
       var grille = contenu.querySelector('.dep-cases');
       if(grille) grille.insertAdjacentHTML('beforebegin', h); else contenu.insertAdjacentHTML('beforeend', h);
     }
+    var piste = document.querySelector('#lk-hero .lk-track');
+    if(!piste) return;
+    var enPlace = false;   // vrai une fois la carte positionnée : avant, on ne retient aucun défilement
+    function pas(){ return piste.firstElementChild ? piste.firstElementChild.offsetWidth + 12 : 1; }
+    function majPoints(){
+      document.querySelectorAll('#lk-hero .lk-dots i').forEach(function(p, k){ p.classList.toggle('on', k === idxCarte); });
+    }
+    function positionner(){
+      if(!piste.offsetWidth) return false;                       // écran pas encore affiché
+      var cible = piste.children[idxCarte];
+      if(cible) piste.scrollLeft = Math.max(0, cible.getBoundingClientRect().left - piste.getBoundingClientRect().left - 16 + piste.scrollLeft);
+      enPlace = true; majPoints();
+      return true;
+    }
+    majPoints();
+    if(!positionner()) window.requestAnimationFrame(function(){ if(!positionner()) setTimeout(positionner, 120); });
+    piste.addEventListener('scroll', function(){
+      if(!enPlace) return;
+      window.requestAnimationFrame(function(){
+        idxCarte = Math.max(0, Math.min(r.liste.length - 1, Math.round(piste.scrollLeft / pas())));
+        majPoints();
+      });
+    }, { passive: true });
   }
   if(typeof window.depRenderEspaces === 'function'){
     var origEsp = window.depRenderEspaces;

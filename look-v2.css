@@ -97,13 +97,21 @@ html.look-v2 #dep-bandeau-notifs{background:var(--lk-r) !important;border:0 !imp
 html.look-v2 #dep-bandeau-notifs div{color:var(--lk-tr) !important}
 /* icônes */
 .lk-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+html.look-v2 .lk-car{margin:0 -16px 16px}
+html.look-v2 .lk-track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 16px 4px;scroll-padding:0 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+html.look-v2 .lk-track::-webkit-scrollbar{display:none}
+html.look-v2 .lk-slide{flex:0 0 calc(100% - 44px);scroll-snap-align:start;margin:0 !important;min-width:0}
+html.look-v2 .lk-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+html.look-v2 .lk-dots i{width:7px;height:7px;border-radius:99px;background:var(--lk-line);transition:width .2s,background .2s}
+html.look-v2 .lk-dots i.on{width:20px;background:var(--green)}
+@media (prefers-reduced-motion:reduce){html.look-v2 .lk-dots i{transition:none}}
 html.look-v2 .lk-hero{display:block;width:100%;text-align:left;border:1px solid rgba(255,255,255,.22);cursor:pointer;margin:0 0 16px;padding:18px;border-radius:28px;color:#fff;font-family:var(--font);background:linear-gradient(150deg,var(--lk-hero-a),var(--lk-hero-b));box-shadow:0 14px 34px rgba(8,60,36,.28)}
 html.look-v2 .lk-hero small{display:block;opacity:.85;font-weight:700;letter-spacing:.07em;text-transform:uppercase;font-size:11.5px}
 html.look-v2 .lk-hero h2{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:3px 0 14px}
 html.look-v2 .lk-route{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:.08em}
 html.look-v2 .lk-rail{flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.22);position:relative}
 html.look-v2 .lk-rail i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:#fff}
-html.look-v2 .lk-foot{display:flex;justify-content:space-between;margin-top:12px;font-size:13px;opacity:.95}
+html.look-v2 .lk-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;margin-top:12px;font-size:13px;opacity:.95}
 html.look-v2 .lk-foot b{font-size:17px}
 
 /* ── les cases (accueil, Réglages, Stockage…) ── */

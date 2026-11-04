@@ -6104,3 +6104,10 @@ V2 déjà dessinée : écran de connexion (choix de l'espace, puis du profil), a
 départ » et icônes à la place des emojis. **L'équipe reste en V1** (`LOOK_DEFAUT='v1'`) : rien ne change pour elle, hormis la case APPARENCE
 visible d'Eric seul. Testé : V1 identique (74 écrans, 0 erreur), V2 clair et sombre, écriture et retour V1 dans Firebase.
 Reste : redessiner les ~70 autres écrans + remappage des couleurs en dur pour le mode sombre ; puis passer `LOOK_DEFAUT` à `'v2'`.
+
+### 04/11/2026 — V2 : carrousel des départs sur l'accueil (dct-app v3.99.148, departs v2.22.19)
+> Cobey : « ce conteneur-là, il est déjà parti [...] celui en préparation, c'est sur celui-là qu'on travaille [...] pas possible de faire un truc du genre on swipe vers la gauche et on voit le conteneur suivant, et vers la droite le conteneur d'avant ? » ; « les clôturés, on les prend pas en compte, que ceux qui sont en cours ou en préparation, et éventuellement les suivants, peut-être pour Bamako. »
+
+La grande carte de l'accueil V2 est un carrousel (`depDepartsCarte`, departs.js ; `carteDepart`, look.js) : tous les départs non clôturés, du plus ancien au plus
+récent, qui s'ouvre sur celui où l'on travaille (le premier « en préparation », sinon le dernier parti). Glisser à droite = le départ d'avant, à gauche = le suivant ;
+points de position ; un appui ouvre le container ; la position est gardée quand l'écran se redessine. Testé avec les vraies données (4 cartes : 2 BMK, DKR 25/10, DKR 22/11 ouvert). V1 inchangée.
