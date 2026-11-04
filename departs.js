@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.22';
+var DEP_VERSION = 'v2.22.23';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8194,7 +8194,32 @@ window.depToggleVisMamadou = function(){
   depMajToggle();
 };
 
+// Règle du 04/11/2026 (Cobey) : « un conteneur clôturé doit être clôturé uniquement quand il est soldé.
+// S'il reste du paiement, il ne doit pas être clôturé. » Nombre de clients du départ qui n'ont pas tout payé
+// (colis + livraison), fiches absorbées par une autre exclues.
+function _depNbImpayesDepart(id){
+  if(!id) return 0;
+  var tous = tousLesClients().filter(function(x){ return x.c && x.c.departId === id; })
+    .concat(Object.keys(window.depotClients||{}).filter(function(k){ return window.depotClients[k] && window.depotClients[k].departId === id; })
+      .map(function(k){ return { c: window.depotClients[k] }; }))
+    .concat(Object.keys((window.franceData||{}).clients||{}).filter(function(k){ return window.franceData.clients[k] && window.franceData.clients[k].departId === id; })
+      .map(function(k){ return { c: window.franceData.clients[k] }; }));
+  var n = 0;
+  tous.forEach(function(x){
+    if(!x.c || _depEstFusionnee(x.c)) return;
+    try{ if(depCalculerPaiementCombine(x.c).reste > 0.009) n++; }catch(e){}
+  });
+  return n;
+}
+function _depRefusCloture(id){
+  var n = _depNbImpayesDepart(id);
+  if(!n) return false;
+  toast('\u26D4 Impossible de cl\u00F4turer : ' + n + ' client' + (n > 1 ? 's' : '') + ' n\u2019' + (n > 1 ? 'ont' : 'a') + ' pas tout pay\u00E9. Le container reste actif tant qu\u2019il n\u2019est pas sold\u00E9.');
+  return true;
+}
+
 window.depToggleCloture = function(){
+  if(!_depFormCloture && _depRefusCloture(_depEditId)) return;   // on ne coche pas « clôturé » s'il reste des impayés
   _depFormCloture = !_depFormCloture;
   depMajToggle();
 };
@@ -8232,6 +8257,7 @@ window.depEnregistrer = function(){
   // reproposait à l'inscription. Hors clôture, le statut vient du suivi
   // transport (voir _depStatutSelonEtapes).
   var dEnCours = (_depEditId ? (window.departsData||{})[_depEditId] : null) || {};
+  if(_depFormCloture && _depEditId && (dEnCours.statut || '') !== 'cloture' && _depRefusCloture(_depEditId)){ _depFormCloture = false; depMajToggle(); return; }
   obj.statut = _depFormCloture ? 'cloture'
     : (_depStatutSelonEtapes({ etapesTransport: dEnCours.etapesTransport }) || 'preparation');
 

@@ -6205,3 +6205,8 @@ Ordre : BILAN, STATISTIQUES, CONTAINERS SÉNÉGAL, CONTAINERS MALI. Chaque case 
 > Cobey : « est-ce que l'équipe terrain voit les cartes que j'ai mises en gros ? En cliquant dessus ça amène à la case départ qu'ils n'ont pas [...] Ou alors ils voient les cartes, mais ils ne peuvent pas cliquer dessus. Juste, ils voient. »
 
 Tout le monde voit les cartes (et peut les faire défiler). Seuls les profils qui ont la case Départs (`_depPeutCase('departs')` : direction, Aminata…) peuvent les ouvrir ; pour les autres elles ne sont pas cliquables (`lk-fixe`). Testé : Eric → clic ouvre le détail ; Samba (terrain) → 4 cartes visibles, clic sans effet, défilement OK.
+
+### 04/11/2026 — Règle : on ne clôture un container que s'il est soldé (dct-app v3.99.174, departs v2.22.23)
+> Cobey : « un conteneur clôturé doit être clôturé uniquement quand il est soldé. S'il reste du paiement, il ne doit pas être clôturé. J'ai clôturé un conteneur, mais en vrai il reste des gens qui n'ont pas payé. »
+
+`_depNbImpayesDepart(id)` compte les clients du départ avec un reste à payer (colis + livraison, fiches fusionnées exclues). Dans Modifier, cocher « Clôturé » est refusé (message : « Impossible de clôturer : N clients n'ont pas tout payé ») ; l'enregistrement le refuse aussi. Testé : BMK et DKR avec impayés refusés ; départs sans impayé acceptés. **Les containers déjà clôturés ne sont pas touchés** : pour en rouvrir un, Modifier > décocher « Clôturé ».
