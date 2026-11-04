@@ -6174,3 +6174,8 @@ Cause : `<link href="look-v2.css?v=…">` était resté à 3.99.149 (mon `sed` n
 > Cobey : « quand je clique sur un conteneur et que je veux aller dans modifier en haut à droite, il me revient en arrière sur le choix d'un conteneur Sénégal ou Mali ».
 
 Cause : le bouton Modifier porte la classe `btn-back` (style), et la navigation « Retour = écran d'avant » (v3.99.13x) le prenait pour un retour. Exclu par son id `dep-d-btn-modifier`. Testé : Modifier ouvre le formulaire, retour → détail → liste (V1 et V2). Aucun autre bouton `btn-back` sans flèche dans le code.
+
+### 04/11/2026 — V2 : bouton flottant « Créer un départ » (dct-app v3.99.167)
+> Cobey : « tu avais créé un petit bouton en bas à droite qui était créer un départ [...] dans l'application c'est toujours le même système que d'avant ».
+
+Maquette I/J : en V2 le grand bouton vert du haut de la liste des départs devient une pastille flottante en bas à droite (même action, `depNouveau()`). CSS seulement. V1 inchangée.
