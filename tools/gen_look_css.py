@@ -127,6 +127,8 @@ html.look-v2 .lk-dots i{width:7px;height:7px;border-radius:99px;background:var(-
 html.look-v2 .lk-dots i.on{width:20px;background:var(--green)}
 @media (prefers-reduced-motion:reduce){html.look-v2 .lk-dots i{transition:none}}
 html.look-v2 .lk-hero{display:block;width:100%;text-align:left;border:1px solid rgba(255,255,255,.22);cursor:pointer;margin:0 0 16px;padding:18px;border-radius:28px;color:#fff;font-family:var(--font);background:linear-gradient(150deg,var(--lk-hero-a),var(--lk-hero-b));box-shadow:0 14px 34px rgba(8,60,36,.28)}
+html.look-v2 .lk-hero{position:relative}
+html.look-v2 .lk-pays{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.06em}
 html.look-v2 .lk-hero small{display:block;opacity:.85;font-weight:700;letter-spacing:.07em;text-transform:uppercase;font-size:11.5px}
 html.look-v2 .lk-hero h2{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:3px 0 14px}
 html.look-v2 .lk-route{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:.08em}

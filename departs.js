@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.19';
+var DEP_VERSION = 'v2.22.20';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5734,7 +5734,7 @@ function _depNettoyerClientsSupprimes(){
    7. ÉCRAN DE CHOIX D'ESPACE
    ───────────────────────────────────────────── */
 
-// v2.22.19 — pour le carrousel de l'accueil V2 (look.js). Cobey, 04/11/2026 :
+// v2.22.20 — pour le carrousel de l'accueil V2 (look.js). Cobey, 04/11/2026 :
 // « le container sur lequel on travaille en ce moment, c'est celui en préparation »
 // puis « on swipe vers la gauche et on voit le conteneur suivant, vers la droite
 // celui d'avant [...] les clôturés, on les prend pas en compte. » Tous les départs
@@ -13235,6 +13235,7 @@ function _depBadgeLivraison(c, arrive, fondBlanc){
 // l'étape « Arrivée au dépôt » a été validée : sinon il est encore en mer).
 function _depDepartAuDepotDakar(d){
   if(!d) return false;
+  if(depPaysDepart(d) === 'ML') return false; // un container Mali s'arrête à Bamako, jamais au dépôt de Dakar
   if(d.statut === 'arrive') return true;
   var e = d.etapesTransport && d.etapesTransport.arrivee_depot;
   return d.statut === 'cloture' && !!(e && e.fait);

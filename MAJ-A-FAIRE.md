@@ -6116,3 +6116,9 @@ points de position ; un appui ouvre le container ; la position est gardée quand
 > Cobey : « ils ont tous la même couleur. Ça serait bien de les différencier selon leur statut, non ? » — « ok vas-y ».
 
 Orange = en préparation, bleu = en route / parti, vert = arrivé (versions plus profondes en mode sombre). V1 inchangée.
+
+### 04/11/2026 — Pastille MALI / SÉNÉGAL sur les cartes + correction Stockage (dct-app v3.99.150, departs v2.22.20)
+> Cobey : « il faut différencier les chargements Mali et chargements Sénégal » ; « dans le stockage du dépôt à Dakar, tu as mis des clients qui étaient dans des chargements BMK [...] Isaka a passé le conteneur BMK arrivé à Bamako [...] le suivi des conteneurs Mali ne doit pas être mélangé avec ceux de Dakar » — « ok vas-y pour les deux ».
+
+- Carrousel V2 : pastille 🇲🇱 MALI / 🇸🇳 SÉNÉGAL en haut à droite de chaque carte.
+- Bug (ancien, pas lié à V2) : `_depDepartAuDepotDakar` prenait tout départ « arrivé », même Mali → ses clients apparaissaient au Dépôt Dakar (liste, compteur Stockage, étiquettes de livraison). Un container Mali est maintenant exclu. Aucune donnée touchée.
