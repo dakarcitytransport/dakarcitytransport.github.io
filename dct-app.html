@@ -2194,7 +2194,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.143';
+var APP_VERSION = 'v3.99.144';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4510,6 +4510,17 @@ function _frRenderFranceCorps(box){
   // là, comme à Paris. On affiche donc simplement les clients en cours,
   // chacun avec son badge de statut (retour de Cobey du 19/09/2026).
   var liste=tous.filter(_frDansFiltre);
+  // v3.99.144 — Cobey, 04/11/2026 : « on a fait une collecte, la collecte de
+  // Sud, où il y a 7 clients [...] quand je reviens sur la liste des clients,
+  // je retrouve toujours cette Béatrice Colli là [...] ça porte à confusion.
+  // Il faudrait la retirer de la liste des clients une fois qu'elle est
+  // sélectionnée dans une tournée. Mais si de cette même tournée elle est
+  // supprimée, on la remettrait dedans. » La liste générale ne garde que les
+  // clients encore à planifier ; un client retiré ou annulé d'une tournée
+  // redevient « en attente » (voir le retrait de collecte) et revient. La
+  // recherche, elle, les trouve toujours, et l'intérieur d'une collecte
+  // ouverte garde les siens.
+  if(!rOuv) liste=liste.filter(function(c){ return c.statut!=='planifie'; });
   // v3.99.79 : accès à l'outil « Clients proches » (sauf dans une collecte ouverte).
   if(!rOuv && !q && _peutGererFrance()){
     html+='<div onclick="ouvrirProchesFrance()" style="display:flex;align-items:center;gap:10px;background:#e8eaf6;border:1.5px solid #1a237e;color:#1a237e;border-radius:12px;padding:11px 14px;margin-bottom:10px;font-size:13.5px;font-weight:800;cursor:pointer;">'
@@ -4541,11 +4552,11 @@ function _frRenderFranceCorps(box){
   // injectée par departs.js (voir son patch sur window.renderFrance).
   var _totRam=_totalRamassage(liste.map(function(x){ return x._id; }));
   html+=_bandeauAnciennete(liste);
-  html+='<div class="slabel"><span>Clients en cours · '+liste.length+' client'+(liste.length>1?'s':'')+'</span>'
+  html+='<div class="slabel"><span>'+(rOuv?'Clients en cours':'Clients à planifier')+' · '+liste.length+' client'+(liste.length>1?'s':'')+'</span>'
       + (_montantsVisibles()&&_tot?('<span style="color:#006b2d;">'+_tot+' €</span>'):'')
       + (_montantsVisibles()&&_totRam>0?('<span data-fr-ram="1" style="color:#00838F;">'+_totRam+' €</span>'):'')+'</div>';
   html+= liste.length ? liste.map(_frCarte).join('')
-       : _frVide('Aucun client en cours.<br>Inscrivez le premier avec le bouton en bas.');
+       : _frVide((rOuv?'Aucun client en cours.':'Aucun client à planifier.')+'<br>Inscrivez le premier avec le bouton en bas.');
   box.innerHTML=html;
   _majBarreFrance();
 }

@@ -6059,3 +6059,12 @@ total de Y €). » Moments 2 et 3 inchangés. La phrase de livraison (« Pour q
 
 Sénégal, avant « Arrivée au port de Dakar », livraison : « Merci de bien vouloir régler le solde restant de X € (sur un total de Y €) pour la livraison. »
 Moments 2 et 3 inchangés.
+
+### 04/11/2026 — France : la liste des clients ne montre plus ceux déjà dans une tournée (dct-app v3.99.144)
+> Cobey : « dans la case France, on a fait une collecte, la collecte de Sud, où il y a 7 clients [...] quand je reviens sur la liste des clients, je retrouve toujours cette Béatrice Colli là [...] marquée planifiée, mais ça porte à confusion. Il faudrait la retirer de la liste des clients une fois qu'elle est sélectionnée dans une tournée. Mais si de cette même tournée elle est supprimée, on la remettrait dedans. » Puis, sur les ramassés : « ils vont être validés par un collaborateur de DCT qui va le mettre dans un colis, dans un container » (déjà hors de la liste depuis v3.98.9).
+
+`_frRenderFranceCorps` : sans collecte ouverte, la liste générale exclut les clients `statut === 'planifie'` (elle ne garde que « en attente »,
+titre « Clients à planifier »). Un client retiré / annulé d'une tournée redevient « en attente » (code existant) et revient. L'intérieur d'une
+collecte ouverte garde ses clients planifiés ; la recherche trouve toujours tout le monde (avec l'étiquette « Planifié »). Testé avec les vraies
+données : 8 en attente visibles, 7 planifiés cachés ; Tournée sud : 7 clients ; retrait d'un client de sa tournée → il revient (9).
+Constat non traité : la recherche France ne trouve pas un nom à plusieurs mots si on tape l'espace (« Diouldé DIA » → rien, « Diouldé » → trouvé).
