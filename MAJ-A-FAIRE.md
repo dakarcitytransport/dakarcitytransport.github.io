@@ -6149,3 +6149,8 @@ Le remappage sombre couvre aussi les styles réécrits par le navigateur (`backg
 > Cobey : « il y a des boutons qui n'ont pas forcément l'utilité d'être là tout le temps [...] la barre reste toujours là, mais elle sert à rien par moment » — « ok vas-y ».
 
 Barre visible uniquement sur Accueil, Clients, Suivi, Activité ; cachée ailleurs (Départs, container, Stockage, France, Collecte, Planning…). V1 inchangée (74 écrans identiques).
+
+### 04/11/2026 — V2 sombre : fil d'activité et traits de séparation (dct-app v3.99.162)
+> Cobey : « en mode sombre, il y a des écrans pas du tout esthétiques, des fonds blancs, par exemple dans l'activité, la notification d'une personne qui s'est connectée, le fond est blanc et c'est très moche ».
+
+Les lignes de connexion de l'Activité ont un fond bleu sombre ; les traits de séparation clairs (bordures écrites en dur) deviennent discrets en sombre dans toute l'appli. V1 inchangée.

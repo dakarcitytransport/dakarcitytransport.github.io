@@ -61,6 +61,8 @@ def regles_classes():
             if fg:
                 v = texte_clair(norm(fg.group(1)))
                 if v: d.append('color:%s' % v)
+            for bm in re.finditer(r'(?<![-\w])(border(?:-(?:top|right|bottom|left))?):[^;}]*?(#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)\b', dec):
+                if lum(rgb(norm(bm.group(2)))) > 0.6: d.append('%s-color:rgba(237,246,241,.16)' % bm.group(1))
             if not d: continue
             for one in [x.strip() for x in sel.split(',') if x.strip()]:
                 if not re.match(r'^[.#][\w\-]', one) or one.startswith('#lk-') or '.lk-' in one: continue
@@ -80,6 +82,10 @@ def regles():
         if lum(c) > 0.85:   # style réécrit par le navigateur (cssText / JS) : background: rgb(r, g, b)
             sel += ',[style*="background: rgb(%d, %d, %d)" i],[style*="background:rgb(%d, %d, %d)" i]' % (c + c)
         out.append('%s{background:%s !important}' % (sel, v))
+    for h in fonds:
+        if lum(rgb(h)) > 0.6:
+            sel = ','.join('[style*="solid #%s" i]' % f for f in formes(h))
+            out.append('%s{border-color:rgba(237,246,241,.16) !important}' % sel)
     for h in textes:
         v = texte_clair(h)
         if not v: continue
