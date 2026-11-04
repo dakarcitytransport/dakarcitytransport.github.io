@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.16';
+var DEP_VERSION = 'v2.22.17';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -7644,10 +7644,20 @@ window.depRenderComparer = function(){
 // v1.19.0 : carré ARCHIVAGE — consultation en lecture seule des départs
 // clôturés et des collectes terminées, regroupés au même endroit.
 // v1.19.2 : navigation en dossiers cliquables Année > Mois > Semaine.
+var _depArchiveDepuisFrance = false;
 window.depOuvrirEspaceArchive = function(){
   _depArchiveEtat = { type: null, annee: null, mois: null, semaine: null };
+  _depArchiveDepuisFrance = false;
   goTo('s-archive');
   depRenderArchive();
+};
+// v2.22.17 — le raccourci « collectes terminées » de France ouvre l'Archivage
+// directement dans « Collectes France terminées » : le retour doit alors
+// ramener à France, pas à la liste des catégories de l'Archivage.
+window.depOuvrirArchiveDepuisFrance = function(){
+  window.depOuvrirEspaceArchive();
+  window.depArchiveOuvrir('collectesFr');
+  _depArchiveDepuisFrance = true;
 };
 
 // --- helpers de navigation par dossiers ---
@@ -7870,6 +7880,12 @@ window.depArchiveOuvrirSemaine = function(semaineKey){
   depRenderArchive();
 };
 window.depArchiveRetour = function(){
+  if(_depArchiveDepuisFrance && _depArchiveEtat.type === 'collectesFr'
+     && _depArchiveEtat.semaine === null && _depArchiveEtat.mois === null && _depArchiveEtat.annee === null){
+    _depArchiveDepuisFrance = false;
+    goTo('s-espaces');          // détourné vers France par la navigation « écran d'avant »
+    return;
+  }
   if(_depArchiveEtat.semaine !== null){
     _depArchiveEtat.semaine = null;
   } else if(_depArchiveEtat.mois !== null){
@@ -8479,6 +8495,27 @@ function depRenderEtapesTransportEcran(id){
 // mais directement depuis s-departs-pays — le retour doit donc suivre le
 // même chemin en sens inverse, sinon on se retrouve sur la liste des
 // containers d'un pays au hasard.
+// v2.22.17 — « Retour = écran d'avant » (voir goTo, dct-app.html) : comment
+// retrouver ces écrans tels qu'on les a quittés.
+if(typeof _navCapturer !== 'undefined'){
+  _navCapturer['s-depart-detail'] = function(){
+    var id = _depDetailId;
+    return function(){ if(id) window.depDetail(id, true); };
+  };
+  _navCapturer['s-archive'] = function(){
+    var etat = { type:_depArchiveEtat.type, annee:_depArchiveEtat.annee, mois:_depArchiveEtat.mois, semaine:_depArchiveEtat.semaine };
+    var depuisFr = _depArchiveDepuisFrance;
+    return function(){ _depArchiveEtat = etat; _depArchiveDepuisFrance = depuisFr; depRenderArchive(); };
+  };
+  _navCapturer['s-rapfin-container'] = function(){
+    var id = _depRapfinId;
+    return function(){ if(id) window.depRapfinContainer(id); };
+  };
+  _navRafraichir['s-rapfin-containers'] = function(){ depRenderRapfinContainers(); };
+  _navRafraichir['s-departs'] = function(){ depRenderListe(); };
+  _navRafraichir['s-espaces'] = function(){ depRenderEspaces(); };
+}
+
 window.depDetailRetour = function(){
   // v1.29.0 : on quitte vraiment ce départ — c'est ici, et seulement ici,
   // que les filtres se remettent à zéro. Y revenir plus tard repart donc

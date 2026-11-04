@@ -2194,7 +2194,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.145';
+var APP_VERSION = 'v3.99.146';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2555,6 +2555,47 @@ function charger(){
 }
 
 // NAVIGATION
+/* ═══ NAVIGATION : « Retour » ramène à l'écran d'AVANT ═══
+   Cobey, 04/11/2026 : « chaque fois qu'on appuie sur retour, on vient sur
+   l'interface d'avant, dans tout, la même logique. » Avant, chaque bouton
+   Retour avait une destination écrite en dur (la liste des Départs, les
+   Espaces…), même quand on était arrivé d'ailleurs.
+
+   Principe : goTo() retient l'écran quitté (_navPile). Quand on clique un
+   bouton « Retour » (classe btn-back), l'ancien comportement du bouton
+   s'exécute comme avant — il fait ses mises à jour, remonte d'un niveau dans
+   un dossier — mais si, au bout du compte, il veut AUSSI quitter l'écran, on
+   va à l'écran d'avant plutôt qu'à sa destination en dur. Un écran quitté est
+   retrouvé tel qu'on l'a laissé (même container, même collecte, même dossier
+   d'archive) grâce aux « capturers » ci-dessous.
+   Arriver à l'accueil, aux Espaces ou à la connexion remet la pile à zéro. */
+var _navPile = [];
+var _navEnRetour = false;      // un clic sur « Retour » est en cours
+var _navRedirige = false;      // ce clic a déjà été redirigé
+var _navInterne = false;       // on est en train de revenir : rien à enregistrer
+var _navSansPousser = false;
+var _navDernierTs = 0;
+var _NAV_RACINES = { 's-login':1, 's-home':1, 's-espaces':1 };
+var _NAV_SANS_REDIRECTION = { 's-login':1 };   // déconnexion, etc. : jamais détournée
+var _navCapturer = {};         // écran -> fonction qui note où on en est et renvoie « comment y revenir »
+var _navRafraichir = {};       // écran -> fonction qui le redessine quand on y revient
+
+function _navCapturerEcran(id){
+  try{
+    var f = _navCapturer[id];
+    return f ? f() : null;
+  }catch(e){ return null; }
+}
+function _navAller(e){
+  _navInterne = true;
+  try{
+    goTo(e.id);
+    if(e.restaurer) e.restaurer();
+    else if(_navRafraichir[e.id]) _navRafraichir[e.id]();
+  }catch(x){ console.error('retour : ', x); }
+  _navInterne = false;
+}
+
 function goTo(id){
   var el=document.getElementById(id);
   if(!el){
@@ -2563,9 +2604,54 @@ function goTo(id){
     try{ showToastNew('⚠️ Écran indisponible ('+id+')'); }catch(e){}
     return;
   }
+  if(!_navPile) _navPile=[];
+  var actif=document.querySelector('.screen.active');
+  var from=actif?actif.id:null;
+  var maintenant=Date.now();
+  if(_navEnRetour && !_navInterne){
+    if(_navRedirige) return;      // déjà redirigé pendant ce clic : on ignore la suite
+    var prec=_navPile.length?_navPile[_navPile.length-1]:null;
+    if(prec && id!==from && !_NAV_SANS_REDIRECTION[id]){
+      _navPile.pop();
+      _navRedirige=true;
+      if(prec.id!==id){ _navAller(prec); return; }
+      _navSansPousser=true;       // il allait déjà vers l'écran d'avant : on le laisse faire
+    }
+  }
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
   el.classList.add('active');
+  if(!_navSansPousser && !_navInterne && !_navEnRetour && from && from!==id && (maintenant-_navDernierTs)>=40){
+    _navPile.push({ id:from, restaurer:_navCapturerEcran(from) });
+    if(_navPile.length>60) _navPile.shift();
+  }
+  _navSansPousser=false;
+  _navDernierTs=maintenant;
+  if(_NAV_RACINES[id]) _navPile=[];
 }
+// Tout clic sur un bouton « Retour » : le temps de son exécution, goTo() sait
+// qu'il s'agit d'un retour.
+document.addEventListener('click', function(ev){
+  var t=ev.target;
+  while(t && t!==document){
+    if(t.classList && t.classList.contains('btn-back')){
+      _navEnRetour=true; _navRedirige=false;
+      setTimeout(function(){ _navEnRetour=false; _navRedirige=false; },0);
+      return;
+    }
+    t=t.parentNode;
+  }
+}, true);
+
+// Comment retrouver les écrans de l'appli principale tels qu'on les a quittés.
+_navCapturer['s-france']=function(){
+  var cid=currentCollecteFrId, tab=franceTab;
+  return function(){ currentCollecteFrId=cid; switchFranceTab(tab); };
+};
+_navCapturer['s-collecte']=function(){
+  var cid=currentCollecteId, sub=currentSubtab;
+  return function(){ ouvrirCollecte(cid); if(sub && sub!=='clients') switchSubtab(sub); };
+};
+_navRafraichir['s-clients']=function(){ try{ renderContacts(); }catch(e){} };
 function setNav(tab){
   if(tab!=='suivi') _suiviStopTimer();
   if(tab==='home')goTo('s-home');
@@ -6292,7 +6378,7 @@ function _frListeCollectes(){
   h+=section('À organiser · date à fixer', g.aVenir.filter(function(r){ return !r.dateIso; }));
   h+=section('À venir',  g.aVenir.filter(function(r){ return !!r.dateIso; }));
   if(g.finis.length && typeof window.depOuvrirEspaceArchive==='function'){
-    h+='<div onclick="depOuvrirEspaceArchive();depArchiveOuvrir(\'collectesFr\')" style="margin-top:14px;padding:13px 14px;background:#EFEAE4;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+    h+='<div onclick="depOuvrirArchiveDepuisFrance()" style="margin-top:14px;padding:13px 14px;background:#EFEAE4;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">'
       + '<span style="font-size:13px;font-weight:700;color:#8B5E34;">📦 '+g.finis.length+' collecte'+(g.finis.length>1?'s':'')+' terminée'+(g.finis.length>1?'s':'')+' · Archivage</span>'
       + '<span style="font-size:18px;color:#8B5E34;">›</span></div>';
   }

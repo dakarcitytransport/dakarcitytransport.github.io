@@ -6075,3 +6075,16 @@ Constat non traité : la recherche France ne trouve pas un nom à plusieurs mots
 `_frMatch` (recherche France, aussi dans le choix des clients d'une tournée et d'un camion) : le texte tapé ET les champs sont comparés sans espaces,
 sans accents, sans majuscules ni ponctuation, et on cherche aussi dans prénom + nom et dans le nom d'affichage. « Diouldé DIA », « dioulde dia »,
 « Béatrice Colli », « Colli Béatrice » trouvent maintenant. Non traité : un numéro tapé au format 06… ne trouve pas un numéro enregistré en +33 6….
+
+### 04/11/2026 — « Retour » ramène à l'écran d'avant, partout (dct-app v3.99.146, departs v2.22.17)
+> Cobey : « dans France, je clique sur les trucs d'archivage, en retour ça me laisse dans l'archive, alors qu'à la base j'étais rentré dans France » ; « je veux qu'en fait, dans tout, ce soit la même logique. Chaque fois qu'on appuie sur retour, on vient sur l'interface d'avant. »
+
+Cause : ~80 boutons Retour avec une destination écrite en dur (liste des Départs, Espaces…). Ici : `goTo()` (dct-app.html) retient l'écran quitté
+(`_navPile`, remise à zéro à l'accueil / aux Espaces / à la connexion). Un clic sur un bouton `.btn-back` exécute son ancien comportement (mises à jour,
+remontée d'un niveau dans un dossier d'archive) mais, s'il veut quitter l'écran, on va à l'écran d'avant, retrouvé tel qu'on l'a laissé (`_navCapturer` :
+France + onglet/collecte, Collecte + sous-onglet, container, Qui doit, Archive + niveau ; `_navRafraichir` : Départs, Espaces, liste des containers,
+Clients). Sans historique, l'ancienne destination s'applique. La déconnexion (`s-login`) n'est jamais détournée. Cas de Cobey : le raccourci « N collectes
+terminées » de France ouvre l'Archive (`depOuvrirArchiveDepuisFrance`) ; Retour revient à France.
+Testé (vraies données, clics réels) : France > archive > Retour ; Départs > container > fiche > Retour x3 ; Rapport financier > container > fiche > Retour x3 ; Archive
+imbriquée ; 74 écrans dont 68 avec bouton Retour, aucun écran blanc ; connexion, Mamadou, chauffeur inchangés.
+Non couvert : un écran retrouvé qui n'est pas dans la liste ci-dessus est montré comme on l'a laissé (non redessiné).
