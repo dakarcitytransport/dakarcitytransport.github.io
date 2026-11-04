@@ -6179,3 +6179,8 @@ Cause : le bouton Modifier porte la classe `btn-back` (style), et la navigation 
 > Cobey : « tu avais créé un petit bouton en bas à droite qui était créer un départ [...] dans l'application c'est toujours le même système que d'avant ».
 
 Maquette I/J : en V2 le grand bouton vert du haut de la liste des départs devient une pastille flottante en bas à droite (même action, `depNouveau()`). CSS seulement. V1 inchangée.
+
+### 04/11/2026 — V2 : rapprochement de la maquette (dct-app v3.99.168)
+> Cobey : « l'application ressemble à la V1, il n'y a pas forcément de changement à part les couleurs [...] les nouveautés que tu m'avais montrées en maquette et en PDF, il n'y a rien » — « ok ».
+
+Accueil : barre de recherche (Entrée → liste Clients déjà filtrée). Titres plus gros. Cartes de départ plus grandes. Container : grands chiffres (clients, arrivée) ; filtres Tous / Payés / Non payés en une seule barre. V1 inchangée.

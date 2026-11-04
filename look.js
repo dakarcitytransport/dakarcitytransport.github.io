@@ -60,6 +60,7 @@
     try{ var tc = document.querySelector('meta[name="theme-color"]'); if(tc) tc.setAttribute('content', v2 && sombreMaintenant() ? '#080D0B' : '#F3F7F4'); }catch(e){}
     boutonTheme();
     carteDepart();
+    try{ barreRecherche(); }catch(e){}
     try{ majDock(); }catch(e){}
     try{ actionsClients(); }catch(e){}
   }
@@ -225,6 +226,32 @@
       + '<div class="lk-route"><span>MITRY</span><div class="lk-rail"><i style="width:' + (pct ? Math.max(8, pct) : 0) + '%"></i></div><span>' + dest + '</span></div>'
       + '<div class="lk-foot"><span><b>' + d.clients + '</b> client' + (d.clients > 1 ? 's' : '') + (d.statut === 'preparation' ? (d.ouvert ? ' · inscriptions ouvertes' : ' · inscriptions fermées') : '') + '</span><span>' + droite + '</span></div></button>';
   }
+
+  /* ---------- barre de recherche de l'accueil (V2) : ouvre la liste Clients déjà filtrée ---------- */
+  function barreRecherche(){
+    var contenu = document.querySelector('#s-espaces .content');
+    var b = document.getElementById('lk-rech');
+    if(effectif() !== 'v2' || !contenu){ if(b) b.remove(); return; }
+    if(b) return;
+    b = document.createElement('form');
+    b.id = 'lk-rech'; b.setAttribute('role', 'search');
+    b.innerHTML = '<svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"/></svg>'
+      + '<input type="search" enterkeyhint="search" autocomplete="off" placeholder="Rechercher un client…" aria-label="Rechercher un client">';
+    b.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var q = b.querySelector('input').value.trim();
+      try{
+        if(typeof depOuvrirEspaceClient === 'function') depOuvrirEspaceClient(); else goTo('s-clients');
+        var ch = document.getElementById('contacts-search');
+        if(ch){ ch.value = q; if(typeof renderContacts === 'function') renderContacts(); }
+        b.querySelector('input').value = '';
+        b.querySelector('input').blur();
+      }catch(e){ console.error('look : recherche', e); }
+    });
+    var avant = document.getElementById('lk-hero') || contenu.querySelector('.dep-cases');
+    if(avant) avant.parentNode.insertBefore(b, avant); else contenu.insertBefore(b, contenu.firstChild);
+  }
+
   function carteDepart(){
     var contenu = document.querySelector('#s-espaces .content');
     if(!contenu) return;
@@ -268,7 +295,7 @@
   }
   if(typeof window.depRenderEspaces === 'function'){
     var origEsp = window.depRenderEspaces;
-    window.depRenderEspaces = function(){ var r = origEsp.apply(this, arguments); try{ boutonTheme(); carteDepart(); }catch(e){} return r; };
+    window.depRenderEspaces = function(){ var r = origEsp.apply(this, arguments); try{ boutonTheme(); carteDepart(); barreRecherche(); }catch(e){} return r; };
   }
 
   /* ---------- feuille « Apparence » (clair / sombre / automatique) ---------- */
