@@ -6164,3 +6164,8 @@ Chaque case de l'accueil reprend la couleur pastel de V1 (teinte sur le verre ; 
 > Cobey : « t'as pas mis pour l'écran de choix d'espace, celui où on rentre avant le code ».
 
 Les teintes des 4 espaces (Direction, Bureau, Terrain, Administration) étaient écrasées par une règle plus prioritaire : corrigé, vérifié en clair et en sombre. V1 inchangée.
+
+### 04/11/2026 — V2 : le fichier de style n'était pas rafraîchi sur les téléphones (dct-app v3.99.165)
+> Cobey : « je suis passé à la 164, mais il n'y a aucune couleur qui apparaît ».
+
+Cause : `<link href="look-v2.css?v=…">` était resté à 3.99.149 (mon `sed` ne reconnaissait pas ce numéro sans « v »), donc les téléphones gardaient l'ancienne copie du style. Remis à jour. **Penser à monter ce `?v=` à chaque commit** (voir CLAUDE.md) : `sed -i "s#look-v2.css?v=[0-9.]*#look-v2.css?v=NOUVEAU#"`.
