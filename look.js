@@ -108,10 +108,7 @@
   /* ---------- barre du bas : Accueil · Clients · Suivi · Activité (V2 seulement) ----------
      Cobey : « dans la maquette il y avait des lignes en dessous avec client, accueil ». Visible sur
      les écrans de liste, pas sur les formulaires ni les documents (clavier, impression). */
-  var DOCK_ECRANS = { 's-espaces':'accueil', 's-home':'accueil', 's-clients':'clients', 's-suivi':'suivi', 's-suivi-detail':'suivi',
-    's-activite':'activite', 's-departs-pays':'accueil', 's-departs':'accueil', 's-depart-detail':'accueil', 's-dep-stockage':'accueil',
-    's-dep-depot-dakar':'accueil', 's-france':'accueil', 's-collecte':'accueil', 's-planning':'accueil', 's-archive':'accueil',
-    's-fidelite-liste':'accueil', 's-depot-carre-liste':'accueil', 's-stats-menu':'accueil' };
+  var DOCK_ECRANS = { 's-espaces':'accueil', 's-clients':'clients', 's-suivi':'suivi', 's-activite':'activite' };   // écrans principaux seulement
   var DOCK_SVG = {
     accueil:'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
     clients:'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',

@@ -6144,3 +6144,8 @@ Dans le détail d'un container (V2 seulement), chaque client a un grand bouton (
 > Cobey : « continue avec France et Collecte ».
 
 Le remappage sombre couvre aussi les styles réécrits par le navigateur (`background: rgb(...)`, `white`) : carte de chiffres et barre de recherche de France, etc. Vérifiés en clair et en sombre : France, Collecte, Planning, Suivi, Activité. `look-v2.css` ~270 Ko. V1 inchangée (74 écrans identiques).
+
+### 04/11/2026 — V2 : la barre du bas seulement sur les écrans principaux (dct-app v3.99.160)
+> Cobey : « il y a des boutons qui n'ont pas forcément l'utilité d'être là tout le temps [...] la barre reste toujours là, mais elle sert à rien par moment » — « ok vas-y ».
+
+Barre visible uniquement sur Accueil, Clients, Suivi, Activité ; cachée ailleurs (Départs, container, Stockage, France, Collecte, Planning…). V1 inchangée (74 écrans identiques).
