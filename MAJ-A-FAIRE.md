@@ -6068,3 +6068,10 @@ titre « Clients à planifier »). Un client retiré / annulé d'une tournée re
 collecte ouverte garde ses clients planifiés ; la recherche trouve toujours tout le monde (avec l'étiquette « Planifié »). Testé avec les vraies
 données : 8 en attente visibles, 7 planifiés cachés ; Tournée sud : 7 clients ; retrait d'un client de sa tournée → il revient (9).
 Constat non traité : la recherche France ne trouve pas un nom à plusieurs mots si on tape l'espace (« Diouldé DIA » → rien, « Diouldé » → trouvé).
+
+### 04/11/2026 — France : la recherche trouve les noms à plusieurs mots (dct-app v3.99.145)
+> Cobey : « oui corrige la recherche ».
+
+`_frMatch` (recherche France, aussi dans le choix des clients d'une tournée et d'un camion) : le texte tapé ET les champs sont comparés sans espaces,
+sans accents, sans majuscules ni ponctuation, et on cherche aussi dans prénom + nom et dans le nom d'affichage. « Diouldé DIA », « dioulde dia »,
+« Béatrice Colli », « Colli Béatrice » trouvent maintenant. Non traité : un numéro tapé au format 06… ne trouve pas un numéro enregistré en +33 6….

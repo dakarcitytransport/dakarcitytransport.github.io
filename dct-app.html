@@ -2194,7 +2194,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.144';
+var APP_VERSION = 'v3.99.145';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4383,13 +4383,20 @@ function _frUpdate(maj){
   if(!Object.keys(propre).length) return Promise.resolve();
   return db.ref('france').update(propre);
 }
+// v3.99.145 — Cobey, 04/11/2026 : « corrige la recherche » — « Diouldé DIA »
+// ne donnait rien alors que « Diouldé » trouvait : seul ce que l'on tapait
+// perdait ses espaces, pas le nom enregistré. On compare maintenant les deux
+// côtés sans espaces, sans accents, sans majuscules ni ponctuation, et on
+// cherche aussi dans le prénom + nom et dans le nom d'affichage.
+function _frNorm(s){
+  return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+}
 function _frMatch(c,q){
   if(!q) return true;
-  q=q.toLowerCase().replace(/\s/g,'');
-  var tel=(c.tel||'').toLowerCase().replace(/\s/g,'');
-  return (c.nom||'').toLowerCase().indexOf(q)>=0
-      || tel.indexOf(q)>=0
-      || (c.ville||'').toLowerCase().indexOf(q)>=0;
+  q=_frNorm(q);
+  if(!q) return true;
+  return [c.nom, (c.prenom||'')+(c.nom||''), (c.nom||'')+(c.prenom||''), c.name, c.tel, c.ville]
+    .some(function(f){ return _frNorm(f).indexOf(q)>=0; });
 }
 /* v3.81.0 — L'ancien dépôt de Chartres a été retiré de l'application
    (« c'est fini Chartres, il n'y a plus rien qui concerne Chartres »,
