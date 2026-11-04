@@ -6169,3 +6169,8 @@ Les teintes des 4 espaces (Direction, Bureau, Terrain, Administration) étaient 
 > Cobey : « je suis passé à la 164, mais il n'y a aucune couleur qui apparaît ».
 
 Cause : `<link href="look-v2.css?v=…">` était resté à 3.99.149 (mon `sed` ne reconnaissait pas ce numéro sans « v »), donc les téléphones gardaient l'ancienne copie du style. Remis à jour. **Penser à monter ce `?v=` à chaque commit** (voir CLAUDE.md) : `sed -i "s#look-v2.css?v=[0-9.]*#look-v2.css?v=NOUVEAU#"`.
+
+### 04/11/2026 — Correction : « Modifier » du détail d'un départ (dct-app v3.99.166)
+> Cobey : « quand je clique sur un conteneur et que je veux aller dans modifier en haut à droite, il me revient en arrière sur le choix d'un conteneur Sénégal ou Mali ».
+
+Cause : le bouton Modifier porte la classe `btn-back` (style), et la navigation « Retour = écran d'avant » (v3.99.13x) le prenait pour un retour. Exclu par son id `dep-d-btn-modifier`. Testé : Modifier ouvre le formulaire, retour → détail → liste (V1 et V2). Aucun autre bouton `btn-back` sans flèche dans le code.
