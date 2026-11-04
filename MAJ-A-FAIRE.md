@@ -6154,3 +6154,8 @@ Barre visible uniquement sur Accueil, Clients, Suivi, Activité ; cachée ailleu
 > Cobey : « en mode sombre, il y a des écrans pas du tout esthétiques, des fonds blancs, par exemple dans l'activité, la notification d'une personne qui s'est connectée, le fond est blanc et c'est très moche ».
 
 Les lignes de connexion de l'Activité ont un fond bleu sombre ; les traits de séparation clairs (bordures écrites en dur) deviennent discrets en sombre dans toute l'appli. V1 inchangée.
+
+### 04/11/2026 — V2 : couleurs pastel par case et par espace (dct-app v3.99.163)
+> Cobey : « ce qu'on a perdu, que je trouvais pas mal : pour chaque espace une couleur en version pastel, et dans l'accueil pour chaque case des couleurs. Quelle est ton opinion ? » — « ok vas-y ».
+
+Chaque case de l'accueil reprend la couleur pastel de V1 (teinte sur le verre ; version profonde en sombre) ; les 4 cartes d'espace de la connexion sont teintées (indigo, rose, cyan, rouge). Générées par `tools/gen_look_css.py` depuis les couleurs de departs.js. V1 inchangée.

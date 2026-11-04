@@ -54,6 +54,29 @@ DARK = """
   --lk-tg:#3DDC84; --lk-to:#FFB02E; --lk-tv:#B6A8FF; --lk-tr:#FF8E80; --lk-tb:#8FB5FF;
   color-scheme:dark;"""
 
+
+# ── Couleurs pastel par case (accueil) et par espace (connexion) : retour de Cobey du 04/11 ──
+import re as _re
+_src = open(__import__('os').path.join(__import__('os').path.dirname(__import__('os').path.dirname(__import__('os').path.abspath(__file__))), 'departs.js'), encoding='utf-8').read()
+_tuiles = dict(_re.findall(r'id="dep-case-([a-z]+)" style="background:(#[0-9A-Fa-f]{6})', _src))
+def _rgb(h): h = h.lstrip('#'); return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+def _sombre(h):
+    import colorsys
+    r, g, b = [v / 255 for v in _rgb(h)]
+    hh, ss, vv = colorsys.rgb_to_hsv(r, g, b)
+    r2, g2, b2 = colorsys.hsv_to_rgb(hh, min(1, max(ss * 3.0, .45)), .42)
+    return (round(r2 * 255), round(g2 * 255), round(b2 * 255))
+_clair, _fonce = [], []
+for k, h in sorted(_tuiles.items()):
+    r, g, b = _rgb(h); d = _sombre(h)
+    _clair.append("html.look-v2 body #dep-case-%s{background-image:linear-gradient(rgba(%d,%d,%d,.72),rgba(%d,%d,%d,.72)) !important}" % (k, r, g, b, r, g, b))
+    _fonce.append("html.look-v2 body #dep-case-%s{background-image:linear-gradient(rgba(%d,%d,%d,.80),rgba(%d,%d,%d,.80)) !important}" % (k, d[0], d[1], d[2], d[0], d[1], d[2]))
+_ESP = [(58, 58, 184), (194, 38, 107), (15, 147, 180), (196, 38, 44)]
+for i, (r, g, b) in enumerate(_ESP, 1):
+    _clair.append("html.look-v2 .dep-esp-c:nth-child(%d){background-image:linear-gradient(135deg,rgba(%d,%d,%d,.20),rgba(%d,%d,%d,.07)) !important}" % (i, r, g, b, r, g, b))
+    _fonce.append("html.look-v2 .dep-esp-c:nth-child(%d){background-image:linear-gradient(135deg,rgba(%d,%d,%d,.34),rgba(%d,%d,%d,.12)) !important}" % (i, r, g, b, r, g, b))
+TEINTES = "\n/* ── Teintes pastel par case et par espace ── */\n" + "\n".join(_clair) + "\n@media (prefers-color-scheme: dark){\n" + "\n".join('html.look-v2[data-mode="auto"] ' + x[len('html.look-v2 '):] for x in _fonce) + "\n}\n" + "\n".join('html.look-v2[data-mode="dark"] ' + x[len('html.look-v2 '):] for x in _fonce) + "\n"
+
 out = []
 out.append("""/* ═══════════════════════════════════════════════════════════
    DCT — V2 (nouveau look) · look-v2.css · 04/11/2026
@@ -202,5 +225,6 @@ out.append(r"""
 .lk-appliquer:disabled{opacity:.45;cursor:default}
 """)
 out.append(gen_dark_remap.css_sombre())
+out.append(TEINTES)
 open(sys.argv[1], 'w', encoding='utf-8').write("\n".join(out) + "\n")
 print('ok', len("\n".join(out)), 'octets')
