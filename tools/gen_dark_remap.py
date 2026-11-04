@@ -71,11 +71,14 @@ def regles_classes():
 
 def regles():
     fonds, textes = couleurs()
-    out = []
+    out = ['[style*="background:white" i],[style*="background: white" i],[style*="background-color:white" i],[style*="background-color: white" i]{background:#16211B !important}']
     for h in fonds:
         v = fond_sombre(h)
         if not v: continue
         sel = ','.join('[style*="background:#%s" i],[style*="background: #%s" i]' % (f, f) for f in formes(h))
+        c = rgb(h)
+        if lum(c) > 0.85:   # style réécrit par le navigateur (cssText / JS) : background: rgb(r, g, b)
+            sel += ',[style*="background: rgb(%d, %d, %d)" i],[style*="background:rgb(%d, %d, %d)" i]' % (c + c)
         out.append('%s{background:%s !important}' % (sel, v))
     for h in textes:
         v = texte_clair(h)

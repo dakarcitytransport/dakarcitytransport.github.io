@@ -6139,3 +6139,8 @@ Barre flottante en verre, V2 seulement (`#lk-dock`, look.js) : visible sur les �
 > Cobey : « ok vas-y » (le gros bouton par client, comme dans la maquette).
 
 Dans le détail d'un container (V2 seulement), chaque client a un grand bouton (Relancer le paiement / Prévenir / Avis demandé, sinon Facture) et les autres actions (Facture, Photos, Copier, Déplacer, Détacher) en petites icônes. Les boutons gardent leur code et leur clic ; `look.js` (`actionsClients`) ne change que la présentation, et la remet comme avant en V1.
+
+### 04/11/2026 — V2 : France, Collecte, Planning, Suivi, Activité en sombre (dct-app v3.99.159)
+> Cobey : « continue avec France et Collecte ».
+
+Le remappage sombre couvre aussi les styles réécrits par le navigateur (`background: rgb(...)`, `white`) : carte de chiffres et barre de recherche de France, etc. Vérifiés en clair et en sombre : France, Collecte, Planning, Suivi, Activité. `look-v2.css` ~270 Ko. V1 inchangée (74 écrans identiques).
