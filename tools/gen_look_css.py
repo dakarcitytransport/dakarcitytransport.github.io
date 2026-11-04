@@ -1,5 +1,7 @@
 # Génère look-v2.css (V2). Les icônes des 18 menus sont des masques SVG encodés.
 import urllib.parse, sys
+sys.path.insert(0, __import__('os').path.dirname(__import__('os').path.abspath(__file__)))
+import gen_dark_remap
 ICONS = {
  'departs':'M16.5 9.4 7.5 4.2M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7zM3.3 7 12 12l8.7-5M12 22V12',
  'stockage':'M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35zM6 18h12M6 14h12',
@@ -127,6 +129,21 @@ html.look-v2 .lk-dots i{width:7px;height:7px;border-radius:99px;background:var(-
 html.look-v2 .lk-dots i.on{width:20px;background:var(--green)}
 @media (prefers-reduced-motion:reduce){html.look-v2 .lk-dots i{transition:none}}
 html.look-v2 .lk-hero{display:block;width:100%;text-align:left;border:1px solid rgba(255,255,255,.22);cursor:pointer;margin:0 0 16px;padding:18px;border-radius:28px;color:#fff;font-family:var(--font);background:linear-gradient(150deg,var(--lk-hero-a),var(--lk-hero-b));box-shadow:0 14px 34px rgba(8,60,36,.28)}
+
+/* ── Départs, Container et listes : surfaces en verre (les teintes en ligne restent prioritaires) ── */
+html.look-v2 .dep-card,html.look-v2 .dep-cli,html.look-v2 .dep-switch,html.look-v2 .pa-row,html.look-v2 .dep-fc-champ{background:var(--lk-glass);border:1px solid var(--lk-edge);border-radius:22px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+html.look-v2 .dep-card{border-left-width:5px}
+html.look-v2 .dep-cli{padding:14px 15px}
+html.look-v2 .dep-st,html.look-v2 .pa-chip{background:var(--lk-field);border:1px solid var(--lk-edge);border-radius:99px}
+html.look-v2 .dep-st.on,html.look-v2 .pa-chip.on{background:var(--lk-g);border-color:var(--green);color:var(--lk-tg)}
+html.look-v2 .dep-cli-btn{background:var(--lk-b);border:1px solid transparent;color:var(--lk-tb);border-radius:14px;padding:10px 8px;font-size:12px}
+html.look-v2 .dep-alert{background:var(--lk-o);border:1px solid transparent;color:var(--lk-to);border-radius:18px}
+html.look-v2 .dep-photo-box{background:var(--lk-field);border-radius:20px}
+html.look-v2 .dep-badge{border-radius:99px}
+html.look-v2 body .dep-case[style]{background:var(--lk-glass) !important}
+html.look-v2 body .dep-case .dep-case-tit[style],html.look-v2 body .dep-case .dep-case-tit [style]{color:var(--text) !important}
+html.look-v2 #dep-fm-suivi-container{background:var(--lk-v) !important;border:1px solid transparent !important;border-radius:20px !important}
+html.look-v2 .dep-vide{color:var(--text3)}
 html.look-v2 .bottomnav{display:none !important}
 html.look-v2 #lk-dock{position:fixed;left:50%;transform:translateX(-50%);bottom:max(12px,env(safe-area-inset-bottom));width:min(calc(100% - 24px),406px);z-index:60;display:flex;gap:4px;padding:6px;border-radius:26px;background:var(--lk-glass);border:1px solid var(--lk-edge);box-shadow:0 10px 30px rgba(8,30,20,.22);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 html.look-v2 #lk-dock button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;border:0;border-radius:20px;background:transparent;color:var(--text2,#6b7b72);font:700 11px/1 var(--font);cursor:pointer}
@@ -180,5 +197,6 @@ out.append(r"""
 .lk-appliquer{width:100%;height:50px;border-radius:18px;border:0;font:inherit;font-weight:800;background:var(--green);color:var(--lk-on-g,#fff);cursor:pointer;margin-top:4px}
 .lk-appliquer:disabled{opacity:.45;cursor:default}
 """)
+out.append(gen_dark_remap.css_sombre())
 open(sys.argv[1], 'w', encoding='utf-8').write("\n".join(out) + "\n")
 print('ok', len("\n".join(out)), 'octets')

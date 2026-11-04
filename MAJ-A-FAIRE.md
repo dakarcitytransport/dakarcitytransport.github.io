@@ -6127,3 +6127,10 @@ Orange = en préparation, bleu = en route / parti, vert = arrivé (versions plus
 > Cobey : « dans la maquette, il y avait des lignes en dessous avec client, accueil. Et là, il n'y a pas » ; « continue de faire les changements dans la suite que tu avais déjà programmée ».
 
 Barre flottante en verre, V2 seulement (`#lk-dock`, look.js) : visible sur les écrans de liste (accueil, clients, suivi, activité, départs, stockage, France, collecte, planning…), cachée sur les formulaires et documents ; onglet actif en vert ; « Activité » masquée pour les profils sans activité. L'ancienne barre V1 est masquée en V2. V1 inchangée.
+
+### 04/11/2026 — V2 : Départs, Container et mode sombre partout (dct-app v3.99.156)
+> Cobey : « ok vas-y » (écrans Départs et Container).
+
+- Cartes des départs, cartes clients, boutons, pastilles, alertes : surfaces en verre, boutons arrondis (V2 seulement).
+- Mode sombre : `tools/gen_dark_remap.py` génère (depuis les sources) les versions sombres des couleurs écrites en dur (fonds pastel, textes foncés, règles CSS de departs.js / dct-app.html). `look-v2.css` passe à ~245 Ko (à alléger plus tard si besoin). Les teintes en ligne (ex. client livré) restent visibles. Écran « facture manuelle liée » et tuiles de l'accueil / Réglages corrigés.
+- Pas encore fait : bouton d'action principal unique par client (maquette K), balayage des ~70 autres écrans en sombre. V1 inchangée (74 écrans identiques).
