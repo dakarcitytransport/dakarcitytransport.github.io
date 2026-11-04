@@ -218,7 +218,8 @@
     var pct = d.statut === 'preparation' ? 0 : (d.etapes ? Math.round(100 * d.fait / d.etapes) : 0);
     var droite = d.statut === 'preparation'
       ? (d.depart ? 'Départ prévu <b>' + dateCourte(d.depart) + '</b>' : '')
-      : (d.arrivee ? 'Arrivée prévue <b>' + dateCourte(d.arrivee) + '</b>' : '');
+      : (d.statut === 'arrive' && d.arriveeReelle ? 'Arrivé le <b>' + d.arriveeReelle + '</b>'
+        : (d.arrivee ? 'Arrivée prévue <b>' + dateCourte(d.arrivee) + '</b>' : ''));
     var classe = d.statut === 'preparation' ? 'lk-prep' : (d.statut === 'arrive' ? 'lk-arr' : 'lk-route-st');
     return '<button type="button" class="lk-hero lk-slide ' + classe + (ouvrable ? '' : ' lk-fixe') + '" data-i="' + i + '"' + (ouvrable ? ' onclick="depDetail(\'' + d.id + '\')"' : ' tabindex="-1" aria-disabled="true"') + '>'
       + '<span class="lk-pays">' + (d.pays === 'ML' ? '🇲🇱 MALI' : '🇸🇳 SÉNÉGAL') + '</span>'

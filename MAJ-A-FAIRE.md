@@ -6210,3 +6210,8 @@ Tout le monde voit les cartes (et peut les faire défiler). Seuls les profils qu
 > Cobey : « un conteneur clôturé doit être clôturé uniquement quand il est soldé. S'il reste du paiement, il ne doit pas être clôturé. J'ai clôturé un conteneur, mais en vrai il reste des gens qui n'ont pas payé. »
 
 `_depNbImpayesDepart(id)` compte les clients du départ avec un reste à payer (colis + livraison, fiches fusionnées exclues). Dans Modifier, cocher « Clôturé » est refusé (message : « Impossible de clôturer : N clients n'ont pas tout payé ») ; l'enregistrement le refuse aussi. Testé : BMK et DKR avec impayés refusés ; départs sans impayé acceptés. **Les containers déjà clôturés ne sont pas touchés** : pour en rouvrir un, Modifier > décocher « Clôturé ».
+
+### 04/11/2026 — Cartes de l'accueil : date réelle d'arrivée (dct-app v3.99.175, departs v2.22.24)
+> Cobey : « dans les cartes où les conteneurs sont arrivés, il y a toujours marqué arrivée prévue. Or ils sont déjà arrivés. Je pense qu'il faudrait mettre la date où ils sont arrivés. »
+
+Pour un container « arrivé », la carte affiche « Arrivé le JJ/MM » (horodatage de l'étape « Arrivée au dépôt », sinon du passage au statut arrivé) ; sans cette date, elle garde « Arrivée prévue ». Les autres statuts ne changent pas. Testé avec deux cas (étape validée / historique de statut).

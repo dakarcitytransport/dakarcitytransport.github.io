@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.23';
+var DEP_VERSION = 'v2.22.24';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5750,7 +5750,17 @@ window.depDepartsCarte = function(){
     etapes.forEach(function(e){ if(d.etapesTransport && d.etapesTransport[e.key] && d.etapesTransport[e.key].fait) fait++; });
     var c = {};
     try{ c = compteursDepart(d._id) || {}; }catch(e){}
-    return { id: d._id, nom: d.nom || 'Container', statut: d.statut || 'preparation',
+    // Date réelle d'arrivée (Cobey, 04/11/2026 : « il est marqué arrivée prévue alors qu'ils sont déjà arrivés ») :
+    // horodatage de l'étape finale « Arrivée au dépôt », sinon du passage au statut « arrivé ».
+    var tsArr = 0;
+    try{
+      var ef = d.etapesTransport && d.etapesTransport.arrivee_depot;
+      if(ef && ef.fait && ef.ts) tsArr = ef.ts;
+      else if(Array.isArray(d.histStatut)){ d.histStatut.forEach(function(h){ if(h && h.statut === 'arrive' && h.ts) tsArr = h.ts; }); }
+    }catch(e){}
+    var arriveeReelle = '';
+    if(tsArr){ try{ arriveeReelle = new Date(tsArr).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit' }); }catch(e){} }
+    return { id: d._id, nom: d.nom || 'Container', statut: d.statut || 'preparation', arriveeReelle: arriveeReelle,
              pays: depPaysDepart(d), clients: c.clients || 0, etapes: etapes.length, fait: fait,
              arrivee: d.dateArriveePrevue || '', depart: d.dateDepart || '', ouvert: !!d.ouvertInscription };
   });
