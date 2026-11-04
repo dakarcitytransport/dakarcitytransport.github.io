@@ -6122,3 +6122,8 @@ Orange = en préparation, bleu = en route / parti, vert = arrivé (versions plus
 
 - Carrousel V2 : pastille 🇲🇱 MALI / 🇸🇳 SÉNÉGAL en haut à droite de chaque carte.
 - Bug (ancien, pas lié à V2) : `_depDepartAuDepotDakar` prenait tout départ « arrivé », même Mali → ses clients apparaissaient au Dépôt Dakar (liste, compteur Stockage, étiquettes de livraison). Un container Mali est maintenant exclu. Aucune donnée touchée.
+
+### 04/11/2026 — V2 : barre du bas Accueil · Clients · Suivi · Activité (dct-app v3.99.151)
+> Cobey : « dans la maquette, il y avait des lignes en dessous avec client, accueil. Et là, il n'y a pas » ; « continue de faire les changements dans la suite que tu avais déjà programmée ».
+
+Barre flottante en verre, V2 seulement (`#lk-dock`, look.js) : visible sur les écrans de liste (accueil, clients, suivi, activité, départs, stockage, France, collecte, planning…), cachée sur les formulaires et documents ; onglet actif en vert ; « Activité » masquée pour les profils sans activité. L'ancienne barre V1 est masquée en V2. V1 inchangée.

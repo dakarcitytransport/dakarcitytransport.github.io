@@ -60,6 +60,7 @@
     try{ var tc = document.querySelector('meta[name="theme-color"]'); if(tc) tc.setAttribute('content', v2 && sombreMaintenant() ? '#080D0B' : '#F3F7F4'); }catch(e){}
     boutonTheme();
     carteDepart();
+    try{ majDock(); }catch(e){}
   }
   window.lookEffectif = effectif;
   window.lookAppliquer = appliquer;
@@ -101,6 +102,58 @@
     b.innerHTML = ic(sombreMaintenant() ? 'moon' : 'sun');
   }
   if(window.matchMedia){ try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', boutonTheme); }catch(e){} }
+
+
+  /* ---------- barre du bas : Accueil · Clients · Suivi · Activité (V2 seulement) ----------
+     Cobey : « dans la maquette il y avait des lignes en dessous avec client, accueil ». Visible sur
+     les écrans de liste, pas sur les formulaires ni les documents (clavier, impression). */
+  var DOCK_ECRANS = { 's-espaces':'accueil', 's-home':'accueil', 's-clients':'clients', 's-suivi':'suivi', 's-suivi-detail':'suivi',
+    's-activite':'activite', 's-departs-pays':'accueil', 's-departs':'accueil', 's-depart-detail':'accueil', 's-dep-stockage':'accueil',
+    's-dep-depot-dakar':'accueil', 's-france':'accueil', 's-collecte':'accueil', 's-planning':'accueil', 's-archive':'accueil',
+    's-fidelite-liste':'accueil', 's-depot-carre-liste':'accueil', 's-stats-menu':'accueil' };
+  var DOCK_SVG = {
+    accueil:'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+    clients:'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+    suivi:'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+    activite:'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0'
+  };
+  var DOCK_LIB = { accueil:'Accueil', clients:'Clients', suivi:'Suivi', activite:'Activité' };
+  function dockAller(t){
+    try{
+      if(t === 'accueil'){ goTo('s-espaces'); if(typeof depRenderEspaces === 'function') depRenderEspaces(); }
+      else if(t === 'clients'){ if(typeof depOuvrirEspaceClient === 'function') depOuvrirEspaceClient(); else setNav('clients'); }
+      else setNav(t);
+    }catch(e){ console.error('look : barre du bas', e); }
+  }
+  function majDock(){
+    var h = document.documentElement;
+    var actif = document.querySelector('.screen.active');
+    var cle = actif ? DOCK_ECRANS[actif.id] : null;
+    var dock = document.getElementById('lk-dock');
+    var voir = effectif() === 'v2' && !!cle && !!window.currentUser;
+    if(!voir){ if(dock) dock.style.display = 'none'; h.classList.remove('lk-dock-on'); return; }
+    if(!dock){
+      dock = document.createElement('nav');
+      dock.id = 'lk-dock'; dock.setAttribute('aria-label', 'Navigation principale');
+      dock.innerHTML = ['accueil','clients','suivi','activite'].map(function(t){
+        return '<button type="button" data-t="' + t + '"><svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + DOCK_SVG[t] + '"/></svg><span>' + DOCK_LIB[t] + '</span></button>';
+      }).join('');
+      dock.addEventListener('click', function(ev){ var b = ev.target.closest('button[data-t]'); if(b) dockAller(b.getAttribute('data-t')); });
+      document.body.appendChild(dock);
+    }
+    var sans = !!(window.currentUser && typeof _sansActivite === 'function' && _sansActivite(window.currentUser.id));
+    dock.style.display = '';
+    h.classList.add('lk-dock-on');
+    [].forEach.call(dock.querySelectorAll('button'), function(b){
+      var t = b.getAttribute('data-t');
+      b.classList.toggle('on', t === cle);
+      b.style.display = (t === 'activite' && sans) ? 'none' : '';
+    });
+  }
+  if(typeof window.goTo === 'function'){
+    var origGoTo = window.goTo;
+    window.goTo = function(){ var r = origGoTo.apply(this, arguments); try{ majDock(); }catch(e){} return r; };
+  }
 
   /* ---------- carrousel des départs, sur l'accueil (V2 seulement) ----------
      Cobey : « on swipe vers la gauche et on voit le conteneur suivant, vers la droite
