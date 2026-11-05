@@ -51,6 +51,38 @@
   };
   function ic(n){ return '<svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + SVG[n] + '"/></svg>'; }
 
+  /* ---------- PDF / étiquettes toujours en CLAIR ----------
+     Cobey : « en mode nuit, quand on imprime les étiquettes, elles sortent noires ».
+     Les PDF sont des captures (html2canvas) de la page : elles reprenaient le mode nuit.
+     On enveloppe html2canvas (au moment où la librairie se charge) : la copie qu'il capture
+     passe en data-mode="light" ; l'écran, lui, ne bouge pas. */
+  (function(){
+    var vraie = window.html2canvas;
+    function envelopper(f){
+      if(typeof f !== 'function' || f.__dctClair) return f;
+      var g = function(el, opts){
+        opts = opts || {};
+        var autre = opts.onclone;
+        opts.onclone = function(doc){
+          try{ doc.documentElement.setAttribute('data-mode', 'light'); }catch(e){}
+          if(typeof autre === 'function') return autre.apply(this, arguments);
+        };
+        return f.call(this, el, opts);
+      };
+      g.__dctClair = true;
+      for(var k in f){ try{ g[k] = f[k]; }catch(e){} }
+      return g;
+    }
+    try{
+      var cache = envelopper(vraie);
+      Object.defineProperty(window, 'html2canvas', {
+        configurable:true, enumerable:true,
+        get:function(){ return cache; },
+        set:function(f){ cache = envelopper(f); }
+      });
+    }catch(e){}
+  })();
+
   /* ---------- appliquer ---------- */
   function appliquer(){
     var h = document.documentElement;
