@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.24';
+var DEP_VERSION = 'v2.22.25';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5926,17 +5926,11 @@ window.depRenderEspaces = function(){
       + '<br>'+nbColT+' collecte'+(nbColT>1?'s':'')+' archiv&eacute;e'+(nbColT>1?'s':'');
   }
 
-  // Case RAPPORT FINANCIER — v1.92.0 : elle annonce le bénéfice, comme
-  // les autres annoncent leur chiffre.
+  // Case RAPPORT FINANCIER — v1.92.0 annonçait le bénéfice ; retiré le 05/11/2026 (Cobey : « je veux retirer ça,
+  // c'est trop visible, on va le laisser à l'intérieur »). Le bénéfice reste dans l'écran Rapport financier > Bilan.
   if(_voit('rapfin')){
     var srf = $('dep-case-sub-rf');
-    if(srf){
-      try{
-        var bf = _depBilanFinancier();
-        srf.innerHTML = 'B&eacute;n&eacute;fice<br><b style="color:'
-          + (bf.benefice < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(bf.benefice) + ' &euro;</b>';
-      }catch(e){ srf.innerHTML = 'Containers, bilan, statistiques'; }
-    }
+    if(srf) srf.innerHTML = 'Bilan, statistiques, containers';
   }
 
   // Case RÉGLAGES (v1.19.8) — remplace la molette de l'écran Collecte.

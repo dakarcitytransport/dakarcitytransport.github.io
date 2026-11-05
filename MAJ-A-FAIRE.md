@@ -6225,3 +6225,8 @@ Pastille « J-n » sur la carte « En préparation » de l'accueil V2 (look.js `
 > Cobey : « pour les conteneurs arrivés, on ne sait pas de quel conteneur on parle, de quel départ [...] également pour les conteneurs en route » — « oui ».
 
 Sous le nom, « départ du JJ/MM » sur les cartes « en route » et « arrivé » (deux « Chargement BMK » se distinguent : 13/09 et 27/09). Pas sur « En préparation » : la date de départ est déjà en bas de la carte, avec le J-n. V1 inchangée.
+
+### 05/11/2026 — Accueil : plus de bénéfice sous « Rapport financier » (dct-app v3.99.178, departs v2.22.25)
+> Cobey : « dans la case rapport financier on voit le montant des bénéfices en sous-titre. Je veux retirer ça, c'est trop visible. On va le laisser à l'intérieur. »
+
+La case de l'accueil affiche « Bilan, statistiques, containers » au lieu du bénéfice. Le bénéfice reste visible dans Rapport financier > case Bilan. Valable en V1 et V2.
