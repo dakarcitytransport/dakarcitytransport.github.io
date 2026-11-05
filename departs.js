@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.28';
+var DEP_VERSION = 'v2.22.29';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2805,6 +2805,17 @@ function injecterStyles(){
     // retrouvait quasi nulle et illisible (retour de Cobey du 23/08/2026,
     // capture à l'appui). Boutons désormais sur leur propre rangée, sous le
     // texte, jamais en concurrence de largeur avec lui.
+    // Écran Documents (05/11/2026) : bandeau de validation + liste d'actions.
+    + '.doc-ok{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:22px;background:rgba(14,159,91,.14);margin-bottom:16px;}'
+    + '.doc-ok-c{width:42px;height:42px;border-radius:50%;background:#0E9F5B;color:#fff;display:flex;align-items:center;justify-content:center;flex:none;}'
+    + '.doc-ok b{font-size:16px;display:block;color:var(--text);}.doc-ok span#dep-doc-sous{font-size:12.5px;color:var(--text3);}'
+    + '.doc-liste{background:var(--white);border:1px solid var(--border);border-radius:26px;overflow:hidden;box-shadow:0 8px 22px rgba(20,70,45,.08);}'
+    + '.doc-ligne{display:flex;align-items:center;gap:14px;width:100%;padding:15px 16px;border:0;border-bottom:1px solid var(--border);background:transparent;font-family:var(--font);text-align:left;cursor:pointer;color:var(--text);}'
+    + '.doc-ligne:last-child{border-bottom:0;}.doc-ligne:active{background:rgba(0,0,0,.05);}'
+    + '.doc-i{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:none;}'
+    + '.doc-tx{flex:1;min-width:0;}.doc-tx b{display:block;font-size:15.5px;}.doc-tx span{font-size:12.5px;color:var(--text3);}'
+    + '.doc-ch{color:var(--text3);opacity:.6;display:flex;}'
+    + '.doc-lien{display:block;width:100%;margin-top:18px;padding:10px;background:none;border:0;color:var(--text2);font-family:var(--font);font-weight:700;font-size:14px;cursor:pointer;}'
     + '.dep-cli-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}'
     + '.dep-cli-btn{background:#EEF0FA;border:1.5px solid #C5CAE9;color:#252599;border-radius:8px;'
     +   'padding:7px 6px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);'
@@ -3611,23 +3622,19 @@ function injecterEcrans(){
   +     '<div style="width:60px;"></div>'
   +   '</div>'
   +   '<div class="content">'
-  +     '<div style="text-align:center;color:#006b2d;font-weight:800;font-size:14px;margin-bottom:20px;">&#9989; Collecte valid&eacute;e</div>'
-  +     '<button class="btn btn-green" onclick="depOuvrirFacturePDF()">&#128424;&#65039; Imprimer / PDF</button>'
-  +     '<button class="btn" style="background:#111;color:#fff;margin-top:10px;" onclick="depOuvrirEtiquette()">&#127991;&#65039; &Eacute;tiquette</button>'
-  +     '<button class="btn" style="background:#25D366;color:#fff;margin-top:10px;" onclick="depPartagerWhatsapp()">&#128172; Envoyer par WhatsApp</button>'
+  // 05/11/2026 — Cobey : « la page de consultation des documents [...] vraiment moche » — choix « B » : bandeau de
+  // validation + liste d'actions (icône, titre, explication). Les actions et leurs fonctions ne changent pas.
+  +     '<div class="doc-ok"><span class="doc-ok-c"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></span><div><b>Collecte valid&eacute;e</b><span id="dep-doc-sous"></span></div></div>'
+  +     '<div class="doc-liste">'
+  +       '<button type="button" class="doc-ligne" onclick="depOuvrirFacturePDF()"><span class="doc-i" style="background:rgba(14,159,91,.16);color:#0A7A45;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg></span><span class="doc-tx"><b>Facture en PDF</b><span>Imprimer ou enregistrer</span></span><span class="doc-ch"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></span></button>'
+  +       '<button type="button" class="doc-ligne" onclick="depOuvrirEtiquette()"><span class="doc-i" style="background:rgba(224,130,15,.16);color:#A8500A;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8zM7 7h.01"/></svg></span><span class="doc-tx"><b>&Eacute;tiquette du colis</b><span>Pr&ecirc;te &agrave; imprimer</span></span><span class="doc-ch"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></span></button>'
+  +       '<button type="button" class="doc-ligne" onclick="depPartagerWhatsapp()"><span class="doc-i" style="background:rgba(37,211,102,.18);color:#128C4A;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="doc-tx"><b>Envoyer par WhatsApp</b><span>Message et lien de la facture</span></span><span class="doc-ch"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></span></button>'
   // v1.19.27 : copier le texte du message — certains clients n'ont pas
   // WhatsApp (retour de Cobey du 22/08/2026).
-  +     '<button class="btn" style="background:#1a237e;color:#fff;margin-top:10px;" onclick="depCopierMessageWhatsapp()">&#128203; Copier le message</button>'
-  // v1.19.27 : retour direct vers la tourn&eacute;e pour encha&icirc;ner sur
-  // le client suivant, sans repasser par la facture (retour de Cobey :
-  // "aucun moyen de revenir directement sur la dispatch").
-  // v1.20.29 : masqu&eacute; (voir _depAfficherEcranDocuments) quand on
-  // n'arrive pas vraiment d'une tourn&eacute;e (carr&eacute; D&eacute;part
-  // ou inscription D&eacute;p&ocirc;t direct) &mdash; sinon il renvoyait
-  // vers un &eacute;cran Camion sans rapport (retour de Cobey du
-  // 03/09/2026 : "&ccedil;a donne trop de possibilit&eacute;s de
-  // s'&eacute;parpiller et de se perdre").
-  +     '<button id="dep-doc-retour-tournee" class="btn btn-gray" style="margin-top:18px;" onclick="depRetourDocumentsListe()">&#128666; Retour &agrave; la tourn&eacute;e</button>'
+  +       '<button type="button" class="doc-ligne" onclick="depCopierMessageWhatsapp()"><span class="doc-i" style="background:rgba(61,99,227,.15);color:#2744B8;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="doc-tx"><b>Copier le message</b><span>Pour un autre moyen d&rsquo;envoi</span></span><span class="doc-ch"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></span></button>'
+  +     '</div>'
+  // v1.19.27 : retour direct vers la tournée (voir _depAfficherEcranDocuments : masqué hors tournée).
+  +     '<button id="dep-doc-retour-tournee" type="button" class="doc-lien" onclick="depRetourDocumentsListe()">&#128666; Retour &agrave; la tourn&eacute;e</button>'
   +   '</div>'
   + '</div>'
 
@@ -9339,6 +9346,15 @@ function _depAfficherEcranDocuments(){
     var venuDeTournee = !window._depDocVientDepart && !window._depDocVientDakar && !(ctx && ctx.depot);
     btnTournee.style.display = venuDeTournee ? '' : 'none';
   }
+  try{
+    var sous = $('dep-doc-sous'), cx = _depFactureCtx;
+    if(sous && cx){
+      var cc = _depClientFacture(cx);
+      var nm = cc ? (cc.name || ((cc.prenom || '') + ' ' + (cc.nom || '')).trim()) : '';
+      var nf = cc ? depNumeroFacture(cc, cx) : '';
+      sous.textContent = [nm, nf].filter(Boolean).join(' \u00B7 ');
+    }
+  }catch(e){}
   goTo('s-dep-impression');
 }
 

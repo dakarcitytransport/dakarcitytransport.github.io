@@ -6256,3 +6256,8 @@ Les lignes de connexion (visibles par Eric) n'ont plus de fond ni de trait bleu 
 > Cobey : « les boutons que tu as mis [...] c'est pas très beau, on dirait des boutons collés sur la page. Faut changer l'approche. » — choix « B ».
 
 Les gros boutons collés (v3.99.182) sont remplacés par une barre de titre collée en haut de la facture : « ‹ Facture » à gauche, et à droite les icônes Imprimer/PDF, WhatsApp, Copier. Pour un visiteur non connecté (lien client) : titre + Imprimer/PDF seulement. Plus aucun bouton en bas. Correction au passage : la v3.99.182 avait par erreur redéfini la classe `.fac-topbar` (le liseré vert du haut des documents) ; rétabli. La navigation Retour → Documents → « ← Facture » reste corrigée.
+
+### 05/11/2026 — Écran Documents : liste d'actions (dct-app v3.99.184, departs v2.22.29)
+> Cobey : « la page de consultation des documents, là où on peut imprimer, consulter la facture, imprimer les étiquettes, copier le message WhatsApp. Je trouve cette page vraiment moche. Peut-on trouver autre chose ? » — choix « B ».
+
+Les 4 gros boutons de couleur empilés sont remplacés par un bandeau « Collecte validée » (avec nom du client et n° de facture) et une liste : Facture en PDF, Étiquette du colis, Envoyer par WhatsApp, Copier le message (icône, titre, explication, flèche). « Retour à la tournée » devient un lien discret, toujours masqué hors tournée. Mêmes fonctions qu'avant ; clair / sombre / V1.
