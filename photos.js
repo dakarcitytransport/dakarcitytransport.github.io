@@ -112,7 +112,7 @@
   }
   if(typeof window.depRenderEspaces === 'function'){
     var origEsp = window.depRenderEspaces;
-    window.depRenderEspaces = function(){ var r = origEsp.apply(this, arguments); tout(); return r; };
+    window.depRenderEspaces = function(){ var r = origEsp.apply(this, arguments); tout(); try{ nouveautes(); }catch(e){} return r; };
   }
   if(window.MutationObserver){
     var liste = document.getElementById('activity-list');
@@ -264,6 +264,77 @@
     });
     document.body.appendChild(o);
   }
-  window.photosProfil = { appliquer: tout, menu: ouvrirMenu, photos: function(){ return photos; } };
+
+  /* ---------- Fenêtre « Nouveauté » : à la première connexion après la mise à jour, une seule fois par personne ----------
+     Cobey : « à leur prochaine connexion, un pop-up pour leur indiquer qu'ils peuvent mettre une photo de profil,
+     et expliquer comment ; comme dans une application, on le voit à la première connexion, après ça disparaît. »
+     Mémorisé dans Firebase (dct_nouveautes_vues/<ID>/<nouveauté>) : une fois par personne, pas par téléphone.
+     Pas affichée à qui a déjà une photo. Pour une future nouveauté : ajouter une entrée à NOUVEAUTES. */
+  var NOUVEAUTES = [
+    { id: 'photo_profil',
+      deja: function(u){ return !!photos[u.id]; },   // déjà fait : on ne dérange pas
+      html: function(){
+        var etape = function(n, t, d){ return '<div style="display:flex;gap:12px;align-items:center;background:rgba(14,159,91,.1);border-radius:18px;padding:11px 14px"><div style="width:30px;height:30px;border-radius:50%;background:#0E9F5B;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none">' + n + '</div><div><b style="font-size:14.5px;display:block">' + t + '</b><span style="font-size:12.5px;color:var(--text3,#55675E)">' + d + '</span></div></div>'; };
+        var u = moi() || {};
+        return '<div style="display:flex;justify-content:center;margin:6px 0 10px"><div style="position:relative;width:92px;height:92px">'
+          + '<div style="width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,#BDEBD3,#DCD3FF);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:30px;color:#0A7A45">' + esc(u.id || '') + '</div>'
+          + '<div style="position:absolute;right:-4px;bottom:-4px;width:38px;height:38px;border-radius:50%;background:#0E9F5B;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(14,159,91,.45);border:3px solid var(--white,#fff)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div></div></div>'
+          + '<div style="text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;color:#0A7A45;margin-bottom:4px">NOUVEAUTÉ</div>'
+          + '<div style="text-align:center;font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px">Ajoute ta photo de profil</div>'
+          + '<div style="text-align:center;font-size:14px;color:var(--text3,#55675E);margin-bottom:16px;line-height:1.4">Ta photo remplace tes initiales à l’accueil, à la connexion et dans l’activité de l’équipe.</div>'
+          + '<div style="display:grid;gap:10px;margin-bottom:18px">'
+          + etape('1', 'Touche ta pastille', 'en haut à droite de l’accueil (tes initiales)')
+          + etape('2', 'Choisis « Ajouter ma photo »', 'prends-la ou choisis-la dans ton téléphone')
+          + etape('3', 'Cadre et valide', 'déplace avec le doigt, pince pour zoomer')
+          + '</div>';
+      },
+      action: { texte: '📷 Ajouter ma photo maintenant', faire: function(){ choisir(); } } }
+  ];
+  var nvEnCours = false, nvVerifiePour = '';
+  function nvVu(id, nv){ try{ return localStorage.getItem('dct_nv_' + id + '_' + nv) === '1'; }catch(e){ return false; } }
+  function nvMarquer(id, nv){
+    try{ localStorage.setItem('dct_nv_' + id + '_' + nv, '1'); }catch(e){}
+    try{ if(window.db && window.firebaseReady) db.ref('dct_nouveautes_vues/' + id + '/' + nv).set(Date.now()); }catch(e){}
+  }
+  function nvAfficher(nv, u){
+    nvEnCours = true;
+    var o = document.createElement('div');
+    o.id = 'ph-nouveaute'; o.className = 'ph-ov';
+    o.style.zIndex = '9600';
+    o.innerHTML = '<div class="ph-sh" role="dialog" aria-label="Nouveauté"><div style="width:42px;height:5px;border-radius:99px;background:rgba(127,127,127,.3);margin:0 auto 12px"></div>'
+      + nv.html()
+      + '<button type="button" class="ph-b" data-a="ok" style="justify-content:center;background:#0E9F5B;color:#fff;height:52px;font-size:16px;font-weight:800;margin-top:0">' + nv.action.texte + '</button>'
+      + '<button type="button" class="ph-b fin" data-a="plus">Plus tard</button></div>';
+    o.addEventListener('click', function(ev){
+      var b = ev.target.closest('button[data-a]');
+      if(!b && ev.target !== o) return;
+      var a = b ? b.getAttribute('data-a') : 'plus';
+      if(o.parentNode) o.parentNode.removeChild(o);
+      nvEnCours = false;
+      nvMarquer(u.id, nv.id);
+      if(a === 'ok') nv.action.faire();
+    });
+    document.body.appendChild(o);
+  }
+  function nouveautes(){
+    var u = moi();
+    if(!u || !u.id || u.societe || nvEnCours || nvVerifiePour === u.id) return;
+    if(!window.db || !window.firebaseReady) return;
+    var sur = function(){ var a = document.querySelector('.screen.active'); return !!a && a.id === 's-espaces'; };
+    if(!sur()) return;   // seulement sur l'accueil, une fois connecté (pas sur l'écran de connexion)
+    nvVerifiePour = u.id;
+    var a_voir = NOUVEAUTES.filter(function(nv){ return !nvVu(u.id, nv.id); });
+    if(!a_voir.length) return;
+    db.ref('dct_nouveautes_vues/' + u.id).once('value', function(snap){
+      var vues = snap.val() || {};
+      setTimeout(function(){
+        var nv = a_voir.filter(function(x){ if(vues[x.id]){ try{ localStorage.setItem('dct_nv_' + u.id + '_' + x.id, '1'); }catch(e){} return false; } return true; })[0];
+        if(!nv || (moi() || {}).id !== u.id || !sur() || nvEnCours) return;
+        if(nv.deja(u)){ nvMarquer(u.id, nv.id); return; }   // a déjà sa photo : rien à annoncer
+        nvAfficher(nv, u);
+      }, 1500);
+    });
+  }
+  window.photosProfil = { nouveautes: nouveautes, appliquer: tout, menu: ouvrirMenu, photos: function(){ return photos; } };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tout); else tout();
 })();
