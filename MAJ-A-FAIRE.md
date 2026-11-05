@@ -6463,6 +6463,11 @@ Non fait : surligner le client dans la collecte ouverte.
 Cobey : « Remarquez que cette case-là, le texte ne rentre pas forcément dans la case sur mon PC et sur mon téléphone. »
 - V2 : le bouton principal (« Relancer le paiement »…) prend toute la largeur sur sa ligne (texte qui peut passer à la ligne), les petites icônes (Facture, Photos, Copier…) se partagent la ligne du dessous. Plus de texte coupé ni de bouton qui passe en dessous. Testé à 400 px : 79 clients, aucun débordement.
 
+### 05/11/2026 — Étiquettes / PDF : toujours en clair, même en mode nuit (v3.99.221)
+> Cobey : « En mode nuit, quand on imprime les étiquettes, elles sortent noires, c'est pas bon. » → « ok vas-y »
+
+Cause : les PDF (étiquettes, factures, feuilles de route) sont des captures de la page (html2canvas), qui reprenaient le mode nuit. `look.js` enveloppe `html2canvas` : la copie capturée passe en `data-mode="light"` (l'écran ne change pas). Couvre tous les PDF d'un coup. Testé (stub html2canvas, mode nuit : copie en clair, écran en nuit) ; régression 0/74.
+
 ### 05/11/2026 — Photo de fond de l'écran de connexion (EN ATTENTE de validation, pas encore sur `main`)
 > Cobey : « c'est possible dans la page d'accueil, là où on choisit notre profil, de mettre un arrière-plan d'une photo qu'on ferait ensemble ? » ; image créée avec Higgsfield (port de Dakar au crépuscule, camion jaune) sur la base de mon prompt.
 
