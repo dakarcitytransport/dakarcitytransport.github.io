@@ -16,7 +16,7 @@
   function esc(t){ return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
   // Photos mises « d'office » par la direction en attendant que la personne mette la sienne (Cobey, 05/11/2026) :
   // fichiers rangés dans photos-defaut/ (ID.jpg, 192 px). Dès que la personne enregistre sa propre photo, c'est la sienne qui s'affiche.
-  var DEFAUT = { IB: 'photos-defaut/IB.jpg?v=1', BO: 'photos-defaut/BO.jpg?v=1', SA: 'photos-defaut/SA.jpg?v=1', AM: 'photos-defaut/AM.jpg?v=1', IS: 'photos-defaut/IS.jpg?v=1' };   // Ibrahima (Cobey, 05/11/2026). AB retirée : Abdoulaye a déjà mis la sienne.
+  var DEFAUT = { IB: 'photos-defaut/IB.jpg?v=1', BO: 'photos-defaut/BO.jpg?v=1', SA: 'photos-defaut/SA.jpg?v=1', AM: 'photos-defaut/AM.jpg?v=1', IS: 'photos-defaut/IS.jpg?v=1', MN: 'photos-defaut/MN.jpg?v=1' };   // Ibrahima (Cobey, 05/11/2026). AB retirée : Abdoulaye a déjà mis la sienne.
   function source(id){ return photos[id] || DEFAUT[id] || ''; }
   function fond(id){ var f = source(id); return f ? 'url("' + f + '")' : ''; }
   function moi(){ return window.currentUser || null; }
@@ -82,6 +82,7 @@
     var liste = (window.COLLABS || []).slice();
     if(window.currentUser) liste.push(window.currentUser);
     for(var i = 0; i < liste.length; i++){ if(liste[i] && liste[i].name === nom) return liste[i].id; }
+    if(nom === 'Mamadou Niass') return 'MN';   // pas dans COLLABS : sa photo n'apparaît que dans l'Activité (pas dans son propre espace)
     return null;
   }
   function activite(){

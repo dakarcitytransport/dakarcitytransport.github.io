@@ -6472,3 +6472,8 @@ Cause : les PDF (étiquettes, factures, feuilles de route) sont des captures de 
 > Cobey : « c'est possible dans la page d'accueil, là où on choisit notre profil, de mettre un arrière-plan d'une photo qu'on ferait ensemble ? » ; image créée avec Higgsfield (port de Dakar au crépuscule, camion jaune) sur la base de mon prompt.
 
 `fond-connexion.jpg` (768×1344, 45 Ko) + règles dans `tools/gen_look_css.py` (V2 seulement : photo, voile dégradé, titres en blanc, cartes en verre). Aperçu envoyé (clair / sombre). Poussé sur la branche de session seulement ; à passer sur `main` (et monter `APP_VERSION` + `?v=` du CSS) après le « ok » de Cobey.
+
+### 05/11/2026 — Photo de fond de connexion MISE EN LIGNE + photo de Mamadou Niass dans l'activité (v3.99.222)
+> Cobey : « Ok » (photo de fond) ; « et en même temps ajouter cette photo pour Mamadou Niass, pour que l'on voie dans les notifications, par contre pas besoin de la rajouter pour son espace à lui »
+- Écran de connexion (V2) : photo du port au crépuscule décalée vers le bas (camion visible), cases d'espaces en verre dépoli teinté (une couleur par espace : bleu-violet, rose, turquoise, rouge), texte blanc.
+- `photos-defaut/MN.jpg` + `MN` dans la table `DEFAUT` de photos.js ; `idDeNom` reconnaît « Mamadou Niass » → sa photo apparaît dans le fil d'Activité seulement (mamadou.html ne charge pas photos.js : rien dans son espace). Testé (ligne d'activité factice).
