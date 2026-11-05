@@ -65,12 +65,17 @@ html.look-v2 button:focus-visible,html.look-v2 .dep-case:focus-visible{outline:2
 
 /* ── écran de connexion : choix de l'espace, puis du profil ── */
 /* Photo de fond de l'écran de connexion (Cobey, 05/11/2026) : image faite avec Higgsfield (port de Dakar au crépuscule) ; voile pour garder les cartes lisibles. */
-html.look-v2 #s-login{background:linear-gradient(180deg,rgba(6,16,12,.30) 0%,rgba(6,16,12,.10) 40%,rgba(6,16,12,.18) 100%),url(fond-connexion.jpg?v=1) 64% top/auto 130% no-repeat #0a1410 !important}
+html.look-v2 #s-login{background:linear-gradient(180deg,rgba(6,16,12,.30) 0%,rgba(6,16,12,0) 35%,rgba(6,16,12,.10) 100%),url(fond-connexion.jpg?v=1) 64% 0%/auto 124% no-repeat #0a1410 !important}
 html.look-v2 #s-login .login-screen > div:first-of-type{color:#fff !important;text-shadow:0 2px 14px rgba(0,0,0,.45)}
 html.look-v2 #s-login #dep-ligne-pays,html.look-v2 #s-login #login-titre,html.look-v2 #s-login #login-soc-sous,html.look-v2 #s-login #app-version,html.look-v2 #s-login #app-update,html.look-v2 #s-login #dep-login-version{color:rgba(255,255,255,.86) !important;text-shadow:0 1px 8px rgba(0,0,0,.5)}
 html.look-v2 #s-login #login-soc-nom{color:#fff !important;text-shadow:0 1px 8px rgba(0,0,0,.5)}
 html.look-v2 #s-login #dct-logo{border-color:rgba(255,255,255,.85)}
-html.look-v2 #s-login .dep-esp-c{background-color:rgba(255,255,255,.40) !important;backdrop-filter:blur(10px) saturate(1.3);-webkit-backdrop-filter:blur(10px) saturate(1.3)}
+html.look-v2 #s-login .dep-esp-c{background-color:rgba(8,18,13,.30) !important;border-color:rgba(255,255,255,.35) !important;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+html.look-v2 #s-login .dep-esp-c-t{color:#fff !important;font-weight:800;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+html.look-v2 #s-login .dep-esp-c-n{background:rgba(255,255,255,.18) !important;color:#fff !important}
+html.look-v2 #s-login .dep-esp-c-s{color:rgba(255,255,255,.88) !important;font-weight:600;text-shadow:0 1px 5px rgba(0,0,0,.5)}
+html.look-v2 #s-login .dep-esp-c > svg:last-child{stroke:#fff !important}
+html.look-v2 #s-login .dep-esp-c-ic{background:rgba(255,255,255,.88) !important}
 html.look-v2 .login-screen,html.look-v2 .login-screen.dep-clair{background:transparent;padding-top:calc(26px + env(safe-area-inset-top,0px))}
 html.look-v2 #dct-logo{width:76px !important;height:76px !important;margin-bottom:12px !important;border:3px solid var(--lk-edge);box-shadow:0 10px 28px rgba(14,159,91,.28) !important}
 html.look-v2 .login-screen > div:first-of-type{font-size:22px !important;font-weight:800 !important;letter-spacing:-.02em;color:var(--text) !important}
