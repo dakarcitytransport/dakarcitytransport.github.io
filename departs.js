@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.38';
+var DEP_VERSION = 'v2.22.39';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2857,6 +2857,16 @@ function injecterStyles(){
     + '.fc-pil{flex:none;font-weight:800;font-size:12.5px;padding:4px 10px;border-radius:99px;white-space:nowrap;}'
     + '.fc-ok{background:rgba(14,159,91,.15);color:#0A7A45;}.fc-du{background:rgba(217,48,37,.14);color:#C62828;}'
     + '.fc-titre{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin:16px 6px 8px;}'
+    + '.fc-ct{background:var(--white);border:1.5px solid var(--border);border-radius:22px;margin-bottom:10px;overflow:hidden;}'
+    + '.fc-ch{display:flex;align-items:center;gap:11px;padding:12px 14px;cursor:pointer;}'
+    + '.fc-ch .fc-t b{font-size:14px;line-height:1.25;}.fc-fl{flex:none;color:var(--text3);transition:transform .2s;display:flex;}'
+    + '.fc-ct.open .fc-fl{transform:rotate(90deg);}'
+    + '.fc-sous{display:none;background:rgba(14,159,91,.07);border-top:1px solid var(--border);padding:4px 14px 10px 14px;}'
+    + '.fc-ct.open .fc-sous{display:block;}'
+    + '.fc-sl{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;}.fc-sl:last-of-type{border-bottom:0;}'
+    + '.fc-sl .fc-t b{font-size:13.5px;}'
+    + '.fc-mini{flex:none;font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:99px;background:var(--white);border:1px solid var(--border);color:#0A7A45;cursor:pointer;}'
+    + '.fc-liens{display:flex;gap:8px;padding-top:8px;}'
     + '.fc-fid{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--border);border-radius:22px;padding:11px 16px;margin-bottom:12px;font-size:13.5px;color:var(--text);cursor:pointer;}'
     + '.dep-fc-champ{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);'
     +   'padding:11px 13px;margin-bottom:9px;}'
@@ -3575,9 +3585,9 @@ function injecterEcrans(){
   +     '</div>'
   +     '<div class="fc-actions" id="dep-fc-actions"></div>'
   +     '<div class="fc-carte" id="dep-fc-coord"></div>'
-  +     '<div class="fc-titre" id="dep-fc-envois-titre"></div>'
-  +     '<div class="fc-carte" id="dep-fc-envois"></div>'
   +     '<div id="dep-fc-fid"></div>'
+  +     '<div class="fc-titre" id="dep-fc-envois-titre"></div>'
+  +     '<div id="dep-fc-envois"></div>'
   +   '</div>'
   + '</div>'
 
@@ -14771,32 +14781,51 @@ window.depOuvrirFicheContact = function(contactKey){
   if(c.infos) co += '<div class="fc-ligne"><div class="fc-ico">'+SVG('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>', 18)+'</div><div class="fc-t"><b>'+esc(c.infos)+'</b><span>Infos compl&eacute;mentaires</span></div></div>';
   var bc = $('dep-fc-coord'); if(bc) bc.innerHTML = co;
 
-  // Ses envois, directement sur la page
+  // Son historique, PAR CONTAINER (Cobey, 05/11/2026 : « le container d'abord, et après le clic la collecte concernée du client,
+  // pour pas trop charger la page »). Un appui sur un container l'ouvre (un seul à la fois) et montre ses collectes.
   var tt = $('dep-fc-envois-titre'), be = $('dep-fc-envois');
-  if(tt) tt.textContent = envois.length ? ('Ses envois · ' + envois.length) : '';
+  if(tt) tt.textContent = envois.length ? ('Son historique · par container') : '';
   if(be){
-    be.innerHTML = envois.map(function(e){
+    var groupes = {}, ordre = [];
+    envois.forEach(function(e){
       var cl = e.c || {};
-      var d = cl.departId ? ((window.departsData||{})[cl.departId]) : null;
-      var pay = {total:0, reste:0};
-      try{ pay = depCalculerPaiementCombine(cl); }catch(x){ try{ pay = depCalculerPaiement(cl); }catch(y){} }
-      var origine;
-      if(e.depot) origine = 'Dépôt direct';
-      else if(e.france){
+      var gk = (cl.departId && (window.departsData||{})[cl.departId]) ? cl.departId : '_sans';
+      if(!groupes[gk]){ groupes[gk] = []; ordre.push(gk); }
+      groupes[gk].push(e);
+    });
+    ordre.sort(function(x, y){
+      if(x === '_sans') return -1; if(y === '_sans') return 1;
+      var dx = ((window.departsData||{})[x]||{}).dateDepart || '', dy = ((window.departsData||{})[y]||{}).dateDepart || '';
+      return dy < dx ? -1 : (dy > dx ? 1 : 0);
+    });
+    var libOrigine = function(e){
+      var cl = e.c || {};
+      if(e.depot) return { t:'Dépôt direct', clic:null };
+      if(e.france){
         var rF = null; try{ rF = (typeof _frCollectes === 'function') ? (_frCollectes()[cl.collecteId] || null) : null; }catch(x){}
-        origine = rF ? ('France · ' + (rF.dateLib || rF.dateIso || '')) : 'France';
-      } else {
-        var colO = (window.collectes||[]).filter(function(x){ return x && x.id === e.collecteId; })[0];
-        origine = colO ? ('Collecte du ' + (colO.date||'')) : 'Collecte';
+        return { t: rF ? ('Collecte France du ' + (rF.dateLib || rF.dateIso || '')) : 'Collecte France', clic: rF ? "depFcOuvrirCollecte('fr','"+cl.collecteId+"')" : "depFcOuvrirCollecte('','')" };
       }
-      var titreE = d ? ((d.nom||'Départ') + (d.dateDepart ? ' · départ du ' + d.dateDepart.split('-').reverse().slice(0,2).join('/') : '')) : origine;
-      var etat = d ? (depStatutLabel(d) + ' · ' + origine) : 'pas encore rattaché à un départ';
-      var du = pay.reste > 0.009;
-      var onclick = e.france ? "depOuvrirFactureFrance('"+e.clientId+"')" : "depOuvrirFacture('"+(e.collecteId||'')+"','"+e.clientId+"',"+(e.depot?'true':'false')+",false,false,true)";
-      return '<div class="fc-ligne" style="cursor:pointer;" onclick="'+onclick+'"><div class="fc-ico">'+SVG('<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/>', 18)+'</div>'
-        + '<div class="fc-t"><b>'+esc(titreE)+'</b><span>'+esc(cl.colis||'—')+' · '+esc(etat)+'</span></div>'
-        + (cl.prixADefinir ? '<span class="fc-pil fc-du">prix &agrave; d&eacute;finir</span>' : (du ? '<span class="fc-pil fc-du">'+_depEuros(pay.reste)+' &euro; dus</span>' : '<span class="fc-pil fc-ok">Pay&eacute;</span>'))
-        + '</div>';
+      var colO = (window.collectes||[]).filter(function(x){ return x && x.id === e.collecteId; })[0];
+      return { t: colO ? ('Collecte du ' + (colO.date||'')) : 'Collecte', clic: colO ? "depFcOuvrirCollecte('dk','"+e.collecteId+"')" : "depFcOuvrirCollecte('','')" };
+    };
+    be.innerHTML = ordre.map(function(gk, i){
+      var liste = groupes[gk], d = gk === '_sans' ? null : (window.departsData||{})[gk];
+      var reste = 0, prixDef = false;
+      liste.forEach(function(e){ var cl = e.c || {}; if(cl.prixADefinir) prixDef = true; try{ reste += depCalculerPaiementCombine(cl).reste || 0; }catch(x){} });
+      var titreG = d ? ((d.nom||'Départ') + (d.dateDepart ? ' · départ du ' + d.dateDepart.split('-').reverse().slice(0,2).join('/') : '')) : 'Pas encore dans un container';
+      var sousG = d ? (depStatutLabel(d) + ' · ' + liste.length + ' envoi' + (liste.length > 1 ? 's' : '')) : (liste.map(function(e){ return libOrigine(e).t; }).join(' · '));
+      var pil = prixDef ? '<span class="fc-pil fc-du">prix &agrave; d&eacute;finir</span>' : (reste > 0.009 ? '<span class="fc-pil fc-du">'+_depEuros(reste)+' &euro; dus</span>' : '<span class="fc-pil fc-ok">Pay&eacute;</span>');
+      var ico = d ? '<path d="M2 20c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M19.4 18A11.6 11.6 0 0 0 21 12l-8.2-3.6a2 2 0 0 0-1.6 0L3 12a11.6 11.6 0 0 0 2.8 6.8M12 2v2M12 9v4M19 12V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/>' : '<path d="M1 3h15v13H1zM16 8h4l3 3v5h-7zM5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>';
+      var lignes = liste.map(function(e){
+        var cl = e.c || {}, o = libOrigine(e);
+        var fact = e.france ? "depOuvrirFactureFrance('"+e.clientId+"')" : "depOuvrirFacture('"+(e.collecteId||'')+"','"+e.clientId+"',"+(e.depot?'true':'false')+",false,false,true)";
+        return '<div class="fc-sl" onclick="'+(o.clic ? o.clic : fact)+'"><div class="fc-t"><b>'+esc(o.t)+'</b><span>'+esc(cl.colis||'—')+'</span></div>'
+          + '<span class="fc-mini" onclick="event.stopPropagation();'+fact+'">Facture</span>'
+          + '<span class="fc-fl">'+SVG('<path d="M9 18l6-6-6-6"/>', 15)+'</span></div>';
+      }).join('');
+      return '<div class="fc-ct" id="dep-fc-ct-'+i+'"><div class="fc-ch" onclick="depFcBasculer('+i+')"><div class="fc-ico">'+SVG(ico, 19)+'</div>'
+        + '<div class="fc-t"><b>'+esc(titreG)+'</b><span>'+esc(sousG)+'</span></div>'+pil+'<span class="fc-fl">'+SVG('<path d="M9 18l6-6-6-6"/>', 16)+'</span></div>'
+        + '<div class="fc-sous">'+lignes+(d ? '<div class="fc-liens"><span class="fc-mini" onclick="depDetail(\''+gk+'\')">Voir le container</span></div>' : '')+'</div></div>';
     }).join('');
   }
 
@@ -14816,6 +14845,22 @@ window.depOuvrirFicheContact = function(contactKey){
 window.depOuvrirActionsContact = function(){
   if(!_depFicheContactKey) return;
   openModal('modal-dep-client-actions');
+};
+
+// Un seul container ouvert à la fois sur la fiche client.
+window.depFcBasculer = function(i){
+  var cible = document.getElementById('dep-fc-ct-' + i); if(!cible) return;
+  var etait = cible.classList.contains('open');
+  [].forEach.call(document.querySelectorAll('#dep-fc-envois .fc-ct'), function(n){ n.classList.remove('open'); });
+  if(!etait) cible.classList.add('open');
+};
+// Ouvre la collecte (Dakar ou France) d'une ligne de l'historique ; elle peut avoir été supprimée depuis.
+window.depFcOuvrirCollecte = function(type, id){
+  try{
+    if(type === 'dk' && id && typeof ouvrirCollecte === 'function'){ ouvrirCollecte(id); return; }
+    if(type === 'fr' && id && typeof ouvrirCollecteFrance === 'function'){ goTo('s-france'); ouvrirCollecteFrance(id); return; }
+  }catch(e){ console.error('fiche client : ouverture collecte', e); }
+  toast('Cette collecte n\u2019existe plus.');
 };
 
 window.depSupprimerContactActuel = function(){
