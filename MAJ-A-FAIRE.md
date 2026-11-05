@@ -6398,3 +6398,8 @@ Mon accès à la base est en lecture seule : la photo est donc livrée avec l'ap
 > Cobey : « ANNULE, il en a déjà une. »
 
 Abdoulaye a déjà mis sa propre photo : la photo d'office (v3.99.208) est retirée (`photos-defaut/AB.jpg` supprimé, `DEFAUT` vidé dans photos.js). Le mécanisme reste prêt pour d'autres personnes. La nouvelle image reçue (« voilà pour Abdoulaye ») n'a pas été utilisée.
+
+### 05/11/2026 — Photo d'office pour Ibrahima (dct-app v3.99.210)
+> Cobey : « mets celle-là pour Ibrahima » (photo de face, crâne rasé, barbe grise).
+
+`photos-defaut/IB.jpg` (recadrée sur le visage, 192 px) ; `DEFAUT = { IB: … }` dans photos.js. S'affiche partout où une photo s'affiche ; remplacée par la sienne dès qu'il en enregistre une ; pas de fenêtre « Nouveauté » pour lui. Testé : rond photo dans Planning, fichier servi (200).
