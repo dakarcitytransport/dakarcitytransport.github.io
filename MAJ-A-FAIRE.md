@@ -6502,3 +6502,7 @@ La fenêtre du PIN prend la couleur du profil choisi (violet pour Ibrahima, etc.
 ### 05/11/2026 — Code PIN : photo de profil (v3.99.228)
 > Cobey : « Il manque la photo de profil là » (écran du PIN, initiales « AD » au lieu de la photo)
 photos.js enveloppe `_ouvrirModalPinCollab` : la pastille du PIN reçoit `data-ph` (la photo de la personne), comme les cartes de profil.
+
+### 05/11/2026 — Connexion : logo DCT entier, sans contour blanc, avec ombre (v3.99.229)
+> Cobey : « Et pour le logo de DCT, tu peux le mettre en entier ? Sans le contour blanc, avec effet d'ombrage. »
+`logo-dct.png` (logo détouré, fond transparent, 320 px) ; en V2 sur l'écran de connexion, `#dct-logo` l'affiche en entier (plus de rognage rond ni de bordure blanche) avec une ombre portée. V1 inchangée.
