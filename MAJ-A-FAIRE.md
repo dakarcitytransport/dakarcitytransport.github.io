@@ -6307,3 +6307,16 @@ Après le choix de la photo, un écran « Cadre ta photo » : on déplace la pho
 > Cobey : « Oui, ma connexion peut être affichée dans le fil. »
 
 La connexion de l'admin est maintenant enregistrée (`dct_connexions`) comme celle des autres et affichée dans le fil (« Eric s'est connecté(e) »). Sa propre pastille ne la compte pas. Testé : après connexion, 1 entrée « Eric / AD » et la ligne s'affiche.
+
+### 05/11/2026 — Activité : actions qui n'écrivaient rien dans le fil, maintenant tracées (dct-app v3.99.194, departs v2.22.31)
+> Cobey : « il faut que tu vérifies toutes les nouveautés qu'il y a sur l'application pour les remettre dans les activités, parce qu'on a dû ajouter de nouveaux outils qui ne sont peut-être pas référencés. » (exemple : une dépense de carburant ajoutée dans le Rapport financier)
+
+Inventaire par script (toutes les fonctions qui écrivent dans Firebase, avec/sans trace dans le fil), puis ajout des traces manquantes (chacune classée dans sa case pour le filtre) :
+- Rapport financier : dépense fixe ajoutée / retirée ; dépense de tournée ajoutée / retirée → case Rapport financier.
+- Devis : créé, modifié, refusé et supprimé → Devis. Facture manuelle supprimée → Facture manuelle.
+- Prix articles : article ajouté / modifié / supprimé, thème renommé / supprimé → Prix articles.
+- Départs : étape de suivi annulée → Départs.
+- Réglages (direction) : code PIN réinitialisé ou modifié, passe-partout défini / supprimé, code d'accès d'un espace défini / supprimé, profil ajouté / retiré de l'équipe, message de l'écran de connexion publié / retiré, collecte restaurée depuis une sauvegarde. Jamais de code ni de mot de passe dans le texte.
+- Classement : « chauffeur externe » (ajout d'un camion) passe de Planning à Collecte / France ; « sauvegarde » → Réglages.
+Volontairement non tracé : tâches techniques (références clients, rangs, nettoyages, sauvegarde quotidienne, corbeille automatique, photos de fiche). Testé : une dépense fixe ajoutée écrit bien une ligne classée Rapport financier ; 13 textes types classés dans la bonne case.
+Non audité en profondeur : mamadou.html et chauffeur.html (une trace chacun via `activiteExterne`).

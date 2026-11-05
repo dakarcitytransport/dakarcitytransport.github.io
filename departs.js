@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.30';
+var DEP_VERSION = 'v2.22.31';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8509,6 +8509,7 @@ window.depEtapeAnnuler = function(){
   if(!confirm('Annuler l\'étape « ' + derniere.label + ' » ?')) return;
   db.ref('departs/'+id+'/etapesTransport/'+derniere.key).remove().then(function(){
     toast('↩️ Étape annulée');
+    try{ depActivite('&#8617;&#65039;', 'a annul&eacute; l&rsquo;&eacute;tape &laquo; ' + esc(derniere.label) + ' &raquo; pour <strong>' + esc(d.nom || 'container') + '</strong> (d&eacute;part du ' + esc((d.dateDepart || '').split('-').reverse().join('/')) + ')'); }catch(eE){}
     // v1.49.0 : le statut recule avec l'étape — une étape validée par
     // erreur ne doit pas laisser le container fermé à l'inscription.
     if(d.etapesTransport) delete d.etapesTransport[derniere.key];
@@ -21202,6 +21203,10 @@ window.depAjouterDepense = function(){
   };
   db.ref('dct_depenses/' + ctx.colId + '/' + ctx.camion).push(obj).then(function(){
     toast('✅ Dépense enregistrée — ' + _depEuros(obj.montant) + ' €');
+    try{
+      var tpA = DEP_TYPES_DEPENSE.filter(function(x){ return x.cle === obj.type; })[0];
+      depActivite('&#9981;', 'a ajouté une dépense de <strong>' + _depEuros(obj.montant) + ' &euro;</strong> &middot; ' + esc(_depTexteBrut(tpA ? tpA.label : (obj.type || 'D\u00e9pense'))) + (obj.note ? ' (' + esc(obj.note) + ')' : ''));
+    }catch(eA){}
     var m = $('dep-dep-montant'); if(m) m.value = '';
     var n = $('dep-dep-note');    if(n) n.value = '';
   }).catch(function(e){
@@ -21227,6 +21232,10 @@ window.depSupprimerDepense = function(id){
   }catch(eDe){}
   db.ref('dct_depenses/' + ctx.colId + '/' + ctx.camion + '/' + id).remove().then(function(){
     toast('🗑 Dépense retirée');
+    try{
+      var tpS = DEP_TYPES_DEPENSE.filter(function(x){ return x.cle === o.type; })[0];
+      depActivite('&#128465;&#65039;', 'a retiré une dépense de <strong>' + _depEuros(o.montant) + ' &euro;</strong> &middot; ' + esc(_depTexteBrut(tpS ? tpS.label : (o.type || 'D\u00e9pense'))));
+    }catch(eS){}
   }).catch(function(e){
     toast('❌ Échec : ' + ((e && e.message) || 'suppression refusée'));
   });
@@ -22238,6 +22247,7 @@ window.depDevisEnregistrer = function(){
     db.ref('devis/'+editId).set(obj).then(function(){
       window._depDevisEditId = null;
       toast('✅ Devis mis à jour.');
+      try{ depActivite('&#9999;&#65039;', 'a modifi&eacute; le devis de <strong>' + esc(((obj.prenom ? obj.prenom + ' ' : '') + obj.nom).trim()) + '</strong> &middot; ' + _depEuros(obj.montant) + ' &euro;'); }catch(eD){}
       try{ depOuvrirDevisDoc(editId); }catch(e){ goTo('s-devis'); depRenderListeDevis(); }
     }).catch(function(e){
       console.error('departs: mise à jour devis', e);
@@ -22251,6 +22261,7 @@ window.depDevisEnregistrer = function(){
   obj.creeParNom = (window.currentUser||{}).name || '';
   db.ref('devis').push(obj).then(function(ref){
     toast('✅ Devis enregistré.');
+    try{ depActivite('&#128221;', 'a cr&eacute;&eacute; un devis pour <strong>' + esc(((obj.prenom ? obj.prenom + ' ' : '') + obj.nom).trim()) + '</strong> &middot; ' + _depEuros(obj.montant) + ' &euro;'); }catch(eD){}
     try{ depOuvrirDevisDoc(ref.key); }catch(e){ goTo('s-devis'); depRenderListeDevis(); }
   }).catch(function(e){
     console.error('departs: enregistrement devis', e);
@@ -22599,7 +22610,9 @@ window.depDevisConfirmerRefuser = function(){
   var id = window._depDevisARefuser;
   closeModal('modal-devis-refuser');
   if(!id) return;
+  var dvR = (window.devisData || {})[id] || {};
   try{ db.ref('devis/'+id).remove(); }catch(e){}
+  try{ depActivite('&#10060;', 'a refus&eacute; et supprim&eacute; le devis de <strong>' + esc(((dvR.prenom ? dvR.prenom + ' ' : '') + (dvR.nom || '')).trim() || 'client') + '</strong>'); }catch(eR){}
   toast('🗑️ Devis refusé et supprimé.');
 };
 
@@ -24601,6 +24614,10 @@ window.depAjouterDepenseFixe = function(){
   if(collabId){ obj.collabId = collabId; obj.collabNom = collabNom; }
   db.ref('dct_finance/fixes/' + id).push(obj).then(function(){
     toast('✅ Dépense enregistrée — ' + _depEuros(obj.montant) + ' €');
+    try{
+      var dFx = (window.departsData || {})[id] || {};
+      depActivite('&#9981;', 'a ajouté une dépense fixe de <strong>' + _depEuros(obj.montant) + ' &euro;</strong> &middot; ' + esc(_depTexteBrut(_depLibellePosteFixe(obj.poste))) + (obj.collabNom ? ' &middot; ' + esc(obj.collabNom) : '') + ' &middot; ' + esc(dFx.nom || 'container') + (dFx.dateDepart ? ' (d&eacute;part du ' + esc(dFx.dateDepart.split('-').reverse().join('/')) + ')' : ''));
+    }catch(eF){}
     var m = $('dep-fx-montant'); if(m) m.value = '';
     var n = $('dep-fx-note');    if(n) n.value = '';
     var nb = $('dep-fx-nb');     if(nb) nb.value = '';
@@ -24618,6 +24635,10 @@ window.depSupprimerDepenseFixe = function(idLigne){
     sous: 'D\u00e9pense fixe du container', departId: id, ecritures: [{ p: 'dct_finance/fixes/' + id + '/' + idLigne, v: lf }] });
   db.ref('dct_finance/fixes/' + id + '/' + idLigne).remove().then(function(){
     toast('🗑 Dépense retirée');
+    try{
+      if(lf){ var dFs = (window.departsData || {})[id] || {};
+        depActivite('&#128465;&#65039;', 'a retiré une dépense fixe de <strong>' + _depEuros(lf.montant) + ' &euro;</strong> &middot; ' + esc(_depTexteBrut(_depLibellePosteFixe(lf.poste))) + ' &middot; ' + esc(dFs.nom || 'container')); }
+    }catch(eFs){}
   }).catch(function(e){
     toast('❌ Échec : ' + ((e && e.message) || 'suppression refusée'));
   });
@@ -24854,6 +24875,7 @@ window.depFactureManuelleSupprimer = function(id){
     ecritures: [{ p: 'dct_factures_manuelles/' + id, v: fm }] });
   db.ref('dct_factures_manuelles/'+id).remove().then(function(){
     toast('🗑️ Facture manuelle supprimée.');
+    try{ if(fm) depActivite('&#128465;&#65039;', 'a supprim&eacute; la facture manuelle de <strong>' + esc(fm.nom || 'client') + '</strong>' + (fm.montant ? ' &middot; ' + _depEuros(parseFloat(fm.montant) || 0) + ' &euro;' : '')); }catch(eM){}
   }).catch(function(e){
     console.error('departs: suppression facture manuelle', e);
     toast('❌ Échec, réessayez.');
@@ -26071,6 +26093,7 @@ window.depPrixArticleEnregistrer = function(){
     obj.modifieLe = Date.now();
     db.ref('prixArticles/'+editId).set(obj).then(function(){
       toast('✅ Article mis à jour.');
+      try{ depActivite('&#9999;&#65039;', 'a modifi&eacute; l&rsquo;article <strong>' + esc(nom) + '</strong> (' + _depEuros(prix) + ' &euro;) dans Prix articles'); }catch(eP){}
       closeModal('modal-prix-article-form');
     }).catch(function(e){
       console.error('departs: mise à jour article', e);
@@ -26084,6 +26107,7 @@ window.depPrixArticleEnregistrer = function(){
   obj.creeParNom = (window.currentUser||{}).name || '';
   db.ref('prixArticles').push(obj).then(function(){
     toast('✅ Article ajouté.');
+    try{ depActivite('&#10133;', 'a ajout&eacute; l&rsquo;article <strong>' + esc(nom) + '</strong> (' + _depEuros(prix) + ' &euro;) dans Prix articles'); }catch(eP){}
     closeModal('modal-prix-article-form');
   }).catch(function(e){
     console.error('departs: ajout article', e);
@@ -26105,7 +26129,9 @@ window.depPrixArticleSupprimerArticleConfirmer = function(){
   var id = window._paArticleEditId;
   closeModal('modal-prix-article-suppr');
   if(!id) return;
+  var artS = (window.prixArticlesData || {})[id] || {};
   try{ db.ref('prixArticles/'+id).remove(); }catch(e){}
+  try{ depActivite('&#128465;&#65039;', 'a supprim&eacute; l&rsquo;article <strong>' + esc(artS.nom || '') + '</strong> dans Prix articles'); }catch(eP){}
   toast('🗑️ Article supprimé.');
 };
 
@@ -26144,6 +26170,7 @@ window.depPrixArticleThemeRenommerConfirmer = function(){
   if(!Object.keys(updates).length){ closeModal('modal-prix-article-theme-renommer'); return; }
   db.ref().update(updates).then(function(){
     toast('✅ Thème renommé.');
+    try{ depActivite('&#9999;&#65039;', 'a renomm&eacute; le th&egrave;me &laquo; ' + esc(ancien) + ' &raquo; en <strong>' + esc(nouveau) + '</strong> dans Prix articles'); }catch(eP){}
     closeModal('modal-prix-article-theme-renommer');
     if(window._paFiltreTheme === ancien) window._paFiltreTheme = nouveau;
   }).catch(function(e){
@@ -26172,6 +26199,7 @@ window.depPrixArticleThemeSupprimerConfirmer = function(){
   if(!Object.keys(updates).length) return;
   db.ref().update(updates).then(function(){
     toast('🗑️ Thème supprimé — articles repassés dans « Sans thème ».');
+    try{ depActivite('&#128465;&#65039;', 'a supprim&eacute; le th&egrave;me &laquo; ' + esc(ancien) + ' &raquo; dans Prix articles'); }catch(eP){}
     if(window._paFiltreTheme === ancien) window._paFiltreTheme = '';
   }).catch(function(e){
     console.error('departs: suppression thème', e);
@@ -27096,6 +27124,7 @@ window.depSauvRestaurer = function(id){
   sauvegarder();
   try{ renderCollectesList(); }catch(e){}
   toast('✅ Collecte du ' + col.date + ' restaurée');
+  try{ depActivite('&#9851;&#65039;', 'a restaur&eacute; la collecte du <strong>' + esc(col.date) + '</strong> depuis la sauvegarde du ' + esc(c0.jour)); }catch(eS){}
   window.renderAdminOutils();
 };
 
