@@ -6348,3 +6348,8 @@ Le titre « Où souhaitez-vous travailler ? » (V1 et V2) et la barre de recherc
 - Réglages : la case MESSAGE est remplacée par **BANDEAU** (réservée à Eric) : liste des messages (modifier / supprimer), formulaire titre (60 car.) + détail (90) + couleur + date de fin, aperçu en direct. Chaque publication / modification / suppression est tracée dans l'Activité (case Réglages).
 - Écran de connexion : le message n'est plus affiché (`chargerMessageAdmin` masque la zone). L'ancien message `dct_config/message` reste en base, inutilisé.
 - Testé : création de 3 messages (1 expiré → non affiché), rotation à 5 s avec changement de couleur, croix, réapparition pour un nouveau message, zone de connexion masquée.
+
+### 05/11/2026 — Bandeau : les textes longs défilent (dct-app v3.99.200)
+> Cobey : « le texte est très long, il ne défile pas de gauche à droite, il reste immobile. Moi je voulais que le texte défile » — seuls les textes trop longs défilent (recommandé) — « ok vas-y ».
+
+`bandeau.js` : une ligne (titre ou détail) plus large que le bandeau défile doucement (≈55 px/s, pause de 1,6 s au début et 1,4 s à la fin) ; le message reste affiché le temps du défilement, la barre de progression suit ; un message court reste fixe. Un message long seul se rejoue en boucle. Limites de saisie élargies (titre 300, détail 500 caractères). Testé : texte de 1122 px dans 266 px → pause, défilement, décalage −140 puis −473 px ; message court : fixe, aucune animation.
