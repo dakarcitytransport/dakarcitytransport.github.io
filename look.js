@@ -221,6 +221,14 @@
       return '<span class="lk-j">' + (n === 0 ? 'Départ aujourd’hui' : 'J-' + n) + '</span> ';
     }catch(e){ return ''; }
   }
+  // Sous le nom : la date de départ, pour distinguer deux containers de même nom (Cobey, 05/11/2026 :
+  // « on ne sait pas de quel conteneur on parle »). En préparation, la date figure déjà en bas de la carte.
+  function sousNom(d){
+    if(d.statut === 'preparation' || !d.depart) return '';
+    var p = String(d.depart).slice(0, 10).split('-');
+    if(p.length !== 3) return '';
+    return '<div class="lk-dep">départ du ' + p[2] + '/' + p[1] + '</div>';
+  }
   function unDepart(d, i, ouvrable){
     var dest = d.pays === 'ML' ? 'BAMAKO' : 'DAKAR';
     var etat, sous;
@@ -235,7 +243,7 @@
     var classe = d.statut === 'preparation' ? 'lk-prep' : (d.statut === 'arrive' ? 'lk-arr' : 'lk-route-st');
     return '<button type="button" class="lk-hero lk-slide ' + classe + (ouvrable ? '' : ' lk-fixe') + '" data-i="' + i + '"' + (ouvrable ? ' onclick="depDetail(\'' + d.id + '\')"' : ' tabindex="-1" aria-disabled="true"') + '>'
       + '<span class="lk-pays">' + (d.pays === 'ML' ? '🇲🇱 MALI' : '🇸🇳 SÉNÉGAL') + '</span>'
-      + '<small>' + etat + (d.statut === 'preparation' ? '' : ' · ' + sous) + '</small><h2>' + esc(d.nom) + '</h2>'
+      + '<small>' + etat + (d.statut === 'preparation' ? '' : ' · ' + sous) + '</small><h2>' + esc(d.nom) + '</h2>' + sousNom(d)
       + '<div class="lk-route"><span>MITRY</span><div class="lk-rail"><i style="width:' + (pct ? Math.max(8, pct) : 0) + '%"></i></div><span>' + dest + '</span></div>'
       + '<div class="lk-foot"><span><b>' + d.clients + '</b> client' + (d.clients > 1 ? 's' : '') + (d.statut === 'preparation' ? (d.ouvert ? ' · inscriptions ouvertes' : ' · inscriptions fermées') : '') + '</span><span>' + droite + '</span></div></button>';
   }

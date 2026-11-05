@@ -6220,3 +6220,8 @@ Pour un container « arrivé », la carte affiche « Arrivé le JJ/MM » (horoda
 > Cobey : « sur la carte en préparation, tu peux mettre un décompte jusqu'au prochain départ, par exemple J-17 ou J-16 » ; « pas besoin de la date d'arrivée [...] il faut toujours se baser sur la date de départ » ; « quand on change la date, il faut recalculer » — « ok vas-y ».
 
 Pastille « J-n » sur la carte « En préparation » de l'accueil V2 (look.js `decompte`), calculée à chaque affichage depuis la date de départ prévue (jours calendaires, fuseau Paris) : J-17, J-1, « Départ aujourd'hui » le jour même ; date dépassée ou absente → rien. Aucun décompte sur les cartes « en route » / « arrivé ». Testé : +17, +1, 0, -1, +24 jours.
+
+### 05/11/2026 — Cartes de l'accueil : date de départ sous le nom (dct-app v3.99.177)
+> Cobey : « pour les conteneurs arrivés, on ne sait pas de quel conteneur on parle, de quel départ [...] également pour les conteneurs en route » — « oui ».
+
+Sous le nom, « départ du JJ/MM » sur les cartes « en route » et « arrivé » (deux « Chargement BMK » se distinguent : 13/09 et 27/09). Pas sur « En préparation » : la date de départ est déjà en bas de la carte, avec le J-n. V1 inchangée.
