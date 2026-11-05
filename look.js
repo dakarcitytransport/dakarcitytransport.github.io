@@ -174,6 +174,48 @@
     cartesVerre();
   }
 
+  /* ---------- tuiles des Réglages / Rapport financier : emoji → icône duotone dans une tuile colorée (V2) ---------- */
+  var TV_SVG = {
+    0x1F465:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+    0x1F511:'<circle cx="8" cy="15" r="4.5"/><path d="M11.2 11.8L21 2M17 6l3 3M14.5 8.5l2 2"/>',
+    0x1F5DD:'<circle cx="8" cy="15" r="4.5"/><path d="M11.2 11.8L21 2M17 6l3 3M14.5 8.5l2 2"/>',
+    0x1F514:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>',
+    0x1F4BE:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.7-4 3-9 3s-9-1.3-9-3M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/>',
+    0x1F527:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+    0x1F5D1:'<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>',
+    0x1F4E2:'<path d="M3 11v2a2 2 0 0 0 2 2h1l2 5h2l-1.5-5H12l8 4V6l-8 4H5a2 2 0 0 0-2 1z"/>',
+    0x1F3A8:'<path d="M12 22a10 10 0 1 1 10-10c0 3-2 4-4.5 4H15a2 2 0 0 0-1.4 3.4A2 2 0 0 1 12 22z"/><path d="M7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01"/>',
+    0x1F4CA:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
+    0x1F4C8:'<path d="M22 7l-8.5 8.5-5-5L2 17M16 7h6v6"/>'
+  };
+  function tuilesVerre(){
+    if(effectif() !== 'v2') return;
+    [].forEach.call(document.querySelectorAll('#s-admin .dep-case-ico, #s-rapport-financier .dep-case-ico'), function(ic){
+      if(ic.getAttribute('data-tv')) return;
+      var cas = ic.closest('.dep-case');
+      if(cas && /^dep-case-/.test(cas.id || '')) return;
+      ic.setAttribute('data-tv', '1');
+      var tit = cas && cas.querySelector('.dep-case-tit');
+      var col = tit && tit.style.color;
+      if(col) ic.style.setProperty('--pc', col);
+      var tx = (ic.textContent || '').trim();
+      var cp = tx ? tx.codePointAt(0) : 0;
+      ic.classList.add('lk-tv');
+      if(TV_SVG[cp]) ic.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + TV_SVG[cp] + '</svg>';
+      else ic.classList.add('lk-tv-em');
+    });
+  }
+  var obsTV = null;
+  function surveillerTuiles(){
+    if(obsTV || !window.MutationObserver) return;
+    var zs = ['s-admin','s-rapport-financier'].map(function(i){ return document.getElementById(i); }).filter(Boolean);
+    if(!zs.length) return;
+    var en = false;
+    obsTV = new MutationObserver(function(){ if(en) return; en = true; try{ tuilesVerre(); }catch(e){} en = false; });
+    zs.forEach(function(z){ obsTV.observe(z, { childList:true, subtree:true }); });
+    tuilesVerre();
+  }
+
   /* ---------- appliquer ---------- */
   function appliquer(){
     var h = document.documentElement;
@@ -182,7 +224,7 @@
     h.setAttribute('data-mode', mode());
     try{ barreHaut(); }catch(e){}
     try{ surveillerProfils(); }catch(e){}
-    try{ surveillerCartes(); cartesVerre(); }catch(e){}
+    try{ surveillerCartes(); cartesVerre(); }catch(e){} try{ surveillerTuiles(); tuilesVerre(); }catch(e){}
     boutonTheme();
     carteDepart();
     try{ barreRecherche(); }catch(e){}
@@ -277,7 +319,7 @@
   }
   if(typeof window.goTo === 'function'){
     var origGoTo = window.goTo;
-    window.goTo = function(){ var r = origGoTo.apply(this, arguments); try{ majDock(); }catch(e){} try{ barreHaut(); }catch(e){} try{ surveillerCartes(); cartesVerre(); }catch(e){} return r; };
+    window.goTo = function(){ var r = origGoTo.apply(this, arguments); try{ majDock(); }catch(e){} try{ barreHaut(); }catch(e){} try{ surveillerCartes(); cartesVerre(); }catch(e){} try{ surveillerTuiles(); tuilesVerre(); }catch(e){} return r; };
   }
 
 

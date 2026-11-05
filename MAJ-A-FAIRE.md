@@ -6524,3 +6524,7 @@ Vague 1 (V2 seulement) : Départs (choix du pays : tuile drapeau, chiffres « ou
 - look.js `cartesVerre()` : les `.dep-card` de ces zones passent en verre teinté (couleur de l'ancienne barre latérale), tuile d'icône (emoji → icône duotone), flèche ; observe les zones `dep-departs-pays-content`, `dep-stockage-content`, `dep-archive-content`, `dep-liste`, `dep-stats-content`.
 - departs.js : la carte pays ajoute `.lk-pp` / `.lk-pn` (cachés en V1). V1 inchangée (74/74).
 - À venir : vague 2 (Réglages, Administration, Rapport financier), vague 3 (Collecte, Planning, Fidélité, Dépôt Dakar, Devis, Facture manuelle).
+
+### 05/11/2026 — Nouveau look, vague 2 : Réglages / Administration / Rapport financier (v3.99.233)
+> Cobey : « Ok » (après la vague 1).
+look.js `tuilesVerre()` (V2 seulement) : les emojis des tuiles de Réglages et du Rapport financier deviennent des icônes duotone blanches (équipe, clé, cloche, base de données, clé à molette, corbeille, mégaphone, palette, graphiques) dans une tuile de la couleur de la case ; les drapeaux restent dans une tuile blanche. L'en-tête noir de « Administration » devient clair comme les autres écrans, et la grille retrouve ses marges. V1 inchangée (74/74).
