@@ -6485,3 +6485,7 @@ La photo est maintenant posée sur toute la page (pas seulement sur l'écran de 
 ### 05/11/2026 — Connexion : cases plus transparentes (v3.99.224)
 > Cobey : « Je trouve les cases pas assez transparentes, on ne voit pas l'image. »
 Teinte par espace réduite de moitié, flou 14 → 5 px, verre presque clair : la photo se voit à travers ; la couleur reste dans le liseré et un léger voile.
+
+### 05/11/2026 — Connexion : retour au verre d'avant + même verre sur les profils (v3.99.225)
+> Cobey : « Nan, revient comme celui d'avant, et par contre rajoute aussi le même style pour chaque profil, ils sont restés blancs. »
+Cases d'espaces remises comme en v3.99.223 (verre dépoli teinté). Cartes de profil (Qui êtes-vous ?) : même verre dépoli, texte blanc, bouton retour en verre ; l'anneau de couleur de chaque personne est gardé.
