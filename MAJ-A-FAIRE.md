@@ -6422,3 +6422,10 @@ Cause : la clé d'une fiche du carnet (`dct/contacts/<clé>`) = numéro sans esp
 2. Nettoyage une seule fois, lancé par Eric à sa première connexion (marqueur `dct_config/nettoyage_carnet_v1`, ~9 s après la connexion) : fusion des fiches de même numéro (la plus complète sert de base, les autres comblent ses trous ; l'ancienne va à la corbeille 30 jours, type « contact ») et clés remises à plat. Une ligne dans l'Activité (Eric seul n'est PAS appliqué : visible par ceux qui ont Client) et un message à l'écran.
 3. Testé avec la copie réelle des 41 contacts : 41 → 39 fiches, 0 clé spéciale, Loum et Mbaye fusionnés (fiche d'Eric gardée), 2e passage sans effet, base de test identique à la mémoire.
 Non traité : doublons éventuels côté fiches France (`france/clients`) ou clients d'une collecte — seul le carnet l'était. Ne touche pas aux fiches de clients des collectes.
+
+### 05/11/2026 — Carnet : le nettoyage de la v3.99.213 n'avait rien écrit dans la base → corrigé (dct-app v3.99.214)
+> Cobey (capture : recherche « LOUM » → « Aucun résultat ») : « maintenant il n'y a plus de Mamadou Loum ».
+
+Constat dans la base (lecture seule) : les 2 fiches Loum et les 11 clés à caractères invisibles étaient toujours là, aucune entrée de corbeille, marqueur posé ; la v1 du nettoyage avait modifié la MÉMOIRE du navigateur d'Eric et marqué « fait » sans que l'écriture dans Firebase soit confirmée. Résultat : sur son écran, Loum avait disparu alors que la base était intacte (rien n'a été perdu).
+v2 : le nettoyage lit le carnet dans Firebase (pas la mémoire), écrit directement (`update` en un bloc), n'annonce et ne pose le marqueur (`dct_config/nettoyage_carnet_v2`) qu'une fois l'écriture confirmée, sinon message d'erreur visible et nouvel essai à la connexion suivante ; fiches de corbeille écrites après succès. Il relancera donc à la prochaine connexion d'Eric (≈9 s) et rétablira Loum (fiche fusionnée, clé propre).
+Testé : base de test à l'état réel (58 fiches, Loum absent de la mémoire) → base 55 fiches, 0 clé spéciale, Loum et Mbaye fusionnés, recherche « LOUM » trouve la fiche, 2e passage sans effet.

@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.213">
+<link rel="stylesheet" href="look-v2.css?v=3.99.214">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -1502,42 +1502,57 @@ function _dctStatutProfil(id){
 var _ecoutesApresPinFaites = false;
 // Nettoyage du carnet (une fois, par Eric) : fusionne les fiches qui ont le même numéro écrit autrement et remet à plat les clés
 // (sans espaces ni caractères invisibles). Cobey, 05/11/2026. Les fiches retirées partent à la corbeille (30 jours).
-function _nettoyerCarnet(){
+// v2 (v3.99.214) : on travaille sur ce que Firebase contient VRAIMENT (pas sur la mémoire du téléphone), on écrit directement et on
+// n'annonce « nettoyé » qu'une fois l'écriture confirmée. (La v1 avait modifié la mémoire d'Eric sans que Firebase suive : Loum disparaissait.)
+function _nettoyerCarnet(fini){
+  var rendre=function(ok){ try{ if(fini) fini(ok); }catch(e){} };
   try{
     var u=currentUser||{};
-    if(!u.admin || !firebaseReady || !db || !window.dctContacts) return;
-    var ct=window.dctContacts, cles=Object.keys(ct);
-    if(cles.length<2) return;
-    var groupes={}, nb=0, fusions=[];
-    cles.forEach(function(k){
-      var c=ct[k]; if(!c) return;
-      var g=_telCmp(c.tel) || ('nom:'+k);
-      (groupes[g]=groupes[g]||[]).push(k);
-    });
-    var remplissage=function(c){ return ['civilite','prenom','nom','tel','tel2','adresse','infos','cp','ville','dept'].filter(function(f){ return c[f]; }).length; };
-    Object.keys(groupes).forEach(function(g){
-      var ks=groupes[g];
-      if(g.indexOf('nom:')===0){ if(ks.length===1 && ks[0].indexOf('_')>0 && /[^\x20-\x7e]/.test(ks[0])===false) return; }
-      // la fiche la plus complète sert de base ; les autres comblent ses trous
-      ks.sort(function(a,b){ return remplissage(ct[b])-remplissage(ct[a]); });
-      var base=Object.assign({}, ct[ks[0]]);
-      for(var i=1;i<ks.length;i++){ var o=ct[ks[i]]; Object.keys(o).forEach(function(f){ if((base[f]===undefined||base[f]===''||base[f]===null) && o[f]) base[f]=o[f]; }); }
-      var cible = base.tel ? _telNet(base.tel) : ks[0];
-      if(ks.length===1 && ks[0]===cible) return;           // déjà propre
-      ks.forEach(function(k){
-        if(k===cible) return;
-        try{ if(ks.length>1 && k!==ks[0] && typeof window._depCorbeille==='function') window._depCorbeille('contact', k, { titre:(ct[k].name||'Contact'), sous:'Carnet · doublon fusionné', ecritures:[{ p:'dct/contacts/'+k, v:ct[k] }] }); }catch(e){}
-        delete ct[k];
-      });
-      ct[cible]=base; nb++; if(ks.length>1) fusions.push(base.name||cible);
-    });
-    if(nb){
-      sauvegarder();
-      try{ addActivity('🧹', u.bg||'#eee', '<strong style="color:'+(u.color||'#333')+'">'+(u.name||'')+'</strong> : carnet de clients nettoyé'+(fusions.length?(' — '+fusions.length+' doublon'+(fusions.length>1?'s':'')+' fusionné'+(fusions.length>1?'s':'')+' ('+fusions.join(', ')+')'):''), "À l'instant"); }catch(e){}
-      try{ renderContacts(); }catch(e){}
-      showToastNew('🧹 Carnet nettoyé : '+nb+' fiche'+(nb>1?'s':'')+' remise'+(nb>1?'s':'')+' à plat'+(fusions.length?(', '+fusions.length+' doublon'+(fusions.length>1?'s':'')+' fusionné'+(fusions.length>1?'s':'')):''));
-    }
-  }catch(e){ console.error('nettoyage carnet', e); }
+    if(!u.admin || !firebaseReady || !db){ rendre(false); return; }
+    db.ref('dct/contacts').once('value', function(snap){
+      try{
+        var ct=snap.val()||{}, cles=Object.keys(ct);
+        if(cles.length<2){ rendre(true); return; }
+        var res=JSON.parse(JSON.stringify(ct)), groupes={}, fusions=[], majC={}, nb=0, aCorbeille=[];
+        cles.forEach(function(k){
+          var c=ct[k]; if(!c || typeof c!=='object') return;
+          var g=_telCmp(c.tel) || ('nom:'+k);
+          (groupes[g]=groupes[g]||[]).push(k);
+        });
+        var remplissage=function(c){ return ['civilite','prenom','nom','tel','tel2','adresse','infos','cp','ville','dept'].filter(function(f){ return c[f]; }).length; };
+        Object.keys(groupes).forEach(function(g){
+          var ks=groupes[g];
+          ks.sort(function(a,b){ return remplissage(ct[b])-remplissage(ct[a]); });   // la plus complète d'abord
+          var base=Object.assign({}, ct[ks[0]]);
+          for(var i=1;i<ks.length;i++){ var o=ct[ks[i]]; Object.keys(o).forEach(function(f){ if((base[f]===undefined||base[f]===''||base[f]===null) && o[f]!==undefined && o[f]!==null && o[f]!=='') base[f]=o[f]; }); }
+          var cible = (g.indexOf('nom:')===0) ? ks[0] : (_telNet(base.tel) || ks[0]);
+          if(ks.length===1 && ks[0]===cible) return;      // déjà propre
+          ks.forEach(function(k){
+            if(k===cible) return;
+            majC[k]=null; delete res[k];
+            if(ks.length>1 && k!==ks[0]) aCorbeille.push(k);
+          });
+          res[cible]=base; majC[cible]=base; nb++;
+          if(ks.length>1) fusions.push(base.name||cible);
+        });
+        if(!nb){ rendre(true); return; }
+        db.ref('dct/contacts').update(majC).then(function(){
+          aCorbeille.forEach(function(k){ try{ window._depCorbeille('contact', k, { titre:(ct[k].name||'Contact'), sous:'Carnet · doublon fusionné', ecritures:[{ p:'dct/contacts/'+k, v:ct[k] }] }); }catch(e){} });
+          window.dctContacts=res;
+          try{ _baseSync.contacts={}; Object.keys(res).forEach(function(k){ _baseSync.contacts[k]=JSON.stringify(res[k]); }); }catch(e){}
+          try{ localStorage.setItem('dct_v3_contacts', JSON.stringify(res)); }catch(e){}
+          try{ addActivity('🧹', u.bg||'#eee', '<strong style="color:'+(u.color||'#333')+'">'+(u.name||'')+'</strong> : carnet de clients nettoyé'+(fusions.length?(' — '+fusions.length+' doublon'+(fusions.length>1?'s':'')+' fusionné'+(fusions.length>1?'s':'')+' ('+fusions.join(', ')+')'):''), "À l'instant"); }catch(e){}
+          try{ renderContacts(); }catch(e){}
+          showToastNew('🧹 Carnet nettoyé : '+nb+' fiche'+(nb>1?'s':'')+' remise'+(nb>1?'s':'')+' à plat'+(fusions.length?(', '+fusions.length+' doublon'+(fusions.length>1?'s':'')+' fusionné'+(fusions.length>1?'s':'')):''));
+          rendre(true);
+        }).catch(function(e){
+          console.error('nettoyage carnet : écriture refusée', e);
+          showToastNew('⚠️ Nettoyage du carnet impossible : '+((e&&e.message)||'écriture refusée'));
+          rendre(false);
+        });
+      }catch(e){ console.error('nettoyage carnet', e); rendre(false); }
+    }, function(e){ console.error('nettoyage carnet : lecture', e); rendre(false); });
+  }catch(e){ console.error('nettoyage carnet', e); rendre(false); }
 }
 
 function _demarrerEcoutesApresPin(){
@@ -1554,7 +1569,7 @@ function _demarrerEcoutesApresPin(){
   // Nettoyage du carnet, une seule fois (marqueur dans Firebase) : laisse le temps aux contacts d'arriver.
   setTimeout(function(){ try{
     if(!(currentUser||{}).admin || !firebaseReady || !db) return;
-    db.ref('dct_config/nettoyage_carnet_v1').once('value', function(sn){ if(!sn.val()){ _nettoyerCarnet(); db.ref('dct_config/nettoyage_carnet_v1').set(Date.now()); } });
+    db.ref('dct_config/nettoyage_carnet_v2').once('value', function(sn){ if(!sn.val()){ _nettoyerCarnet(function(ok){ if(ok) db.ref('dct_config/nettoyage_carnet_v2').set(Date.now()); }); } });
   }catch(e){} }, 9000);
   ecouterFrance();
   ecouterAlertes();
@@ -2247,7 +2262,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.213';
+var APP_VERSION = 'v3.99.214';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
