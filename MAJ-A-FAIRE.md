@@ -6458,3 +6458,8 @@ Non fait : surligner le client dans la collecte ouverte.
 > Cobey : « quand j'appuie sur modifier un client dans sa fiche, si j'annule ou j'enregistre une modif, il revient sur l'écran de la liste des clients et non dans la fiche du client en lui-même. »
 
 « Modifier » ne quitte plus la fiche : la fenêtre de modification s'ouvre par-dessus. Annuler → on reste sur la fiche. Enregistrer → la fiche est rouverte à jour (ville, adresse… ; si le numéro change, elle suit la nouvelle clé du carnet). Depuis la liste des clients, rien ne change. (`saveContactEdit` enveloppé dans departs.js.) Au passage : chevrons des lignes de collecte non retournés à l'ouverture d'un container ; libellé « 2 collectes · pas encore chargées » quand plusieurs envois n'ont pas de container.
+
+### 05/11/2026 — Photo de fond de l'écran de connexion (EN ATTENTE de validation, pas encore sur `main`)
+> Cobey : « c'est possible dans la page d'accueil, là où on choisit notre profil, de mettre un arrière-plan d'une photo qu'on ferait ensemble ? » ; image créée avec Higgsfield (port de Dakar au crépuscule, camion jaune) sur la base de mon prompt.
+
+`fond-connexion.jpg` (768×1344, 45 Ko) + règles dans `tools/gen_look_css.py` (V2 seulement : photo, voile dégradé, titres en blanc, cartes en verre). Aperçu envoyé (clair / sombre). Poussé sur la branche de session seulement ; à passer sur `main` (et monter `APP_VERSION` + `?v=` du CSS) après le « ok » de Cobey.

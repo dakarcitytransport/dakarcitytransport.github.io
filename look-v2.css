@@ -64,6 +64,12 @@ html.look-v2 .content{padding:8px 16px 18px;padding-bottom:max(52px,calc(env(saf
 html.look-v2 button:focus-visible,html.look-v2 .dep-case:focus-visible{outline:2.5px solid var(--green);outline-offset:2px}
 
 /* ── écran de connexion : choix de l'espace, puis du profil ── */
+/* Photo de fond de l'écran de connexion (Cobey, 05/11/2026) : image faite avec Higgsfield (port de Dakar au crépuscule) ; voile pour garder les cartes lisibles. */
+html.look-v2 #s-login{background:linear-gradient(180deg,rgba(6,16,12,.34) 0%,rgba(6,16,12,.12) 36%,rgba(6,16,12,.66) 100%),url(fond-connexion.jpg?v=1) center top/cover no-repeat #0a1410 !important}
+html.look-v2 #s-login .login-screen > div:first-of-type{color:#fff !important;text-shadow:0 2px 14px rgba(0,0,0,.45)}
+html.look-v2 #s-login #dep-ligne-pays,html.look-v2 #s-login #login-titre,html.look-v2 #s-login #login-soc-sous,html.look-v2 #s-login #app-version,html.look-v2 #s-login #app-update,html.look-v2 #s-login #dep-login-version{color:rgba(255,255,255,.86) !important;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+html.look-v2 #s-login #login-soc-nom{color:#fff !important;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+html.look-v2 #s-login #dct-logo{border-color:rgba(255,255,255,.85)}
 html.look-v2 .login-screen,html.look-v2 .login-screen.dep-clair{background:transparent;padding-top:calc(26px + env(safe-area-inset-top,0px))}
 html.look-v2 #dct-logo{width:76px !important;height:76px !important;margin-bottom:12px !important;border:3px solid var(--lk-edge);box-shadow:0 10px 28px rgba(14,159,91,.28) !important}
 html.look-v2 .login-screen > div:first-of-type{font-size:22px !important;font-weight:800 !important;letter-spacing:-.02em;color:var(--text) !important}
@@ -839,7 +845,9 @@ html.look-v2[data-mode="auto"] [style*=";color:#c2185b" i],html.look-v2[data-mod
 html.look-v2[data-mode="auto"] [style*=";color:#c2266b" i],html.look-v2[data-mode="auto"] [style^="color:#c2266b" i],html.look-v2[data-mode="auto"] [style*=" color:#c2266b" i],html.look-v2[data-mode="auto"] [style*="\"color:#c2266b" i]{color:#E092B5 !important}
 html.look-v2[data-mode="auto"] [style*=";color:#c2410c" i],html.look-v2[data-mode="auto"] [style^="color:#c2410c" i],html.look-v2[data-mode="auto"] [style*=" color:#c2410c" i],html.look-v2[data-mode="auto"] [style*="\"color:#c2410c" i]{color:#E0A086 !important}
 html.look-v2[data-mode="auto"] [style*=";color:#c25e00" i],html.look-v2[data-mode="auto"] [style^="color:#c25e00" i],html.look-v2[data-mode="auto"] [style*=" color:#c25e00" i],html.look-v2[data-mode="auto"] [style*="\"color:#c25e00" i]{color:#E0AE80 !important}
+html.look-v2[data-mode="auto"] [style*=";color:#c26a00" i],html.look-v2[data-mode="auto"] [style^="color:#c26a00" i],html.look-v2[data-mode="auto"] [style*=" color:#c26a00" i],html.look-v2[data-mode="auto"] [style*="\"color:#c26a00" i]{color:#E0B480 !important}
 html.look-v2[data-mode="auto"] [style*=";color:#c4262c" i],html.look-v2[data-mode="auto"] [style^="color:#c4262c" i],html.look-v2[data-mode="auto"] [style*=" color:#c4262c" i],html.look-v2[data-mode="auto"] [style*="\"color:#c4262c" i]{color:#E29296 !important}
+html.look-v2[data-mode="auto"] [style*=";color:#c62828" i],html.look-v2[data-mode="auto"] [style^="color:#c62828" i],html.look-v2[data-mode="auto"] [style*=" color:#c62828" i],html.look-v2[data-mode="auto"] [style*="\"color:#c62828" i]{color:#E29494 !important}
 html.look-v2[data-mode="auto"] [style*=";color:#d50000" i],html.look-v2[data-mode="auto"] [style^="color:#d50000" i],html.look-v2[data-mode="auto"] [style*=" color:#d50000" i],html.look-v2[data-mode="auto"] [style*="\"color:#d50000" i]{color:#EA8080 !important}
 html.look-v2[data-mode="auto"] [style*=";color:#d84315" i],html.look-v2[data-mode="auto"] [style^="color:#d84315" i],html.look-v2[data-mode="auto"] [style*=" color:#d84315" i],html.look-v2[data-mode="auto"] [style*="\"color:#d84315" i]{color:#ECA18A !important}
 html.look-v2[data-mode="auto"] [style*=";color:#d93025" i],html.look-v2[data-mode="auto"] [style^="color:#d93025" i],html.look-v2[data-mode="auto"] [style*=" color:#d93025" i],html.look-v2[data-mode="auto"] [style*="\"color:#d93025" i]{color:#EC9892 !important}
@@ -863,6 +871,10 @@ html.look-v2[data-mode="auto"] .dep-alert{background:#464A42;color:#C4A480}
 html.look-v2[data-mode="auto"] .dep-photo-box{background:var(--lk-glass)}
 html.look-v2[data-mode="auto"] .pa-chip{background:var(--lk-glass)}
 html.look-v2[data-mode="auto"] .pa-row{background:var(--lk-glass)}
+html.look-v2[data-mode="auto"] .fc-ico{color:#84BCA2}
+html.look-v2[data-mode="auto"] .fc-ok{color:#84BCA2}
+html.look-v2[data-mode="auto"] .fc-du{color:#E29494}
+html.look-v2[data-mode="auto"] .fc-mini{color:#84BCA2}
 html.look-v2[data-mode="auto"] .dep-fc-champ{background:var(--lk-glass)}
 html.look-v2[data-mode="auto"] .dep-fiche-card{background:var(--lk-glass)}
 html.look-v2[data-mode="auto"] .dep-chip{background:var(--lk-glass)}
@@ -1570,7 +1582,9 @@ html.look-v2[data-mode="dark"] [style*=";color:#c2185b" i],html.look-v2[data-mod
 html.look-v2[data-mode="dark"] [style*=";color:#c2266b" i],html.look-v2[data-mode="dark"] [style^="color:#c2266b" i],html.look-v2[data-mode="dark"] [style*=" color:#c2266b" i],html.look-v2[data-mode="dark"] [style*="\"color:#c2266b" i]{color:#E092B5 !important}
 html.look-v2[data-mode="dark"] [style*=";color:#c2410c" i],html.look-v2[data-mode="dark"] [style^="color:#c2410c" i],html.look-v2[data-mode="dark"] [style*=" color:#c2410c" i],html.look-v2[data-mode="dark"] [style*="\"color:#c2410c" i]{color:#E0A086 !important}
 html.look-v2[data-mode="dark"] [style*=";color:#c25e00" i],html.look-v2[data-mode="dark"] [style^="color:#c25e00" i],html.look-v2[data-mode="dark"] [style*=" color:#c25e00" i],html.look-v2[data-mode="dark"] [style*="\"color:#c25e00" i]{color:#E0AE80 !important}
+html.look-v2[data-mode="dark"] [style*=";color:#c26a00" i],html.look-v2[data-mode="dark"] [style^="color:#c26a00" i],html.look-v2[data-mode="dark"] [style*=" color:#c26a00" i],html.look-v2[data-mode="dark"] [style*="\"color:#c26a00" i]{color:#E0B480 !important}
 html.look-v2[data-mode="dark"] [style*=";color:#c4262c" i],html.look-v2[data-mode="dark"] [style^="color:#c4262c" i],html.look-v2[data-mode="dark"] [style*=" color:#c4262c" i],html.look-v2[data-mode="dark"] [style*="\"color:#c4262c" i]{color:#E29296 !important}
+html.look-v2[data-mode="dark"] [style*=";color:#c62828" i],html.look-v2[data-mode="dark"] [style^="color:#c62828" i],html.look-v2[data-mode="dark"] [style*=" color:#c62828" i],html.look-v2[data-mode="dark"] [style*="\"color:#c62828" i]{color:#E29494 !important}
 html.look-v2[data-mode="dark"] [style*=";color:#d50000" i],html.look-v2[data-mode="dark"] [style^="color:#d50000" i],html.look-v2[data-mode="dark"] [style*=" color:#d50000" i],html.look-v2[data-mode="dark"] [style*="\"color:#d50000" i]{color:#EA8080 !important}
 html.look-v2[data-mode="dark"] [style*=";color:#d84315" i],html.look-v2[data-mode="dark"] [style^="color:#d84315" i],html.look-v2[data-mode="dark"] [style*=" color:#d84315" i],html.look-v2[data-mode="dark"] [style*="\"color:#d84315" i]{color:#ECA18A !important}
 html.look-v2[data-mode="dark"] [style*=";color:#d93025" i],html.look-v2[data-mode="dark"] [style^="color:#d93025" i],html.look-v2[data-mode="dark"] [style*=" color:#d93025" i],html.look-v2[data-mode="dark"] [style*="\"color:#d93025" i]{color:#EC9892 !important}
@@ -1594,6 +1608,10 @@ html.look-v2[data-mode="dark"] .dep-alert{background:#464A42;color:#C4A480}
 html.look-v2[data-mode="dark"] .dep-photo-box{background:var(--lk-glass)}
 html.look-v2[data-mode="dark"] .pa-chip{background:var(--lk-glass)}
 html.look-v2[data-mode="dark"] .pa-row{background:var(--lk-glass)}
+html.look-v2[data-mode="dark"] .fc-ico{color:#84BCA2}
+html.look-v2[data-mode="dark"] .fc-ok{color:#84BCA2}
+html.look-v2[data-mode="dark"] .fc-du{color:#E29494}
+html.look-v2[data-mode="dark"] .fc-mini{color:#84BCA2}
 html.look-v2[data-mode="dark"] .dep-fc-champ{background:var(--lk-glass)}
 html.look-v2[data-mode="dark"] .dep-fiche-card{background:var(--lk-glass)}
 html.look-v2[data-mode="dark"] .dep-chip{background:var(--lk-glass)}

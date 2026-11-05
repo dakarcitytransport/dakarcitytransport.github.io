@@ -106,6 +106,12 @@ html.look-v2 .content{padding:8px 16px 18px;padding-bottom:max(52px,calc(env(saf
 html.look-v2 button:focus-visible,html.look-v2 .dep-case:focus-visible{outline:2.5px solid var(--green);outline-offset:2px}
 
 /* ── écran de connexion : choix de l'espace, puis du profil ── */
+/* Photo de fond de l'écran de connexion (Cobey, 05/11/2026) : image faite avec Higgsfield (port de Dakar au crépuscule) ; voile pour garder les cartes lisibles. */
+html.look-v2 #s-login{background:linear-gradient(180deg,rgba(6,16,12,.34) 0%,rgba(6,16,12,.12) 36%,rgba(6,16,12,.66) 100%),url(fond-connexion.jpg?v=1) center top/cover no-repeat #0a1410 !important}
+html.look-v2 #s-login .login-screen > div:first-of-type{color:#fff !important;text-shadow:0 2px 14px rgba(0,0,0,.45)}
+html.look-v2 #s-login #dep-ligne-pays,html.look-v2 #s-login #login-titre,html.look-v2 #s-login #login-soc-sous,html.look-v2 #s-login #app-version,html.look-v2 #s-login #app-update,html.look-v2 #s-login #dep-login-version{color:rgba(255,255,255,.86) !important;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+html.look-v2 #s-login #login-soc-nom{color:#fff !important;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+html.look-v2 #s-login #dct-logo{border-color:rgba(255,255,255,.85)}
 html.look-v2 .login-screen,html.look-v2 .login-screen.dep-clair{background:transparent;padding-top:calc(26px + env(safe-area-inset-top,0px))}
 html.look-v2 #dct-logo{width:76px !important;height:76px !important;margin-bottom:12px !important;border:3px solid var(--lk-edge);box-shadow:0 10px 28px rgba(14,159,91,.28) !important}
 html.look-v2 .login-screen > div:first-of-type{font-size:22px !important;font-weight:800 !important;letter-spacing:-.02em;color:var(--text) !important}
