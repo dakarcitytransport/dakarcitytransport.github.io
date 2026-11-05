@@ -1,6 +1,6 @@
 # Consignes pour Claude — appli « Dakar City Transport » (DCT)
 
-Fichiers : `look.js` + `look-v2.css` (**V2**, nouveau look — voir « Look V1 / V2 » plus bas), `dct-app.html` (appli principale, `APP_VERSION`), `departs.js` (module chargé par
+Fichiers : `photos.js` (photos de profil, `dct_profils_photos/<ID>` dans Firebase), `look.js` + `look-v2.css` (**V2**, nouveau look — voir « Look V1 / V2 » plus bas), `dct-app.html` (appli principale, `APP_VERSION`), `departs.js` (module chargé par
 dct-app.html, `DEP_VERSION` ; à chaque modification de departs.js, monter aussi `APP_VERSION`,
 sinon les téléphones gardent l'ancienne copie en cache), `mamadou.html` (`MAMADOU_VERSION`),
 `chauffeur.html` (`CHAUFFEUR_VERSION`), `facture.html`. Historique détaillé de tout ce qui a été fait,

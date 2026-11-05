@@ -6276,3 +6276,11 @@ La pastille « N clients à solder » devient « N impayés » (« 1 impayé » 
 > Cobey : « les couleurs ne sont pas cohérentes, l'un est en full rouge, l'autre blanc avec écriture verte [...] c'est bizarre » — « ok vas-y ».
 
 Les deux pastilles ont maintenant le même modèle : « N impayés » rouge plein, « Tout est soldé ✓ » vert plein, texte blanc.
+
+### 05/11/2026 — Photos de profil (dct-app v3.99.188, nouveau fichier `photos.js`)
+> Cobey : « c'est possible de mettre des photos de profil au lieu des icônes ? Moi j'ai AD, au lieu de voir AD, une photo de profil » ; « tout le monde peut changer sa photo de profil, tu la mets dans l'accueil, dans la connexion et dans l'activité aussi ».
+
+- Toucher sa pastille en haut à droite de l'accueil ouvre un menu : Ajouter/Changer ma photo, Retirer ma photo, Se déconnecter (la pastille déconnectait directement avant : un geste de plus pour se déconnecter).
+- Photo recadrée en carré 192 px, JPEG (~10 Ko), écrite dans Firebase `dct_profils_photos/<ID>` ; copie dans le téléphone (`dct_profils_photos_cache`) pour l'écran de connexion (avant le code, donc : la photo n'y apparaît qu'après une première connexion sur ce téléphone).
+- Affichée : accueil (pastille), cartes de profil à la connexion, Activité (photo de l'auteur, l'emoji de l'action devient un petit badge). Pas de photo : initiales comme avant. V1 et V2.
+- Limite : l'Activité retrouve l'auteur par son prénom (liste COLLABS) ; Mamadou Niass (appli à part) n'a pas de photo ici. Écriture réelle dans Firebase non testée (comptes lecture seule) : à vérifier au premier essai.
