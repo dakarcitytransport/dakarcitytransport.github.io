@@ -131,7 +131,12 @@ html.look-v2 #s-login .dep-esp-c-t{color:#fff !important;font-weight:800;text-sh
 html.look-v2 #s-login .dep-esp-c-n{background:rgba(255,255,255,.18) !important;color:#fff !important}
 html.look-v2 #s-login .dep-esp-c-s{color:rgba(255,255,255,.88) !important;font-weight:600;text-shadow:0 1px 5px rgba(0,0,0,.5)}
 html.look-v2 #s-login .dep-esp-c > svg:last-child{stroke:#fff !important}
-html.look-v2 #s-login .dep-esp-c-ic{background:rgba(255,255,255,.88) !important}
+html.look-v2 #s-login .dep-esp-c-ic{width:54px !important;height:54px !important;border-radius:18px !important;background:linear-gradient(145deg,rgba(255,255,255,.34),rgba(255,255,255,.08)) !important;border:1px solid rgba(255,255,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 6px 16px rgba(0,0,0,.25) !important;color:#fff !important;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+html.look-v2 #s-login .dep-esp-c-ic svg{width:30px !important;height:30px !important;stroke:#fff !important;stroke-width:2.1 !important;stroke-linecap:round;stroke-linejoin:round;fill:rgba(255,255,255,.26);filter:drop-shadow(0 0 6px rgba(255,255,255,.55))}
+html.look-v2 #s-login .dep-esp-c:nth-child(1) .dep-esp-c-ic{background:linear-gradient(145deg,rgba(88,88,235,.62),rgba(88,88,235,.22)) !important}
+html.look-v2 #s-login .dep-esp-c:nth-child(2) .dep-esp-c-ic{background:linear-gradient(145deg,rgba(235,64,140,.62),rgba(235,64,140,.22)) !important}
+html.look-v2 #s-login .dep-esp-c:nth-child(3) .dep-esp-c-ic{background:linear-gradient(145deg,rgba(30,175,215,.62),rgba(30,175,215,.22)) !important}
+html.look-v2 #s-login .dep-esp-c:nth-child(4) .dep-esp-c-ic{background:linear-gradient(145deg,rgba(235,70,76,.62),rgba(235,70,76,.22)) !important}
 html.look-v2 #s-login .dep-esp-c:nth-child(1){background-image:linear-gradient(135deg,rgba(88,88,235,.52),rgba(88,88,235,.16) 70%,rgba(88,88,235,.28)) !important;border-color:rgba(128,128,255,.85) !important}
 html.look-v2 #s-login .dep-esp-c:nth-child(2){background-image:linear-gradient(135deg,rgba(235,64,140,.52),rgba(235,64,140,.16) 70%,rgba(235,64,140,.28)) !important;border-color:rgba(255,104,180,.85) !important}
 html.look-v2 #s-login .dep-esp-c:nth-child(3){background-image:linear-gradient(135deg,rgba(30,175,215,.52),rgba(30,175,215,.16) 70%,rgba(30,175,215,.28)) !important;border-color:rgba(70,215,255,.85) !important}
