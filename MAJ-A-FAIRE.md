@@ -6271,3 +6271,8 @@ Cartes « en route » et « arrivé » : pastille « N clients à solder » (cli
 > Cobey : « je pense que la couleur des clients qui restent à solder devrait être rouge » ; « trouve une autre phrase que client non soldé, c'est pas très explicatif » — choix « 1 » : « 31 impayés ».
 
 La pastille « N clients à solder » devient « N impayés » (« 1 impayé » au singulier), en rouge. « Tout est soldé ✓ » reste blanc / vert.
+
+### 05/11/2026 — Cartes de l'accueil : « Tout est soldé ✓ » en vert plein (dct-app v3.99.187)
+> Cobey : « les couleurs ne sont pas cohérentes, l'un est en full rouge, l'autre blanc avec écriture verte [...] c'est bizarre » — « ok vas-y ».
+
+Les deux pastilles ont maintenant le même modèle : « N impayés » rouge plein, « Tout est soldé ✓ » vert plein, texte blanc.
