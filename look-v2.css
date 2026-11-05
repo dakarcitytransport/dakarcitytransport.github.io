@@ -181,14 +181,24 @@ html.look-v2 .dep-cli-btn{border-radius:16px;min-height:42px;font-weight:800;fon
 html.look-v2 #dep-devis-liste .dep-card,html.look-v2 #dep-fm-liste .dep-card{background-color:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-left-width:1px !important;border-radius:26px !important;padding:16px 18px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
 html.look-v2 #dep-devis-liste .dep-nom,html.look-v2 #dep-fm-liste .dep-nom{font-size:19px;letter-spacing:-.02em}
 html.look-v2 #dep-devis-liste .dep-badge,html.look-v2 #dep-fm-liste .dep-badge{border-radius:99px !important;font-weight:800}
-html.look-v2 #s-planning .content > div:not(.fi){border-radius:26px}
-
-
-/* ── Planning + Fidélité ── */
-html.look-v2 #s-planning .content > div:not(.fi){border-radius:26px !important;border:1px solid var(--lk-edge) !important;box-shadow:var(--shadow) !important}
-html.look-v2 #s-planning [onclick^="depPlanningPoser("]{border-radius:16px !important;min-height:46px;display:flex !important;align-items:center;justify-content:center;border-width:1px !important;font-size:15px !important;font-weight:800 !important;box-shadow:0 4px 12px rgba(0,0,0,.08)}
-html.look-v2 #s-planning [onclick^="depPlanningForcer"],html.look-v2 #s-planning [onclick^="depPlanningRetirer"]{border-radius:99px !important}
-html.look-v2 #s-planning input.fi{border-radius:16px !important;border-width:1px !important}
+/* Planning : onglets segmentés, cartes de jours en verre, gros boutons Dispo / Pas dispo */
+html.look-v2 #pl-contenu > div:first-child{background:var(--lk-field);border:1px solid var(--lk-edge);border-radius:99px;padding:4px;gap:4px !important}
+html.look-v2 #pl-contenu > div:first-child > div{border-radius:99px !important;border:0 !important;padding:11px !important;background:transparent !important;color:var(--text2,#6b7b72) !important}
+html.look-v2 #pl-contenu > div:first-child > div[style*="background:#E65100"],html.look-v2 #pl-contenu > div:first-child > div[style*="background:var(--green"],html.look-v2 #pl-contenu > div:first-child > div[style*="color:#fff"]{background:linear-gradient(145deg,#f07a1a,#d9560a) !important;color:#fff !important;box-shadow:0 6px 14px rgba(217,86,10,.3)}
+html.look-v2 #pl-contenu > div[style*="border-radius:13px"]{background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:26px !important;padding:18px !important;box-shadow:var(--shadow) !important;backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 #pl-contenu > div[style*="border-radius:13px"] > div:first-child > div:first-child{font-size:19px !important;letter-spacing:-.02em}
+html.look-v2 #pl-contenu > div[style*="background:#F3F3F5"]{background-image:linear-gradient(135deg,rgba(60,70,200,.16),rgba(60,70,200,.04)) !important}
+html.look-v2 #pl-contenu div[style*="background:#FBEAEA"]{border-radius:18px !important;border:1px solid rgba(192,57,43,.45) !important;background:rgba(192,57,43,.1) !important}
+html.look-v2 #pl-contenu div[style*="background:#EAF7EF"]{border-radius:18px !important;border:1px solid rgba(0,154,68,.45) !important;background:rgba(0,154,68,.1) !important}
+html.look-v2 #pl-contenu div[style*="background:#FFD54F"]{border-radius:18px !important;border:1px solid rgba(184,134,11,.6) !important;background:linear-gradient(135deg,#ffd54f,#f5b82e) !important;box-shadow:0 6px 14px rgba(184,134,11,.25)}
+html.look-v2 #pl-contenu [onclick^="depPlanningPoser("]{border-radius:18px !important;min-height:52px;display:flex !important;align-items:center;justify-content:center;gap:8px;border-width:1px !important;font-size:15px !important;font-weight:800 !important;padding:0 !important}
+html.look-v2 #pl-contenu [onclick$=",true)"][onclick^="depPlanningPoser("]::before{content:'\2713';font-size:17px}
+html.look-v2 #pl-contenu [onclick$=",false)"][onclick^="depPlanningPoser("]::before{content:'\2715';font-size:15px}
+html.look-v2 #pl-contenu [onclick^="depPlanningPoser("][style*="background:#fff"]{background:rgba(255,255,255,.6) !important}
+html.look-v2 #pl-contenu [onclick^="depPlanningPoser("][style*="background:#009A44"]{background:linear-gradient(145deg,#12b05a,#0a8a44) !important;box-shadow:0 8px 18px rgba(0,154,68,.35)}
+html.look-v2 #pl-contenu [onclick^="depPlanningPoser("][style*="background:#c0392b"]{background:linear-gradient(145deg,#e0503f,#b8301f) !important;box-shadow:0 8px 18px rgba(192,57,43,.35)}
+html.look-v2 #pl-contenu [onclick^="depPlanningForcer"],html.look-v2 #pl-contenu [onclick^="depPlanningRetirer"]{border-radius:99px !important}
+html.look-v2 #pl-contenu input.fi{border-radius:16px !important;border-width:1px !important;background:var(--lk-field) !important}
 html.look-v2 #fid-liste-contenu .dep-cli{position:relative;background-color:var(--lk-glass) !important;background-image:linear-gradient(135deg,rgba(224,140,30,.22),rgba(224,140,30,.05) 70%,rgba(224,140,30,.12)) !important;border:1px solid rgba(224,140,30,.45) !important;border-radius:24px !important;padding:14px 52px 14px 74px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);min-height:76px}
 html.look-v2 #fid-liste-contenu .dep-cli::before{content:'';position:absolute;left:16px;top:50%;margin-top:-23px;width:46px;height:46px;border-radius:15px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' fill-opacity='.3' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z'/%3E%3C/svg%3E") center/26px no-repeat,linear-gradient(145deg,#e0901e,#e0901e99);border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 14px rgba(0,0,0,.16)}
 html.look-v2 #fid-liste-contenu .dep-cli::after{content:'';position:absolute;right:16px;top:50%;margin-top:-15px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.7) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310241a' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18l6-6-6-6'/%3E%3C/svg%3E") center/15px no-repeat}

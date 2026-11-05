@@ -6536,3 +6536,7 @@ V2 seulement, en CSS (aucun bouton ni action modifié) : cartes Collecte en verr
 ### 05/11/2026 — Nouveau look : Planning + Fidélité (v3.99.235)
 > Cobey : « Oui fait » (Planning et Fidélité).
 V2 seulement, CSS uniquement : Planning — cartes de jours arrondies avec liseré clair, boutons Disponible / Pas dispo plus hauts et arrondis (couleurs et actions inchangées), champ « Un mot » arrondi. Fidélité — chaque client : verre ambré, tuile cadeau, nom en gras, pastille « N € disponibles », flèche. V1 inchangée (74/74).
+
+### 05/11/2026 — Planning : vraie refonte (v3.99.236)
+> Cobey : « Planning c'est la même chose qu'avant. » (mon CSS de la v3.99.235 visait le mauvais conteneur : `#pl-contenu`)
+V2 seulement, CSS : onglets « Mes disponibilités / L'équipe » en pilule segmentée (actif en dégradé orange) ; cartes de jours en verre arrondies, titre 19 px ; boutons Disponible / Pas dispo hauts (✓ / ✕), sélection en dégradé vert / rouge avec lueur ; bandeau « JOUR DE CHARGEMENT » en dégradé ambre ; statuts « Noté absent / disponible » arrondis. Actions inchangées. V1 inchangée (74/74).
