@@ -6261,3 +6261,8 @@ Les gros boutons collés (v3.99.182) sont remplacés par une barre de titre coll
 > Cobey : « la page de consultation des documents, là où on peut imprimer, consulter la facture, imprimer les étiquettes, copier le message WhatsApp. Je trouve cette page vraiment moche. Peut-on trouver autre chose ? » — choix « B ».
 
 Les 4 gros boutons de couleur empilés sont remplacés par un bandeau « Collecte validée » (avec nom du client et n° de facture) et une liste : Facture en PDF, Étiquette du colis, Envoyer par WhatsApp, Copier le message (icône, titre, explication, flèche). « Retour à la tournée » devient un lien discret, toujours masqué hors tournée. Mêmes fonctions qu'avant ; clair / sombre / V1.
+
+### 05/11/2026 — Cartes de l'accueil : clients restant à solder (dct-app v3.99.185, departs v2.22.30)
+> Cobey : « sur les cartes, le nombre de clients qui restent à solder, parce qu'un conteneur ne se clôture que quand tout le monde a payé, voir les clients manquants justifierait pourquoi la carte est encore affichée » — « ok vas-y pour les deux ».
+
+Cartes « en route » et « arrivé » : pastille « N clients à solder » (clients avec un reste à payer, colis + livraison) ou « Tout est soldé ✓ » (signal qu'on peut clôturer). Rien sur « En préparation ». Nombre de clients seulement, jamais de montant ; visible par tous ceux qui voient les cartes (terrain compris). Calcul : `_depNbImpayesDepart` (departs.js), exposé par `depDepartsCarte` (`impayes`).

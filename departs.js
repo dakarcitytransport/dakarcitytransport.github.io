@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.29';
+var DEP_VERSION = 'v2.22.30';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5783,7 +5783,9 @@ window.depDepartsCarte = function(){
     }catch(e){}
     var arriveeReelle = '';
     if(tsArr){ try{ arriveeReelle = new Date(tsArr).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit' }); }catch(e){} }
-    return { id: d._id, nom: d.nom || 'Container', statut: d.statut || 'preparation', arriveeReelle: arriveeReelle,
+    var nbImpayes = 0;
+    try{ if((d.statut || 'preparation') !== 'preparation') nbImpayes = _depNbImpayesDepart(d._id); }catch(e){}   // clients qui n'ont pas tout payé (Cobey : pourquoi la carte reste affichée)
+    return { id: d._id, nom: d.nom || 'Container', statut: d.statut || 'preparation', arriveeReelle: arriveeReelle, impayes: nbImpayes,
              pays: depPaysDepart(d), clients: c.clients || 0, etapes: etapes.length, fait: fait,
              arrivee: d.dateArriveePrevue || '', depart: d.dateDepart || '', ouvert: !!d.ouvertInscription };
   });

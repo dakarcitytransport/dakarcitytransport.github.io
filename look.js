@@ -229,6 +229,13 @@
     if(p.length !== 3) return '';
     return '<div class="lk-dep">départ du ' + p[2] + '/' + p[1] + '</div>';
   }
+  // Reste à solder (Cobey, 05/11/2026) : un container ne se clôture que soldé ; la carte explique pourquoi elle reste affichée.
+  // Pas sur « En préparation » (personne n'a encore payé). Nombre de clients seulement, jamais de montant.
+  function soldeLigne(d){
+    if(d.statut === 'preparation' || !d.clients) return '';
+    if(d.impayes > 0) return '<div class="lk-solde">' + d.impayes + ' client' + (d.impayes > 1 ? 's' : '') + ' à solder</div>';
+    return '<div class="lk-solde ok">Tout est soldé ✓</div>';
+  }
   function unDepart(d, i, ouvrable){
     var dest = d.pays === 'ML' ? 'BAMAKO' : 'DAKAR';
     var etat, sous;
@@ -245,7 +252,8 @@
       + '<span class="lk-pays">' + (d.pays === 'ML' ? '🇲🇱 MALI' : '🇸🇳 SÉNÉGAL') + '</span>'
       + '<small>' + etat + (d.statut === 'preparation' ? '' : ' · ' + sous) + '</small><h2>' + esc(d.nom) + '</h2>' + sousNom(d)
       + '<div class="lk-route"><span>MITRY</span><div class="lk-rail"><i style="width:' + (pct ? Math.max(8, pct) : 0) + '%"></i></div><span>' + dest + '</span></div>'
-      + '<div class="lk-foot"><span><b>' + d.clients + '</b> client' + (d.clients > 1 ? 's' : '') + (d.statut === 'preparation' ? (d.ouvert ? ' · inscriptions ouvertes' : ' · inscriptions fermées') : '') + '</span><span>' + droite + '</span></div></button>';
+      + '<div class="lk-foot"><span><b>' + d.clients + '</b> client' + (d.clients > 1 ? 's' : '') + (d.statut === 'preparation' ? (d.ouvert ? ' · inscriptions ouvertes' : ' · inscriptions fermées') : '') + '</span><span>' + droite + '</span></div>'
+      + soldeLigne(d) + '</button>';
   }
 
   /* ---------- barre de recherche de l'accueil (V2) : ouvre la liste Clients déjà filtrée ---------- */

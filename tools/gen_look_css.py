@@ -197,6 +197,8 @@ html.look-v2 #lk-dock button.on{background:var(--lk-g);color:var(--lk-tg)}
 html.look-v2 #lk-dock .lk-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 html.look-v2.lk-dock-on .screen .content{padding-bottom:110px}
 html.look-v2 .lk-hero{position:relative}
+html.look-v2 .lk-solde{display:inline-block;margin-top:10px;padding:4px 12px;border-radius:99px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);font-size:12.5px;font-weight:800;letter-spacing:.01em}
+html.look-v2 .lk-solde.ok{background:rgba(255,255,255,.9);color:#0A7A45;border-color:transparent}
 html.look-v2 .lk-j{display:inline-block;margin-right:8px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);font-weight:800;font-size:13px;letter-spacing:.02em;white-space:nowrap}
 html.look-v2 .lk-fixe{cursor:default;pointer-events:none}
 html.look-v2 .lk-car .lk-track{pointer-events:auto}
