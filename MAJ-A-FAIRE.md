@@ -6320,3 +6320,8 @@ Inventaire par script (toutes les fonctions qui écrivent dans Firebase, avec/sa
 - Classement : « chauffeur externe » (ajout d'un camion) passe de Planning à Collecte / France ; « sauvegarde » → Réglages.
 Volontairement non tracé : tâches techniques (références clients, rangs, nettoyages, sauvegarde quotidienne, corbeille automatique, photos de fiche). Testé : une dépense fixe ajoutée écrit bien une ligne classée Rapport financier ; 13 textes types classés dans la bonne case.
 Non audité en profondeur : mamadou.html et chauffeur.html (une trace chacun via `activiteExterne`).
+
+### 05/11/2026 — Photos de profil : rond parfait et cadrage plus sûr (dct-app v3.99.195)
+> Cobey (capture à l'appui) : « ma photo dans la notification n'a pas l'air d'être arrondie, on dirait un octogone ».
+
+Forme non reproduite en test (rayon 50 % bien appliqué sur ordinateur) ; durcissements : `border-radius:50% !important` sur toutes les photos de profil ; cadrage (`photos.js`) : la photo est lue avec son orientation (`createImageBitmap … from-image`, sinon `Image`) au lieu de `naturalWidth/Height` seuls (les photos d'iPhone portent une rotation dans le fichier : le rectangle découpé pouvait sortir de l'image et laisser des bandes noires) ; fond blanc sous l'image ; plus de bords noirs possibles. Les photos déjà enregistrées ne sont pas modifiées : à remettre si le défaut persiste.

@@ -47,7 +47,7 @@
     var h = '';
     Object.keys(photos).forEach(function(id){
       if(!/^[A-Za-z0-9_-]+$/.test(id) || typeof photos[id] !== 'string' || photos[id].indexOf('data:image/') !== 0) return;
-      h += '[data-ph="' + id + '"][data-ph][data-ph][data-ph]{background-image:url("' + photos[id] + '") !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;background-color:transparent !important;color:transparent !important;}';
+      h += '[data-ph="' + id + '"][data-ph][data-ph][data-ph]{background-image:url("' + photos[id] + '") !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;background-color:transparent !important;color:transparent !important;border-radius:50% !important;}';
     });
     return h;
   }
@@ -144,12 +144,22 @@
   function message(t){ try{ if(typeof showToastNew === 'function') showToastNew(t); else if(typeof toast === 'function') toast(t); }catch(e){} }
   // Cadrage : on déplace (doigt / souris) et on zoome (pincement / curseur) la photo dans le rond, puis on valide.
   var V = 280;
+  // Charge la photo en tenant compte de son orientation (les photos d'iPhone portent une rotation dans le fichier :
+  // sans cela, le rectangle découpé peut sortir de l'image et laisser des bords noirs).
+  function charger(fichier, cb){
+    function viaImage(){
+      var url = URL.createObjectURL(fichier), im = new Image();
+      im.onload = function(){ URL.revokeObjectURL(url); cb(im, im.naturalWidth, im.naturalHeight); };
+      im.onerror = function(){ URL.revokeObjectURL(url); cb(null); };
+      im.src = url;
+    }
+    if(window.createImageBitmap){
+      createImageBitmap(fichier, { imageOrientation: 'from-image' }).then(function(b){ cb(b, b.width, b.height); }).catch(viaImage);
+    } else viaImage();
+  }
   function cadrer(fichier, cb){
-    var url = URL.createObjectURL(fichier), im = new Image();
-    im.onerror = function(){ URL.revokeObjectURL(url); cb(null); };
-    im.onload = function(){
-      var W = im.naturalWidth, H = im.naturalHeight;
-      if(!W || !H){ URL.revokeObjectURL(url); cb(null); return; }
+    charger(fichier, function(im, W, H){
+      if(!im || !W || !H){ cb(null); return; }
       var smin = Math.max(V / W, V / H), s = smin, cx = W / 2, cy = H / 2;
       fermer();
       var o = document.createElement('div');
@@ -169,7 +179,7 @@
       }
       function dessiner(){
         borne(); var m = V / (2 * s);
-        g.clearRect(0, 0, cv.width, cv.height);
+        g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
         g.drawImage(im, cx - m, cy - m, 2 * m, 2 * m, 0, 0, cv.width, cv.height);
       }
       function zoomer(ns){ s = Math.min(Math.max(ns, smin), smin * 4); z.value = Math.round((s / smin - 1) / 3 * 100); dessiner(); }
@@ -187,19 +197,19 @@
       z.addEventListener('input', function(){ zoomer(smin * (1 + 3 * z.value / 100)); });
       o.addEventListener('click', function(ev){
         var b = ev.target.closest('button[data-a]');
-        if(ev.target === o || (b && b.getAttribute('data-a') === 'non')){ fermer(); URL.revokeObjectURL(url); return; }
+        if(ev.target === o || (b && b.getAttribute('data-a') === 'non')){ fermer(); return; }
         if(b && b.getAttribute('data-a') === 'ok'){
           try{
             borne(); var m = V / (2 * s), c = document.createElement('canvas'); c.width = c.height = 192;
-            c.getContext('2d').drawImage(im, cx - m, cy - m, 2 * m, 2 * m, 0, 0, 192, 192);
+            var g2 = c.getContext('2d'); g2.fillStyle = '#fff'; g2.fillRect(0, 0, 192, 192);
+            g2.drawImage(im, cx - m, cy - m, 2 * m, 2 * m, 0, 0, 192, 192);
             var d = c.toDataURL('image/jpeg', 0.82);
-            fermer(); URL.revokeObjectURL(url); cb(d);
+            fermer(); cb(d);
           }catch(e){ fermer(); cb(null); }
         }
       });
       dessiner();
-    };
-    im.src = url;
+    });
   }
   function enregistrer(id, dataUrl){
     if(dataUrl){ photos[id] = dataUrl; } else { delete photos[id]; }
