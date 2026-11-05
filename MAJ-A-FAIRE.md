@@ -6403,3 +6403,8 @@ Abdoulaye a déjà mis sa propre photo : la photo d'office (v3.99.208) est retir
 > Cobey : « mets celle-là pour Ibrahima » (photo de face, crâne rasé, barbe grise).
 
 `photos-defaut/IB.jpg` (recadrée sur le visage, 192 px) ; `DEFAUT = { IB: … }` dans photos.js. S'affiche partout où une photo s'affiche ; remplacée par la sienne dès qu'il en enregistre une ; pas de fenêtre « Nouveauté » pour lui. Testé : rond photo dans Planning, fichier servi (200).
+
+### 05/11/2026 — Photos d'office : Boubacar, Samba, Aminata (dct-app v3.99.211)
+> Cobey : « photo 1 pour Boubacar, photo 2 pour Samba, photo 3 Aminata. »
+
+`photos-defaut/BO.jpg`, `SA.jpg`, `AM.jpg` (recadrées sur le visage, 192 px) + entrées dans `DEFAUT` (photos.js), comme Ibrahima. Aminata n'apparaît pas dans le Planning (elle n'y participe pas) mais a sa photo à l'accueil, à la connexion et dans l'Activité. Les images sources sont petites et la photo d'Aminata est sombre : à remplacer par de meilleures si Cobey en a.
