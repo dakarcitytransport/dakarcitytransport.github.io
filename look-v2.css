@@ -92,8 +92,7 @@ html.look-v2 .login-name{font-size:17px;font-weight:800;letter-spacing:-.01em;co
 html.look-v2 .login-role{color:var(--text3)}
 html.look-v2 .login-card > svg:last-child{stroke:var(--text3) !important}
 
-/* ── accueil : « Où souhaitez-vous travailler ? » ── */
-html.look-v2 #s-espaces .content > div:first-child{font-size:22px !important;font-weight:800 !important;letter-spacing:-.025em;color:var(--text) !important;margin:6px 4px 14px !important}
+/* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
 html.look-v2 #lk-theme-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--lk-glass);color:var(--text);border:1px solid var(--lk-edge);box-shadow:var(--shadow);cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}

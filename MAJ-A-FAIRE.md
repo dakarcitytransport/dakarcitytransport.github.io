@@ -6335,3 +6335,8 @@ Cause trouvée en rendant le rond à fort grossissement : le rond de l'Activité
 > Cobey : « à leur prochaine connexion, un pop-up pour leur indiquer la nouveauté qu'ils peuvent maintenant mettre une photo de profil, et expliquer comment [...] comme dans une application, on le voit à la première connexion, après ça disparaît » — « ok vas-y » ; même texte pour Samba, Ibrahima, Boubacar ; pas prévu pour Mamadou ni les chauffeurs (autres applis).
 
 `photos.js` : système de nouveautés (liste `NOUVEAUTES`, une entrée pour l'instant : `photo_profil`). À l'arrivée sur l'accueil (≈1,5 s), si la personne n'a pas de photo et n'a jamais vu la nouveauté : fenêtre avec les 3 étapes ; « Ajouter ma photo maintenant » ouvre le choix de photo, « Plus tard » ferme. Mémorisé par personne dans Firebase `dct_nouveautes_vues/<ID>/<nouveauté>` (+ copie locale) : ne revient plus, sur aucun téléphone. Qui a déjà une photo : rien affiché, marqué comme vu. Testé : 1re connexion, « Plus tard », retour accueil, autre téléphone, autre personne, « Ajouter », personne avec photo. Pour une future nouveauté : ajouter une entrée à `NOUVEAUTES`.
+
+### 05/11/2026 — Accueil : titre et recherche retirés (dct-app v3.99.198, departs v2.22.32)
+> Cobey : « le "Où souhaitez-vous travailler" et la recherche client, je sais pas si c'est nécessaire » ; la recherche fait doublon avec la case et l'onglet Clients ; rien à mettre à la place — « ok vas-y ».
+
+Le titre « Où souhaitez-vous travailler ? » (V1 et V2) et la barre de recherche de l'accueil (V2) sont retirés : l'accueil commence par « Bonjour Eric ! », puis les cartes et les cases. Le code de la recherche reste dans `look.js`, désactivé.

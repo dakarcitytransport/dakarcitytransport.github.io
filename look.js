@@ -260,7 +260,8 @@
   function barreRecherche(){
     var contenu = document.querySelector('#s-espaces .content');
     var b = document.getElementById('lk-rech');
-    if(effectif() !== 'v2' || !contenu){ if(b) b.remove(); return; }
+    // 05/11/2026 — Cobey : la recherche de l'accueil fait doublon avec la case et l'onglet Clients : retirée.
+    if(true || effectif() !== 'v2' || !contenu){ if(b) b.remove(); return; }
     if(b) return;
     b = document.createElement('form');
     b.id = 'lk-rech'; b.setAttribute('role', 'search');

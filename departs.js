@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.31';
+var DEP_VERSION = 'v2.22.32';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3052,8 +3052,7 @@ function injecterEcrans(){
   +     '</div>'
   +   '</div>'
   +   '<div class="content">'
-  +     '<div style="font-size:12.5px;color:var(--text3);font-weight:600;margin-bottom:14px;">'
-  +       'Où souhaitez-vous travailler ?</div>'
+  // 05/11/2026 : le titre « Où souhaitez-vous travailler ? » est retiré (Cobey : pas nécessaire).
   // v1.19.82 : ordre des carrés revu pour suivre la logique métier plutôt
   // que l'ordre de création (retour de Cobey du 29/08/2026) — Départs,
   // Client, Collecte, France & Europe, Inscription au dépôt, QR Code,
