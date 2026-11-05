@@ -6481,3 +6481,7 @@ Cause : les PDF (étiquettes, factures, feuilles de route) sont des captures de 
 ### 05/11/2026 — Connexion : la photo monte jusqu'en haut de l'écran (v3.99.223)
 > Cobey : « Pourquoi le haut ne prend pas la photo ? » (bande claire sous l'heure / le réseau de l'iPhone)
 La photo est maintenant posée sur toute la page (pas seulement sur l'écran de connexion) tant qu'on est sur la connexion, et la couleur de la barre du haut passe en sombre (`theme-color` créé par look.js). Revient normal dès qu'on quitte la connexion. (Ne peut pas être testé avec la vraie barre iPhone : à vérifier sur son téléphone.)
+
+### 05/11/2026 — Connexion : cases plus transparentes (v3.99.224)
+> Cobey : « Je trouve les cases pas assez transparentes, on ne voit pas l'image. »
+Teinte par espace réduite de moitié, flou 14 → 5 px, verre presque clair : la photo se voit à travers ; la couleur reste dans le liseré et un léger voile.
