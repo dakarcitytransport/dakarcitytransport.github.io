@@ -6510,3 +6510,10 @@ photos.js enveloppe `_ouvrirModalPinCollab` : la pastille du PIN reçoit `data-p
 ### 05/11/2026 — Logo : détourage refait (v3.99.230)
 > Cobey : « Au-dessus du logo on voit un petit bout blanc, on dirait que le détourage est mal fait. »
 Le détourage était un cercle un peu trop grand (le logo est légèrement ovale) : refait sur l'ellipse exacte, 3 px à l'intérieur. `logo-dct.png?v=2`.
+
+### 05/11/2026 — Icônes en verre duotone : connexion, accueil, barre du bas (v3.99.231)
+> Cobey : « les icônes ont l'air plus anciennes… la nouvelle version est très moderne, avec des effets de verre » → aperçu → « Ce style me plaît… tu peux coder le tout. »
+- Connexion : 4 icônes redessinées (mallette arrondie, immeuble + bâtiment, camion à grosses roues, bouclier-cadenas) dans une tuile en verre de la couleur de l'espace.
+- Accueil (18 cases) : tuile colorée par teinte (vert, orange, violet, rouge, bleu) + icône blanche duotone (trait 2, remplissage translucide, lueur). Même dessins qu'avant, nouveau style.
+- Barre du bas : bouton actif en dégradé vert, icônes à remplissage translucide.
+- Générateur : `uri_duo`, `COUL`, `LOGIN_ICO` dans tools/gen_look_css.py. V1 inchangée. Les emojis des listes/boutons ne changent pas. Reste possible : redessiner les formes des 18 icônes d'accueil.

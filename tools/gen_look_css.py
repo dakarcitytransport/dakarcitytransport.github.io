@@ -23,6 +23,19 @@ ICONS = {
  'annonce':'M3 11v2a2 2 0 0 0 2 2h1l2 5h2l-1.5-5H12l8 4V6l-8 4H5a2 2 0 0 0-2 1z',
 }
 # couleur de la pastille : g (vert) o (orange) v (violet) r (rouge) b (bleu)
+def uri_duo(d, fill=".30", sw="2"):
+    chemins = d if isinstance(d, (list, tuple)) else [d]
+    corps = ''.join(c if c.startswith('<') else "<path d='%s'/>" % c for c in chemins)
+    svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' fill-opacity='%s' stroke='white' stroke-width='%s' stroke-linecap='round' stroke-linejoin='round'>%s</svg>" % (fill, sw, corps)
+    return 'url("data:image/svg+xml,%s")' % urllib.parse.quote(svg, safe="/:='() ,")
+COUL = {'g':'#2e8f6a','o':'#d9892b','v':'#7a5cf0','r':'#e0583f','b':'#4a63d6'}
+# 4 icônes redessinées de l'écran de connexion (maquette validée par Cobey le 05/11/2026)
+LOGIN_ICO = [
+ ["<rect x='3' y='8' width='18' height='12' rx='4'/>","<path d='M9 8V7a3 3 0 0 1 3-3 3 3 0 0 1 3 3v1'/>","<path d='M3 13.5h5m8 0h5'/>","<rect x='9.5' y='11.8' width='5' height='3.4' rx='1.4'/>"],
+ ["<path d='M4 21V6.5A2.5 2.5 0 0 1 6.5 4h6A2.5 2.5 0 0 1 15 6.5V21z'/>","<path d='M15 10h2.5A2.5 2.5 0 0 1 20 12.5V21'/>","<path d='M2.5 21h19'/>","<path d='M8 8.5h3M8 12h3M8 15.5h3'/>"],
+ ["<rect x='2' y='6' width='12' height='9.5' rx='2.4'/>","<path d='M14 9.5h3.6a2 2 0 0 1 1.6.8l1.9 2.5a2 2 0 0 1 .4 1.2v1.5a1.5 1.5 0 0 1-1.5 1.5H14'/>","<circle cx='7' cy='17.5' r='2.3'/>","<circle cx='17' cy='17.5' r='2.3'/>"],
+ ["<path d='M12 2.8 4.5 5.6v5.7c0 4.7 3.1 8.2 7.5 9.9 4.4-1.7 7.5-5.2 7.5-9.9V5.6z'/>","<rect x='9' y='10.5' width='6' height='4.7' rx='1.4'/>","<path d='M10.2 10.5V9.3a1.8 1.8 0 0 1 3.6 0v1.2'/>"],
+]
 TEINTE = {'departs':'g','stockage':'o','client':'v','planning':'r','collecte':'g','france':'b','depot':'o','devis':'b','fm':'v','fid':'o','pa':'r','qr':'g','arch':'g','rapfin':'b','stats':'o','reglages':'g','mamadou':'o','annonce':'r'}
 def uri(d):
     chemins = d if isinstance(d, (list, tuple)) else [d]      # une icône peut avoir plusieurs tracés
@@ -233,8 +246,9 @@ html.look-v2 .dep-vide{color:var(--text3)}
 html.look-v2 .bottomnav{display:none !important}
 html.look-v2 #lk-dock{position:fixed;left:50%;transform:translateX(-50%);bottom:max(12px,env(safe-area-inset-bottom));width:min(calc(100% - 24px),406px);z-index:60;display:flex;gap:4px;padding:6px;border-radius:26px;background:var(--lk-glass);border:1px solid var(--lk-edge);box-shadow:0 10px 30px rgba(8,30,20,.22);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 html.look-v2 #lk-dock button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;border:0;border-radius:20px;background:transparent;color:var(--text2,#6b7b72);font:700 11px/1 var(--font);cursor:pointer}
-html.look-v2 #lk-dock button.on{background:var(--lk-g);color:var(--lk-tg)}
-html.look-v2 #lk-dock .lk-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+html.look-v2 #lk-dock button.on{background:linear-gradient(145deg,#2fb27c,#1a8a5c);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 6px 14px rgba(20,120,80,.3)}
+html.look-v2 #lk-dock button.on .lk-ic{fill-opacity:.32;filter:drop-shadow(0 0 4px rgba(255,255,255,.5))}
+html.look-v2 #lk-dock .lk-ic{width:23px;height:23px;fill:currentColor;fill-opacity:.2;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 html.look-v2.lk-dock-on .screen .content{padding-bottom:110px}
 html.look-v2 .lk-hero{position:relative}
 html.look-v2 .lk-solde{display:inline-block;margin-top:10px;padding:4px 12px;border-radius:99px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);font-size:12.5px;font-weight:800;letter-spacing:.01em}
@@ -263,8 +277,12 @@ html.look-v2 .dep-case-sub{color:var(--text3);font-size:12.5px;font-weight:500;l
 # icônes des 18 menus
 for k, d in ICONS.items():
     t = TEINTE[k]
-    out.append("html.look-v2 #dep-case-%s .dep-case-ico{font-size:0 !important;background:var(--lk-%s);color:var(--lk-t%s)}" % (k, t, t))
-    out.append("html.look-v2 #dep-case-%s .dep-case-ico::before{content:'';width:22px;height:22px;background:currentColor;-webkit-mask:%s center/contain no-repeat;mask:%s center/contain no-repeat}" % (k, uri(d), uri(d)))
+    c = COUL[t]
+    out.append("html.look-v2 #dep-case-%s .dep-case-ico{font-size:0 !important;width:46px;height:46px;border-radius:15px;background:linear-gradient(145deg,%s,%s99);border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 14px rgba(0,0,0,.18)}" % (k, c, c))
+    out.append("html.look-v2 #dep-case-%s .dep-case-ico::before{content:'';width:26px;height:26px;background:%s center/contain no-repeat;filter:drop-shadow(0 0 5px rgba(255,255,255,.5))}" % (k, uri_duo(d)))
+for k in range(1, 5):
+    out.append("html.look-v2 #s-login .dep-esp-c:nth-child(%d) .dep-esp-c-ic{display:flex !important;align-items:center;justify-content:center}\nhtml.look-v2 #s-login .dep-esp-c:nth-child(%d) .dep-esp-c-ic svg{display:none !important}" % (k, k))
+    out.append("html.look-v2 #s-login .dep-esp-c:nth-child(%d) .dep-esp-c-ic::before{content:'';width:32px;height:32px;background:%s center/contain no-repeat;filter:drop-shadow(0 0 6px rgba(255,255,255,.55))}" % (k, uri_duo(LOGIN_ICO[k-1], '.30', '1.9')))
 out.append(r"""
 /* ── feuille « Apparence » (clair / sombre / automatique) ── */
 #lk-voile{position:fixed;inset:0;z-index:9000;background:var(--lk-veil,rgba(8,20,14,.35));display:flex;align-items:flex-end;justify-content:center;font-family:var(--font,'DM Sans',sans-serif)}
