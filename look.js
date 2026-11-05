@@ -93,6 +93,22 @@
     tc.setAttribute('content', surLogin ? '#0a1410' : (v2 && sombreMaintenant() ? '#080D0B' : '#F3F7F4'));
   }
 
+  /* Cartes de profil (connexion) : chaque carte prend la couleur de la personne (celle de son anneau) dans le verre. */
+  function colorerProfils(){
+    [].forEach.call(document.querySelectorAll('#login-cards .login-card'), function(c){
+      var col = c.style.borderLeftColor || c.style.borderColor;
+      if(col && c.style.getPropertyValue('--pc') !== col) c.style.setProperty('--pc', col);
+    });
+  }
+  var obsProfils = null;
+  function surveillerProfils(){
+    var z = document.getElementById('login-cards');
+    if(obsProfils || !z || !window.MutationObserver) return;
+    obsProfils = new MutationObserver(function(){ try{ colorerProfils(); }catch(e){} });
+    obsProfils.observe(z, { childList:true });
+    colorerProfils();
+  }
+
   /* ---------- appliquer ---------- */
   function appliquer(){
     var h = document.documentElement;
@@ -100,6 +116,7 @@
     h.classList.toggle('look-v2', v2);
     h.setAttribute('data-mode', mode());
     try{ barreHaut(); }catch(e){}
+    try{ surveillerProfils(); }catch(e){}
     boutonTheme();
     carteDepart();
     try{ barreRecherche(); }catch(e){}

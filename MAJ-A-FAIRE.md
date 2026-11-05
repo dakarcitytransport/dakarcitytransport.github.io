@@ -6489,3 +6489,8 @@ Teinte par espace réduite de moitié, flou 14 → 5 px, verre presque clair : l
 ### 05/11/2026 — Connexion : retour au verre d'avant + même verre sur les profils (v3.99.225)
 > Cobey : « Nan, revient comme celui d'avant, et par contre rajoute aussi le même style pour chaque profil, ils sont restés blancs. »
 Cases d'espaces remises comme en v3.99.223 (verre dépoli teinté). Cartes de profil (Qui êtes-vous ?) : même verre dépoli, texte blanc, bouton retour en verre ; l'anneau de couleur de chaque personne est gardé.
+
+### 05/11/2026 — Connexion : cartes de profil colorées + PIN en verre (v3.99.226)
+> Cobey : « Faut mettre des couleurs aussi aux cases pour chaque profil. » ; « Oui, PIN en verre aussi. »
+- Chaque carte de profil prend la couleur de la personne (celle de son anneau) dans le verre (look.js `colorerProfils` met `--pc`, CSS `color-mix`).
+- Fenêtres du code PIN (collaborateurs et administrateur) : verre dépoli, texte blanc, champ et boutons en verre (seulement quand on est sur l'écran de connexion).

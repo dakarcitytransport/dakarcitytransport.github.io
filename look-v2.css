@@ -69,6 +69,15 @@ html.look-v2 #s-login{background:linear-gradient(180deg,rgba(6,16,12,.30) 0%,rgb
 @supports selector(:has(*)){
 html.look-v2:has(#s-login.active){min-height:100%;background:linear-gradient(180deg,rgba(6,16,12,.30) 0%,rgba(6,16,12,0) 35%,rgba(6,16,12,.10) 100%),url(fond-connexion.jpg?v=1) 64% 0%/auto 124% no-repeat #0a1410 !important}
 html.look-v2:has(#s-login.active) body,html.look-v2:has(#s-login.active) .app,html.look-v2 #s-login.active{background:transparent !important}
+html.look-v2:has(#s-login.active) #modal-collab-pin,html.look-v2:has(#s-login.active) #modal-admin-pin{background:rgba(4,10,8,.35) !important;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+html.look-v2:has(#s-login.active) #modal-collab-pin .modal-sheet,html.look-v2:has(#s-login.active) #modal-admin-pin .modal-sheet{background:rgba(255,255,255,.12) !important;background-image:linear-gradient(135deg,rgba(255,255,255,.26),rgba(255,255,255,.04) 55%,rgba(255,255,255,.12)) !important;border:1px solid rgba(255,255,255,.6) !important;border-radius:28px !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 14px 40px rgba(0,0,0,.4) !important;backdrop-filter:blur(18px) saturate(1.6) brightness(.8);-webkit-backdrop-filter:blur(18px) saturate(1.6) brightness(.8)}
+html.look-v2:has(#s-login.active) #collab-pin-titre,html.look-v2:has(#s-login.active) #modal-admin-pin .modal-confirm-title{color:#fff !important;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+html.look-v2:has(#s-login.active) #collab-pin-sous-titre{color:rgba(255,255,255,.88) !important}
+html.look-v2:has(#s-login.active) #collab-pin-input,html.look-v2:has(#s-login.active) #admin-pin-input{background:rgba(255,255,255,.16) !important;color:#fff !important;border:1.5px solid rgba(255,255,255,.65) !important;border-radius:16px !important}
+html.look-v2:has(#s-login.active) #collab-pin-input::placeholder,html.look-v2:has(#s-login.active) #admin-pin-input::placeholder{color:rgba(255,255,255,.6)}
+html.look-v2:has(#s-login.active) #collab-pin-btn,html.look-v2:has(#s-login.active) #modal-admin-pin .btn-sm:not(.btn-gray-sm){background:rgba(255,255,255,.92) !important;color:#0b3d24 !important;border:0 !important;border-radius:16px !important}
+html.look-v2:has(#s-login.active) #modal-collab-pin button:not(#collab-pin-btn),html.look-v2:has(#s-login.active) #modal-admin-pin .btn-gray-sm{background:rgba(255,255,255,.14) !important;color:#fff !important;border:1px solid rgba(255,255,255,.5) !important;border-radius:16px !important}
+html.look-v2:has(#s-login.active) #modal-admin-pin .modal-emoji{filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
 }
 html.look-v2 #s-login .login-screen > div:first-of-type{color:#fff !important;text-shadow:0 2px 14px rgba(0,0,0,.45)}
 html.look-v2 #s-login #dep-ligne-pays,html.look-v2 #s-login #login-titre,html.look-v2 #s-login #login-soc-sous,html.look-v2 #s-login #app-version,html.look-v2 #s-login #app-update,html.look-v2 #s-login #dep-login-version{color:rgba(255,255,255,.86) !important;text-shadow:0 1px 8px rgba(0,0,0,.5)}
@@ -85,6 +94,7 @@ html.look-v2 #s-login .dep-esp-c:nth-child(2){background-image:linear-gradient(1
 html.look-v2 #s-login .dep-esp-c:nth-child(3){background-image:linear-gradient(135deg,rgba(30,175,215,.52),rgba(30,175,215,.16) 70%,rgba(30,175,215,.28)) !important;border-color:rgba(70,215,255,.85) !important}
 html.look-v2 #s-login .dep-esp-c:nth-child(4){background-image:linear-gradient(135deg,rgba(235,70,76,.52),rgba(235,70,76,.16) 70%,rgba(235,70,76,.28)) !important;border-color:rgba(255,110,116,.85) !important}
 html.look-v2 #s-login .login-card{background-color:rgba(255,255,255,.10) !important;background-image:linear-gradient(135deg,rgba(255,255,255,.26),rgba(255,255,255,.04) 55%,rgba(255,255,255,.12)) !important;border:1px solid rgba(255,255,255,.55) !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(255,255,255,.12),0 8px 24px rgba(0,0,0,.28) !important;backdrop-filter:blur(14px) saturate(1.6) brightness(.82);-webkit-backdrop-filter:blur(14px) saturate(1.6) brightness(.82)}
+html.look-v2 #s-login .login-card[style*="--pc"]{background-image:linear-gradient(135deg,color-mix(in srgb,var(--pc) 52%,transparent),color-mix(in srgb,var(--pc) 16%,transparent) 70%,color-mix(in srgb,var(--pc) 28%,transparent)) !important;border-color:color-mix(in srgb,var(--pc) 70%,#fff) !important}
 html.look-v2 #s-login .login-name{color:#fff !important;text-shadow:0 1px 6px rgba(0,0,0,.5)}
 html.look-v2 #s-login .login-role{color:rgba(255,255,255,.88) !important;text-shadow:0 1px 5px rgba(0,0,0,.5)}
 html.look-v2 #s-login .login-card > svg:last-child{stroke:#fff !important}
