@@ -216,6 +216,25 @@
     tuilesVerre();
   }
 
+  /* ---------- barre colorée sur le côté → verre teinté (Dépôt Dakar, clients du dépôt…) : V2 seulement ---------- */
+  function barresLaterales(){
+    if(effectif() !== 'v2') return;
+    [].forEach.call(document.querySelectorAll('.screen .dep-cli[style*="border-left"]:not([data-bl])'), function(c){
+      c.setAttribute('data-bl', '1');
+      var col = c.style.borderLeftColor;
+      if(col) c.style.setProperty('--pc', col);
+      c.classList.add('lk-bl');
+    });
+  }
+  var obsBL = null;
+  function surveillerBarres(){
+    if(obsBL || !window.MutationObserver) return;
+    var en = false;
+    obsBL = new MutationObserver(function(){ if(en) return; en = true; try{ barresLaterales(); }catch(e){} en = false; });
+    obsBL.observe(document.body, { childList:true, subtree:true });
+    barresLaterales();
+  }
+
   /* ---------- appliquer ---------- */
   function appliquer(){
     var h = document.documentElement;
@@ -224,7 +243,7 @@
     h.setAttribute('data-mode', mode());
     try{ barreHaut(); }catch(e){}
     try{ surveillerProfils(); }catch(e){}
-    try{ surveillerCartes(); cartesVerre(); }catch(e){} try{ surveillerTuiles(); tuilesVerre(); }catch(e){}
+    try{ surveillerCartes(); cartesVerre(); }catch(e){} try{ surveillerTuiles(); tuilesVerre(); }catch(e){} try{ surveillerBarres(); }catch(e){}
     boutonTheme();
     carteDepart();
     try{ barreRecherche(); }catch(e){}

@@ -6528,3 +6528,7 @@ Vague 1 (V2 seulement) : Départs (choix du pays : tuile drapeau, chiffres « ou
 ### 05/11/2026 — Nouveau look, vague 2 : Réglages / Administration / Rapport financier (v3.99.233)
 > Cobey : « Ok » (après la vague 1).
 look.js `tuilesVerre()` (V2 seulement) : les emojis des tuiles de Réglages et du Rapport financier deviennent des icônes duotone blanches (équipe, clé, cloche, base de données, clé à molette, corbeille, mégaphone, palette, graphiques) dans une tuile de la couleur de la case ; les drapeaux restent dans une tuile blanche. L'en-tête noir de « Administration » devient clair comme les autres écrans, et la grille retrouve ses marges. V1 inchangée (74/74).
+
+### 05/11/2026 — Nouveau look, vague 3 : Collecte, Dépôt Dakar, Devis, Facture manuelle (v3.99.234)
+> Cobey : « ok vas-y » (vague 3).
+V2 seulement, en CSS (aucun bouton ni action modifié) : cartes Collecte en verre teinté (vert « en cours », bleu « à venir ») ; cartes à barre colorée sur le côté (`.dep-cli`, ex. Dépôt Dakar) en verre teinté de la couleur de la barre (look.js `barresLaterales`) ; boutons de cartes (`.dep-cli-btn`) plus ronds ; cartes Devis / Facture manuelle en verre, pastilles rondes. NON touchés : boutons Disponible / Pas dispo du Planning (styles écrits dans le code) et la liste Fidélité — à voir avec Cobey. V1 inchangée (74/74).

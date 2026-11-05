@@ -224,6 +224,20 @@ html.look-v2 .dep-case-ico.lk-tv{width:46px;height:46px;border-radius:15px;font-
 html.look-v2 .dep-case-ico.lk-tv svg{width:26px;height:26px;fill:rgba(255,255,255,.3);stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 5px rgba(255,255,255,.5))}
 html.look-v2 .dep-case-ico.lk-tv-em{background:rgba(255,255,255,.72) !important;font-size:26px !important;line-height:1}
 
+
+/* ── vague 3 : Collecte, Dépôt Dakar, boutons de cartes, Devis, Facture manuelle, Planning ── */
+html.look-v2 .collecte-card{background-color:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:26px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 .collecte-card.border-green{background-image:linear-gradient(135deg,rgba(46,143,106,.30),rgba(46,143,106,.07) 70%,rgba(46,143,106,.16)) !important;border-color:rgba(46,143,106,.55) !important}
+html.look-v2 .collecte-card.border-blue{background-image:linear-gradient(135deg,rgba(60,70,200,.26),rgba(60,70,200,.06) 70%,rgba(60,70,200,.14)) !important;border-color:rgba(60,70,200,.45) !important}
+html.look-v2 .collecte-card-date{font-size:14.5px;font-weight:800;letter-spacing:-.01em}
+html.look-v2 .collecte-card-top .badge,html.look-v2 .collecte-card-top [class*="badge"]{white-space:nowrap}
+html.look-v2 .dep-cli.lk-bl{background-color:var(--lk-glass) !important;background-image:linear-gradient(135deg,color-mix(in srgb,var(--pc,#888) 26%,transparent),color-mix(in srgb,var(--pc,#888) 6%,transparent) 70%,color-mix(in srgb,var(--pc,#888) 14%,transparent)) !important;border:1px solid color-mix(in srgb,var(--pc,#888) 50%,#fff) !important;border-left-width:1px !important;border-radius:24px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 .dep-cli-btn{border-radius:16px;min-height:42px;font-weight:800;font-size:13px;border-width:1px}
+html.look-v2 #dep-devis-liste .dep-card,html.look-v2 #dep-fm-liste .dep-card{background-color:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-left-width:1px !important;border-radius:26px !important;padding:16px 18px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 #dep-devis-liste .dep-nom,html.look-v2 #dep-fm-liste .dep-nom{font-size:19px;letter-spacing:-.02em}
+html.look-v2 #dep-devis-liste .dep-badge,html.look-v2 #dep-fm-liste .dep-badge{border-radius:99px !important;font-weight:800}
+html.look-v2 #s-planning .content > div:not(.fi){border-radius:26px}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
