@@ -6544,3 +6544,7 @@ V2 seulement, CSS : onglets « Mes disponibilités / L'équipe » en pilule segm
 ### 05/11/2026 — Planning > L'équipe : lignes alignées (v3.99.237, departs.js v2.22.42)
 > Cobey : « Quand tu vas dans l'onglet équipe, c'est pas en ordre. »
 Chaque ligne (icône | avatar + nom | statut) était en flex avec retour à la ligne : les statuts « Disponible / rien mis / Pas dispo » flottaient à des hauteurs et positions différentes. departs.js : classes `pl-lg / pl-ic / pl-nm / pl-st / pl-qd` ajoutées (aucun effet en V1). V2 : grille à 3 colonnes, statut en pastille colorée aligné à droite, « modifié par… / répondu le… » sous le nom. V1 inchangée (74/74).
+
+### 05/11/2026 — Planning : « Pas dispo » → « Indisponible » (v3.99.238, departs.js v2.22.43)
+> Cobey : « Et le pas dispo là, ça me gêne un peu, c'est pas trop français ça. »
+Boutons, statuts, messages et traces du Planning : « Pas dispo » devient « Indisponible » (et « pas disponible » → « indisponible »), le bouton court « Dispo » devient « Disponible ». Aucune donnée ni logique changée.

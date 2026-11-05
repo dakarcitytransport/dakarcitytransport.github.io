@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.42';
+var DEP_VERSION = 'v2.22.43';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -28411,7 +28411,7 @@ window.depPlanningPoser = function(iso, dispo){
     nom   : u.name || '',
     le    : Date.now()
   }).then(function(){
-    toast(dispo ? '✅ Noté : disponible.' : '✅ Noté : pas disponible.');
+    toast(dispo ? '✅ Noté : disponible.' : '✅ Noté : indisponible.');
     depRenderPlanning();
     // v2.9.0 : Cobey : « chaque action du collaborateur doit y être
     // inscrite » (dans le fil Activité) — le fil couvrait déjà les
@@ -28420,7 +28420,7 @@ window.depPlanningPoser = function(iso, dispo){
     try{
       addActivity(dispo ? '✅' : '❌', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> '
-        + (dispo ? 'se dit disponible' : 'se dit pas disponible')
+        + (dispo ? 'se dit disponible' : 'se dit indisponible')
         + ' pour ' + _depPlNomJourPhrase(iso), "À l'instant", true);
     }catch(e){}
   }).catch(function(e){
@@ -28523,7 +28523,7 @@ window.depPlanningForcer = function(iso, id, dispo, nomExterne){
     try{
       addActivity('✏️', u.bg,
         '<strong style="color:' + u.color + '">' + u.name + '</strong> a corrigé la réponse '
-        + 'de <strong>' + nom + '</strong> (' + (dispo ? 'disponible' : 'pas disponible') + ') '
+        + 'de <strong>' + nom + '</strong> (' + (dispo ? 'disponible' : 'indisponible') + ') '
         + 'pour ' + _depPlNomJourPhrase(iso), "À l'instant", true);
     }catch(e){}
   }).catch(function(e){
@@ -28775,11 +28775,11 @@ function _depPlControles(iso, id, r, enModif){
     + '<div onclick="depPlanningForcer(\'' + iso + '\',\'' + id + '\',true)" style="'
     +   'padding:5px 11px;border-radius:8px;font-size:11.5px;font-weight:800;cursor:pointer;'
     +   (actifOui ? 'background:#009A44;color:#fff;border:1.5px solid #006b2d;'
-                  : 'background:#fff;color:#006b2d;border:1.5px solid #009A44;') + '">Dispo</div>'
+                  : 'background:#fff;color:#006b2d;border:1.5px solid #009A44;') + '">Disponible</div>'
     + '<div onclick="depPlanningForcer(\'' + iso + '\',\'' + id + '\',false)" style="'
     +   'padding:5px 11px;border-radius:8px;font-size:11.5px;font-weight:800;cursor:pointer;'
     +   (actifNon ? 'background:#c0392b;color:#fff;border:1.5px solid #922b21;'
-                  : 'background:#fff;color:#992020;border:1.5px solid #c0392b;') + '">Pas dispo</div>'
+                  : 'background:#fff;color:#992020;border:1.5px solid #c0392b;') + '">Indisponible</div>'
     + (r ? ('<div onclick="depPlanningForcerRetirer(\'' + iso + '\',\'' + id + '\')" style="'
         + 'padding:5px 11px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;'
         + 'background:#f0f0f0;color:#666;border:1.5px solid #ccc;">Effacer</div>') : '')
@@ -28939,7 +28939,7 @@ function _depPlanningBlocMien(dim){
       +   '<div onclick="depPlanningPoser(\'' + dim.iso + '\',true)" style="' + choisi(true) + '">'
       +     'Disponible</div>'
       +   '<div onclick="depPlanningPoser(\'' + dim.iso + '\',false)" style="' + choisi(false) + '">'
-      +     'Pas dispo</div>'
+      +     'Indisponible</div>'
       + '</div>'
       // v2.4.2 : le seul moyen de revenir à « rien mis » — avant, une fois
       // Oui ou Non choisi, on ne pouvait plus que basculer de l'un à
@@ -28995,7 +28995,7 @@ function _depPlanningBlocEquipe(dim){
     // faute d'avoir répondu avant jeudi 22h — sinon on croirait que la
     // personne a explicitement dit non.
     else if(r.auto){ ic = '&#9940;'; coul = '#992020'; txt = 'Absent d\'office (pas r&eacute;pondu &agrave; temps)'; }
-    else { ic = '&#10060;'; coul = '#992020'; txt = 'Pas dispo' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
+    else { ic = '&#10060;'; coul = '#992020'; txt = 'Indisponible' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
     // v2.4.2 : la date et l'heure de la réponse, pas seulement ce qui a
     // été répondu. v2.5.0 : « modifié par X » quand ce n'est pas la
     // personne elle-même — un admin a pu corriger à sa place.
@@ -29042,7 +29042,7 @@ function _depPlanningBlocEquipe(dim){
     var lignesExt = externes.map(function(ext){
       var ic2, coul2, txt2;
       if(ext.dispo){ ic2 = '&#9989;'; coul2 = '#006b2d'; txt2 = 'Disponible' + (ext.mot ? ' &middot; ' + esc(ext.mot) : ''); }
-      else { ic2 = '&#10060;'; coul2 = '#992020'; txt2 = 'Pas dispo' + (ext.mot ? ' &middot; ' + esc(ext.mot) : ''); }
+      else { ic2 = '&#10060;'; coul2 = '#992020'; txt2 = 'Indisponible' + (ext.mot ? ' &middot; ' + esc(ext.mot) : ''); }
       var quand2 = '<span style="color:var(--text3);font-weight:600;font-size:11.5px;">'
         + _depPlQuiEtQuand(ext, true) + '</span>';
       var ligneExt = '<div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 2px;'
@@ -29074,7 +29074,7 @@ function _depPlanningBlocEquipe(dim){
         +   '<div onclick="depPlanningExterneAjouter(\'' + dim.iso + '\',false)" style="flex:1;'
         +     'text-align:center;background:#fff;color:#c0392b;border:2px solid #c0392b;'
         +     'border-radius:9px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">'
-        +     'Pas dispo</div>'
+        +     'Indisponible</div>'
         + '</div>'
         + '<div onclick="depPlanningExterneFermer()" style="text-align:center;margin-top:8px;'
         +   'font-size:12px;color:var(--text3);font-weight:700;cursor:pointer;">Annuler</div>'
