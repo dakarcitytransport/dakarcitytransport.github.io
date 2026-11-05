@@ -35,10 +35,12 @@
       + '#bd-accueil .bd-m.on{opacity:1;transform:none;}#bd-accueil .bd-m.out{opacity:0;transform:translateY(-16px);}'
       + '#bd-accueil .bd-m .bd-l{display:block;white-space:nowrap;overflow:hidden;line-height:1.25;}'
       + '#bd-accueil .bd-m .bd-l i{display:inline-block;font-style:normal;will-change:transform;white-space:nowrap;}'
+      + '#bd-accueil .bd-nv{display:inline-block;font-style:normal;font-size:10.5px;font-weight:800;letter-spacing:.06em;background:#FFD54A;color:#3A2A00;border-radius:99px;padding:2px 8px;margin-right:8px;vertical-align:1px;animation:bd-nv 1.6s ease-in-out infinite;}'
+      + '@keyframes bd-nv{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,213,74,.7)}50%{transform:scale(1.07);box-shadow:0 0 0 6px rgba(255,213,74,0)}}'
       + '#bd-accueil .bd-m .bd-t1{font-size:14px;font-weight:700;}#bd-accueil .bd-m .bd-t2{font-size:12.5px;opacity:.92;}'
       + '#bd-accueil .bd-barre{position:absolute;left:0;bottom:0;height:3px;background:rgba(255,255,255,.75);}'
       + '#bd-accueil .bd-barre.go{animation:bd-prog var(--bd-d,5s) linear forwards;}@keyframes bd-prog{from{width:0}to{width:100%}}'
-      + '@media (prefers-reduced-motion:reduce){#bd-accueil::after,#bd-accueil .bd-ic,#bd-accueil .bd-barre.go{animation:none}#bd-accueil .bd-m{transition:none}}'
+      + '@media (prefers-reduced-motion:reduce){#bd-accueil::after,#bd-accueil .bd-ic,#bd-accueil .bd-barre.go,#bd-accueil .bd-nv{animation:none}#bd-accueil .bd-m{transition:none}}'
       // réglage
       + '.bd-reg h3{font-size:17px;font-weight:800;margin:0 0 4px}.bd-reg .bd-aide{font-size:13px;color:var(--text3,#666);margin:0 0 14px;line-height:1.45}'
       + '.bd-msg{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:rgba(127,127,127,.1);margin-bottom:8px}'
@@ -53,6 +55,33 @@
   })();
 
   /* ---------- affichage à l'accueil ---------- */
+  // « NOUVEAU » (Cobey, 05/11/2026) : un message est nouveau pour une personne tant qu'elle ne l'a pas vu lors d'une connexion
+  // précédente. Mémorisé par personne dans Firebase : dct_bandeau_lus/<ID>/<message> = horodatage vu. La liste « lus » est lue
+  // une fois à chaque connexion et NE bouge pas pendant la session (la mention reste jusqu'à la connexion suivante) ;
+  // on enregistre ensuite ce qui a été affiché pour la prochaine fois.
+  var lusPour = '', lusPret = false, lusSession = {}, lusEcrits = {};
+  function estNouveau(m){ return lusPret && !(lusSession[m._id] >= (m.ts || 0)); }
+  function chargerLus(){
+    var u = window.currentUser || {}; if(!u.id || !window.db || !window.firebaseReady) return;
+    if(lusPour === u.id) return;
+    lusPour = u.id; lusPret = false; lusSession = {}; lusEcrits = {};
+    var pour = u.id;
+    db.ref('dct_bandeau_lus/' + pour).once('value', function(snap){
+      if(lusPour !== pour) return;
+      lusSession = snap.val() || {}; lusPret = true;
+      var el = document.getElementById('bd-accueil'); if(el) el.removeAttribute('data-sig');   // on redessine avec les mentions
+      bandeau();
+    });
+  }
+  function marquerLus(){
+    var u = window.currentUser || {}; if(!u.id || !lusPret || !window.db || !window.firebaseReady) return;
+    visibles.forEach(function(m){
+      var ts = m.ts || 0;
+      if(lusEcrits[m._id] === ts) return;
+      lusEcrits[m._id] = ts;
+      try{ db.ref('dct_bandeau_lus/' + u.id + '/' + m._id).set(ts); }catch(e){}
+    });
+  }
   var visibles = [], idx = 0, minuteur = null, anims = [];
   var VITESSE = 55, PAUSE_DEBUT = 1600, PAUSE_FIN = 1400;   // px par seconde ; pauses en ms
   function actifs(){
@@ -123,23 +152,29 @@
     var el = document.getElementById('bd-accueil');
     visibles = actifs();
     if(!contenu || !visibles.length){ if(el) el.remove(); arreter(); return; }
-    var sig = visibles.map(function(m){ return m._id + ':' + (m.ts || 0); }).join('|');
+    var sig = visibles.map(function(m){ return m._id + ':' + (m.ts || 0) + (estNouveau(m) ? 'n' : ''); }).join('|');
     if(el && el.getAttribute('data-sig') === sig) return;   // rien n'a changé : on ne redessine pas (sinon l'animation repart)
     if(el) el.remove();
     arreter();
     el = document.createElement('div');
     el.id = 'bd-accueil'; el.setAttribute('role', 'status'); el.setAttribute('data-sig', sig);
     el.innerHTML = '<div class="bd-ic" aria-hidden="true"></div><div class="bd-liste">'
-      + visibles.map(function(m){ return '<div class="bd-m"><span class="bd-l bd-t1"><i>' + esc(m.titre) + '</i></span>' + (m.detail ? '<span class="bd-l bd-t2"><i>' + esc(m.detail) + '</i></span>' : '') + '</div>'; }).join('')
+      + visibles.map(function(m){ return '<div class="bd-m"><span class="bd-l bd-t1"><i>' + (estNouveau(m) ? '<em class="bd-nv">NOUVEAU</em>' : '') + esc(m.titre) + '</i></span>' + (m.detail ? '<span class="bd-l bd-t2"><i>' + esc(m.detail) + '</i></span>' : '') + '</div>'; }).join('')
       + '</div><div class="bd-barre"></div>';
     // Pas de croix : le message ne disparaît que quand Eric le décide (suppression ou date de fin), Cobey 05/11/2026.
     contenu.insertBefore(el, contenu.firstChild);
     idx = 0; afficher(0);
+    marquerLus();
+  }
+  // Déconnexion : la prochaine connexion est une nouvelle session (les mentions « NOUVEAU » se recalculent).
+  if(typeof window.goTo === 'function'){
+    var origGoTo = window.goTo;
+    window.goTo = function(id){ if(id === 's-login'){ lusPour = ''; lusPret = false; } return origGoTo.apply(this, arguments); };
   }
   window.addEventListener('resize', function(){ try{ if(document.getElementById('bd-accueil') && visibles.length) afficher(idx); }catch(e){} });
   if(typeof window.depRenderEspaces === 'function'){
     var origEsp = window.depRenderEspaces;
-    window.depRenderEspaces = function(){ var r = origEsp.apply(this, arguments); try{ bandeau(); }catch(e){} return r; };
+    window.depRenderEspaces = function(){ var r = origEsp.apply(this, arguments); try{ chargerLus(); bandeau(); }catch(e){} return r; };
   }
 
   /* ---------- lecture dans Firebase (après le code) ---------- */
@@ -236,11 +271,12 @@
       var r = edition ? db.ref('dct_bandeau/' + edition).set(obj) : db.ref('dct_bandeau').push(obj);
       var verbe = edition ? 'a modifié' : 'a publié';
       Promise.resolve(r).then(function(){
+        try{ var cle = edition || (r && r.key); if(cle && u.id) db.ref('dct_bandeau_lus/' + u.id + '/' + cle).set(obj.ts); }catch(x){}
         try{ if(typeof _tracerReglage === 'function') _tracerReglage('📢', verbe + ' un message dans le bandeau de l’accueil : <strong>' + esc(titre) + '</strong>'); }catch(x){}
         try{ showToastNew('✅ Bandeau mis à jour'); }catch(x){}
         edition = null; typeChoisi = 'info'; window.bandeauRenderReglage();
       }).catch(function(err){ try{ showToastNew('❌ Échec : ' + ((err && err.message) || 'écriture refusée')); }catch(x){} });
     }
   });
-  window.bandeau = { afficher: bandeau, messages: function(){ return messages; } };
+  window.bandeau = { afficher: bandeau, messages: function(){ return messages; }, lus: function(){ return { session: lusSession, pret: lusPret }; } };
 })();
