@@ -6506,3 +6506,7 @@ photos.js enveloppe `_ouvrirModalPinCollab` : la pastille du PIN reçoit `data-p
 ### 05/11/2026 — Connexion : logo DCT entier, sans contour blanc, avec ombre (v3.99.229)
 > Cobey : « Et pour le logo de DCT, tu peux le mettre en entier ? Sans le contour blanc, avec effet d'ombrage. »
 `logo-dct.png` (logo détouré, fond transparent, 320 px) ; en V2 sur l'écran de connexion, `#dct-logo` l'affiche en entier (plus de rognage rond ni de bordure blanche) avec une ombre portée. V1 inchangée.
+
+### 05/11/2026 — Logo : détourage refait (v3.99.230)
+> Cobey : « Au-dessus du logo on voit un petit bout blanc, on dirait que le détourage est mal fait. »
+Le détourage était un cercle un peu trop grand (le logo est légèrement ovale) : refait sur l'ellipse exacte, 3 px à l'intérieur. `logo-dct.png?v=2`.
