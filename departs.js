@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.35';
+var DEP_VERSION = 'v2.22.36';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14230,6 +14230,7 @@ window.depSupprimerDepot = function(){
   var departId = _depDepotDepart;
   var nom = (((window.depotClients||{})[id])||{}).name || '';
   var copieDepot = (window.depotClients||{})[id];
+  try{ if(copieDepot && typeof _garderDansCarnet === 'function') _garderDansCarnet(copieDepot); }catch(e){}
 
   if(window.db && window.firebaseReady){
     // v2.22.0 : copie en corbeille (30 jours) ; les photos restent, elles
