@@ -6289,3 +6289,8 @@ Les deux pastilles ont maintenant le même modèle : « N impayés » rouge plei
 > Cobey : « Je viens de valider ma photo de profil. Juste après, j'essaye de naviguer dans l'application. Je vois des grosses lenteurs. » puis « Une fois que j'ai retiré ma photo de profil, l'application est redevenue fluide. »
 
 Cause : la v3.99.188 recopiait la photo (18 Ko) dans le style de chaque ligne de l'Activité (150 lignes) : 1,6 Mo de DOM, un passage mesuré à 24 s (contre 28 ms sans photo). Correctif (`photos.js`) : la photo n'est écrite qu'une fois dans une feuille de style (`[data-ph="ID"]`), les éléments portent seulement l'attribut `data-ph`. Mesuré après : 30 ms avec photos, DOM 45 Ko. À retenir : ne jamais recopier une image en base64 dans plusieurs éléments.
+
+### 05/11/2026 — Photos de profil : cadrage dans le rond (dct-app v3.99.190)
+> Cobey : « j'ai mis une photo de profil mais elle n'est pas bien cadrée, c'est possible que je puisse bien la cadrer dans le rond ? »
+
+Après le choix de la photo, un écran « Cadre ta photo » : on déplace la photo avec le doigt, on zoome au pincement ou au curseur (jusqu'à ×4), puis « Valider » (ou « Annuler », la photo actuelle reste). Résultat : carré 192 px, JPEG, comme avant. Pour re-cadrer une photo déjà posée, il faut la rechoisir (l'original n'est pas gardé, seulement la version réduite). Testé : glisser, zoomer, valider, annuler (souris ; le tactile utilise les mêmes évènements « pointer »).

@@ -27,6 +27,12 @@
       + '.ph-tete{display:flex;align-items:center;gap:14px;margin-bottom:14px;}'
       + '.ph-grand{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;background-size:cover;background-position:center;flex:none;}'
       + '.ph-tete b{font-size:18px;display:block;}.ph-tete span{font-size:13px;color:var(--text3,#666);}'
+      + '.ph-cad{display:flex;flex-direction:column;align-items:center;gap:16px;padding:8px 0 4px;}'
+      + '.ph-rond{width:280px;height:280px;border-radius:50%;overflow:hidden;position:relative;touch-action:none;cursor:grab;box-shadow:0 0 0 3px rgba(255,255,255,.9),0 8px 30px rgba(0,0,0,.35);background:#222;}'
+      + '.ph-rond canvas{width:280px;height:280px;display:block;}'
+      + '.ph-aide{font-size:13px;color:var(--text3,#666);text-align:center;}'
+      + '.ph-zoom{width:280px;display:flex;align-items:center;gap:10px;color:var(--text3,#666);font-size:18px;}.ph-zoom input{flex:1;}'
+      + '.ph-lig{display:flex;gap:10px;width:100%;}.ph-lig .ph-b{margin-top:0;justify-content:center;}.ph-lig .ph-ok{background:#0E9F5B;color:#fff;}'
       + '.ph-b{display:flex;align-items:center;gap:12px;width:100%;padding:15px;margin-top:8px;border:0;border-radius:16px;background:rgba(127,127,127,.12);color:inherit;font-family:inherit;font-size:15.5px;font-weight:700;text-align:left;cursor:pointer;}'
       + '.ph-b.rouge{color:#C0392B;}.ph-b.fin{justify-content:center;background:transparent;color:var(--text3,#666);}';
     document.head.appendChild(st);
@@ -136,18 +142,63 @@
 
   /* ---------- changer sa photo ---------- */
   function message(t){ try{ if(typeof showToastNew === 'function') showToastNew(t); else if(typeof toast === 'function') toast(t); }catch(e){} }
-  function reduire(fichier, cb){
+  // Cadrage : on déplace (doigt / souris) et on zoome (pincement / curseur) la photo dans le rond, puis on valide.
+  var V = 280;
+  function cadrer(fichier, cb){
     var url = URL.createObjectURL(fichier), im = new Image();
-    im.onload = function(){
-      try{
-        var s = Math.min(im.naturalWidth, im.naturalHeight), c = document.createElement('canvas');
-        c.width = c.height = 192;
-        c.getContext('2d').drawImage(im, (im.naturalWidth - s) / 2, (im.naturalHeight - s) / 2, s, s, 0, 0, 192, 192);
-        URL.revokeObjectURL(url);
-        cb(c.toDataURL('image/jpeg', 0.82));
-      }catch(e){ cb(null); }
-    };
     im.onerror = function(){ URL.revokeObjectURL(url); cb(null); };
+    im.onload = function(){
+      var W = im.naturalWidth, H = im.naturalHeight;
+      if(!W || !H){ URL.revokeObjectURL(url); cb(null); return; }
+      var smin = Math.max(V / W, V / H), s = smin, cx = W / 2, cy = H / 2;
+      fermer();
+      var o = document.createElement('div');
+      o.id = 'ph-menu'; o.className = 'ph-ov';
+      o.innerHTML = '<div class="ph-sh" role="dialog" aria-label="Cadrer ma photo"><div class="ph-cad">'
+        + '<b style="font-size:18px;">Cadre ta photo</b>'
+        + '<div class="ph-rond" id="ph-rond"><canvas id="ph-cv" width="560" height="560"></canvas></div>'
+        + '<div class="ph-aide">Glisse pour déplacer · pince ou curseur pour zoomer</div>'
+        + '<div class="ph-zoom">−<input type="range" id="ph-z" min="0" max="100" value="0" aria-label="Zoom">+</div>'
+        + '<div class="ph-lig"><button type="button" class="ph-b fin" data-a="non">Annuler</button><button type="button" class="ph-b ph-ok" data-a="ok">Valider</button></div>'
+        + '</div></div>';
+      document.body.appendChild(o);
+      var cv = o.querySelector('#ph-cv'), g = cv.getContext('2d'), z = o.querySelector('#ph-z'), rond = o.querySelector('#ph-rond');
+      function borne(){
+        var m = V / (2 * s);
+        cx = Math.min(Math.max(cx, m), W - m); cy = Math.min(Math.max(cy, m), H - m);
+      }
+      function dessiner(){
+        borne(); var m = V / (2 * s);
+        g.clearRect(0, 0, cv.width, cv.height);
+        g.drawImage(im, cx - m, cy - m, 2 * m, 2 * m, 0, 0, cv.width, cv.height);
+      }
+      function zoomer(ns){ s = Math.min(Math.max(ns, smin), smin * 4); z.value = Math.round((s / smin - 1) / 3 * 100); dessiner(); }
+      var pts = {}, dist0 = 0, s0 = s;
+      rond.addEventListener('pointerdown', function(e){ try{ rond.setPointerCapture(e.pointerId); }catch(x){} pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var k = Object.keys(pts); if(k.length === 2){ dist0 = Math.hypot(pts[k[0]].x - pts[k[1]].x, pts[k[0]].y - pts[k[1]].y); s0 = s; } });
+      rond.addEventListener('pointermove', function(e){
+        if(!pts[e.pointerId]) return;
+        var k = Object.keys(pts), p = pts[e.pointerId];
+        if(k.length === 1){ cx -= (e.clientX - p.x) / s; cy -= (e.clientY - p.y) / s; p.x = e.clientX; p.y = e.clientY; dessiner(); }
+        else { p.x = e.clientX; p.y = e.clientY; var d = Math.hypot(pts[k[0]].x - pts[k[1]].x, pts[k[0]].y - pts[k[1]].y); if(dist0) zoomer(s0 * d / dist0); }
+      });
+      var fin = function(e){ delete pts[e.pointerId]; };
+      rond.addEventListener('pointerup', fin); rond.addEventListener('pointercancel', fin);
+      rond.addEventListener('wheel', function(e){ e.preventDefault(); zoomer(s * (e.deltaY < 0 ? 1.08 : 0.92)); }, { passive: false });
+      z.addEventListener('input', function(){ zoomer(smin * (1 + 3 * z.value / 100)); });
+      o.addEventListener('click', function(ev){
+        var b = ev.target.closest('button[data-a]');
+        if(ev.target === o || (b && b.getAttribute('data-a') === 'non')){ fermer(); URL.revokeObjectURL(url); return; }
+        if(b && b.getAttribute('data-a') === 'ok'){
+          try{
+            borne(); var m = V / (2 * s), c = document.createElement('canvas'); c.width = c.height = 192;
+            c.getContext('2d').drawImage(im, cx - m, cy - m, 2 * m, 2 * m, 0, 0, 192, 192);
+            var d = c.toDataURL('image/jpeg', 0.82);
+            fermer(); URL.revokeObjectURL(url); cb(d);
+          }catch(e){ fermer(); cb(null); }
+        }
+      });
+      dessiner();
+    };
     im.src = url;
   }
   function enregistrer(id, dataUrl){
@@ -168,7 +219,7 @@
       var f = inp.files && inp.files[0];
       if(inp.parentNode) inp.parentNode.removeChild(inp);
       if(!f) return;
-      reduire(f, function(d){
+      cadrer(f, function(d){
         if(!d){ message('⚠️ Photo illisible, essaie une autre image.'); return; }
         enregistrer(u.id, d); message('✅ Photo de profil mise à jour');
       });
@@ -176,7 +227,7 @@
     document.body.appendChild(inp);
     inp.click();
   }
-  function fermer(){ var o = document.getElementById('ph-menu'); if(o) o.parentNode.removeChild(o); }
+  function fermer(){ var o = document.getElementById('ph-menu'); if(o && o.parentNode) o.parentNode.removeChild(o); }
   function ouvrirMenu(){
     var u = moi(); if(!u) return;
     fermer();
