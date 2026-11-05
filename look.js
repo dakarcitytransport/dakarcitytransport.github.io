@@ -109,6 +109,21 @@
     colorerProfils();
   }
 
+  /* Fenêtre du code PIN : teintée de la couleur de la personne (comme sa carte). */
+  function teinterPin(collab){
+    try{
+      var sh = document.querySelector('#modal-collab-pin .modal-sheet');
+      if(sh && collab){ sh.style.setProperty('--pc', collab.bar || collab.color || '#5858eb'); }
+      var sa = document.querySelector('#modal-admin-pin .modal-sheet');
+      if(sa) sa.style.setProperty('--pc', '#5858eb');
+    }catch(e){}
+  }
+  (function(){
+    if(typeof window._ouvrirModalPinCollab !== 'function') return;
+    var orig = window._ouvrirModalPinCollab;
+    window._ouvrirModalPinCollab = function(collab){ teinterPin(collab); return orig.apply(this, arguments); };
+  })();
+
   /* ---------- appliquer ---------- */
   function appliquer(){
     var h = document.documentElement;
