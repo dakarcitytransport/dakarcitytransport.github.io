@@ -6235,3 +6235,8 @@ La case de l'accueil affiche « Bilan, statistiques, containers » au lieu du b�
 > Cobey : « il y a un conteneur de Dakar, son statut est parti [...] ça devrait être en cours de navigation plutôt » — « ok vas-y ».
 
 `depStatutLabel` : pour un départ « parti », la pastille affiche l'étape du suivi transport — « En cours de navigation » (après Départ de Mitry), « Arrivé au port de Dakar » (après navigation / port), « En route vers Bamako » (Mali, après le port). Le statut enregistré reste « parti » (aucune donnée modifiée) ; sans étapes, la pastille reste « Parti ». Testé sur les listes Sénégal et Mali.
+
+### 05/11/2026 — V2 : icônes des cases Départs (cargo) et Mamadou Niass (colis remis) (dct-app v3.99.180)
+> Cobey : « l'icône de Mamadou Niass ne correspond pas à lui, on a mis un camion, mais c'est l'opérateur qui donne les colis aux clients à Dakar » ; « même l'icône de départ, c'est un colis, alors que le départ concerne les conteneurs » — « Choix A ».
+
+Départs : cargo (Lucide « ship »). Mamadou Niass : colis avec coche (Lucide « package-check »). Collecte garde le camion. Dans `tools/gen_look_css.py`, une icône peut maintenant avoir plusieurs tracés. V2 seulement (V1 garde ses emojis).
