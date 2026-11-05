@@ -6368,3 +6368,8 @@ La croix de fermeture est retirée : un message du bandeau ne disparaît que qua
 > Cobey : « ça ne bouge toujours pas. La seule chose qui bouge, c'est un genre de reflet. Mais le texte en lui-même ne défile pas. » (donc le mode « Réduire les animations » n'était pas en cause)
 
 Vraie cause (reproduite) : à la connexion, le bandeau est construit avant que l'écran d'accueil soit affiché ; sa largeur est alors nulle, donc le texte ne peut pas être mesuré et ne défile pas (cas d'un seul message : aucun nouvel essai). Correctif (`bandeau.js`) : si le bandeau n'est pas encore à l'écran, on réessaie toutes les 0,3 s jusqu'à ce qu'il le soit, puis on mesure et on lance le défilement ; et on recalcule si la fenêtre change de taille. Testé : bandeau construit pendant que l'accueil est caché → 0 puis −104 px après 3 s ; cas normal inchangé.
+
+### 05/11/2026 — Activité : les actions d'administration ne sont vues que par Eric (dct-app v3.99.204)
+> Cobey : « j'ai mis le message [du bandeau]. Dans la logique, il n'y a que moi qui le vois, vu qu'il n'y a que moi qui ai la case ? » → non : la direction a toutes les cases (Réglages compris). — « ok vas-y » (ces lignes seulement pour moi).
+
+Nouvelle catégorie `admin` dans le filtre de l'Activité (`_activiteCases` / `_activiteVisibleCles`) : bandeau, bascule V1/V2, codes PIN, passe-partout, codes d'espace, équipe (ajout / retrait de profils), message de connexion → visibles d'Eric seul. Les autres actions de Réglages (ex. restauration d'une sauvegarde) restent visibles de la direction. Les lignes déjà écrites avec la case « reglages » sont reclassées d'après leur texte. Testé : bandeau / look / PIN / passe-partout / équipe → Eric seul ; sauvegarde et dépense fixe → Eric, Issyaka, Abdoulaye ; départ → + Aminata.
