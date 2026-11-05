@@ -21,7 +21,7 @@
   (function(){
     var st = document.createElement('style');
     st.textContent = ''
-      + '.ph-badge{position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 1px 4px rgba(0,0,0,.3);}'
+      + '.ph-badge{color:#222;position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 1px 4px rgba(0,0,0,.3);}'
       + '.ph-ov{position:fixed;left:0;right:0;top:0;bottom:0;z-index:9500;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;}'
       + '.ph-sh{width:100%;max-width:430px;box-sizing:border-box;background:var(--white,#fff);color:var(--text,#111);border-radius:26px 26px 0 0;padding:18px 16px max(22px,env(safe-area-inset-bottom));}'
       + '.ph-tete{display:flex;align-items:center;gap:14px;margin-bottom:14px;}'
@@ -32,26 +32,36 @@
     document.head.appendChild(st);
   })();
 
-  /* ---------- appliquer les photos partout ---------- */
+  /* ---------- appliquer les photos partout ----------
+     La photo n'est écrite qu'UNE fois, dans une feuille de style (règle [data-ph="ID"]) ; les éléments portent seulement
+     l'attribut data-ph. (Première version : la photo était recopiée dans le style de chaque ligne de l'Activité,
+     1,6 Mo de DOM, 24 s de lenteur.) Sélecteur répété pour passer devant les règles « sombre » (!important). */
+  var feuille = null, derniere = '';
+  function regles(){
+    var h = '';
+    Object.keys(photos).forEach(function(id){
+      if(!/^[A-Za-z0-9_-]+$/.test(id) || typeof photos[id] !== 'string' || photos[id].indexOf('data:image/') !== 0) return;
+      h += '[data-ph="' + id + '"][data-ph][data-ph][data-ph]{background-image:url("' + photos[id] + '") !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;background-color:transparent !important;color:transparent !important;}';
+    });
+    return h;
+  }
+  function majFeuille(){
+    var h = regles();
+    if(h === derniere) return;
+    derniere = h;
+    if(!feuille){ feuille = document.createElement('style'); feuille.id = 'ph-photos'; document.head.appendChild(feuille); }
+    feuille.textContent = h;
+  }
   function poser(el, id){
     if(!el) return;
-    var f = fond(id);
-    if(f){
-      el.style.backgroundImage = f;
-      el.style.backgroundSize = 'cover';
-      el.style.backgroundPosition = 'center';
-      el.style.backgroundColor = 'transparent';
-      el.style.color = 'transparent';
-      el.setAttribute('data-ph', id);
-    }else if(el.getAttribute('data-ph')){
-      el.style.backgroundImage = ''; el.style.color = ''; el.removeAttribute('data-ph');
-    }
+    if(photos[id]){ if(el.getAttribute('data-ph') !== id) el.setAttribute('data-ph', id); }
+    else if(el.getAttribute('data-ph')) el.removeAttribute('data-ph');
   }
   function accueil(){
     var u = moi(), a = document.getElementById('dep-esp-av');
     if(!a || !u) return;
     if(photos[u.id]){ a.textContent = ''; poser(a, u.id); }
-    else if(a.getAttribute('data-ph')){ poser(a, u.id); a.textContent = u.id || ''; a.style.background = u.bg || '#eee'; a.style.color = u.color || '#333'; }
+    else if(a.getAttribute('data-ph')){ poser(a, u.id); a.textContent = u.id || ''; }
     a.removeAttribute('onclick'); a.onclick = ouvrirMenu;   // ouvre un menu (changer la photo / se déconnecter)
     a.setAttribute('aria-label', 'Mon profil');
   }
@@ -68,16 +78,18 @@
       var fort = it.querySelector('.activity-text strong');
       var id = fort ? idDeNom(fort.textContent.trim()) : null;
       var deja = dot.getAttribute('data-ph');
-      if(!id || !photos[id]){ if(deja){ dot.style.backgroundImage = ''; dot.removeAttribute('data-ph'); var b0 = dot.querySelector('.ph-badge'); if(b0) dot.textContent = b0.textContent; } return; }
+      if(!id || !photos[id]){
+        if(deja){ dot.removeAttribute('data-ph'); var b0 = dot.querySelector('.ph-badge'); if(b0) dot.textContent = b0.textContent; }
+        return;
+      }
       if(deja === id) return;
       var emoji = dot.querySelector('.ph-badge') ? dot.querySelector('.ph-badge').textContent : dot.textContent;
       dot.innerHTML = '<span class="ph-badge">' + esc(emoji) + '</span>';
       dot.style.position = 'relative';
-      dot.style.backgroundImage = fond(id); dot.style.backgroundSize = 'cover'; dot.style.backgroundPosition = 'center';
       dot.setAttribute('data-ph', id);
     });
   }
-  function tout(){ try{ accueil(); }catch(e){} try{ activite(); }catch(e){} }
+  function tout(){ try{ majFeuille(); }catch(e){} try{ accueil(); }catch(e){} try{ activite(); }catch(e){} }
 
   // Écran de connexion : les cartes de profil sont fabriquées en texte (window._carteProfil) → on y glisse la photo.
   if(typeof window._carteProfil === 'function'){
@@ -86,9 +98,7 @@
       var h = origCarte.apply(this, arguments);
       try{
         if(c && photos[c.id]){
-          h = h.replace(/<div class="av" style="([^"]*)">[^<]*<\/div>/, function(m, style){
-            return '<div class="av" style="' + style + ';background-image:' + fond(c.id) + ';background-size:cover;background-position:center;color:transparent;font-size:0;"></div>';
-          });
+          h = h.replace('<div class="av" style=', '<div class="av" data-ph="' + c.id + '" style=');
         }
       }catch(e){}
       return h;
@@ -171,7 +181,7 @@
     var u = moi(); if(!u) return;
     fermer();
     var a = photos[u.id]
-      ? '<div class="ph-grand" style="background-image:' + fond(u.id) + ';"></div>'
+      ? '<div class="ph-grand" data-ph="' + esc(u.id) + '"></div>'
       : '<div class="ph-grand" style="background:' + esc(u.bg || '#eee') + ';color:' + esc(u.color || '#333') + ';">' + esc(u.id) + '</div>';
     var o = document.createElement('div');
     o.id = 'ph-menu'; o.className = 'ph-ov';

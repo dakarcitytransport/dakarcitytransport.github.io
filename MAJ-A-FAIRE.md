@@ -6284,3 +6284,8 @@ Les deux pastilles ont maintenant le même modèle : « N impayés » rouge plei
 - Photo recadrée en carré 192 px, JPEG (~10 Ko), écrite dans Firebase `dct_profils_photos/<ID>` ; copie dans le téléphone (`dct_profils_photos_cache`) pour l'écran de connexion (avant le code, donc : la photo n'y apparaît qu'après une première connexion sur ce téléphone).
 - Affichée : accueil (pastille), cartes de profil à la connexion, Activité (photo de l'auteur, l'emoji de l'action devient un petit badge). Pas de photo : initiales comme avant. V1 et V2.
 - Limite : l'Activité retrouve l'auteur par son prénom (liste COLLABS) ; Mamadou Niass (appli à part) n'a pas de photo ici. Écriture réelle dans Firebase non testée (comptes lecture seule) : à vérifier au premier essai.
+
+### 05/11/2026 — Photos de profil : correction de la lenteur (dct-app v3.99.189)
+> Cobey : « Je viens de valider ma photo de profil. Juste après, j'essaye de naviguer dans l'application. Je vois des grosses lenteurs. » puis « Une fois que j'ai retiré ma photo de profil, l'application est redevenue fluide. »
+
+Cause : la v3.99.188 recopiait la photo (18 Ko) dans le style de chaque ligne de l'Activité (150 lignes) : 1,6 Mo de DOM, un passage mesuré à 24 s (contre 28 ms sans photo). Correctif (`photos.js`) : la photo n'est écrite qu'une fois dans une feuille de style (`[data-ph="ID"]`), les éléments portent seulement l'attribut `data-ph`. Mesuré après : 30 ms avec photos, DOM 45 Ko. À retenir : ne jamais recopier une image en base64 dans plusieurs éléments.
