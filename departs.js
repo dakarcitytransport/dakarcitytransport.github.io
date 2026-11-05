@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.39';
+var DEP_VERSION = 'v2.22.40';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2860,7 +2860,7 @@ function injecterStyles(){
     + '.fc-ct{background:var(--white);border:1.5px solid var(--border);border-radius:22px;margin-bottom:10px;overflow:hidden;}'
     + '.fc-ch{display:flex;align-items:center;gap:11px;padding:12px 14px;cursor:pointer;}'
     + '.fc-ch .fc-t b{font-size:14px;line-height:1.25;}.fc-fl{flex:none;color:var(--text3);transition:transform .2s;display:flex;}'
-    + '.fc-ct.open .fc-fl{transform:rotate(90deg);}'
+    + '.fc-ct.open .fc-ch .fc-fl{transform:rotate(90deg);}'
     + '.fc-sous{display:none;background:rgba(14,159,91,.07);border-top:1px solid var(--border);padding:4px 14px 10px 14px;}'
     + '.fc-ct.open .fc-sous{display:block;}'
     + '.fc-sl{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;}.fc-sl:last-of-type{border-bottom:0;}'
@@ -14813,7 +14813,7 @@ window.depOuvrirFicheContact = function(contactKey){
       var reste = 0, prixDef = false;
       liste.forEach(function(e){ var cl = e.c || {}; if(cl.prixADefinir) prixDef = true; try{ reste += depCalculerPaiementCombine(cl).reste || 0; }catch(x){} });
       var titreG = d ? ((d.nom||'Départ') + (d.dateDepart ? ' · départ du ' + d.dateDepart.split('-').reverse().slice(0,2).join('/') : '')) : 'Pas encore dans un container';
-      var sousG = d ? (depStatutLabel(d) + ' · ' + liste.length + ' envoi' + (liste.length > 1 ? 's' : '')) : (liste.map(function(e){ return libOrigine(e).t; }).join(' · '));
+      var sousG = d ? (depStatutLabel(d) + ' \u00b7 ' + liste.length + ' envoi' + (liste.length > 1 ? 's' : '')) : (liste.length === 1 ? libOrigine(liste[0]).t : (liste.length + ' collectes \u00b7 pas encore charg\u00e9es'));
       var pil = prixDef ? '<span class="fc-pil fc-du">prix &agrave; d&eacute;finir</span>' : (reste > 0.009 ? '<span class="fc-pil fc-du">'+_depEuros(reste)+' &euro; dus</span>' : '<span class="fc-pil fc-ok">Pay&eacute;</span>');
       var ico = d ? '<path d="M2 20c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M19.4 18A11.6 11.6 0 0 0 21 12l-8.2-3.6a2 2 0 0 0-1.6 0L3 12a11.6 11.6 0 0 0 2.8 6.8M12 2v2M12 9v4M19 12V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/>' : '<path d="M1 3h15v13H1zM16 8h4l3 3v5h-7zM5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>';
       var lignes = liste.map(function(e){
@@ -14876,8 +14876,8 @@ window.depModifierContactActuel = function(){
   closeModal('modal-dep-client-actions');
   // On revient sur la liste (qui se rafraîchit après l'enregistrement) :
   // la modale d'édition originale s'ouvre par-dessus.
-  goTo('s-clients');
-  try{ renderContacts(); }catch(e){}
+  // 05/11/2026 (Cobey : « si j'annule ou j'enregistre, il revient sur la liste et non dans la fiche ») : on reste sur la fiche,
+  // la modale s'ouvre par-dessus ; annuler la referme sur la fiche ; enregistrer la rouvre à jour (voir saveContactEdit plus bas).
   if(key && typeof _depOrigOpenContactEdit === 'function') _depOrigOpenContactEdit(key);
 };
 
@@ -18272,6 +18272,36 @@ function greffer(){
       catch(e){ _depOrigOpenContactEdit.apply(this, arguments); }
     };
     window.openContactEdit._depPatch = true;
+  }
+  if(typeof window.saveContactEdit === 'function' && !window.saveContactEdit._depPatch){
+    var origSaveContactEdit = window.saveContactEdit;
+    window.saveContactEdit = function(){
+      var surFiche = false, cle = null;
+      try{
+        var a = document.querySelector('.screen.active');
+        surFiche = !!a && a.id === 's-client-fiche';
+        if(surFiche){
+          var ancienne = (document.getElementById('ce-key') || {}).value || '';
+          var tel = ((document.getElementById('ce-tel') || {}).value || '').trim();
+          cle = _depFicheContactKey || ancienne;
+          window._depFcApresSauvegarde = { ancienne: ancienne, tel: tel,
+            prenom: ((document.getElementById('ce-prenom') || {}).value || '').trim(), nom: ((document.getElementById('ce-nom') || {}).value || '').trim() };
+        }
+      }catch(e){}
+      var r = origSaveContactEdit.apply(this, arguments);
+      try{
+        // la modale se ferme seulement si l'enregistrement a abouti (pas de doublon de numéro, nom indiqué…)
+        var m = document.getElementById('modal-contact-edit');
+        var fermee = !m || !m.classList.contains('show');
+        if(surFiche && fermee){
+          var d = window._depFcApresSauvegarde || {};
+          var k = (window.dctContacts && window.dctContacts[d.ancienne]) ? d.ancienne : _cleCarnet(d.tel, d.prenom, d.nom);
+          window.depOuvrirFicheContact(k);
+        }
+      }catch(e){ console.error('fiche client : retour après modification', e); }
+      return r;
+    };
+    window.saveContactEdit._depPatch = true;
   }
 
   /* --- H. Correctif : un contact/client supprimé pouvait revenir tout

@@ -6453,3 +6453,8 @@ Fiche (`s-client-fiche`, departs.js `depOuvrirFicheContact`) : nom + ville + nom
 
 Fiche : coordonnées → **Fidélité** (sous l'adresse) → **« Son historique · par container »**. Un container = une ligne (nom, date de départ, étape, « N € dus » rouge / « Payé » vert). Un appui l'ouvre (un seul à la fois) et montre **les collectes du client** qui y sont (« Collecte du … », colis, mini-bouton « Facture ») ; un appui sur une collecte l'ouvre (Dakar `ouvrirCollecte`, France `ouvrirCollecteFrance`), « Voir le container » ouvre le container. Les envois pas encore dans un container sont groupés en haut (« Pas encore dans un container »). Collecte supprimée → message « Cette collecte n'existe plus ». Dépôt direct : la ligne ouvre la facture. Testé : Fallou Fall (2 groupes, un seul ouvert, clic → collecte du 4 octobre).
 Non fait : surligner le client dans la collecte ouverte.
+
+### 05/11/2026 — Fiche client : Modifier revient sur la fiche (dct-app v3.99.219, departs v2.22.40)
+> Cobey : « quand j'appuie sur modifier un client dans sa fiche, si j'annule ou j'enregistre une modif, il revient sur l'écran de la liste des clients et non dans la fiche du client en lui-même. »
+
+« Modifier » ne quitte plus la fiche : la fenêtre de modification s'ouvre par-dessus. Annuler → on reste sur la fiche. Enregistrer → la fiche est rouverte à jour (ville, adresse… ; si le numéro change, elle suit la nouvelle clé du carnet). Depuis la liste des clients, rien ne change. (`saveContactEdit` enveloppé dans departs.js.) Au passage : chevrons des lignes de collecte non retournés à l'ouverture d'un container ; libellé « 2 collectes · pas encore chargées » quand plusieurs envois n'ont pas de container.
