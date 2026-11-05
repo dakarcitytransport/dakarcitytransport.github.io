@@ -6498,3 +6498,7 @@ Cases d'espaces remises comme en v3.99.223 (verre dépoli teinté). Cartes de pr
 ### 05/11/2026 — Code PIN : couleur de la personne (v3.99.227)
 > Cobey : « L'écran PIN doit avoir une couleur aussi. »
 La fenêtre du PIN prend la couleur du profil choisi (violet pour Ibrahima, etc.) ; le PIN administrateur est en bleu-violet. look.js enveloppe `_ouvrirModalPinCollab` (met `--pc`).
+
+### 05/11/2026 — Code PIN : photo de profil (v3.99.228)
+> Cobey : « Il manque la photo de profil là » (écran du PIN, initiales « AD » au lieu de la photo)
+photos.js enveloppe `_ouvrirModalPinCollab` : la pastille du PIN reçoit `data-ph` (la photo de la personne), comme les cartes de profil.

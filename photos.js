@@ -118,6 +118,20 @@
       return h;
     };
   }
+  // Fenêtre du code PIN : la photo de la personne à la place des initiales (Cobey, 05/11/2026 : « il manque la photo de profil là »).
+  if(typeof window._ouvrirModalPinCollab === 'function'){
+    var origPin = window._ouvrirModalPinCollab;
+    window._ouvrirModalPinCollab = function(collab){
+      var r = origPin.apply(this, arguments);
+      try{
+        var av = document.getElementById('collab-pin-avatar');
+        if(av){
+          if(collab && source(collab.id)) av.setAttribute('data-ph', collab.id); else av.removeAttribute('data-ph');
+        }
+      }catch(e){}
+      return r;
+    };
+  }
   if(typeof window.depRenderEspaces === 'function'){
     var origEsp = window.depRenderEspaces;
     window.depRenderEspaces = function(){ var r = origEsp.apply(this, arguments); tout(); try{ nouveautes(); }catch(e){} return r; };
