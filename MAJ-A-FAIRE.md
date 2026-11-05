@@ -6477,3 +6477,7 @@ Cause : les PDF (étiquettes, factures, feuilles de route) sont des captures de 
 > Cobey : « Ok » (photo de fond) ; « et en même temps ajouter cette photo pour Mamadou Niass, pour que l'on voie dans les notifications, par contre pas besoin de la rajouter pour son espace à lui »
 - Écran de connexion (V2) : photo du port au crépuscule décalée vers le bas (camion visible), cases d'espaces en verre dépoli teinté (une couleur par espace : bleu-violet, rose, turquoise, rouge), texte blanc.
 - `photos-defaut/MN.jpg` + `MN` dans la table `DEFAUT` de photos.js ; `idDeNom` reconnaît « Mamadou Niass » → sa photo apparaît dans le fil d'Activité seulement (mamadou.html ne charge pas photos.js : rien dans son espace). Testé (ligne d'activité factice).
+
+### 05/11/2026 — Connexion : la photo monte jusqu'en haut de l'écran (v3.99.223)
+> Cobey : « Pourquoi le haut ne prend pas la photo ? » (bande claire sous l'heure / le réseau de l'iPhone)
+La photo est maintenant posée sur toute la page (pas seulement sur l'écran de connexion) tant qu'on est sur la connexion, et la couleur de la barre du haut passe en sombre (`theme-color` créé par look.js). Revient normal dès qu'on quitte la connexion. (Ne peut pas être testé avec la vraie barre iPhone : à vérifier sur son téléphone.)

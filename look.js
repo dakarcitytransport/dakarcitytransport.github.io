@@ -83,13 +83,23 @@
     }catch(e){}
   })();
 
+  /* Barre du haut de l'iPhone (heure, réseau) : sombre sur l'écran de connexion (photo), sinon couleur du thème. */
+  function barreHaut(){
+    var v2 = effectif() === 'v2';
+    var tc = document.querySelector('meta[name="theme-color"]');
+    if(!tc){ tc = document.createElement('meta'); tc.name = 'theme-color'; document.head.appendChild(tc); }
+    var sl = document.getElementById('s-login');
+    var surLogin = !!(v2 && sl && sl.classList.contains('active'));
+    tc.setAttribute('content', surLogin ? '#0a1410' : (v2 && sombreMaintenant() ? '#080D0B' : '#F3F7F4'));
+  }
+
   /* ---------- appliquer ---------- */
   function appliquer(){
     var h = document.documentElement;
     var v2 = effectif() === 'v2';
     h.classList.toggle('look-v2', v2);
     h.setAttribute('data-mode', mode());
-    try{ var tc = document.querySelector('meta[name="theme-color"]'); if(tc) tc.setAttribute('content', v2 && sombreMaintenant() ? '#080D0B' : '#F3F7F4'); }catch(e){}
+    try{ barreHaut(); }catch(e){}
     boutonTheme();
     carteDepart();
     try{ barreRecherche(); }catch(e){}
@@ -184,7 +194,7 @@
   }
   if(typeof window.goTo === 'function'){
     var origGoTo = window.goTo;
-    window.goTo = function(){ var r = origGoTo.apply(this, arguments); try{ majDock(); }catch(e){} return r; };
+    window.goTo = function(){ var r = origGoTo.apply(this, arguments); try{ majDock(); }catch(e){} try{ barreHaut(); }catch(e){} return r; };
   }
 
 
