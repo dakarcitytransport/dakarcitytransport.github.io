@@ -209,6 +209,18 @@
   var idxCarte = null;   // dernier container regardé, gardé quand l'écran se redessine
   function dateCourte(iso){ return iso ? iso.split('-').reverse().slice(0, 2).join('/') : ''; }
   function esc(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  // Décompte avant le départ (carte « En préparation ») : J-n d'après la date de départ prévue, jour calendaire à Paris.
+  // Cobey : « on se base toujours sur la date de départ » ; date passée → rien (il la modifie).
+  function decompte(iso){
+    try{
+      var aujourd = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' });   // AAAA-MM-JJ
+      var a = aujourd.split('-'), b = String(iso).slice(0, 10).split('-');
+      if(a.length !== 3 || b.length !== 3) return '';
+      var n = Math.round((Date.UTC(+b[0], +b[1] - 1, +b[2]) - Date.UTC(+a[0], +a[1] - 1, +a[2])) / 86400000);
+      if(isNaN(n) || n < 0) return '';
+      return '<span class="lk-j">' + (n === 0 ? 'Départ aujourd’hui' : 'J-' + n) + '</span> ';
+    }catch(e){ return ''; }
+  }
   function unDepart(d, i, ouvrable){
     var dest = d.pays === 'ML' ? 'BAMAKO' : 'DAKAR';
     var etat, sous;
@@ -217,7 +229,7 @@
     else { etat = 'En route'; sous = d.pays === 'ML' ? 'vers Bamako' : 'vers Dakar'; }
     var pct = d.statut === 'preparation' ? 0 : (d.etapes ? Math.round(100 * d.fait / d.etapes) : 0);
     var droite = d.statut === 'preparation'
-      ? (d.depart ? 'Départ prévu <b>' + dateCourte(d.depart) + '</b>' : '')
+      ? (d.depart ? (function(j){ return /aujourd/.test(j) ? j : j + 'Départ prévu <b>' + dateCourte(d.depart) + '</b>'; })(decompte(d.depart)) : '')
       : (d.statut === 'arrive' && d.arriveeReelle ? 'Arrivé le <b>' + d.arriveeReelle + '</b>'
         : (d.arrivee ? 'Arrivée prévue <b>' + dateCourte(d.arrivee) + '</b>' : ''));
     var classe = d.statut === 'preparation' ? 'lk-prep' : (d.statut === 'arrive' ? 'lk-arr' : 'lk-route-st');

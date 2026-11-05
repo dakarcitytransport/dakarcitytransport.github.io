@@ -6215,3 +6215,8 @@ Tout le monde voit les cartes (et peut les faire défiler). Seuls les profils qu
 > Cobey : « dans les cartes où les conteneurs sont arrivés, il y a toujours marqué arrivée prévue. Or ils sont déjà arrivés. Je pense qu'il faudrait mettre la date où ils sont arrivés. »
 
 Pour un container « arrivé », la carte affiche « Arrivé le JJ/MM » (horodatage de l'étape « Arrivée au dépôt », sinon du passage au statut arrivé) ; sans cette date, elle garde « Arrivée prévue ». Les autres statuts ne changent pas. Testé avec deux cas (étape validée / historique de statut).
+
+### 05/11/2026 — Carte « En préparation » : décompte J-n avant le départ (dct-app v3.99.176)
+> Cobey : « sur la carte en préparation, tu peux mettre un décompte jusqu'au prochain départ, par exemple J-17 ou J-16 » ; « pas besoin de la date d'arrivée [...] il faut toujours se baser sur la date de départ » ; « quand on change la date, il faut recalculer » — « ok vas-y ».
+
+Pastille « J-n » sur la carte « En préparation » de l'accueil V2 (look.js `decompte`), calculée à chaque affichage depuis la date de départ prévue (jours calendaires, fuseau Paris) : J-17, J-1, « Départ aujourd'hui » le jour même ; date dépassée ou absente → rien. Aucun décompte sur les cartes « en route » / « arrivé ». Testé : +17, +1, 0, -1, +24 jours.
