@@ -252,6 +252,17 @@ html.look-v2 #pl-contenu [onclick$=",false)"][onclick^="depPlanningPoser("]::bef
 html.look-v2 #pl-contenu [onclick^="depPlanningPoser("][style*="background:#fff"]{background:rgba(255,255,255,.6) !important}
 html.look-v2 #pl-contenu [onclick^="depPlanningPoser("][style*="background:#009A44"]{background:linear-gradient(145deg,#12b05a,#0a8a44) !important;box-shadow:0 8px 18px rgba(0,154,68,.35)}
 html.look-v2 #pl-contenu [onclick^="depPlanningPoser("][style*="background:#c0392b"]{background:linear-gradient(145deg,#e0503f,#b8301f) !important;box-shadow:0 8px 18px rgba(192,57,43,.35)}
+/* Planning > L'équipe : une ligne = icône | nom | statut (colonnes alignées), « modifié par… » en dessous */
+html.look-v2 #pl-contenu .pl-lg{display:grid !important;grid-template-columns:26px 1fr auto;align-items:center;column-gap:10px;row-gap:3px;padding:11px 0 6px !important}
+html.look-v2 #pl-contenu .pl-ic{font-size:17px;text-align:center;line-height:1}
+html.look-v2 #pl-contenu .pl-nm{display:flex !important;align-items:center !important;min-width:0 !important;gap:9px !important;line-height:1.2}
+html.look-v2 #pl-contenu .pl-nm > *{flex:none}
+html.look-v2 #pl-contenu .pl-nm > b{display:block}
+html.look-v2 #pl-contenu .pl-nm > :not(b){display:inline-flex !important;align-items:center;justify-content:center;line-height:1}
+html.look-v2 #pl-contenu .pl-ic,html.look-v2 #pl-contenu .pl-st{align-self:center;margin:0 !important}
+html.look-v2 #pl-contenu .pl-nm b{font-size:15px;font-weight:800}
+html.look-v2 #pl-contenu .pl-st{justify-self:end;text-align:center;padding:4px 12px;border-radius:99px;font-size:12.5px;font-weight:800 !important;background:color-mix(in srgb,currentColor 13%,transparent);white-space:nowrap}
+html.look-v2 #pl-contenu .pl-qd{grid-column:2 / 4;font-size:11.5px !important;padding-left:2px}
 html.look-v2 #pl-contenu [onclick^="depPlanningForcer"],html.look-v2 #pl-contenu [onclick^="depPlanningRetirer"]{border-radius:99px !important}
 html.look-v2 #pl-contenu input.fi{border-radius:16px !important;border-width:1px !important;background:var(--lk-field) !important}
 html.look-v2 #fid-liste-contenu .dep-cli{position:relative;background-color:var(--lk-glass) !important;background-image:linear-gradient(135deg,rgba(224,140,30,.22),rgba(224,140,30,.05) 70%,rgba(224,140,30,.12)) !important;border:1px solid rgba(224,140,30,.45) !important;border-radius:24px !important;padding:14px 52px 14px 74px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);min-height:76px}

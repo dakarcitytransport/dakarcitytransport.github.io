@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.41';
+var DEP_VERSION = 'v2.22.42';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -28999,13 +28999,13 @@ function _depPlanningBlocEquipe(dim){
     // v2.4.2 : la date et l'heure de la réponse, pas seulement ce qui a
     // été répondu. v2.5.0 : « modifié par X » quand ce n'est pas la
     // personne elle-même — un admin a pu corriger à sa place.
-    var quand = r ? ('<span style="color:var(--text3);font-weight:600;font-size:11.5px;">'
+    var quand = r ? ('<span class="pl-qd" style="color:var(--text3);font-weight:600;font-size:11.5px;">'
       + _depPlQuiEtQuand(r, true) + '</span>') : '';
-    var ligne = '<div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 2px;'
+    var ligne = '<div class="pl-lg" style="display:flex;align-items:baseline;gap:8px;padding:6px 0 2px;'
       + 'font-size:13.5px;flex-wrap:wrap;">'
-      + '<span>' + ic + '</span>'
-      + '<span style="display:inline-flex;align-items:center;gap:7px;min-width:96px;">' + _depAvatarPl(pers.id, 24) + '<b style="color:var(--text);">' + esc(pers.name) + '</b></span>'
-      + '<span style="color:' + coul + ';font-weight:600;">' + txt + '</span>'
+      + '<span class="pl-ic">' + ic + '</span>'
+      + '<span class="pl-nm" style="display:inline-flex;align-items:center;gap:7px;min-width:96px;">' + _depAvatarPl(pers.id, 24) + '<b style="color:var(--text);">' + esc(pers.name) + '</b></span>'
+      + '<span class="pl-st" style="color:' + coul + ';font-weight:600;">' + txt + '</span>'
       + quand
       + '</div>';
     // v2.5.0 : les trois boutons de correction (Direction + Aminata

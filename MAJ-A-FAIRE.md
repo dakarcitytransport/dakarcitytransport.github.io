@@ -6540,3 +6540,7 @@ V2 seulement, CSS uniquement : Planning — cartes de jours arrondies avec liser
 ### 05/11/2026 — Planning : vraie refonte (v3.99.236)
 > Cobey : « Planning c'est la même chose qu'avant. » (mon CSS de la v3.99.235 visait le mauvais conteneur : `#pl-contenu`)
 V2 seulement, CSS : onglets « Mes disponibilités / L'équipe » en pilule segmentée (actif en dégradé orange) ; cartes de jours en verre arrondies, titre 19 px ; boutons Disponible / Pas dispo hauts (✓ / ✕), sélection en dégradé vert / rouge avec lueur ; bandeau « JOUR DE CHARGEMENT » en dégradé ambre ; statuts « Noté absent / disponible » arrondis. Actions inchangées. V1 inchangée (74/74).
+
+### 05/11/2026 — Planning > L'équipe : lignes alignées (v3.99.237, departs.js v2.22.42)
+> Cobey : « Quand tu vas dans l'onglet équipe, c'est pas en ordre. »
+Chaque ligne (icône | avatar + nom | statut) était en flex avec retour à la ligne : les statuts « Disponible / rien mis / Pas dispo » flottaient à des hauteurs et positions différentes. departs.js : classes `pl-lg / pl-ic / pl-nm / pl-st / pl-qd` ajoutées (aucun effet en V1). V2 : grille à 3 colonnes, statut en pastille colorée aligné à droite, « modifié par… / répondu le… » sous le nom. V1 inchangée (74/74).
