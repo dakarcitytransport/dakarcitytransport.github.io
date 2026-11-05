@@ -6251,3 +6251,8 @@ Les lignes de connexion (visibles par Eric) n'ont plus de fond ni de trait bleu 
 
 1. Facture (écran `s-facture-publique`) : « Retour » collé en haut (pastille) ; « Imprimer / PDF », « Envoyer par WhatsApp » et « Copier le message » collés en bas de l'écran. Ils n'ont plus besoin du défilement jusqu'aux conditions générales.
 2. Bug de navigation (introduit par « Retour = écran d'avant », v3.99.13x) : la pile était Facture → Facture PDF → Documents ; « ← Facture » sur Documents reculait d'un cran (retour à la Facture PDF), en boucle. `goTo` : si le bouton vise un écran présent plus bas dans la pile, on y va directement et on vide la pile jusque-là. Testé en rejouant ce parcours : Retour → Documents, « ← Facture » → Facture.
+
+### 05/11/2026 — Facture : barre de titre avec icônes (dct-app v3.99.183, departs v2.22.28)
+> Cobey : « les boutons que tu as mis [...] c'est pas très beau, on dirait des boutons collés sur la page. Faut changer l'approche. » — choix « B ».
+
+Les gros boutons collés (v3.99.182) sont remplacés par une barre de titre collée en haut de la facture : « ‹ Facture » à gauche, et à droite les icônes Imprimer/PDF, WhatsApp, Copier. Pour un visiteur non connecté (lien client) : titre + Imprimer/PDF seulement. Plus aucun bouton en bas. Correction au passage : la v3.99.182 avait par erreur redéfini la classe `.fac-topbar` (le liseré vert du haut des documents) ; rétabli. La navigation Retour → Documents → « ← Facture » reste corrigée.

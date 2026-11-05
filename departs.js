@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.27';
+var DEP_VERSION = 'v2.22.28';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3705,12 +3705,13 @@ function injecterEcrans(){
   +     'table.fac-hist td{padding:7px 9px;border-bottom:1px solid #f2f2f2;color:#333;white-space:nowrap;}'
   +     '.fac-footer{background:#006b2d;color:#fff;text-align:center;font-size:10.5px;padding:12px;line-height:1.6;}'
   +     '.fac-actions{margin-top:16px;display:flex;flex-direction:column;gap:8px;}'
-  // 05/11/2026 — Cobey : « les boutons sont tout en bas après les conditions générales, pour revenir en arrière ou imprimer
-  // il faut descendre tout en bas » : barre d'actions collée en bas de l'écran + bouton Retour collé en haut (facture de l'appli).
-  +     '.fac-topbar{position:sticky;top:0;z-index:6;display:flex;align-items:center;min-height:54px;background:#e8e8e8;padding:6px 0;margin-bottom:6px;}'
-  +     '.fac-btn-retour2{background:#fff;border:none;border-radius:99px;padding:10px 18px;font-size:14px;font-weight:700;color:#222;font-family:var(--font);box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer;}'
-  +     '.fac-actions-pub{position:sticky;bottom:0;z-index:6;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;padding:16px 0 max(12px,env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(232,232,232,0),#e8e8e8 30%);}'
-  +     '.fac-actions-pub .fac-btn-print{grid-column:1/-1;}'
+  // 05/11/2026 — Cobey : « les boutons sont tout en bas après les conditions générales, c'est pas pratique » puis
+  // « B » (barre de titre) : barre collée en haut avec Retour à gauche et les actions en icônes à droite.
+  +     '.fac-tete{position:sticky;top:0;z-index:8;display:flex;align-items:center;gap:2px;height:56px;margin:-16px -10px 14px;padding:0 8px;background:rgba(255,255,255,.93);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid rgba(0,0,0,.08);}'
+  +     '.fac-tete-titre{flex:1;font-size:17px;font-weight:800;color:#111;margin-left:4px;}'
+  +     '.fac-tete button{width:44px;height:44px;border:0;border-radius:50%;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#111;}'
+  +     '.fac-tete button:active{background:rgba(0,0,0,.08);}'
+  +     '.fac-tete .fac-i-print{color:#006b2d;}.fac-tete .fac-i-wa{color:#25D366;}'
   +     '.fac-btn{padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);border:none;}'
   +     '.fac-btn-print{background:#006b2d;color:#fff;}'
   +     '.fac-btn-whatsapp{background:#25D366;color:#fff;}'
@@ -10472,15 +10473,17 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
   // seul "Imprimer / PDF" reste — pas de retour vers l'appli, pas de
   // renvoi WhatsApp depuis cette page-là.
   var connecte = _depConnecte;
-  h += '<div class="fac-actions fac-actions-pub no-print">'
-    +    '<button type="button" class="fac-btn fac-btn-print" onclick="depExporterFacturePDF()">&#128424;&#65039; Imprimer / PDF</button>'
-    +    (connecte ? '<button type="button" class="fac-btn fac-btn-whatsapp" onclick="depPartagerWhatsapp()">&#128172; Envoyer par WhatsApp</button>' : '')
-    // v1.19.27 : copier le texte du message — certains clients n'ont pas
-    // WhatsApp (retour de Cobey du 22/08/2026).
-    +    (connecte ? '<button type="button" class="fac-btn fac-btn-copier" onclick="depCopierMessageWhatsapp()">&#128203; Copier le message</button>' : '')
-    +  '</div>';
-  // Retour collé en haut (il était tout en bas, après les conditions générales).
-  if(connecte) h = '<div class="fac-topbar no-print"><button type="button" class="fac-btn-retour2" onclick="depRetourFacturePublique()">&larr; Retour</button></div>' + h;
+  var SV = function(d){ return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; };
+  var tete = '<div class="fac-tete no-print">'
+    + (connecte ? '<button type="button" aria-label="Retour" title="Retour" onclick="depRetourFacturePublique()">' + SV('<path d="M15 18l-6-6 6-6"/>') + '</button>' : '')
+    + '<div class="fac-tete-titre">Facture</div>'
+    // Lecture seule stricte pour un visiteur non connecté (lien WhatsApp) : seul « Imprimer / PDF » reste.
+    + '<button type="button" class="fac-i-print" aria-label="Imprimer / PDF" title="Imprimer / PDF" onclick="depExporterFacturePDF()">' + SV('<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/>') + '</button>'
+    // v1.19.27 : copier le texte du message — certains clients n'ont pas WhatsApp (retour de Cobey du 22/08/2026).
+    + (connecte ? '<button type="button" class="fac-i-wa" aria-label="Envoyer par WhatsApp" title="Envoyer par WhatsApp" onclick="depPartagerWhatsapp()">' + SV('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>') + '</button>' : '')
+    + (connecte ? '<button type="button" aria-label="Copier le message" title="Copier le message" onclick="depCopierMessageWhatsapp()">' + SV('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>') + '</button>' : '')
+    + '</div>';
+  h = tete + h;
 
   var box = $('pub-contenu');
   if(box) box.innerHTML = h;
