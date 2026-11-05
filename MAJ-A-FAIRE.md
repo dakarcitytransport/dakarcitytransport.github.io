@@ -6340,3 +6340,11 @@ Cause trouvée en rendant le rond à fort grossissement : le rond de l'Activité
 > Cobey : « le "Où souhaitez-vous travailler" et la recherche client, je sais pas si c'est nécessaire » ; la recherche fait doublon avec la case et l'onglet Clients ; rien à mettre à la place — « ok vas-y ».
 
 Le titre « Où souhaitez-vous travailler ? » (V1 et V2) et la barre de recherche de l'accueil (V2) sont retirés : l'accueil commence par « Bonjour Eric ! », puis les cartes et les cases. Le code de la recherche reste dans `look.js`, désactivé.
+
+### 05/11/2026 — Bandeau animé de l'accueil + réglage BANDEAU (dct-app v3.99.199, departs v2.22.33, nouveau `bandeau.js`)
+> Cobey : « on pourrait mettre un bandeau animé où je pourrais leur envoyer des messages [...] un bandeau pour tout le monde peut le voir, je veux quelque chose d'animé, dynamique » ; « d'autres couleurs, puisque ça se mélangerait aux couleurs des cartes » ; « maintenant que les messages sont là, c'est plus la peine de mettre les messages dans l'écran des espaces avant de se connecter. Et fais-moi une case spéciale dans les réglages » (choix B : messages qui alternent, recommandé).
+
+- Accueil (toute l'équipe, V1 et V2) : bandeau sous « Bonjour … » ; un message = fixe, plusieurs = alternent toutes les 5 s (glissement, barre de progression, lueur, icône qui pulse). Couleurs : Info violet, Attention rose, Urgent rouge profond (aucune ne ressemble aux cartes). Croix : ferme pour la personne ; revient pour un message nouveau ou modifié (`dct_bandeau_ferme`, local). Date de fin facultative (le message disparaît tout seul).
+- Réglages : la case MESSAGE est remplacée par **BANDEAU** (réservée à Eric) : liste des messages (modifier / supprimer), formulaire titre (60 car.) + détail (90) + couleur + date de fin, aperçu en direct. Chaque publication / modification / suppression est tracée dans l'Activité (case Réglages).
+- Écran de connexion : le message n'est plus affiché (`chargerMessageAdmin` masque la zone). L'ancien message `dct_config/message` reste en base, inutilisé.
+- Testé : création de 3 messages (1 expiré → non affiché), rotation à 5 s avec changement de couleur, croix, réapparition pour un nouveau message, zone de connexion masquée.

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.32';
+var DEP_VERSION = 'v2.22.33';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -6131,7 +6131,10 @@ var DEP_REGLAGES_ITEMS = [
   // v2.22.1 — Cobey, 01/11/2026 : « ajoute plutôt une case Corbeille ici, avec
   // à l'intérieur tout ce qui a été supprimé, classé par objet. »
   { tab:'corbeille',    icone:'&#128465;&#65039;',   titre:'CORBEILLE',            couleur:'#B23A48', fond:'#F8E3E5' },
-  { tab:'message',      icone:'&#128226;',           titre:'MESSAGE',              couleur:'#7c3aed', fond:'#EDE5FC' },
+  // 05/11/2026 — Cobey : « maintenant que les messages sont là [en bandeau], c'est plus la peine de mettre les messages
+  // dans l'écran des espaces avant de se connecter. Fais-moi une case spéciale dans les réglages » : la case MESSAGE
+  // (message de l'écran de connexion) est remplacée par BANDEAU (bandeau animé de l'accueil, voir bandeau.js).
+  { tab:'bandeau',      icone:'&#128226;',           titre:'BANDEAU',              couleur:'#7c3aed', fond:'#EDE5FC', adminOnly:true },
   // v2.22.18 — Cobey, 04/11/2026 : « on va appeler le look actuel V1 et le look
   // prochain V2 [...] moi, avec le bouton, si je décide de revenir à l'ancienne,
   // j'appuierai. » Réglage réservé à Eric (adminOnly = profil AD), voir look.js.
@@ -6182,7 +6185,7 @@ function _depReglagesPreparerEcran(){
   // fois, ici même où vit déjà la création de la grille.
   // v1.21.9 : même chose pour les 4 cases qui remplacent l'ancien carré
   // unique "Accès" (codesadmin/codesespaces/maintenance/alertes).
-  ['outils','codesadmin','maintenance','alertes','corbeille','apparence'].forEach(function(id){
+  ['outils','codesadmin','maintenance','alertes','corbeille','apparence','bandeau'].forEach(function(id){
     if(contenu && !$('admin-section-'+id)){
       var sec = document.createElement('div');
       sec.id = 'admin-section-'+id;
@@ -6231,7 +6234,7 @@ window._depReglagesOuvrirItem = function(tab){
 
 function _depReglagesAfficherGrille(){
   _depReglagesTab = null;
-  ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message','apparence'].forEach(function(t){
+  ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message','apparence','bandeau'].forEach(function(t){
     var sec = $('admin-section-'+t);
     if(sec) sec.style.display = 'none';
   });
@@ -19294,7 +19297,7 @@ function greffer(){
      plus, aucune case n'y mène. --- */
   if(typeof window.showAdminTab === 'function' && !window.showAdminTab._depPatch){
     window.showAdminTab = function(tab){
-      ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message','apparence'].forEach(function(t){
+      ['equipe','codesadmin','maintenance','alertes','donnees','outils','corbeille','message','apparence','bandeau'].forEach(function(t){
         var sec = document.getElementById('admin-section-'+t);
         var btn = document.getElementById('admin-tab-'+t);
         if(sec) sec.style.display = t === tab ? 'block' : 'none';
@@ -19311,6 +19314,7 @@ function greffer(){
       else if(tab === 'outils') window.renderAdminOutils();
       else if(tab === 'corbeille') window.renderAdminCorbeille();
       else if(tab === 'apparence' && typeof window.lookRenderApparence === 'function') window.lookRenderApparence();
+      else if(tab === 'bandeau' && typeof window.bandeauRenderReglage === 'function') window.bandeauRenderReglage();
       else if(tab === 'message') renderAdminMessage();
     };
     window.showAdminTab._depPatch = true;
