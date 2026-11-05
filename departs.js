@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.33';
+var DEP_VERSION = 'v2.22.34';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5989,14 +5989,14 @@ window.depRenderEspaces = function(){
       if(!_prochain){
         spl.innerHTML = 'Disponibilit&eacute;s<br>de l\'&eacute;quipe';
       } else {
-        var _dispos = [], _reps = 0;
+        var _dispos = [], _reps = 0, _disposIds = [];
         _depGensPourJour(_prochain.iso).forEach(function(c){
           var r = _depDispoDe(_prochain.iso, c.id);
-          if(r){ _reps++; if(r.dispo) _dispos.push(c.name || c.id); }
+          if(r){ _reps++; if(r.dispo){ _dispos.push(c.name || c.id); _disposIds.push(c.id); } }
         });
         var _lib = _depPlLibelleJour(_prochain.iso); _lib = _lib.charAt(0).toUpperCase() + _lib.slice(1);
         var _suite = _dispos.length
-          ? '<b style="color:#0a6b30;">' + _dispos.slice(0, 4).map(esc).join(', ') + (_dispos.length > 4 ? ' +' + (_dispos.length - 4) : '') + '</b>'
+          ? '<span style="display:inline-flex;flex-wrap:wrap;gap:3px 8px;justify-content:center;font-weight:700;color:#0a6b30;">' + _dispos.slice(0, 4).map(function(n, k){ return '<span style="display:inline-flex;align-items:center;gap:4px;">' + _depAvatarPl(_disposIds[k], 18) + esc(n) + '</span>'; }).join('') + (_dispos.length > 4 ? '<span>+' + (_dispos.length - 4) + '</span>' : '') + '</span>'
           : (_reps ? '<span style="color:#992020;">personne pour l&rsquo;instant</span>' : 'pas encore de r&eacute;ponses');
         spl.innerHTML = esc(_lib) + '<br>' + _suite;
       }
@@ -28818,6 +28818,11 @@ function _depPlanningBlocMien(dim){
     + '</div>';
 }
 
+// Petit rond (photo de profil ou initiales) à côté d'un prénom — photos.js (Cobey, 05/11/2026).
+function _depAvatarPl(id, px){
+  try{ return (window.photosProfil && typeof window.photosProfil.avatar === 'function') ? window.photosProfil.avatar(id, px) : ''; }catch(e){ return ''; }
+}
+
 function _depPlanningBlocEquipe(dim){
   if(_depPlSansEquipe(dim.iso)) return _depPlCarteSansEquipe(dim);
   var c = _depCompteDispo(dim.iso);
@@ -28851,7 +28856,7 @@ function _depPlanningBlocEquipe(dim){
     var ligne = '<div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 2px;'
       + 'font-size:13.5px;flex-wrap:wrap;">'
       + '<span>' + ic + '</span>'
-      + '<b style="color:var(--text);min-width:80px;">' + esc(pers.name) + '</b>'
+      + '<span style="display:inline-flex;align-items:center;gap:7px;min-width:96px;">' + _depAvatarPl(pers.id, 24) + '<b style="color:var(--text);">' + esc(pers.name) + '</b></span>'
       + '<span style="color:' + coul + ';font-weight:600;">' + txt + '</span>'
       + quand
       + '</div>';

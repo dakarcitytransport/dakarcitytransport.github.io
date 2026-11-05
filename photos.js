@@ -21,6 +21,7 @@
   (function(){
     var st = document.createElement('style');
     st.textContent = ''
+      + '.ph-mini{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none;font-weight:800;vertical-align:middle;overflow:hidden;line-height:1;}'
       + '.ph-badge{color:#222;position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 1px 4px rgba(0,0,0,.3);}'
       + '.ph-ov{position:fixed;left:0;right:0;top:0;bottom:0;z-index:9500;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;}'
       + '.ph-sh{width:100%;max-width:430px;box-sizing:border-box;background:var(--white,#fff);color:var(--text,#111);border-radius:26px 26px 0 0;padding:18px 16px max(22px,env(safe-area-inset-bottom));}'
@@ -131,7 +132,7 @@
       db.ref('dct_profils_photos').on('value', function(snap){
         var v = snap.val();
         photos = (v && typeof v === 'object') ? v : {};
-        sauver(); tout();
+        sauver(); tout(); redessiner();
       }, function(e){ console.error('photos : lecture', e); });
     }catch(e){ console.error('photos', e); }
   }
@@ -335,6 +336,23 @@
       }, 1500);
     });
   }
-  window.photosProfil = { nouveautes: nouveautes, appliquer: tout, menu: ouvrirMenu, photos: function(){ return photos; } };
+  // Petit rond « photo ou initiales » pour les listes (Planning…). Sans photo : initiales aux couleurs du profil.
+  function avatar(id, px){
+    px = px || 22;
+    var c = null, liste = (window.COLLABS || []);
+    for(var i = 0; i < liste.length; i++){ if(liste[i] && liste[i].id === id){ c = liste[i]; break; } }
+    var base = 'width:' + px + 'px;height:' + px + 'px;font-size:' + Math.max(8, Math.round(px * 0.42)) + 'px;';
+    if(photos[id]) return '<span class="ph-mini" data-ph="' + esc(id) + '" style="' + base + '"></span>';
+    return '<span class="ph-mini" style="' + base + 'background:' + esc((c && c.bg) || '#e5e5e5') + ';color:' + esc((c && c.color) || '#444') + ';">' + esc(String(id).slice(0, 2)) + '</span>';
+  }
+  // Quand une photo change, on redessine les écrans qui affichent des petits ronds (Planning, accueil).
+  function redessiner(){
+    try{
+      var a = document.querySelector('.screen.active'); if(!a) return;
+      if(a.id === 's-planning' && typeof window.depRenderPlanning === 'function') window.depRenderPlanning();
+      else if(a.id === 's-espaces' && typeof window.depRenderEspaces === 'function') window.depRenderEspaces();
+    }catch(e){}
+  }
+  window.photosProfil = { avatar: avatar, nouveautes: nouveautes, appliquer: tout, menu: ouvrirMenu, photos: function(){ return photos; } };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tout); else tout();
 })();

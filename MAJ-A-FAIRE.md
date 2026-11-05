@@ -6383,3 +6383,8 @@ Nouvelle catégorie `admin` dans le filtre de l'Activité (`_activiteCases` / `_
 > Cobey : « si c'est moi qui le mets, il devrait avoir la pastille nouveau aussi, tant que je ne l'ai pas lu. »
 
 Plus d'exception pour l'auteur : le message qu'Eric publie porte « NOUVEAU » chez lui comme chez les autres, jusqu'à sa connexion suivante. Testé : publié via Réglages → « NOUVEAU » à l'accueil ; reconnexion → plus de pastille.
+
+### 05/11/2026 — Planning : photos de profil à côté des prénoms (dct-app v3.99.207, departs v2.22.34)
+> Cobey : « dans le planning, à côté des noms, j'aimerais avoir la photo de profil de chaque personne, et aussi dans le petit carré de planning, à côté du prénom. »
+
+`photos.js` : `photosProfil.avatar(id, px)` = petit rond (photo, sinon initiales aux couleurs du profil). Écran Planning > L'équipe : un rond devant chaque nom ; case Planning de l'accueil : un rond devant chaque prénom disponible. Les deux se redessinent quand une photo change (écoute Firebase). Testé : case avec la photo d'Issyaka ; écran : 30 ronds dont 5 photos (reste = initiales).
