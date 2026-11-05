@@ -233,7 +233,7 @@
   // Pas sur « En préparation » (personne n'a encore payé). Nombre de clients seulement, jamais de montant.
   function soldeLigne(d){
     if(d.statut === 'preparation' || !d.clients) return '';
-    if(d.impayes > 0) return '<div class="lk-solde">' + d.impayes + ' client' + (d.impayes > 1 ? 's' : '') + ' à solder</div>';
+    if(d.impayes > 0) return '<div class="lk-solde non">' + d.impayes + ' impayé' + (d.impayes > 1 ? 's' : '') + '</div>';
     return '<div class="lk-solde ok">Tout est soldé ✓</div>';
   }
   function unDepart(d, i, ouvrable){

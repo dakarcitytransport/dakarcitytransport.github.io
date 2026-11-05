@@ -6266,3 +6266,8 @@ Les 4 gros boutons de couleur empilés sont remplacés par un bandeau « Collect
 > Cobey : « sur les cartes, le nombre de clients qui restent à solder, parce qu'un conteneur ne se clôture que quand tout le monde a payé, voir les clients manquants justifierait pourquoi la carte est encore affichée » — « ok vas-y pour les deux ».
 
 Cartes « en route » et « arrivé » : pastille « N clients à solder » (clients avec un reste à payer, colis + livraison) ou « Tout est soldé ✓ » (signal qu'on peut clôturer). Rien sur « En préparation ». Nombre de clients seulement, jamais de montant ; visible par tous ceux qui voient les cartes (terrain compris). Calcul : `_depNbImpayesDepart` (departs.js), exposé par `depDepartsCarte` (`impayes`).
+
+### 05/11/2026 — Cartes de l'accueil : « N impayés » en rouge (dct-app v3.99.186)
+> Cobey : « je pense que la couleur des clients qui restent à solder devrait être rouge » ; « trouve une autre phrase que client non soldé, c'est pas très explicatif » — choix « 1 » : « 31 impayés ».
+
+La pastille « N clients à solder » devient « N impayés » (« 1 impayé » au singulier), en rouge. « Tout est soldé ✓ » reste blanc / vert.
