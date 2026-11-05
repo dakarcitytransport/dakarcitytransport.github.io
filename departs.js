@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.43';
+var DEP_VERSION = 'v2.22.44';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -29119,9 +29119,9 @@ function _depPlanningBlocEquipe(dim){
     + _depPlTitreJour(dim, 15)
     + '<div style="display:flex;gap:7px;margin:9px 0 10px;flex-wrap:wrap;">'
     +   '<span style="font-size:11.5px;font-weight:800;color:#006b2d;background:#d4f0e0;'
-    +     'padding:3px 10px;border-radius:20px;">' + c.oui + ' dispo</span>'
+    +     'padding:3px 10px;border-radius:20px;">' + c.oui + ' disponible' + (c.oui > 1 ? 's' : '') + '</span>'
     +   '<span style="font-size:11.5px;font-weight:800;color:#992020;background:#fde0e0;'
-    +     'padding:3px 10px;border-radius:20px;">' + c.non + ' non</span>'
+    +     'padding:3px 10px;border-radius:20px;">' + c.non + ' indisponible' + (c.non > 1 ? 's' : '') + '</span>'
     +   (c.muets.length ? '<span style="font-size:11.5px;font-weight:800;color:#8a5a00;'
     +     'background:#fff3cd;padding:3px 10px;border-radius:20px;">'
     +     c.muets.length + ' sans r&eacute;ponse</span>' : '')

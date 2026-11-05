@@ -6548,3 +6548,7 @@ Chaque ligne (icône | avatar + nom | statut) était en flex avec retour à la l
 ### 05/11/2026 — Planning : « Pas dispo » → « Indisponible » (v3.99.238, departs.js v2.22.43)
 > Cobey : « Et le pas dispo là, ça me gêne un peu, c'est pas trop français ça. »
 Boutons, statuts, messages et traces du Planning : « Pas dispo » devient « Indisponible » (et « pas disponible » → « indisponible »), le bouton court « Dispo » devient « Disponible ». Aucune donnée ni logique changée.
+
+### 05/11/2026 — Planning : compteurs « disponible / indisponible » (v3.99.239, departs.js v2.22.44)
+> Cobey : « Oui, mets « disponible » aussi. »
+Pastilles en haut de chaque dimanche : « 1 dispo » → « 1 disponible » (pluriel géré), « 1 non » → « 1 indisponible » (pour rester cohérent avec « Indisponible »).
