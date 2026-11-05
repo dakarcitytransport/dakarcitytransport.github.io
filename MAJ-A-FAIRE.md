@@ -6462,3 +6462,8 @@ Non fait : surligner le client dans la collecte ouverte.
 ## 05/11/2026 — Container : boutons des cartes client qui débordent (v3.99.220)
 Cobey : « Remarquez que cette case-là, le texte ne rentre pas forcément dans la case sur mon PC et sur mon téléphone. »
 - V2 : le bouton principal (« Relancer le paiement »…) prend toute la largeur sur sa ligne (texte qui peut passer à la ligne), les petites icônes (Facture, Photos, Copier…) se partagent la ligne du dessous. Plus de texte coupé ni de bouton qui passe en dessous. Testé à 400 px : 79 clients, aucun débordement.
+
+### 05/11/2026 — Photo de fond de l'écran de connexion (EN ATTENTE de validation, pas encore sur `main`)
+> Cobey : « c'est possible dans la page d'accueil, là où on choisit notre profil, de mettre un arrière-plan d'une photo qu'on ferait ensemble ? » ; image créée avec Higgsfield (port de Dakar au crépuscule, camion jaune) sur la base de mon prompt.
+
+`fond-connexion.jpg` (768×1344, 45 Ko) + règles dans `tools/gen_look_css.py` (V2 seulement : photo, voile dégradé, titres en blanc, cartes en verre). Aperçu envoyé (clair / sombre). Poussé sur la branche de session seulement ; à passer sur `main` (et monter `APP_VERSION` + `?v=` du CSS) après le « ok » de Cobey.
