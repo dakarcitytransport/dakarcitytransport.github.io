@@ -34,7 +34,7 @@
       + '#bd-accueil .bd-m{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;opacity:0;transform:translateY(16px);transition:opacity .45s,transform .45s;pointer-events:none;min-width:0;}'
       + '#bd-accueil .bd-m.on{opacity:1;transform:none;}#bd-accueil .bd-m.out{opacity:0;transform:translateY(-16px);}'
       + '#bd-accueil .bd-m .bd-l{display:block;white-space:nowrap;overflow:hidden;line-height:1.25;}'
-      + '#bd-accueil .bd-m .bd-l i{display:inline-block;font-style:normal;will-change:transform;}'
+      + '#bd-accueil .bd-m .bd-l i{display:inline-block;font-style:normal;will-change:transform;white-space:nowrap;}'
       + '#bd-accueil .bd-m .bd-t1{font-size:14px;font-weight:700;}#bd-accueil .bd-m .bd-t2{font-size:12.5px;opacity:.92;}'
       + '#bd-accueil .bd-x{flex:none;width:32px;height:32px;margin-right:9px;border:0;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}'
       + '#bd-accueil .bd-barre{position:absolute;left:0;bottom:0;height:3px;background:rgba(255,255,255,.75);}'
@@ -64,24 +64,33 @@
   }
   function fond(m){ var c = COULEURS[m.type] || COULEURS.info; return 'linear-gradient(120deg,' + c.a + ',' + c.b + ')'; }
   function arreter(){ if(minuteur){ clearTimeout(minuteur); minuteur = null; } anims.forEach(function(a){ try{ a.cancel(); }catch(e){} }); anims = []; }
+  // Défilement à la main (requestAnimationFrame) : marche sur tous les téléphones, contrairement à Element.animate().
+  // Il n'est PAS coupé par « Réduire les animations » de l'iPhone : c'est une information à lire, pas une décoration.
+  function glisser(i, trop, T){
+    var debut = null, stop = false, raf = null;
+    function pas(t){
+      if(stop) return;
+      if(debut === null) debut = t;
+      var e = t - debut, x;
+      if(e <= PAUSE_DEBUT) x = 0;
+      else if(e >= T - PAUSE_FIN) x = trop;
+      else x = trop * (e - PAUSE_DEBUT) / (T - PAUSE_DEBUT - PAUSE_FIN);
+      i.style.transform = 'translate3d(-' + x.toFixed(1) + 'px,0,0)';
+      if(e < T) raf = requestAnimationFrame(pas);
+    }
+    i.style.transform = 'translate3d(0,0,0)';
+    raf = requestAnimationFrame(pas);
+    anims.push({ cancel: function(){ stop = true; if(raf) cancelAnimationFrame(raf); i.style.transform = ''; } });
+  }
   // Lance le défilement des lignes trop longues du message affiché ; renvoie combien de temps le message doit rester (ms).
   function defiler(msg){
     var duree = DUREE;
-    var calme = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     [].forEach.call(msg.querySelectorAll('.bd-l'), function(ligne){
       var i = ligne.firstChild; if(!i) return;
       var trop = i.offsetWidth - ligne.clientWidth;
-      if(trop <= 2){ return; }
-      if(calme){ ligne.style.textOverflow = 'ellipsis'; return; }
+      if(trop <= 2) return;
       var defil = Math.round(trop / VITESSE * 1000), T = PAUSE_DEBUT + defil + PAUSE_FIN;
-      try{
-        anims.push(i.animate([
-          { transform: 'translateX(0)', offset: 0 },
-          { transform: 'translateX(0)', offset: PAUSE_DEBUT / T },
-          { transform: 'translateX(-' + trop + 'px)', offset: (PAUSE_DEBUT + defil) / T },
-          { transform: 'translateX(-' + trop + 'px)', offset: 1 }
-        ], { duration: T, easing: 'linear', fill: 'forwards' }));
-      }catch(e){}
+      glisser(i, trop, T);
       duree = Math.max(duree, T + 300);
     });
     return duree;

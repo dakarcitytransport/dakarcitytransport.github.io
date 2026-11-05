@@ -6353,3 +6353,8 @@ Le titre « Où souhaitez-vous travailler ? » (V1 et V2) et la barre de recherc
 > Cobey : « le texte est très long, il ne défile pas de gauche à droite, il reste immobile. Moi je voulais que le texte défile » — seuls les textes trop longs défilent (recommandé) — « ok vas-y ».
 
 `bandeau.js` : une ligne (titre ou détail) plus large que le bandeau défile doucement (≈55 px/s, pause de 1,6 s au début et 1,4 s à la fin) ; le message reste affiché le temps du défilement, la barre de progression suit ; un message court reste fixe. Un message long seul se rejoue en boucle. Limites de saisie élargies (titre 300, détail 500 caractères). Testé : texte de 1122 px dans 266 px → pause, défilement, décalage −140 puis −473 px ; message court : fixe, aucune animation.
+
+### 05/11/2026 — Bandeau : le défilement marche aussi avec « Réduire les animations » (dct-app v3.99.201)
+> Cobey : « je viens de vérifier, mais ça ne défile toujours pas. Pourtant je suis sur la bonne mise à jour. »
+
+Cause probable : le défilement de v3.99.200 était coupé quand le téléphone a « Réduire les animations » (Réglages iPhone > Accessibilité > Mouvement) — le texte restait coupé par « … ». Défilement refait à la main (`requestAnimationFrame`), qui ne dépend ni de ce réglage ni de `Element.animate()`. Testé avec le mode « mouvement réduit » forcé : le texte avance (0 → −141 → −475 px). Les effets décoratifs (lueur, icône qui pulse) restent coupés dans ce mode.
