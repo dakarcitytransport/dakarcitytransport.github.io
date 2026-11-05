@@ -14,7 +14,11 @@
   try{ photos = JSON.parse(localStorage.getItem(CLE) || '{}') || {}; }catch(e){ photos = {}; }
   function sauver(){ try{ localStorage.setItem(CLE, JSON.stringify(photos)); }catch(e){} }
   function esc(t){ return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
-  function fond(id){ return photos[id] ? 'url("' + photos[id] + '")' : ''; }
+  // Photos mises « d'office » par la direction en attendant que la personne mette la sienne (Cobey, 05/11/2026) :
+  // fichiers rangés dans photos-defaut/ (ID.jpg, 192 px). Dès que la personne enregistre sa propre photo, c'est la sienne qui s'affiche.
+  var DEFAUT = { AB: 'photos-defaut/AB.jpg?v=1' };
+  function source(id){ return photos[id] || DEFAUT[id] || ''; }
+  function fond(id){ var f = source(id); return f ? 'url("' + f + '")' : ''; }
   function moi(){ return window.currentUser || null; }
 
   /* ---------- styles ---------- */
@@ -46,9 +50,11 @@
   var feuille = null, derniere = '';
   function regles(){
     var h = '';
-    Object.keys(photos).forEach(function(id){
-      if(!/^[A-Za-z0-9_-]+$/.test(id) || typeof photos[id] !== 'string' || photos[id].indexOf('data:image/') !== 0) return;
-      h += '[data-ph="' + id + '"][data-ph][data-ph][data-ph]{background-image:url("' + photos[id] + '") !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;background-origin:border-box !important;background-clip:border-box !important;background-color:transparent !important;color:transparent !important;border-radius:50% !important;}';
+    var ids = {}; Object.keys(DEFAUT).forEach(function(k){ ids[k] = 1; }); Object.keys(photos).forEach(function(k){ ids[k] = 1; });
+    Object.keys(ids).forEach(function(id){
+      var src = source(id);
+      if(!/^[A-Za-z0-9_-]+$/.test(id) || !src || (src.indexOf('data:image/') !== 0 && src.indexOf('photos-defaut/') !== 0)) return;
+      h += '[data-ph="' + id + '"][data-ph][data-ph][data-ph]{background-image:url("' + src + '") !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;background-origin:border-box !important;background-clip:border-box !important;background-color:transparent !important;color:transparent !important;border-radius:50% !important;}';
     });
     return h;
   }
@@ -61,13 +67,13 @@
   }
   function poser(el, id){
     if(!el) return;
-    if(photos[id]){ if(el.getAttribute('data-ph') !== id) el.setAttribute('data-ph', id); }
+    if(source(id)){ if(el.getAttribute('data-ph') !== id) el.setAttribute('data-ph', id); }
     else if(el.getAttribute('data-ph')) el.removeAttribute('data-ph');
   }
   function accueil(){
     var u = moi(), a = document.getElementById('dep-esp-av');
     if(!a || !u) return;
-    if(photos[u.id]){ a.textContent = ''; poser(a, u.id); }
+    if(source(u.id)){ a.textContent = ''; poser(a, u.id); }
     else if(a.getAttribute('data-ph')){ poser(a, u.id); a.textContent = u.id || ''; }
     a.removeAttribute('onclick'); a.onclick = ouvrirMenu;   // ouvre un menu (changer la photo / se déconnecter)
     a.setAttribute('aria-label', 'Mon profil');
@@ -85,7 +91,7 @@
       var fort = it.querySelector('.activity-text strong');
       var id = fort ? idDeNom(fort.textContent.trim()) : null;
       var deja = dot.getAttribute('data-ph');
-      if(!id || !photos[id]){
+      if(!id || !source(id)){
         if(deja){ dot.removeAttribute('data-ph'); var b0 = dot.querySelector('.ph-badge'); if(b0) dot.textContent = b0.textContent; }
         return;
       }
@@ -104,7 +110,7 @@
     window._carteProfil = function(c){
       var h = origCarte.apply(this, arguments);
       try{
-        if(c && photos[c.id]){
+        if(c && source(c.id)){
           h = h.replace('<div class="av" style=', '<div class="av" data-ph="' + c.id + '" style=');
         }
       }catch(e){}
@@ -242,7 +248,7 @@
   function ouvrirMenu(){
     var u = moi(); if(!u) return;
     fermer();
-    var a = photos[u.id]
+    var a = source(u.id)
       ? '<div class="ph-grand" data-ph="' + esc(u.id) + '"></div>'
       : '<div class="ph-grand" style="background:' + esc(u.bg || '#eee') + ';color:' + esc(u.color || '#333') + ';">' + esc(u.id) + '</div>';
     var o = document.createElement('div');
@@ -273,7 +279,7 @@
      Pas affichée à qui a déjà une photo. Pour une future nouveauté : ajouter une entrée à NOUVEAUTES. */
   var NOUVEAUTES = [
     { id: 'photo_profil',
-      deja: function(u){ return !!photos[u.id]; },   // déjà fait : on ne dérange pas
+      deja: function(u){ return !!source(u.id); },   // déjà fait : on ne dérange pas
       html: function(){
         var etape = function(n, t, d){ return '<div style="display:flex;gap:12px;align-items:center;background:rgba(14,159,91,.1);border-radius:18px;padding:11px 14px"><div style="width:30px;height:30px;border-radius:50%;background:#0E9F5B;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none">' + n + '</div><div><b style="font-size:14.5px;display:block">' + t + '</b><span style="font-size:12.5px;color:var(--text3,#55675E)">' + d + '</span></div></div>'; };
         var u = moi() || {};
@@ -342,7 +348,7 @@
     var c = null, liste = (window.COLLABS || []);
     for(var i = 0; i < liste.length; i++){ if(liste[i] && liste[i].id === id){ c = liste[i]; break; } }
     var base = 'width:' + px + 'px;height:' + px + 'px;font-size:' + Math.max(8, Math.round(px * 0.42)) + 'px;';
-    if(photos[id]) return '<span class="ph-mini" data-ph="' + esc(id) + '" style="' + base + '"></span>';
+    if(source(id)) return '<span class="ph-mini" data-ph="' + esc(id) + '" style="' + base + '"></span>';
     return '<span class="ph-mini" style="' + base + 'background:' + esc((c && c.bg) || '#e5e5e5') + ';color:' + esc((c && c.color) || '#444') + ';">' + esc(String(id).slice(0, 2)) + '</span>';
   }
   // Quand une photo change, on redessine les écrans qui affichent des petits ronds (Planning, accueil).

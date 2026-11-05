@@ -6388,3 +6388,8 @@ Plus d'exception pour l'auteur : le message qu'Eric publie porte « NOUVEAU » c
 > Cobey : « dans le planning, à côté des noms, j'aimerais avoir la photo de profil de chaque personne, et aussi dans le petit carré de planning, à côté du prénom. »
 
 `photos.js` : `photosProfil.avatar(id, px)` = petit rond (photo, sinon initiales aux couleurs du profil). Écran Planning > L'équipe : un rond devant chaque nom ; case Planning de l'accueil : un rond devant chaque prénom disponible. Les deux se redessinent quand une photo change (écoute Firebase). Testé : case avec la photo d'Issyaka ; écran : 30 ronds dont 5 photos (reste = initiales).
+
+### 05/11/2026 — Photo mise d'office pour Abdoulaye (dct-app v3.99.208)
+> Cobey : « en attendant que chacun mette sa photo, on va en mettre une d'office pour certains » ; (photo envoyée) « celle-là pour Abdoulaye, tu centres sur sa tête et tu la mets ».
+
+Mon accès à la base est en lecture seule : la photo est donc livrée avec l'appli. Recadrée sur le visage (carré 192 px, `photos-defaut/AB.jpg`) et déclarée dans `DEFAUT` (photos.js). Elle s'affiche partout où une photo s'affiche (pastille d'accueil, connexion, Activité, Planning) et la fenêtre « Nouveauté » ne s'affiche pas pour lui. Dès qu'Abdoulaye enregistre sa propre photo, la sienne remplace celle-ci. Pour ajouter d'autres photos d'office : déposer `photos-defaut/<ID>.jpg` et ajouter l'ID dans `DEFAUT`. Le bouton « Photo » par personne dans Réglages > Équipe (proposé) n'est pas fait : en attente de la réponse de Cobey.
