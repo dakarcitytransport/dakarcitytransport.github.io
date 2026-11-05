@@ -6230,3 +6230,8 @@ Sous le nom, « départ du JJ/MM » sur les cartes « en route » et « arrivé 
 > Cobey : « dans la case rapport financier on voit le montant des bénéfices en sous-titre. Je veux retirer ça, c'est trop visible. On va le laisser à l'intérieur. »
 
 La case de l'accueil affiche « Bilan, statistiques, containers » au lieu du bénéfice. Le bénéfice reste visible dans Rapport financier > case Bilan. Valable en V1 et V2.
+
+### 05/11/2026 — Pastille de statut : l'étape réelle au lieu de « Parti » (dct-app v3.99.179, departs v2.22.26)
+> Cobey : « il y a un conteneur de Dakar, son statut est parti [...] ça devrait être en cours de navigation plutôt » — « ok vas-y ».
+
+`depStatutLabel` : pour un départ « parti », la pastille affiche l'étape du suivi transport — « En cours de navigation » (après Départ de Mitry), « Arrivé au port de Dakar » (après navigation / port), « En route vers Bamako » (Mali, après le port). Le statut enregistré reste « parti » (aucune donnée modifiée) ; sans étapes, la pastille reste « Parti ». Testé sur les listes Sénégal et Mali.

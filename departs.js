@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.25';
+var DEP_VERSION = 'v2.22.26';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -549,6 +549,15 @@ var STATUTS_DEPART = {
 function depStatutLabel(d){
   var st = STATUTS_DEPART[(d && d.statut) || 'preparation'] || STATUTS_DEPART.preparation;
   if(d && d.statut === 'arrive' && depPaysDepart(d) === 'ML') return 'Arrivé à Bamako';
+  // 05/11/2026 — Cobey : « il y a un container de Dakar, son statut est Parti [...] ça devrait être "en cours de
+  // navigation" plutôt » : un container parti affiche l'étape réelle du suivi transport (le statut enregistré ne change pas).
+  if(d && d.statut === 'parti' && d.etapesTransport){
+    var f = function(k){ return !!(d.etapesTransport[k] && d.etapesTransport[k].fait); };
+    var ml = depPaysDepart(d) === 'ML';
+    if(ml && (f('route_bamako') || f('arrivee_port'))) return 'En route vers Bamako';
+    if(f('arrivee_port') || f('navigation')) return 'Arrivé au port de Dakar';
+    if(f('depart_mitry')) return 'En cours de navigation';
+  }
   return st.label;
 }
 var ORDRE_STATUTS = ['preparation','parti','arrive','cloture'];
