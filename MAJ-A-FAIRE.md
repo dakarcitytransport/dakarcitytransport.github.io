@@ -6532,3 +6532,7 @@ look.js `tuilesVerre()` (V2 seulement) : les emojis des tuiles de Réglages et d
 ### 05/11/2026 — Nouveau look, vague 3 : Collecte, Dépôt Dakar, Devis, Facture manuelle (v3.99.234)
 > Cobey : « ok vas-y » (vague 3).
 V2 seulement, en CSS (aucun bouton ni action modifié) : cartes Collecte en verre teinté (vert « en cours », bleu « à venir ») ; cartes à barre colorée sur le côté (`.dep-cli`, ex. Dépôt Dakar) en verre teinté de la couleur de la barre (look.js `barresLaterales`) ; boutons de cartes (`.dep-cli-btn`) plus ronds ; cartes Devis / Facture manuelle en verre, pastilles rondes. NON touchés : boutons Disponible / Pas dispo du Planning (styles écrits dans le code) et la liste Fidélité — à voir avec Cobey. V1 inchangée (74/74).
+
+### 05/11/2026 — Nouveau look : Planning + Fidélité (v3.99.235)
+> Cobey : « Oui fait » (Planning et Fidélité).
+V2 seulement, CSS uniquement : Planning — cartes de jours arrondies avec liseré clair, boutons Disponible / Pas dispo plus hauts et arrondis (couleurs et actions inchangées), champ « Un mot » arrondi. Fidélité — chaque client : verre ambré, tuile cadeau, nom en gras, pastille « N € disponibles », flèche. V1 inchangée (74/74).

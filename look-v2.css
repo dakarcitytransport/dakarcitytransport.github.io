@@ -183,6 +183,19 @@ html.look-v2 #dep-devis-liste .dep-nom,html.look-v2 #dep-fm-liste .dep-nom{font-
 html.look-v2 #dep-devis-liste .dep-badge,html.look-v2 #dep-fm-liste .dep-badge{border-radius:99px !important;font-weight:800}
 html.look-v2 #s-planning .content > div:not(.fi){border-radius:26px}
 
+
+/* ── Planning + Fidélité ── */
+html.look-v2 #s-planning .content > div:not(.fi){border-radius:26px !important;border:1px solid var(--lk-edge) !important;box-shadow:var(--shadow) !important}
+html.look-v2 #s-planning [onclick^="depPlanningPoser("]{border-radius:16px !important;min-height:46px;display:flex !important;align-items:center;justify-content:center;border-width:1px !important;font-size:15px !important;font-weight:800 !important;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+html.look-v2 #s-planning [onclick^="depPlanningForcer"],html.look-v2 #s-planning [onclick^="depPlanningRetirer"]{border-radius:99px !important}
+html.look-v2 #s-planning input.fi{border-radius:16px !important;border-width:1px !important}
+html.look-v2 #fid-liste-contenu .dep-cli{position:relative;background-color:var(--lk-glass) !important;background-image:linear-gradient(135deg,rgba(224,140,30,.22),rgba(224,140,30,.05) 70%,rgba(224,140,30,.12)) !important;border:1px solid rgba(224,140,30,.45) !important;border-radius:24px !important;padding:14px 52px 14px 74px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);min-height:76px}
+html.look-v2 #fid-liste-contenu .dep-cli::before{content:'';position:absolute;left:16px;top:50%;margin-top:-23px;width:46px;height:46px;border-radius:15px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' fill-opacity='.3' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z'/%3E%3C/svg%3E") center/26px no-repeat,linear-gradient(145deg,#e0901e,#e0901e99);border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 14px rgba(0,0,0,.16)}
+html.look-v2 #fid-liste-contenu .dep-cli::after{content:'';position:absolute;right:16px;top:50%;margin-top:-15px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.7) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310241a' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18l6-6-6-6'/%3E%3C/svg%3E") center/15px no-repeat}
+html.look-v2 #fid-liste-contenu .dep-cli-n{font-size:17px;font-weight:800;letter-spacing:-.01em}
+html.look-v2 #fid-liste-contenu .dep-cli-s{flex-wrap:wrap}
+html.look-v2 #fid-liste-contenu .dep-cli-s b{display:inline-block;padding:3px 11px;border-radius:99px;background:rgba(224,140,30,.18);border:1px solid rgba(224,140,30,.45)}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
