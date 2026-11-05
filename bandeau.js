@@ -271,7 +271,7 @@
       var r = edition ? db.ref('dct_bandeau/' + edition).set(obj) : db.ref('dct_bandeau').push(obj);
       var verbe = edition ? 'a modifié' : 'a publié';
       Promise.resolve(r).then(function(){
-        try{ var cle = edition || (r && r.key); if(cle && u.id) db.ref('dct_bandeau_lus/' + u.id + '/' + cle).set(obj.ts); }catch(x){}
+        // L'auteur voit « NOUVEAU » lui aussi, comme les autres, jusqu'à sa prochaine connexion (Cobey, 05/11/2026).
         try{ if(typeof _tracerReglage === 'function') _tracerReglage('📢', verbe + ' un message dans le bandeau de l’accueil : <strong>' + esc(titre) + '</strong>'); }catch(x){}
         try{ showToastNew('✅ Bandeau mis à jour'); }catch(x){}
         edition = null; typeChoisi = 'info'; window.bandeauRenderReglage();

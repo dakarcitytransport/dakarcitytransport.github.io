@@ -6378,3 +6378,8 @@ Nouvelle catégorie `admin` dans le filtre de l'Activité (`_activiteCases` / `_
 > Cobey : « une mention nouveau message pour une personne qui vient de se connecter et qui voit le message ; si elle se déconnecte et se reconnecte, elle ne voit plus la mention vu qu'elle avait déjà lu ; quand il y aura un autre message nouveau, la mention reviendra pour lui » — « ok vas-y ».
 
 `bandeau.js` : pastille jaune « NOUVEAU » (qui pulse) devant le titre d'un message que la personne n'a pas vu lors d'une connexion précédente. Mémoire par personne dans Firebase `dct_bandeau_lus/<ID>/<message> = horodatage`. La liste est lue une fois par connexion et ne bouge pas pendant la session (la pastille reste jusqu'à la connexion suivante) ; ce qui a été affiché est enregistré comme vu. Un message modifié redevient nouveau. L'auteur ne voit pas « NOUVEAU » sur son propre message. Déconnexion (`goTo('s-login')`) = nouvelle session. Testé : 1re connexion (A, B nouveaux) → 2e (aucun) → C publié (seul C) → A modifié (seul A) → autre personne (tous nouveaux), puis plus rien à sa 2e connexion.
+
+### 05/11/2026 — Bandeau : l'auteur voit aussi « NOUVEAU » (dct-app v3.99.206)
+> Cobey : « si c'est moi qui le mets, il devrait avoir la pastille nouveau aussi, tant que je ne l'ai pas lu. »
+
+Plus d'exception pour l'auteur : le message qu'Eric publie porte « NOUVEAU » chez lui comme chez les autres, jusqu'à sa connexion suivante. Testé : publié via Réglages → « NOUVEAU » à l'accueil ; reconnexion → plus de pastille.
