@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.36';
+var DEP_VERSION = 'v2.22.37';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -22251,6 +22251,7 @@ window.depDevisEnregistrer = function(){
     db.ref('devis/'+editId).set(obj).then(function(){
       window._depDevisEditId = null;
       toast('✅ Devis mis à jour.');
+      try{ if(typeof _garderDansCarnet === 'function') _garderDansCarnet(obj); }catch(eC){}
       try{ depActivite('&#9999;&#65039;', 'a modifi&eacute; le devis de <strong>' + esc(((obj.prenom ? obj.prenom + ' ' : '') + obj.nom).trim()) + '</strong> &middot; ' + _depEuros(obj.montant) + ' &euro;'); }catch(eD){}
       try{ depOuvrirDevisDoc(editId); }catch(e){ goTo('s-devis'); depRenderListeDevis(); }
     }).catch(function(e){
@@ -22265,6 +22266,7 @@ window.depDevisEnregistrer = function(){
   obj.creeParNom = (window.currentUser||{}).name || '';
   db.ref('devis').push(obj).then(function(ref){
     toast('✅ Devis enregistré.');
+    try{ if(typeof _garderDansCarnet === 'function') _garderDansCarnet(obj); }catch(eC){}   // le client du devis rejoint la case Client
     try{ depActivite('&#128221;', 'a cr&eacute;&eacute; un devis pour <strong>' + esc(((obj.prenom ? obj.prenom + ' ' : '') + obj.nom).trim()) + '</strong> &middot; ' + _depEuros(obj.montant) + ' &euro;'); }catch(eD){}
     try{ depOuvrirDevisDoc(ref.key); }catch(e){ goTo('s-devis'); depRenderListeDevis(); }
   }).catch(function(e){
@@ -22615,6 +22617,7 @@ window.depDevisConfirmerRefuser = function(){
   closeModal('modal-devis-refuser');
   if(!id) return;
   var dvR = (window.devisData || {})[id] || {};
+  try{ if(typeof _garderDansCarnet === 'function') _garderDansCarnet(dvR); }catch(eC){}
   try{ db.ref('devis/'+id).remove(); }catch(e){}
   try{ depActivite('&#10060;', 'a refus&eacute; et supprim&eacute; le devis de <strong>' + esc(((dvR.prenom ? dvR.prenom + ' ' : '') + (dvR.nom || '')).trim() || 'client') + '</strong>'); }catch(eR){}
   toast('🗑️ Devis refusé et supprimé.');

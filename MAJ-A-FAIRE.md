@@ -6437,3 +6437,8 @@ Testé : base de test à l'état réel (58 fiches, Loum absent de la mémoire) �
 2. Plus de perte à la suppression : `_garderDansCarnet(fiche)` copie les coordonnées au carnet (si absentes) avant la suppression d'un client de collecte (`confirmDelete`), d'une collecte entière (`_effacerCollecte`) et d'un client du dépôt (`depSupprimerDepot`). Le côté France le faisait déjà (`_versCarnet`).
 3. Rattrapage (une fois, par Eric, marqueur `dct_config/nettoyage_carnet_v3`, ~9 s après sa connexion) : tous les clients des collectes (50 collectes en base, y compris celles qui ne s'affichent plus), de France et du dépôt qui ne sont pas dans le carnet y sont ajoutés (comparaison par numéro, un seul contact par personne, doublons déjà fusionnés). Testé sur la copie réelle : carnet 55 → 334 fiches, 0 doublon de numéro, tous les clients France nommés dans la liste, 2e passage sans effet.
 Note : 334 fiches contre ~75 visibles avant → la liste de la case Client sera nettement plus longue (c'est voulu : annuaire de tous les clients passés).
+
+### 05/11/2026 — Case Client : les devis aussi (dct-app v3.99.216, departs v2.22.37)
+> Cobey : « y a aussi le passage par un devis. »
+
+Les clients passés par un devis (`devis/`, 1 en base) rejoignent la case Client : affichés en direct (`getAllContacts`), copiés au carnet quand le devis est créé, modifié, refusé/supprimé (`_garderDansCarnet`), et ajoutés par le rattrapage (marqueur passé à `dct_config/nettoyage_carnet_v4`, il relancera à la prochaine connexion d'Eric ; le v3 n'avait pas encore tourné). Testé : carnet 55 → 335, 0 doublon, 2e passage sans effet.
