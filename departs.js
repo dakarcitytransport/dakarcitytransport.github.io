@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.37';
+var DEP_VERSION = 'v2.22.38';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2842,6 +2842,22 @@ function injecterStyles(){
     +   'gap:10px;cursor:pointer;}'
     + '.pa-nom{font-size:13.5px;font-weight:700;color:var(--text);}'
     + '.pa-prix{font-size:14.5px;font-weight:800;color:var(--green-dark);white-space:nowrap;}'
+    + '.fc-plus{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);color:var(--text);font-size:22px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}'
+    + '.fc-tete{text-align:center;margin:4px 0 14px;}.fc-av{width:76px;height:76px;font-size:24px;margin:0 auto 8px;}'
+    + '.fc-nom{font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--text);}.fc-sous{font-size:13px;color:var(--text3);margin-top:2px;}'
+    + '.fc-actions{display:flex;justify-content:center;gap:22px;margin:0 0 16px;}'
+    + '.fc-act{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;cursor:pointer;background:none;border:0;font-family:var(--font);padding:0;}'
+    + '.fc-act i{display:flex;width:54px;height:54px;border-radius:50%;align-items:center;justify-content:center;font-style:normal;}'
+    + '.fc-act.off{opacity:.4;pointer-events:none;}'
+    + '.fc-carte{background:var(--white);border:1.5px solid var(--border);border-radius:22px;padding:4px 16px;margin-bottom:12px;}'
+    + '.fc-carte:empty{display:none;}'
+    + '.fc-ligne{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}.fc-ligne:last-child{border-bottom:0;}'
+    + '.fc-ico{width:36px;height:36px;border-radius:12px;background:rgba(14,159,91,.14);color:#0A7A45;display:flex;align-items:center;justify-content:center;flex:none;font-size:16px;}'
+    + '.fc-t{flex:1;min-width:0;}.fc-t b{display:block;font-size:14.5px;color:var(--text);word-break:break-word;}.fc-t span{font-size:12px;color:var(--text3);}'
+    + '.fc-pil{flex:none;font-weight:800;font-size:12.5px;padding:4px 10px;border-radius:99px;white-space:nowrap;}'
+    + '.fc-ok{background:rgba(14,159,91,.15);color:#0A7A45;}.fc-du{background:rgba(217,48,37,.14);color:#C62828;}'
+    + '.fc-titre{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin:16px 6px 8px;}'
+    + '.fc-fid{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--border);border-radius:22px;padding:11px 16px;margin-bottom:12px;font-size:13.5px;color:var(--text);cursor:pointer;}'
     + '.dep-fc-champ{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);'
     +   'padding:11px 13px;margin-bottom:9px;}'
     + '.dep-fc-lab{font-size:10.5px;font-weight:800;color:var(--text3);letter-spacing:0.04em;'
@@ -3542,30 +3558,26 @@ function injecterEcrans(){
   + '</div>'
 
   /* ---- ÉCRAN 6 : fiche client en lecture seule (carré Client) ---- */
+  // Refonte du 05/11/2026 (Cobey : « cette page, je voudrais la refaire, il y a des boutons qui servent à rien ») :
+  // Appeler / WhatsApp / Modifier en gros boutons ronds, coordonnées, envois affichés directement, fidélité en une ligne,
+  // menu « ⋯ » pour Fidélité (détail) et Supprimer. Plus de bouton « Actions », plus de « Bordereau » (à venir).
   + '<div class="screen" id="s-client-fiche">'
   +   '<div class="header">'
   +     '<button class="btn-back" onclick="goTo(\'s-clients\');try{renderContacts();}catch(e){}">&larr; Clients</button>'
-  +     '<div class="h-title" id="dep-fc-nom">Client</div>'
-  +     '<div style="width:60px;"></div>'
+  +     '<div class="h-title" id="dep-fc-nom" style="visibility:hidden;">Client</div>'
+  +     '<button type="button" class="fc-plus" aria-label="Plus d\'actions" onclick="depOuvrirActionsContact()">&#8943;</button>'
   +   '</div>'
   +   '<div class="content">'
-  +     '<div style="text-align:center;margin-bottom:18px;">'
-  +       '<div class="av" id="dep-fc-av" style="width:56px;height:56px;font-size:19px;margin:0 auto 10px;">--</div>'
-  +       '<div style="font-size:17px;font-weight:800;" id="dep-fc-titre">—</div>'
+  +     '<div class="fc-tete">'
+  +       '<div class="av fc-av" id="dep-fc-av">--</div>'
+  +       '<div class="fc-nom" id="dep-fc-titre">&mdash;</div>'
+  +       '<div class="fc-sous" id="dep-fc-sous"></div>'
   +     '</div>'
-  +     '<div class="dep-fc-champ"><div class="dep-fc-lab">T&eacute;l&eacute;phone</div>'
-  +       '<div class="dep-fc-val" id="dep-fc-tel">—</div></div>'
-  +     '<div class="dep-fc-champ" id="dep-fc-bloc-tel2" style="display:none;">'
-  +       '<div class="dep-fc-lab">Deuxi&egrave;me num&eacute;ro</div>'
-  +       '<div class="dep-fc-val" id="dep-fc-tel2">—</div></div>'
-  +     '<div class="dep-fc-champ"><div class="dep-fc-lab">Adresse</div>'
-  +       '<div class="dep-fc-val" id="dep-fc-adresse">—</div></div>'
-  +     '<div class="dep-fc-champ" id="dep-fc-bloc-infos" style="display:none;">'
-  +       '<div class="dep-fc-lab">Infos compl&eacute;mentaires</div>'
-  +       '<div class="dep-fc-val" id="dep-fc-infos">—</div></div>'
-  +     '<div class="dep-fc-champ"><div class="dep-fc-lab">Ville</div>'
-  +       '<div class="dep-fc-val" id="dep-fc-ville">—</div></div>'
-  +     '<button class="btn btn-green" style="margin-top:10px;" onclick="depOuvrirActionsContact()">&#8942; Actions</button>'
+  +     '<div class="fc-actions" id="dep-fc-actions"></div>'
+  +     '<div class="fc-carte" id="dep-fc-coord"></div>'
+  +     '<div class="fc-titre" id="dep-fc-envois-titre"></div>'
+  +     '<div class="fc-carte" id="dep-fc-envois"></div>'
+  +     '<div id="dep-fc-fid"></div>'
   +   '</div>'
   + '</div>'
 
@@ -4521,24 +4533,13 @@ function injecterEcrans(){
     +   '<div class="modal-title" style="margin-bottom:0;">Actions</div>'
     +   '<button onclick="closeModal(\'modal-dep-client-actions\')" style="background:none;border:none;font-size:22px;cursor:pointer;">&times;</button>'
     + '</div>'
-    + '<button type="button" class="dep-menu-item" onclick="depModifierContactActuel()">'
-    +   '<span class="dep-menu-ico">&#9999;&#65039;</span><span class="dep-menu-txt">Modifier</span></button>'
-    // v1.19.2 : point d'entrée unique — l'ancien bouton "Imprimer facture
-    // (QR code)" faisait doublon avec celui-ci (les deux ouvraient déjà le
-    // même écran), il est supprimé. Cet écran liste tous les envois du
-    // contact (en cours ET passés) ; chaque envoi a ensuite son propre
-    // bouton "Voir le départ" et "Facture".
-    + '<button type="button" class="dep-menu-item" onclick="depOuvrirHistoriqueContact()">'
-    +   '<span class="dep-menu-ico">&#129534;</span><span class="dep-menu-txt">Historique d&rsquo;envoi / Factures</span></button>'
-    // v2.20.0 : « programme de fidélité » — 10 € tous les 200 € envoyés.
-    // Ouvert à tout le monde comme Historique d'envoi, un seul client à
-    // la fois : ce n'est que la liste d'ensemble (carré Fidélité) qui est
-    // réservée à la direction/Bureau.
+    // Menu « ⋯ » (05/11/2026) : Modifier, Appeler, Historique sont maintenant sur la fiche elle-même ; « Bordereau (à venir) » retiré.
     + '<button type="button" class="dep-menu-item" onclick="depOuvrirFideliteContact()">'
-    +   '<span class="dep-menu-ico">&#127873;</span><span class="dep-menu-txt">Fid&eacute;lit&eacute;</span></button>'
-    + '<button type="button" class="dep-menu-item dep-menu-avenir" onclick="depActionAVenir(\'Bordereau d&#39;envoi\')">'
-    +   '<span class="dep-menu-ico">&#128203;</span><span class="dep-menu-txt">Bordereau d&rsquo;envoi'
-    +   '<span class="dep-menu-tag">&Agrave; venir</span></span></button>'
+    +   '<span class="dep-menu-ico">&#127873;</span><span class="dep-menu-txt">Fid&eacute;lit&eacute; (d&eacute;tail)</span></button>'
+    + '<button type="button" class="dep-menu-item" onclick="depOuvrirHistoriqueContact()">'
+    +   '<span class="dep-menu-ico">&#129534;</span><span class="dep-menu-txt">Historique d&eacute;taill&eacute; / Factures</span></button>'
+    + '<button type="button" class="dep-menu-item" style="color:#B3261E;" onclick="depSupprimerContactActuel()">'
+    +   '<span class="dep-menu-ico">&#128465;&#65039;</span><span class="dep-menu-txt">Supprimer ce client</span></button>'
     + '</div>';
   document.body.appendChild(m3);
 
@@ -14715,6 +14716,7 @@ var _depOrigOpenContactEdit = null;
 
 function _depLookupContact(contactKey){
   var c = window.dctContacts && window.dctContacts[contactKey];
+  if(!c && typeof getAllContacts === 'function'){ try{ c = getAllContacts().filter(function(x){ return x._key === contactKey; })[0]; }catch(e){} }
   if(!c){
     Object.values(window.clientsParCollecte || {}).forEach(function(cls){
       Object.values(cls || {}).forEach(function(client){
@@ -14730,6 +14732,7 @@ window.depOuvrirFicheContact = function(contactKey){
   var c = _depLookupContact(contactKey);
   if(!c){ if(typeof toast === 'function') toast('Contact introuvable.'); return; }
   _depFicheContactKey = contactKey;
+  var SVG = function(d, n){ return '<svg viewBox="0 0 24 24" width="'+(n||22)+'" height="'+(n||22)+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>'; };
 
   var col = ((typeof COLLABS !== 'undefined' ? COLLABS : []).find(function(co){ return co.name === c.by; })) || {bg:'#e0e0e0', color:'#555'};
   var av = $('dep-fc-av');
@@ -14740,20 +14743,72 @@ window.depOuvrirFicheContact = function(contactKey){
   var nom = c.name || ((c.prenom||'') + ' ' + (c.nom||'')).trim() || 'Client';
   var titre = $('dep-fc-titre'); if(titre) titre.textContent = nom;
   var nomH  = $('dep-fc-nom');   if(nomH)  nomH.textContent  = nom;
-  var tel = $('dep-fc-tel'); if(tel) tel.innerHTML = _depLienTel(c.tel, c.tel || '—');
 
-  var bt2 = $('dep-fc-bloc-tel2'), t2 = $('dep-fc-tel2');
-  if(c.tel2){ if(bt2) bt2.style.display=''; if(t2) t2.innerHTML = _depLienTel(c.tel2, c.tel2); }
-  else if(bt2) bt2.style.display = 'none';
+  var envois = [];
+  try{ envois = _depTousEnvoisContact(contactKey) || []; }catch(e){}
+  var sous = $('dep-fc-sous');
+  var ville = c.ville || '';
+  if(sous) sous.textContent = (ville ? ville + ' · ' : '') + (envois.length ? envois.length + ' envoi' + (envois.length > 1 ? 's' : '') : 'aucun envoi');
 
-  var adr = $('dep-fc-adresse'); if(adr) adr.textContent = c.adresse || '—';
+  // Trois gros boutons : appeler, WhatsApp, modifier
+  var num = String(c.tel || '').replace(/[^\d+]/g, '');
+  var wa = (typeof _telCmp === 'function') ? _telCmp(c.tel) : String(c.tel||'').replace(/\D/g,'');
+  var bt = $('dep-fc-actions');
+  if(bt) bt.innerHTML =
+      (num ? '<a class="fc-act" href="tel:'+esc(num)+'"><i style="background:#0E9F5B;color:#fff;">'+SVG('<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>', 24)+'</i>Appeler</a>'
+           : '<span class="fc-act off"><i style="background:#0E9F5B;color:#fff;">'+SVG('<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>', 24)+'</i>Appeler</span>')
+    + (wa ? '<a class="fc-act" href="https://wa.me/'+esc(wa)+'" target="_blank" rel="noopener"><i style="background:#25D366;color:#fff;">'+SVG('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', 24)+'</i>WhatsApp</a>'
+           : '<span class="fc-act off"><i style="background:#25D366;color:#fff;">'+SVG('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', 24)+'</i>WhatsApp</span>')
+    + '<button type="button" class="fc-act" onclick="depModifierContactActuel()"><i style="background:var(--white);border:1.5px solid var(--border);color:var(--text);">'+SVG('<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>', 22)+'</i>Modifier</button>';
 
-  var binf = $('dep-fc-bloc-infos'), inf = $('dep-fc-infos');
-  if(c.infos){ if(binf) binf.style.display=''; if(inf) inf.textContent = c.infos; }
-  else if(binf) binf.style.display = 'none';
+  // Coordonnées
+  var adr = [c.adresse, ((c.cp||'') + ' ' + (c.ville||'')).trim()].filter(Boolean).join(', ');
+  var co = '';
+  if(c.tel) co += '<div class="fc-ligne"><div class="fc-ico">'+SVG('<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>', 18)+'</div><div class="fc-t"><b>'+esc(c.tel)+'</b><span>T&eacute;l&eacute;phone</span></div></div>';
+  if(c.tel2) co += '<div class="fc-ligne"><div class="fc-ico">'+SVG('<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>', 18)+'</div><div class="fc-t"><b>'+esc(c.tel2)+'</b><span>Deuxi&egrave;me num&eacute;ro</span></div></div>';
+  if(adr) co += '<div class="fc-ligne"><div class="fc-ico">'+SVG('<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>', 18)+'</div><div class="fc-t"><b>'+esc(adr)+'</b><span>Adresse</span></div>'
+    + '<a class="fc-pil fc-ok" style="text-decoration:none;" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(adr)+'" target="_blank" rel="noopener">Itin&eacute;raire</a></div>';
+  if(c.infos) co += '<div class="fc-ligne"><div class="fc-ico">'+SVG('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>', 18)+'</div><div class="fc-t"><b>'+esc(c.infos)+'</b><span>Infos compl&eacute;mentaires</span></div></div>';
+  var bc = $('dep-fc-coord'); if(bc) bc.innerHTML = co;
 
-  var ville = $('dep-fc-ville');
-  if(ville) ville.textContent = ((c.cp||'') + ' ' + (c.ville||'')).trim() || '—';
+  // Ses envois, directement sur la page
+  var tt = $('dep-fc-envois-titre'), be = $('dep-fc-envois');
+  if(tt) tt.textContent = envois.length ? ('Ses envois · ' + envois.length) : '';
+  if(be){
+    be.innerHTML = envois.map(function(e){
+      var cl = e.c || {};
+      var d = cl.departId ? ((window.departsData||{})[cl.departId]) : null;
+      var pay = {total:0, reste:0};
+      try{ pay = depCalculerPaiementCombine(cl); }catch(x){ try{ pay = depCalculerPaiement(cl); }catch(y){} }
+      var origine;
+      if(e.depot) origine = 'Dépôt direct';
+      else if(e.france){
+        var rF = null; try{ rF = (typeof _frCollectes === 'function') ? (_frCollectes()[cl.collecteId] || null) : null; }catch(x){}
+        origine = rF ? ('France · ' + (rF.dateLib || rF.dateIso || '')) : 'France';
+      } else {
+        var colO = (window.collectes||[]).filter(function(x){ return x && x.id === e.collecteId; })[0];
+        origine = colO ? ('Collecte du ' + (colO.date||'')) : 'Collecte';
+      }
+      var titreE = d ? ((d.nom||'Départ') + (d.dateDepart ? ' · départ du ' + d.dateDepart.split('-').reverse().slice(0,2).join('/') : '')) : origine;
+      var etat = d ? (depStatutLabel(d) + ' · ' + origine) : 'pas encore rattaché à un départ';
+      var du = pay.reste > 0.009;
+      var onclick = e.france ? "depOuvrirFactureFrance('"+e.clientId+"')" : "depOuvrirFacture('"+(e.collecteId||'')+"','"+e.clientId+"',"+(e.depot?'true':'false')+",false,false,true)";
+      return '<div class="fc-ligne" style="cursor:pointer;" onclick="'+onclick+'"><div class="fc-ico">'+SVG('<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/>', 18)+'</div>'
+        + '<div class="fc-t"><b>'+esc(titreE)+'</b><span>'+esc(cl.colis||'—')+' · '+esc(etat)+'</span></div>'
+        + (cl.prixADefinir ? '<span class="fc-pil fc-du">prix &agrave; d&eacute;finir</span>' : (du ? '<span class="fc-pil fc-du">'+_depEuros(pay.reste)+' &euro; dus</span>' : '<span class="fc-pil fc-ok">Pay&eacute;</span>'))
+        + '</div>';
+    }).join('');
+  }
+
+  // Fidélité : une ligne, seulement s'il y a une remise à utiliser
+  var bf = $('dep-fc-fid'); if(bf) bf.innerHTML = '';
+  try{
+    var f = (typeof _depFideliteCalculer === 'function') ? _depFideliteCalculer(contactKey) : null;
+    if(f && f.disponibles && f.disponibles.length && bf){
+      var tot = f.disponibles.length * DEP_FIDELITE_MONTANT;
+      bf.innerHTML = '<div class="fc-fid" onclick="depOuvrirFideliteContact()"><div class="fc-ico" style="background:rgba(224,130,15,.18);color:#C26A00;">'+SVG('<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/>', 16)+'</div><div><b>Fid&eacute;lit&eacute;</b> &middot; '+tot+' &euro; de remise disponible</div></div>';
+    }
+  }catch(e){}
 
   goTo('s-client-fiche');
 };
@@ -14761,6 +14816,14 @@ window.depOuvrirFicheContact = function(contactKey){
 window.depOuvrirActionsContact = function(){
   if(!_depFicheContactKey) return;
   openModal('modal-dep-client-actions');
+};
+
+window.depSupprimerContactActuel = function(){
+  closeModal('modal-dep-client-actions');
+  var k = _depFicheContactKey; if(!k) return;
+  var champ = document.getElementById('ce-key'); if(champ) champ.value = k;
+  try{ var cc = _depLookupContact(k) || {}; var p1 = document.getElementById('ce-prenom'), n1 = document.getElementById('ce-nom'); if(p1) p1.value = cc.prenom || ''; if(n1) n1.value = cc.nom || ''; }catch(e){}
+  demanderSupprimerContact();
 };
 
 window.depModifierContactActuel = function(){
