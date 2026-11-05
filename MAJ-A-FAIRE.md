@@ -6458,3 +6458,7 @@ Non fait : surligner le client dans la collecte ouverte.
 > Cobey : « quand j'appuie sur modifier un client dans sa fiche, si j'annule ou j'enregistre une modif, il revient sur l'écran de la liste des clients et non dans la fiche du client en lui-même. »
 
 « Modifier » ne quitte plus la fiche : la fenêtre de modification s'ouvre par-dessus. Annuler → on reste sur la fiche. Enregistrer → la fiche est rouverte à jour (ville, adresse… ; si le numéro change, elle suit la nouvelle clé du carnet). Depuis la liste des clients, rien ne change. (`saveContactEdit` enveloppé dans departs.js.) Au passage : chevrons des lignes de collecte non retournés à l'ouverture d'un container ; libellé « 2 collectes · pas encore chargées » quand plusieurs envois n'ont pas de container.
+
+## 05/11/2026 — Container : boutons des cartes client qui débordent (v3.99.220)
+Cobey : « Remarquez que cette case-là, le texte ne rentre pas forcément dans la case sur mon PC et sur mon téléphone. »
+- V2 : le bouton principal (« Relancer le paiement »…) prend toute la largeur sur sa ligne (texte qui peut passer à la ligne), les petites icônes (Facture, Photos, Copier…) se partagent la ligne du dessous. Plus de texte coupé ni de bouton qui passe en dessous. Testé à 400 px : 79 clients, aucun débordement.
