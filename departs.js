@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.34';
+var DEP_VERSION = 'v2.22.35';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14717,7 +14717,7 @@ function _depLookupContact(contactKey){
   if(!c){
     Object.values(window.clientsParCollecte || {}).forEach(function(cls){
       Object.values(cls || {}).forEach(function(client){
-        var k = client.tel ? client.tel.replace(/ /g, '') : (client.prenom + '_' + client.nom).toLowerCase();
+        var k = _cleCarnet(client.tel, client.prenom, client.nom);
         if(k === contactKey) c = client;
       });
     });
@@ -15045,7 +15045,7 @@ window.depImporterClients = function(input){
           val[champ] = index[champ] >= 0 ? (l[index[champ]]||'').trim() : '';
         });
         if(!val.tel && !val.nom && !val.prenom) return;
-        var ckey = val.tel ? val.tel.replace(/ /g,'') : (val.prenom+'_'+val.nom).toLowerCase();
+        var ckey = _cleCarnet(val.tel, val.prenom, val.nom);
         if(!ckey) return;
         var nouveauxChamps = {
           civilite : val.civilite, prenom: val.prenom, nom: val.nom,
@@ -17022,9 +17022,9 @@ function _depSuggFiltrer(prefixe){
   var tel    = (($(ch.tel)||{}).value || '').trim();
   var contacts = (typeof getAllContacts === 'function') ? getAllContacts() : [];
   var liste;
-  if(tel.replace(/ /g,'').length >= 2){
-    var q = tel.toLowerCase().replace(/ /g,'');
-    liste = contacts.filter(function(c){ return (c.tel||'').replace(/ /g,'').indexOf(q) === 0; });
+  if(_telNet(tel).length >= 2){
+    var q = _telNet(tel.toLowerCase());
+    liste = contacts.filter(function(c){ return _telNet(c.tel).indexOf(q) === 0; });
   } else if(prenom && nom){
     var pLow = prenom.toLowerCase(), nLow = nom.toLowerCase();
     liste = contacts.filter(function(c){
@@ -18198,7 +18198,7 @@ function greffer(){
         Object.keys(cls).forEach(function(clientId){
           var c = cls[clientId];
           if(!c) return;
-          var k = c.tel ? c.tel.replace(/ /g,'') : (c.prenom+'_'+c.nom).toLowerCase();
+          var k = _cleCarnet(c.tel, c.prenom, c.nom);
           if(k === key){
             if(dispatchParCollecte[colId]){
               var asgn = dispatchParCollecte[colId].assigned;

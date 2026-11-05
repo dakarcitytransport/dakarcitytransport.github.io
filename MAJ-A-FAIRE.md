@@ -6413,3 +6413,12 @@ Abdoulaye a déjà mis sa propre photo : la photo d'office (v3.99.208) est retir
 > Cobey : « ajoute pour Issyaka » (photo : casquette noire, barbe, sourire).
 
 `photos-defaut/IS.jpg` (recadrée sur le visage, 192 px) + entrée `IS` dans `DEFAUT` (photos.js).
+
+### 05/11/2026 — Carnet clients : fin des doublons de numéro (dct-app v3.99.213, departs v2.22.35)
+> Cobey (capture : « M. Mamadou Loum » et « Mamadou Loum » en double) : « à la base c'était pas possible d'avoir le même client en doublon, c'était bloqué via son numéro. Tu peux vérifier ? » — « ok » aux 3 propositions.
+
+Cause : la clé d'une fiche du carnet (`dct/contacts/<clé>`) = numéro sans espaces ; mais seuls les espaces ordinaires étaient retirés. Un numéro copié depuis les contacts iPhone contient des espaces insécables et des marques invisibles (U+202A/U+202C) → « +33 7 73… » ≠ « +33773… » → deuxième fiche (cas typique : inscription France & Europe par Issyaka après une fiche d'Eric). 11 clés sur 41 en contenaient ; 2 vrais doublons (Mamadou Loum, Masamba Mbaye).
+1. `_telNet` (nettoyage) et `_telCmp` (chiffres seulement, 0773… = +33773…) ; `_cleCarnet` réutilise la clé d'une fiche qui a déjà ce numéro. Tous les endroits qui fabriquaient une clé ou comparaient des numéros (dct-app.html, departs.js : inscription, modification de fiche, France, import CSV, suppression, recherche) passent par là.
+2. Nettoyage une seule fois, lancé par Eric à sa première connexion (marqueur `dct_config/nettoyage_carnet_v1`, ~9 s après la connexion) : fusion des fiches de même numéro (la plus complète sert de base, les autres comblent ses trous ; l'ancienne va à la corbeille 30 jours, type « contact ») et clés remises à plat. Une ligne dans l'Activité (Eric seul n'est PAS appliqué : visible par ceux qui ont Client) et un message à l'écran.
+3. Testé avec la copie réelle des 41 contacts : 41 → 39 fiches, 0 clé spéciale, Loum et Mbaye fusionnés (fiche d'Eric gardée), 2e passage sans effet, base de test identique à la mémoire.
+Non traité : doublons éventuels côté fiches France (`france/clients`) ou clients d'une collecte — seul le carnet l'était. Ne touche pas aux fiches de clients des collectes.
