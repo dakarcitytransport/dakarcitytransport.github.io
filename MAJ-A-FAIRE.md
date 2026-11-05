@@ -6302,3 +6302,8 @@ Après le choix de la photo, un écran « Cadre ta photo » : on déplace la pho
 - Les lignes « untel s'est connecté » (dct_connexions) sont visibles de tous ceux qui ont l'Activité ; « Effacer » vide les connexions pour soi seulement (`dct_config/activite_deleted/<ID>_connexions`). La connexion d'Eric lui-même n'est toujours pas enregistrée.
 - Samba, Ibrahima, Boubacar : toujours pas d'Activité.
 - Testé : l'admin écrit dans le fil ; sur 4 lignes (dépense, départ, planning, connexion) Eric voit 4, Aminata 3 (pas la dépense), Samba 2.
+
+### 05/11/2026 — Activité : la connexion d'Eric apparaît aussi (dct-app v3.99.192)
+> Cobey : « Oui, ma connexion peut être affichée dans le fil. »
+
+La connexion de l'admin est maintenant enregistrée (`dct_connexions`) comme celle des autres et affichée dans le fil (« Eric s'est connecté(e) »). Sa propre pastille ne la compte pas. Testé : après connexion, 1 entrée « Eric / AD » et la ligne s'affiche.
