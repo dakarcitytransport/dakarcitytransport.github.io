@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.26';
+var DEP_VERSION = 'v2.22.27';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3705,6 +3705,12 @@ function injecterEcrans(){
   +     'table.fac-hist td{padding:7px 9px;border-bottom:1px solid #f2f2f2;color:#333;white-space:nowrap;}'
   +     '.fac-footer{background:#006b2d;color:#fff;text-align:center;font-size:10.5px;padding:12px;line-height:1.6;}'
   +     '.fac-actions{margin-top:16px;display:flex;flex-direction:column;gap:8px;}'
+  // 05/11/2026 — Cobey : « les boutons sont tout en bas après les conditions générales, pour revenir en arrière ou imprimer
+  // il faut descendre tout en bas » : barre d'actions collée en bas de l'écran + bouton Retour collé en haut (facture de l'appli).
+  +     '.fac-topbar{position:sticky;top:0;z-index:6;display:flex;align-items:center;min-height:54px;background:#e8e8e8;padding:6px 0;margin-bottom:6px;}'
+  +     '.fac-btn-retour2{background:#fff;border:none;border-radius:99px;padding:10px 18px;font-size:14px;font-weight:700;color:#222;font-family:var(--font);box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer;}'
+  +     '.fac-actions-pub{position:sticky;bottom:0;z-index:6;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;padding:16px 0 max(12px,env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(232,232,232,0),#e8e8e8 30%);}'
+  +     '.fac-actions-pub .fac-btn-print{grid-column:1/-1;}'
   +     '.fac-btn{padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);border:none;}'
   +     '.fac-btn-print{background:#006b2d;color:#fff;}'
   +     '.fac-btn-whatsapp{background:#25D366;color:#fff;}'
@@ -10466,14 +10472,15 @@ function depRenderFacturePublique(c, ctx, cbApresQR){
   // seul "Imprimer / PDF" reste — pas de retour vers l'appli, pas de
   // renvoi WhatsApp depuis cette page-là.
   var connecte = _depConnecte;
-  h += '<div class="fac-actions no-print">'
+  h += '<div class="fac-actions fac-actions-pub no-print">'
     +    '<button type="button" class="fac-btn fac-btn-print" onclick="depExporterFacturePDF()">&#128424;&#65039; Imprimer / PDF</button>'
     +    (connecte ? '<button type="button" class="fac-btn fac-btn-whatsapp" onclick="depPartagerWhatsapp()">&#128172; Envoyer par WhatsApp</button>' : '')
     // v1.19.27 : copier le texte du message — certains clients n'ont pas
     // WhatsApp (retour de Cobey du 22/08/2026).
     +    (connecte ? '<button type="button" class="fac-btn fac-btn-copier" onclick="depCopierMessageWhatsapp()">&#128203; Copier le message</button>' : '')
-    +    (connecte ? '<button type="button" class="fac-btn fac-btn-retour" onclick="depRetourFacturePublique()">&larr; Retour</button>' : '')
     +  '</div>';
+  // Retour collé en haut (il était tout en bas, après les conditions générales).
+  if(connecte) h = '<div class="fac-topbar no-print"><button type="button" class="fac-btn-retour2" onclick="depRetourFacturePublique()">&larr; Retour</button></div>' + h;
 
   var box = $('pub-contenu');
   if(box) box.innerHTML = h;

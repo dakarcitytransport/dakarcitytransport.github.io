@@ -6245,3 +6245,9 @@ Départs : cargo (Lucide « ship »). Mamadou Niass : colis avec coche (Lucide �
 > Cobey : « dans les notifications de l'activité, quand quelqu'un se connecte, sa notification est entourée d'un fond, alors que pas les autres. C'est pas trop beau au final. »
 
 Les lignes de connexion (visibles par Eric) n'ont plus de fond ni de trait bleu : elles ressemblent aux autres lignes. V1 et V2. Barre du bas : inchangée (essai de retrait annulé à la demande de Cobey).
+
+### 05/11/2026 — Facture : boutons toujours visibles + fin de la boucle « Facture ↔ PDF » (dct-app v3.99.182, departs v2.22.27)
+> Cobey : « quand on consulte une facture, les boutons sont tout en bas après les conditions générales [...] pas trop pratique » — « ok, parfait » ; « je appuie sur PDF, ça ouvre la facture en PDF, je descends pour appuyer retour, et quand j'appuie sur le bouton facture en haut à gauche, ça me renvoie la facture en PDF. J'arrive pas à revenir sur l'application. Peux-tu vérifier ? »
+
+1. Facture (écran `s-facture-publique`) : « Retour » collé en haut (pastille) ; « Imprimer / PDF », « Envoyer par WhatsApp » et « Copier le message » collés en bas de l'écran. Ils n'ont plus besoin du défilement jusqu'aux conditions générales.
+2. Bug de navigation (introduit par « Retour = écran d'avant », v3.99.13x) : la pile était Facture → Facture PDF → Documents ; « ← Facture » sur Documents reculait d'un cran (retour à la Facture PDF), en boucle. `goTo` : si le bouton vise un écran présent plus bas dans la pile, on y va directement et on vide la pile jusque-là. Testé en rejouant ce parcours : Retour → Documents, « ← Facture » → Facture.
