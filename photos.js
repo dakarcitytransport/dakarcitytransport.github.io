@@ -47,7 +47,7 @@
     var h = '';
     Object.keys(photos).forEach(function(id){
       if(!/^[A-Za-z0-9_-]+$/.test(id) || typeof photos[id] !== 'string' || photos[id].indexOf('data:image/') !== 0) return;
-      h += '[data-ph="' + id + '"][data-ph][data-ph][data-ph]{background-image:url("' + photos[id] + '") !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;background-color:transparent !important;color:transparent !important;border-radius:50% !important;}';
+      h += '[data-ph="' + id + '"][data-ph][data-ph][data-ph]{background-image:url("' + photos[id] + '") !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;background-origin:border-box !important;background-clip:border-box !important;background-color:transparent !important;color:transparent !important;border-radius:50% !important;}';
     });
     return h;
   }

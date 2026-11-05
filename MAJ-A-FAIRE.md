@@ -6325,3 +6325,8 @@ Non audité en profondeur : mamadou.html et chauffeur.html (une trace chacun via
 > Cobey (capture à l'appui) : « ma photo dans la notification n'a pas l'air d'être arrondie, on dirait un octogone ».
 
 Forme non reproduite en test (rayon 50 % bien appliqué sur ordinateur) ; durcissements : `border-radius:50% !important` sur toutes les photos de profil ; cadrage (`photos.js`) : la photo est lue avec son orientation (`createImageBitmap … from-image`, sinon `Image`) au lieu de `naturalWidth/Height` seuls (les photos d'iPhone portent une rotation dans le fichier : le rectangle découpé pouvait sortir de l'image et laisser des bandes noires) ; fond blanc sous l'image ; plus de bords noirs possibles. Les photos déjà enregistrées ne sont pas modifiées : à remettre si le défaut persiste.
+
+### 05/11/2026 — Photos de profil : vraie cause de « l'octogone » (dct-app v3.99.196)
+> Cobey (2e capture) : la photo dans l'Activité garde des bords plats.
+
+Cause trouvée en rendant le rond à fort grossissement : le rond de l'Activité a une bordure de 1,5 px (presque transparente) ; l'image de fond (`no-repeat`) ne couvrait que l'intérieur de la bordure (carré de 35 px) alors que le rond s'étend sur 38 px → l'image carrée coupait le rond (flancs plats, coins arrondis = « octogone »). Correctif : `background-origin` et `background-clip` en `border-box` pour toutes les photos. Les photos enregistrées n'ont pas à être remises (le défaut n'était que dans l'affichage ; le correctif de v3.99.195 sur l'orientation reste utile pour les nouvelles).
