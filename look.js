@@ -124,6 +124,56 @@
     window._ouvrirModalPinCollab = function(collab){ teinterPin(collab); return orig.apply(this, arguments); };
   })();
 
+  /* ---------- cartes de menu en verre (Départs, Stockage, Archivage, liste des départs, Statistiques) ----------
+     Cobey : « cette interface-là fait trop ancienne version ». Les cartes `.dep-card` de ces écrans passent en verre
+     teinté (couleur = celle de l'ancienne barre latérale), avec une tuile d'icône et une flèche. V2 seulement. */
+  var CV_ZONES = ['dep-departs-pays-content','dep-stockage-content','dep-archive-content','dep-liste','dep-stats-content'];
+  var CV_SVG = {
+    '🏢':'<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/>',
+    '📦':'<path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/>',
+    '📋':'<rect x="1.5" y="4" width="14" height="11.5" rx="2"/><path d="M15.5 8.5h3.6a2 2 0 0 1 1.6.8l1.8 2.4a2 2 0 0 1 .4 1.2V15a1.5 1.5 0 0 1-1.5 1.5h-5.9"/><circle cx="6" cy="18" r="2.2"/><circle cx="17.5" cy="18" r="2.2"/>',
+    '📁':'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>'
+  };
+  var RE_EMOJI = /^((?:[\uD83C][\uDDE6-\uDDFF]){2}|[\uD83C-\uD83E][\uDC00-\uDFFF]️?|[☀-➿]️?)\s*/;
+  function carteVerre(card){
+    if(card.getAttribute('data-cv')) return;
+    card.setAttribute('data-cv', '1');
+    var col = card.style.borderLeftColor;
+    if(col) card.style.setProperty('--pc', col);
+    card.classList.add('lk-cv');
+    var nom = card.querySelector('.dep-nom');
+    if(nom && nom.childNodes.length && nom.firstChild.nodeType === 3){
+      var m = RE_EMOJI.exec(nom.firstChild.nodeValue);
+      if(m){
+        var em = m[1];
+        nom.firstChild.nodeValue = nom.firstChild.nodeValue.slice(m[0].length);
+        var t = document.createElement('span'); t.className = 'lk-ct';
+        if(CV_SVG[em]) t.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + CV_SVG[em] + '</svg>';
+        else { t.textContent = em; t.classList.add('lk-em'); }
+        var top = card.querySelector('.dep-card-top');
+        if(top) top.insertBefore(t, top.firstChild);
+        card.classList.add('lk-cv-t');
+      }
+    }
+    if(!card.querySelector('.dep-badge')) card.classList.add('lk-cv-ch');
+  }
+  function cartesVerre(){
+    if(effectif() !== 'v2') return;
+    CV_ZONES.forEach(function(id){
+      var z = document.getElementById(id); if(!z) return;
+      [].forEach.call(z.querySelectorAll('.dep-card'), carteVerre);
+    });
+  }
+  var obsCV = null;
+  function surveillerCartes(){
+    if(obsCV || !window.MutationObserver) return;
+    var ok = false, en = false;
+    obsCV = new MutationObserver(function(){ if(en) return; en = true; try{ cartesVerre(); }catch(e){} en = false; });
+    CV_ZONES.forEach(function(id){ var z = document.getElementById(id); if(z){ obsCV.observe(z, { childList:true }); ok = true; } });
+    if(!ok){ obsCV = null; return; }
+    cartesVerre();
+  }
+
   /* ---------- appliquer ---------- */
   function appliquer(){
     var h = document.documentElement;
@@ -132,6 +182,7 @@
     h.setAttribute('data-mode', mode());
     try{ barreHaut(); }catch(e){}
     try{ surveillerProfils(); }catch(e){}
+    try{ surveillerCartes(); cartesVerre(); }catch(e){}
     boutonTheme();
     carteDepart();
     try{ barreRecherche(); }catch(e){}
@@ -226,7 +277,7 @@
   }
   if(typeof window.goTo === 'function'){
     var origGoTo = window.goTo;
-    window.goTo = function(){ var r = origGoTo.apply(this, arguments); try{ majDock(); }catch(e){} try{ barreHaut(); }catch(e){} return r; };
+    window.goTo = function(){ var r = origGoTo.apply(this, arguments); try{ majDock(); }catch(e){} try{ barreHaut(); }catch(e){} try{ surveillerCartes(); cartesVerre(); }catch(e){} return r; };
   }
 
 

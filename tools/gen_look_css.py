@@ -188,6 +188,32 @@ html.look-v2 .login-name{font-size:17px;font-weight:800;letter-spacing:-.01em;co
 html.look-v2 .login-role{color:var(--text3)}
 html.look-v2 .login-card > svg:last-child{stroke:var(--text3) !important}
 
+
+/* ── cartes de menu en verre : Départs, Stockage, Archivage, liste des départs, Statistiques ── */
+.lk-pp,.lk-pn{display:none}
+html.look-v2 .lk-cv{position:relative;background-color:var(--lk-glass) !important;background-image:linear-gradient(135deg,color-mix(in srgb,var(--pc,#888) 34%,transparent),color-mix(in srgb,var(--pc,#888) 8%,transparent) 70%,color-mix(in srgb,var(--pc,#888) 18%,transparent)) !important;border:1px solid color-mix(in srgb,var(--pc,#888) 55%,#fff) !important;border-left-width:1px !important;border-radius:26px !important;padding:16px 18px !important;margin-bottom:12px !important;box-shadow:var(--shadow) !important;backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 .lk-cv .dep-card-top{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+html.look-v2 .lk-cv .dep-nom{font-size:19px !important;font-weight:800;letter-spacing:-.02em;color:var(--text) !important;flex:1}
+html.look-v2 .lk-cv .dep-meta{font-size:13px;color:var(--text3);font-weight:600}
+html.look-v2 .lk-cv .dep-badge{border:1px solid rgba(255,255,255,.8);font-weight:800}
+html.look-v2 .lk-ct{width:50px;height:50px;border-radius:16px;flex:none;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,var(--pc,#888),color-mix(in srgb,var(--pc,#888) 60%,transparent));border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 14px rgba(0,0,0,.16)}
+html.look-v2 .lk-ct svg{width:27px;height:27px;fill:rgba(255,255,255,.3);stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 5px rgba(255,255,255,.5))}
+html.look-v2 .lk-ct.lk-em{background:rgba(255,255,255,.72);font-size:28px;line-height:1}
+html.look-v2 .lk-cv-ch .dep-card-top{padding-right:40px}
+html.look-v2 .lk-cv-ch::after{content:'';position:absolute;right:16px;top:30px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.7) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310241a' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18l6-6-6-6'/%3E%3C/svg%3E") center/15px no-repeat}
+html.look-v2 .lk-cv:has(.lk-pp) .dep-meta{display:none}
+html.look-v2 .lk-cv .lk-pp{display:flex;gap:10px;margin-top:12px}
+html.look-v2 .lk-cv .lk-pp > div{flex:1;border-radius:18px;padding:10px 12px;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.9)}
+html.look-v2 .lk-cv .lk-pp b{display:block;font-size:30px;letter-spacing:-.03em;line-height:1;color:var(--text)}
+html.look-v2 .lk-cv .lk-pp > div:first-child b{color:var(--green-dark,#0a7a45)}
+html.look-v2 .lk-cv .lk-pp > div:last-child b{color:#b45f06}
+html.look-v2 .lk-cv .lk-pp > div.z b{color:#9aa39e}
+html.look-v2 #dep-departs-pays-content .lk-cv:nth-child(1){--pc:#2e8f6a !important}
+html.look-v2 #dep-departs-pays-content .lk-cv:nth-child(2){--pc:#e0a020 !important}
+html.look-v2 .lk-cv .lk-pp span{font-size:11.5px;font-weight:800;letter-spacing:.04em;color:var(--text2)}
+html.look-v2 .lk-cv .lk-pn{display:flex;justify-content:space-between;gap:10px;margin-top:12px;padding-top:11px;border-top:1px dashed rgba(0,0,0,.14);font-size:13px;color:var(--text2)}
+html.look-v2 .lk-cv .lk-pn b{color:var(--text)}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

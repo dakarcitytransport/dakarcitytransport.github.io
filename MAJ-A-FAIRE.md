@@ -6517,3 +6517,10 @@ Le détourage était un cercle un peu trop grand (le logo est légèrement ovale
 - Accueil (18 cases) : tuile colorée par teinte (vert, orange, violet, rouge, bleu) + icône blanche duotone (trait 2, remplissage translucide, lueur). Même dessins qu'avant, nouveau style.
 - Barre du bas : bouton actif en dégradé vert, icônes à remplissage translucide.
 - Générateur : `uri_duo`, `COUL`, `LOGIN_ICO` dans tools/gen_look_css.py. V1 inchangée. Les emojis des listes/boutons ne changent pas. Reste possible : redessiner les formes des 18 icônes d'accueil.
+
+### 05/11/2026 — Nouveau look, vague 1 : cartes de menu en verre (v3.99.232, departs.js v2.22.41)
+> Cobey : « cette interface-là fait trop ancienne version » → aperçu → « on peut faire ça pour tout ce qu'on a trouvé » → « ok vas-y » (en 3 vagues).
+Vague 1 (V2 seulement) : Départs (choix du pays : tuile drapeau, chiffres « ouvert / en cours » en pastilles, prochain départ), Stockage, Archivage, liste des départs d'un pays, Statistiques (choix de l'année).
+- look.js `cartesVerre()` : les `.dep-card` de ces zones passent en verre teinté (couleur de l'ancienne barre latérale), tuile d'icône (emoji → icône duotone), flèche ; observe les zones `dep-departs-pays-content`, `dep-stockage-content`, `dep-archive-content`, `dep-liste`, `dep-stats-content`.
+- departs.js : la carte pays ajoute `.lk-pp` / `.lk-pn` (cachés en V1). V1 inchangée (74/74).
+- À venir : vague 2 (Réglages, Administration, Rapport financier), vague 3 (Collecte, Planning, Fidélité, Dépôt Dakar, Devis, Facture manuelle).

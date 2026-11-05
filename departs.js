@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.40';
+var DEP_VERSION = 'v2.22.41';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -6079,7 +6079,9 @@ function depRenderDepartsPaysChoix(){
   ['SN','ML'].forEach(function(code){
     var p = DEP_PAYS_DEST[code];
     var total = tousLesDeparts(code).filter(function(d){ return d.statut !== 'cloture'; }).length;
-    var ouverts = departsDisponibles(code).length;
+    var _dispo = departsDisponibles(code);
+    var ouverts = _dispo.length;
+    var suivant = _dispo[0] || null;
     var sousTitre = total === 0
       ? 'Aucun d&eacute;part en cours'
       : ouverts + ' ouvert' + (ouverts>1?'s':'') + ' &middot; ' + total + ' en cours';
@@ -6088,6 +6090,10 @@ function depRenderDepartsPaysChoix(){
       +     '<div class="dep-nom">'+p.drapeau+' '+p.nom+'</div>'
       +   '</div>'
       +   '<div class="dep-meta"><span>'+sousTitre+'</span></div>'
+      +   (total ? ('<div class="lk-pp"><div'+(ouverts?'':' class="z"')+'><b>'+ouverts+'</b><span>OUVERT'+(ouverts>1?'S':'')+'</span></div><div><b>'+total+'</b><span>EN COURS</span></div></div>')
+                 : '')
+      +   (suivant ? ('<div class="lk-pn"><span>'+esc(suivant.nom||'')+'</span><b>D&eacute;part pr&eacute;vu '+dateFr(suivant.dateDepart)+'</b></div>')
+                   : '<div class="lk-pn"><span>Aucun d&eacute;part ouvert</span><b>&mdash;</b></div>')
       + '</div>';
   });
   // v2.20.40 — Cobey, le 09/10/2026 : « comme ça dans la case Départ on
