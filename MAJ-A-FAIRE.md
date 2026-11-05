@@ -6294,3 +6294,11 @@ Cause : la v3.99.188 recopiait la photo (18 Ko) dans le style de chaque ligne de
 > Cobey : « j'ai mis une photo de profil mais elle n'est pas bien cadrée, c'est possible que je puisse bien la cadrer dans le rond ? »
 
 Après le choix de la photo, un écran « Cadre ta photo » : on déplace la photo avec le doigt, on zoome au pincement ou au curseur (jusqu'à ×4), puis « Valider » (ou « Annuler », la photo actuelle reste). Résultat : carré 192 px, JPEG, comme avant. Pour re-cadrer une photo déjà posée, il faut la rechoisir (l'original n'est pas gardé, seulement la version réduite). Testé : glisser, zoomer, valider, annuler (souris ; le tactile utilise les mêmes évènements « pointer »).
+
+### 05/11/2026 — Activité / notifications : actions de l'admin visibles + filtre par case (dct-app v3.99.191)
+> Cobey : « rends visibles mes actions pour tout le monde (ceux qui ont les notifications) » ; « les notifications s'affichent pour ceux qui ont les outils concernés : le rapport financier, uniquement ceux qui ont cette case [...] cette logique s'applique à toutes les cases » ; lignes non reconnues : direction seulement « ok » ; connexions : « tout ceux qui ont activité » ; annonces (case Notification) : « que à moi » (compris : rien ne change, la case reste réservée à la direction, envoi à toute l'équipe).
+
+- `addActivity` n'ignore plus l'admin ; chaque ligne reçoit sa/ses cases (`cle`, ex. `departs,collecte`) ; les anciennes lignes sont classées d'après leur texte (`_activiteCases`, 150/150 reconnues sur l'historique réel). Une ligne n'est vue que par ceux qui ont l'une de ces cases (`_depPeutCase`). Non reconnue → direction seulement. La pastille (nombre de nouveautés) suit le même filtre.
+- Les lignes « untel s'est connecté » (dct_connexions) sont visibles de tous ceux qui ont l'Activité ; « Effacer » vide les connexions pour soi seulement (`dct_config/activite_deleted/<ID>_connexions`). La connexion d'Eric lui-même n'est toujours pas enregistrée.
+- Samba, Ibrahima, Boubacar : toujours pas d'Activité.
+- Testé : l'admin écrit dans le fil ; sur 4 lignes (dépense, départ, planning, connexion) Eric voit 4, Aminata 3 (pas la dépense), Samba 2.
