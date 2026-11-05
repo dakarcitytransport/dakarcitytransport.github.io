@@ -6240,3 +6240,8 @@ La case de l'accueil affiche « Bilan, statistiques, containers » au lieu du b�
 > Cobey : « l'icône de Mamadou Niass ne correspond pas à lui, on a mis un camion, mais c'est l'opérateur qui donne les colis aux clients à Dakar » ; « même l'icône de départ, c'est un colis, alors que le départ concerne les conteneurs » — « Choix A ».
 
 Départs : cargo (Lucide « ship »). Mamadou Niass : colis avec coche (Lucide « package-check »). Collecte garde le camion. Dans `tools/gen_look_css.py`, une icône peut maintenant avoir plusieurs tracés. V2 seulement (V1 garde ses emojis).
+
+### 05/11/2026 — Activité : la ligne « s'est connecté » n'a plus de fond (dct-app v3.99.181)
+> Cobey : « dans les notifications de l'activité, quand quelqu'un se connecte, sa notification est entourée d'un fond, alors que pas les autres. C'est pas trop beau au final. »
+
+Les lignes de connexion (visibles par Eric) n'ont plus de fond ni de trait bleu : elles ressemblent aux autres lignes. V1 et V2. Barre du bas : inchangée (essai de retrait annulé à la demande de Cobey).

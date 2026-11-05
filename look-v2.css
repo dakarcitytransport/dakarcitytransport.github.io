@@ -128,7 +128,6 @@ html.look-v2 .dep-photo-box{background:var(--lk-field);border-radius:20px}
 html.look-v2 .dep-badge{border-radius:99px}
 html.look-v2 body .dep-case[style]{background:var(--lk-glass) !important}
 html.look-v2 body .dep-case .dep-case-tit[style],html.look-v2 body .dep-case .dep-case-tit [style]{color:var(--text) !important}
-html.look-v2 .connexion-item{background:var(--lk-b) !important;border-left-color:var(--lk-tb) !important;border-radius:14px;padding:11px 12px !important}
 html.look-v2 #dep-fm-suivi-container{background:var(--lk-v) !important;border:1px solid transparent !important;border-radius:20px !important}
 html.look-v2 #s-departs button[onclick="depNouveau()"]{position:fixed;right:max(20px,calc(50% - 195px));bottom:max(24px,calc(env(safe-area-inset-bottom) + 12px));width:auto;height:56px;margin:0 !important;padding:0 22px;border-radius:99px;z-index:50;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;background:var(--green);color:var(--lk-on-g,#fff);border:0;box-shadow:0 12px 28px rgba(14,159,91,.4)}
 html.look-v2 #s-departs .content{padding-bottom:110px}
@@ -357,7 +356,6 @@ html.look-v2[data-mode="auto"] [style*="background:#f0e2a0" i],html.look-v2[data
 html.look-v2[data-mode="auto"] [style*="background:#f0eafb" i],html.look-v2[data-mode="auto"] [style*="background: #f0eafb" i]{background:#434848 !important}
 html.look-v2[data-mode="auto"] [style*="background:#f0f0f0" i],html.look-v2[data-mode="auto"] [style*="background: #f0f0f0" i],html.look-v2[data-mode="auto"] [style*="background: rgb(240, 240, 240)" i],html.look-v2[data-mode="auto"] [style*="background:rgb(240, 240, 240)" i]{background:#434946 !important}
 html.look-v2[data-mode="auto"] [style*="background:#f0f0f2" i],html.look-v2[data-mode="auto"] [style*="background: #f0f0f2" i],html.look-v2[data-mode="auto"] [style*="background: rgb(240, 240, 242)" i],html.look-v2[data-mode="auto"] [style*="background:rgb(240, 240, 242)" i]{background:#434946 !important}
-html.look-v2[data-mode="auto"] [style*="background:#f0f4ff" i],html.look-v2[data-mode="auto"] [style*="background: #f0f4ff" i],html.look-v2[data-mode="auto"] [style*="background: rgb(240, 244, 255)" i],html.look-v2[data-mode="auto"] [style*="background:rgb(240, 244, 255)" i]{background:#434A49 !important}
 html.look-v2[data-mode="auto"] [style*="background:#f0fff4" i],html.look-v2[data-mode="auto"] [style*="background: #f0fff4" i],html.look-v2[data-mode="auto"] [style*="background: rgb(240, 255, 244)" i],html.look-v2[data-mode="auto"] [style*="background:rgb(240, 255, 244)" i]{background:#16211B !important}
 html.look-v2[data-mode="auto"] [style*="background:#f0fff8" i],html.look-v2[data-mode="auto"] [style*="background: #f0fff8" i],html.look-v2[data-mode="auto"] [style*="background: rgb(240, 255, 248)" i],html.look-v2[data-mode="auto"] [style*="background:rgb(240, 255, 248)" i]{background:#16211B !important}
 html.look-v2[data-mode="auto"] [style*="background:#f1f2f4" i],html.look-v2[data-mode="auto"] [style*="background: #f1f2f4" i],html.look-v2[data-mode="auto"] [style*="background: rgb(241, 242, 244)" i],html.look-v2[data-mode="auto"] [style*="background:rgb(241, 242, 244)" i]{background:#434A47 !important}
@@ -533,7 +531,6 @@ html.look-v2[data-mode="auto"] [style*="solid #f0e2a0" i]{border-color:rgba(237,
 html.look-v2[data-mode="auto"] [style*="solid #f0eafb" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="auto"] [style*="solid #f0f0f0" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="auto"] [style*="solid #f0f0f2" i]{border-color:rgba(237,246,241,.16) !important}
-html.look-v2[data-mode="auto"] [style*="solid #f0f4ff" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="auto"] [style*="solid #f0fff4" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="auto"] [style*="solid #f0fff8" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="auto"] [style*="solid #f1f2f4" i]{border-color:rgba(237,246,241,.16) !important}
@@ -1084,7 +1081,6 @@ html.look-v2[data-mode="dark"] [style*="background:#f0e2a0" i],html.look-v2[data
 html.look-v2[data-mode="dark"] [style*="background:#f0eafb" i],html.look-v2[data-mode="dark"] [style*="background: #f0eafb" i]{background:#434848 !important}
 html.look-v2[data-mode="dark"] [style*="background:#f0f0f0" i],html.look-v2[data-mode="dark"] [style*="background: #f0f0f0" i],html.look-v2[data-mode="dark"] [style*="background: rgb(240, 240, 240)" i],html.look-v2[data-mode="dark"] [style*="background:rgb(240, 240, 240)" i]{background:#434946 !important}
 html.look-v2[data-mode="dark"] [style*="background:#f0f0f2" i],html.look-v2[data-mode="dark"] [style*="background: #f0f0f2" i],html.look-v2[data-mode="dark"] [style*="background: rgb(240, 240, 242)" i],html.look-v2[data-mode="dark"] [style*="background:rgb(240, 240, 242)" i]{background:#434946 !important}
-html.look-v2[data-mode="dark"] [style*="background:#f0f4ff" i],html.look-v2[data-mode="dark"] [style*="background: #f0f4ff" i],html.look-v2[data-mode="dark"] [style*="background: rgb(240, 244, 255)" i],html.look-v2[data-mode="dark"] [style*="background:rgb(240, 244, 255)" i]{background:#434A49 !important}
 html.look-v2[data-mode="dark"] [style*="background:#f0fff4" i],html.look-v2[data-mode="dark"] [style*="background: #f0fff4" i],html.look-v2[data-mode="dark"] [style*="background: rgb(240, 255, 244)" i],html.look-v2[data-mode="dark"] [style*="background:rgb(240, 255, 244)" i]{background:#16211B !important}
 html.look-v2[data-mode="dark"] [style*="background:#f0fff8" i],html.look-v2[data-mode="dark"] [style*="background: #f0fff8" i],html.look-v2[data-mode="dark"] [style*="background: rgb(240, 255, 248)" i],html.look-v2[data-mode="dark"] [style*="background:rgb(240, 255, 248)" i]{background:#16211B !important}
 html.look-v2[data-mode="dark"] [style*="background:#f1f2f4" i],html.look-v2[data-mode="dark"] [style*="background: #f1f2f4" i],html.look-v2[data-mode="dark"] [style*="background: rgb(241, 242, 244)" i],html.look-v2[data-mode="dark"] [style*="background:rgb(241, 242, 244)" i]{background:#434A47 !important}
@@ -1260,7 +1256,6 @@ html.look-v2[data-mode="dark"] [style*="solid #f0e2a0" i]{border-color:rgba(237,
 html.look-v2[data-mode="dark"] [style*="solid #f0eafb" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="dark"] [style*="solid #f0f0f0" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="dark"] [style*="solid #f0f0f2" i]{border-color:rgba(237,246,241,.16) !important}
-html.look-v2[data-mode="dark"] [style*="solid #f0f4ff" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="dark"] [style*="solid #f0fff4" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="dark"] [style*="solid #f0fff8" i]{border-color:rgba(237,246,241,.16) !important}
 html.look-v2[data-mode="dark"] [style*="solid #f1f2f4" i]{border-color:rgba(237,246,241,.16) !important}

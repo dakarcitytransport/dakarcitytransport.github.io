@@ -170,7 +170,6 @@ html.look-v2 .dep-photo-box{background:var(--lk-field);border-radius:20px}
 html.look-v2 .dep-badge{border-radius:99px}
 html.look-v2 body .dep-case[style]{background:var(--lk-glass) !important}
 html.look-v2 body .dep-case .dep-case-tit[style],html.look-v2 body .dep-case .dep-case-tit [style]{color:var(--text) !important}
-html.look-v2 .connexion-item{background:var(--lk-b) !important;border-left-color:var(--lk-tb) !important;border-radius:14px;padding:11px 12px !important}
 html.look-v2 #dep-fm-suivi-container{background:var(--lk-v) !important;border:1px solid transparent !important;border-radius:20px !important}
 html.look-v2 #s-departs button[onclick="depNouveau()"]{position:fixed;right:max(20px,calc(50% - 195px));bottom:max(24px,calc(env(safe-area-inset-bottom) + 12px));width:auto;height:56px;margin:0 !important;padding:0 22px;border-radius:99px;z-index:50;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;background:var(--green);color:var(--lk-on-g,#fff);border:0;box-shadow:0 12px 28px rgba(14,159,91,.4)}
 html.look-v2 #s-departs .content{padding-bottom:110px}
