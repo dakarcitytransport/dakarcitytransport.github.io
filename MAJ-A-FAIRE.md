@@ -6408,3 +6408,8 @@ Abdoulaye a déjà mis sa propre photo : la photo d'office (v3.99.208) est retir
 > Cobey : « photo 1 pour Boubacar, photo 2 pour Samba, photo 3 Aminata. »
 
 `photos-defaut/BO.jpg`, `SA.jpg`, `AM.jpg` (recadrées sur le visage, 192 px) + entrées dans `DEFAUT` (photos.js), comme Ibrahima. Aminata n'apparaît pas dans le Planning (elle n'y participe pas) mais a sa photo à l'accueil, à la connexion et dans l'Activité. Les images sources sont petites et la photo d'Aminata est sombre : à remplacer par de meilleures si Cobey en a.
+
+### 05/11/2026 — Photo d'office pour Issyaka (dct-app v3.99.212)
+> Cobey : « ajoute pour Issyaka » (photo : casquette noire, barbe, sourire).
+
+`photos-defaut/IS.jpg` (recadrée sur le visage, 192 px) + entrée `IS` dans `DEFAUT` (photos.js).
