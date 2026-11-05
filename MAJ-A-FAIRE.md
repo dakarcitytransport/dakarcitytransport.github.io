@@ -6358,3 +6358,8 @@ Le titre « Où souhaitez-vous travailler ? » (V1 et V2) et la barre de recherc
 > Cobey : « je viens de vérifier, mais ça ne défile toujours pas. Pourtant je suis sur la bonne mise à jour. »
 
 Cause probable : le défilement de v3.99.200 était coupé quand le téléphone a « Réduire les animations » (Réglages iPhone > Accessibilité > Mouvement) — le texte restait coupé par « … ». Défilement refait à la main (`requestAnimationFrame`), qui ne dépend ni de ce réglage ni de `Element.animate()`. Testé avec le mode « mouvement réduit » forcé : le texte avance (0 → −141 → −475 px). Les effets décoratifs (lueur, icône qui pulse) restent coupés dans ce mode.
+
+### 05/11/2026 — Bandeau : plus de croix (dct-app v3.99.202)
+> Cobey : « je vois également une croix. Il faut la retirer. Le message disparaîtra que quand moi je déciderai. »
+
+La croix de fermeture est retirée : un message du bandeau ne disparaît que quand Eric le supprime (Réglages > BANDEAU) ou que sa date de fin est passée. Le texte de l'aide dans Réglages est mis à jour.

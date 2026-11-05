@@ -4,7 +4,7 @@
    dans les réglages pour que je puisse bien mettre les informations » ; le message de l'écran de connexion est retiré.
    - Messages dans Firebase : dct_bandeau/<id> = { titre, detail, type: info|attention|urgent, fin: 'AAAA-MM-JJ' | '', ts, par }
    - Affichage : sous « Bonjour … » à l'accueil, pour toute l'équipe. Un message = fixe ; plusieurs = ils alternent toutes les 5 s.
-   - Chacun peut fermer le bandeau (croix) : il ne revient que pour un message nouveau ou modifié.
+   - Pas de croix : un message ne disparaît que quand Eric le supprime ou que sa date de fin est passée.
    - Écriture : réglage « BANDEAU » (Réglages), réservé à Eric (profil AD).
    ═══════════════════════════════════════════════════════════ */
 (function(){
@@ -30,13 +30,12 @@
       + '@keyframes bd-lueur{0%{left:-90px}45%,100%{left:110%}}'
       + '#bd-accueil .bd-ic{flex:none;width:36px;height:36px;margin-left:9px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:18px;animation:bd-puls 1.9s ease-in-out infinite;}'
       + '@keyframes bd-puls{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,.55)}50%{transform:scale(1.08);box-shadow:0 0 0 8px rgba(255,255,255,0)}}'
-      + '#bd-accueil .bd-liste{position:relative;flex:1;height:100%;margin:0 8px;min-width:0;}'
+      + '#bd-accueil .bd-liste{position:relative;flex:1;height:100%;margin:0 14px 0 8px;min-width:0;}'
       + '#bd-accueil .bd-m{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;opacity:0;transform:translateY(16px);transition:opacity .45s,transform .45s;pointer-events:none;min-width:0;}'
       + '#bd-accueil .bd-m.on{opacity:1;transform:none;}#bd-accueil .bd-m.out{opacity:0;transform:translateY(-16px);}'
       + '#bd-accueil .bd-m .bd-l{display:block;white-space:nowrap;overflow:hidden;line-height:1.25;}'
       + '#bd-accueil .bd-m .bd-l i{display:inline-block;font-style:normal;will-change:transform;white-space:nowrap;}'
       + '#bd-accueil .bd-m .bd-t1{font-size:14px;font-weight:700;}#bd-accueil .bd-m .bd-t2{font-size:12.5px;opacity:.92;}'
-      + '#bd-accueil .bd-x{flex:none;width:32px;height:32px;margin-right:9px;border:0;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}'
       + '#bd-accueil .bd-barre{position:absolute;left:0;bottom:0;height:3px;background:rgba(255,255,255,.75);}'
       + '#bd-accueil .bd-barre.go{animation:bd-prog var(--bd-d,5s) linear forwards;}@keyframes bd-prog{from{width:0}to{width:100%}}'
       + '@media (prefers-reduced-motion:reduce){#bd-accueil::after,#bd-accueil .bd-ic,#bd-accueil .bd-barre.go{animation:none}#bd-accueil .bd-m{transition:none}}'
@@ -57,9 +56,9 @@
   var visibles = [], idx = 0, minuteur = null, anims = [];
   var VITESSE = 55, PAUSE_DEBUT = 1600, PAUSE_FIN = 1400;   // px par seconde ; pauses en ms
   function actifs(){
-    var auj = aujourdhui(), f = fermes();
+    var auj = aujourdhui();
     return Object.keys(messages).map(function(id){ var m = messages[id]; if(m && typeof m === 'object'){ m = Object.assign({}, m); m._id = id; return m; } return null; })
-      .filter(function(m){ return m && m.titre && (!m.fin || m.fin >= auj) && !(f[m._id] && f[m._id] >= (m.ts || 0)); })
+      .filter(function(m){ return m && m.titre && (!m.fin || m.fin >= auj); })
       .sort(function(a, b){ return (a.ts || 0) - (b.ts || 0); });
   }
   function fond(m){ var c = COULEURS[m.type] || COULEURS.info; return 'linear-gradient(120deg,' + c.a + ',' + c.b + ')'; }
@@ -129,12 +128,8 @@
     el.id = 'bd-accueil'; el.setAttribute('role', 'status'); el.setAttribute('data-sig', sig);
     el.innerHTML = '<div class="bd-ic" aria-hidden="true"></div><div class="bd-liste">'
       + visibles.map(function(m){ return '<div class="bd-m"><span class="bd-l bd-t1"><i>' + esc(m.titre) + '</i></span>' + (m.detail ? '<span class="bd-l bd-t2"><i>' + esc(m.detail) + '</i></span>' : '') + '</div>'; }).join('')
-      + '</div><button type="button" class="bd-x" aria-label="Fermer le bandeau">✕</button><div class="bd-barre"></div>';
-    el.querySelector('.bd-x').addEventListener('click', function(){
-      var f = fermes(); visibles.forEach(function(m){ f[m._id] = Math.max(m.ts || 0, Date.now()); });
-      try{ localStorage.setItem(ferme, JSON.stringify(f)); }catch(e){}
-      bandeau();
-    });
+      + '</div><div class="bd-barre"></div>';
+    // Pas de croix : le message ne disparaît que quand Eric le décide (suppression ou date de fin), Cobey 05/11/2026.
     contenu.insertBefore(el, contenu.firstChild);
     idx = 0; afficher(0);
   }
@@ -195,7 +190,7 @@
     var m = edition ? messages[edition] : null;
     if(m) typeChoisi = m.type || 'info';
     sec.innerHTML = '<div class="bd-reg"><h3>Bandeau de l’accueil</h3>'
-      + '<p class="bd-aide">Les messages ci-dessous s’affichent en haut de l’accueil de toute l’équipe, en s’alternant toutes les 5 secondes s’il y en a plusieurs. Chacun peut fermer le bandeau ; il revient seulement pour un message nouveau ou modifié.</p>'
+      + '<p class="bd-aide">Les messages ci-dessous s’affichent en haut de l’accueil de toute l’équipe, en s’alternant toutes les 5 secondes s’il y en a plusieurs. Les messages restent affichés jusqu’à ce que tu les supprimes ou que leur date de fin soit passée.</p>'
       + '<div id="bd-liste">' + ecrireListe() + '</div>'
       + '<div class="bd-form"><b style="font-size:15px">' + (m ? 'Modifier le message' : 'Nouveau message') + '</b>'
       + '<label for="bd-titre-champ">Titre</label><input type="text" id="bd-titre-champ" maxlength="300" placeholder="Ex. Dernier jour pour s’inscrire : jeudi" value="' + esc(m ? m.titre : '') + '">'
