@@ -6393,3 +6393,8 @@ Plus d'exception pour l'auteur : le message qu'Eric publie porte « NOUVEAU » c
 > Cobey : « en attendant que chacun mette sa photo, on va en mettre une d'office pour certains » ; (photo envoyée) « celle-là pour Abdoulaye, tu centres sur sa tête et tu la mets ».
 
 Mon accès à la base est en lecture seule : la photo est donc livrée avec l'appli. Recadrée sur le visage (carré 192 px, `photos-defaut/AB.jpg`) et déclarée dans `DEFAUT` (photos.js). Elle s'affiche partout où une photo s'affiche (pastille d'accueil, connexion, Activité, Planning) et la fenêtre « Nouveauté » ne s'affiche pas pour lui. Dès qu'Abdoulaye enregistre sa propre photo, la sienne remplace celle-ci. Pour ajouter d'autres photos d'office : déposer `photos-defaut/<ID>.jpg` et ajouter l'ID dans `DEFAUT`. Le bouton « Photo » par personne dans Réglages > Équipe (proposé) n'est pas fait : en attente de la réponse de Cobey.
+
+### 05/11/2026 — Photo d'office d'Abdoulaye : annulée (dct-app v3.99.209)
+> Cobey : « ANNULE, il en a déjà une. »
+
+Abdoulaye a déjà mis sa propre photo : la photo d'office (v3.99.208) est retirée (`photos-defaut/AB.jpg` supprimé, `DEFAUT` vidé dans photos.js). Le mécanisme reste prêt pour d'autres personnes. La nouvelle image reçue (« voilà pour Abdoulaye ») n'a pas été utilisée.
