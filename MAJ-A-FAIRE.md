@@ -6363,3 +6363,8 @@ Cause probable : le défilement de v3.99.200 était coupé quand le téléphone 
 > Cobey : « je vois également une croix. Il faut la retirer. Le message disparaîtra que quand moi je déciderai. »
 
 La croix de fermeture est retirée : un message du bandeau ne disparaît que quand Eric le supprime (Réglages > BANDEAU) ou que sa date de fin est passée. Le texte de l'aide dans Réglages est mis à jour.
+
+### 05/11/2026 — Bandeau : le texte défile enfin à la connexion (dct-app v3.99.203)
+> Cobey : « ça ne bouge toujours pas. La seule chose qui bouge, c'est un genre de reflet. Mais le texte en lui-même ne défile pas. » (donc le mode « Réduire les animations » n'était pas en cause)
+
+Vraie cause (reproduite) : à la connexion, le bandeau est construit avant que l'écran d'accueil soit affiché ; sa largeur est alors nulle, donc le texte ne peut pas être mesuré et ne défile pas (cas d'un seul message : aucun nouvel essai). Correctif (`bandeau.js`) : si le bandeau n'est pas encore à l'écran, on réessaie toutes les 0,3 s jusqu'à ce qu'il le soit, puis on mesure et on lance le défilement ; et on recalcule si la fenêtre change de taille. Testé : bandeau construit pendant que l'accueil est caché → 0 puis −104 px après 3 s ; cas normal inchangé.

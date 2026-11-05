@@ -96,6 +96,9 @@
   }
   function afficher(i){
     var el = document.getElementById('bd-accueil'); if(!el || !visibles.length) return;
+    // L'accueil n'est pas forcément à l'écran quand le bandeau est construit (largeur nulle : impossible de mesurer le texte,
+    // donc pas de défilement). On attend qu'il soit affiché, puis on lance.
+    if(!el.offsetWidth || !el.offsetParent){ arreterMinuteur(); minuteur = setTimeout(function(){ afficher(i); }, 300); return; }
     var anc = idx; idx = i % visibles.length;
     anims.forEach(function(a){ try{ a.cancel(); }catch(e){} }); anims = [];
     var ms = el.querySelectorAll('.bd-m');
@@ -133,6 +136,7 @@
     contenu.insertBefore(el, contenu.firstChild);
     idx = 0; afficher(0);
   }
+  window.addEventListener('resize', function(){ try{ if(document.getElementById('bd-accueil') && visibles.length) afficher(idx); }catch(e){} });
   if(typeof window.depRenderEspaces === 'function'){
     var origEsp = window.depRenderEspaces;
     window.depRenderEspaces = function(){ var r = origEsp.apply(this, arguments); try{ bandeau(); }catch(e){} return r; };
