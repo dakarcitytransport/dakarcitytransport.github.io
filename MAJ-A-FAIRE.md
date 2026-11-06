@@ -6585,3 +6585,7 @@ Non fait : suppression du code mort Danny / postes (entremêlé avec les tourné
 ### 06/11/2026 — Case France : liste des clients au nouveau look (v3.99.251)
 > Cobey : « Par contre la liste des clients de France est encore dans l'ancien look. »
 dct-app.html : classes `fr-carte` (carte client) et `fr-chip` (puces région / département / prêts) ajoutées dans le HTML généré (sans effet en V1). V2 : cartes en verre arrondies, nom 16,5 px, puces en pilule (active en vert), bandeau « Clients proches » et avertissement d'ancienneté arrondis. Testé avec 3 faux clients ; 74/74.
+
+### 06/11/2026 — Écran Collecte : logo DCT retiré (v3.99.252)
+> Cobey : « Le logo de DCT ici ne devrait plus y être. Il était avant parce qu'il n'y avait que la collecte. »
+V2 : le logo rond à gauche du titre « Collecte » (écran `s-home`) est masqué. V1 inchangée (74/74).

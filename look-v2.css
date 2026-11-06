@@ -311,6 +311,7 @@ html.look-v2 #france-content .slabel{margin:16px 4px 10px}
 html.look-v2 #france-content > div[onclick^="ouvrirProchesFrance"]{border-radius:22px !important;border-width:1px !important;background:linear-gradient(135deg,rgba(60,70,200,.18),rgba(60,70,200,.05)) !important;padding:14px 16px !important}
 html.look-v2 #france-content > div[style*="background:#FFF"],html.look-v2 #france-content > div[style*="background:#fff3"],html.look-v2 #france-content > div[style*="background:#fde"]{border-radius:20px !important}
 
+html.look-v2 #s-home .header img[alt="DCT"]{display:none !important}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
