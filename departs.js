@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.45';
+var DEP_VERSION = 'v2.22.46';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -28796,7 +28796,8 @@ function _depPlQuiEtQuand(r, avecTiret){
   if(!r) return '';
   var texte = r.parAdmin
     ? ('modifi&eacute; par ' + esc(r.modifieParNom || '?') + ', ' + _depPlDateHeure(r.le))
-    : ('r&eacute;pondu le ' + _depPlDateHeure(r.le));
+    : (r.auto ? ('not&eacute; absent le ' + _depPlDateHeure(r.le))
+              : ('r&eacute;pondu le ' + _depPlDateHeure(r.le)));
   return (avecTiret ? '&mdash; ' : '') + texte;
 }
 

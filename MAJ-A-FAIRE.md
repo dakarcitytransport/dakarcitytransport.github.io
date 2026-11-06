@@ -6560,3 +6560,7 @@ V2 : la pastille passe en haut à droite de la carte, sur la ligne du titre ; le
 ### 06/11/2026 — Planning : « Absent d'office » ne déborde plus (v3.99.241, departs.js v2.22.45)
 > Cobey (capture) : le statut « Absent d'office (pas répondu à temps) » passait par-dessus le nom (Ibrahima, Boubacar).
 Texte raccourci en « Absent d'office » ; la pastille de statut peut maintenant passer sur deux lignes (largeur max 48 %) au lieu de forcer une seule ligne.
+
+### 06/11/2026 — Planning : « noté absent le … » pour les absents d'office (v3.99.242, departs.js v2.22.46)
+> Cobey : « ok vas-y » (sous Ibrahima / Boubacar il était écrit « répondu le 05/11 à 23h00 » alors qu'ils n'ont pas répondu).
+`_depPlQuiEtQuand` : si la réponse est automatique (`r.auto`), la ligne dit « noté absent le JJ/MM à HHhMM » au lieu de « répondu le … ». Non testé avec une vraie donnée auto (fausses données sans absent d'office) ; code relu.
