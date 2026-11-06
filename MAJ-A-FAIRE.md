@@ -6552,3 +6552,7 @@ Boutons, statuts, messages et traces du Planning : « Pas dispo » devient « In
 ### 05/11/2026 — Planning : compteurs « disponible / indisponible » (v3.99.239, departs.js v2.22.44)
 > Cobey : « Oui, mets « disponible » aussi. »
 Pastilles en haut de chaque dimanche : « 1 dispo » → « 1 disponible » (pluriel géré), « 1 non » → « 1 indisponible » (pour rester cohérent avec « Indisponible »).
+
+### 05/11/2026 — Planning : « 🔒 verrouillé » remonté à droite du titre (v3.99.240)
+> Cobey : « Le verrouillé, tu peux le mettre ailleurs, parce que là ça fait une ligne pour rien. »
+V2 : la pastille passe en haut à droite de la carte, sur la ligne du titre ; les compteurs tiennent sur une seule ligne. CSS seulement, V1 inchangée (74/74).
