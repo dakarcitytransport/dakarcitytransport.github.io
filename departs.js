@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.48';
+var DEP_VERSION = 'v2.22.49';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10901,7 +10901,7 @@ function _depBoutonsRelancePaiement(c, x, d, departId, fondBlanc){
       + 'onclick="event.stopPropagation();depChoisirRelance(' + args + ',' + did + ')">' + label + '</button>';
   }
   var estLiv = !inf.colis;
-  var annul = (rel && typeof peutDeplacerClient === 'function' && peutDeplacerClient())
+  var annul = (false /* bouton Annuler retiré à la demande de Cobey (06/11/2026) */ && rel && typeof peutDeplacerClient === 'function' && peutDeplacerClient())
     ? ('<button class="dep-cli-btn lk-annul" style="background:#fff;border-color:#ddd;color:#666;" '
       + 'onclick="event.stopPropagation();depAnnulerRelancePaiement(' + args + ',' + (estLiv ? 'true' : 'false') + ',' + did + ')">&#8617; Annuler</button>')
     : '';

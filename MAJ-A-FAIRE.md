@@ -6642,3 +6642,7 @@ Test : droits (BO non, SA non, AM / IS / AB / AD oui) ; fenêtre vue ; 74/74. Le
 - Je ne peux pas écrire dans la base (compte lecteur seulement) : nouvelle action « ↩ Annuler » sous « Relancé — … » (`depAnnulerRelancePaiement`) — réservée à la direction et Aminata (`peutDeplacerClient`) ; demande confirmation, supprime `relancePaiementColis/Livraison` et la dernière ligne d'historique « relance » correspondante. Pas encore dans la fenêtre du double choix colis + livraison.
 - `_depOuvrirWhatsapp` : ouvre WhatsApp par un lien « cliqué » (au lieu de window.open, souvent bloqué dans le raccourci iPhone) pour les 5 endroits (relance, prévenir, avis, etc.) ; si l'appli reste au premier plan 1,6 s après, un message dit d'utiliser « Copier ». Le marquage « relancé » est inchangé (on ne peut pas savoir côté web si WhatsApp s'est ouvert).
 Test (fausses données) : relance → « Relancé » + 1 ouverture ; Annuler → « Relancer le paiement ». Non testé : l'ouverture réelle de WhatsApp sur iPhone. 74/74.
+
+### 06/11/2026 — Bouton « Annuler » de la relance retiré (v3.99.269, departs.js v2.22.49)
+> Cobey : « J'ai annulé la relance, c'est bon, et ça marche sur WhatsApp. Tu peux retirer le bouton annuler, c'était juste pour moi. »
+Le bouton n'est plus affiché (fonction `depAnnulerRelancePaiement` conservée, inutilisée). L'ouverture de WhatsApp (v3.99.268) est confirmée par Cobey sur iPhone.
