@@ -6609,3 +6609,7 @@ Cause : ma règle v3.99.245 (photos.js `pastilles`) mettait la photo de toute pa
 ### 06/11/2026 — Carte client d'une collecte en trois bandes (v3.99.259)
 > Cobey : « la mise en place, dans la capture… les clients… pas belle, pas bien organisée. Que peux-tu me proposer ? » → aperçu → « Ok ».
 dct-app.html : les pastilles auteur + camion sont dans un conteneur `.cr-bas` (`display:contents` → V1 strictement identique). V2 : grille — haut : avatar, nom 16,5 px (sur toute la largeur), prix 18 px ; milieu : adresse et colis sur des lignes entières (plus de « … ») ; bas sous un fin trait : pastilles à gauche, bouton de changement à droite. Testé avec une carte ; 74/74.
+
+### 06/11/2026 — Même organisation et mêmes pastilles partout : clients France (v3.99.260)
+> Cobey : « faire ça partout, même dans les collectes de France… Tous les endroits où il y a la pastille, on fait la même chose. »
+`_pastilleAuteur` (France, fiche contact, fiche client du départ…) reçoit le même habillage que `_pastilleAuteurClient` : rond photo `pl-i` + verre teinté en V2 (rond d'initiales d'avant conservé en V1). Carte client France : classes `fr-h / fr-nm / fr-ch / fr-ad / fr-co / fr-bas` ; V2 : nom sur toute la largeur, puces de statut dessous, adresse et colis sur lignes entières, bande basse séparée (date · ancienneté à gauche, pastille auteur à droite). Testé avec 3 faux clients ; 74/74.

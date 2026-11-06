@@ -417,6 +417,19 @@ html.look-v2 #collecte-content .client-row .client-sub{white-space:normal;overfl
 html.look-v2 #collecte-content .client-row .cr-bas{display:flex;flex-wrap:wrap;gap:8px;grid-column:2;grid-row:2;margin-top:11px;padding-top:11px;border-top:1px solid var(--lk-line);align-items:center}
 html.look-v2 #collecte-content .client-row button[title="Changer de collecte"]{grid-column:3;grid-row:2;align-self:end;margin-top:11px}
 
+
+/* carte client France : nom sur toute la largeur, puces de statut dessous, adresse / colis, bande basse (date + auteur) */
+html.look-v2 .fr-carte .pl-v1{display:none !important}
+html.look-v2 .fr-carte .fr-h{flex-wrap:wrap}
+html.look-v2 .fr-carte .fr-nm{flex:1 1 100% !important}
+html.look-v2 .fr-carte .fr-nm > div:last-child{font-size:17px !important;font-weight:800 !important;letter-spacing:-.02em}
+html.look-v2 .fr-carte .fr-ch{flex-wrap:wrap;margin-top:7px}
+html.look-v2 .fr-carte .fr-ad{font-size:12.5px !important;margin-top:8px !important;line-height:1.4}
+html.look-v2 .fr-carte .fr-co{font-size:12.5px !important;margin-top:6px !important}
+html.look-v2 .fr-carte .fr-co b{font-size:15px}
+html.look-v2 .fr-carte .fr-bas{margin-top:11px !important;padding-top:11px;border-top:1px solid var(--lk-line);justify-content:space-between}
+html.look-v2 .fr-carte button[onclick*="supprimerClientFranceListe"],html.look-v2 .fr-carte button[onclick*="retirerClientCollecteFrance"]{border-radius:12px !important;width:30px !important;height:30px !important;border-width:1px !important}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

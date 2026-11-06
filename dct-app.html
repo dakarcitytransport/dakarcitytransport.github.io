@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.259">
+<link rel="stylesheet" href="look-v2.css?v=3.99.260">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -274,6 +274,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .truck-pills-wrap{padding:8px 14px 10px;display:flex;flex-wrap:wrap;gap:5px;}
 .pl-i{display:none;}
 .cr-bas{display:contents;}
+.pl-v1{display:inline-flex;}
 .truck-pill-item{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700;border:1.5px solid;}
 
 /* ROUTE CARD */
@@ -2286,7 +2287,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.259';
+var APP_VERSION = 'v3.99.260';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4893,11 +4894,13 @@ function _pastilleAuteur(nom){
   if(!nom || !_peutGererFrance()) return '';
   var co=COLLABS.find(function(x){ return x.name===nom; })
        || {id:_initiales(nom), bg:'#e0e0e0', color:'#555'};
-  return '<span style="display:inline-flex;align-items:center;gap:5px;background:'+co.bg+';'
+  // Le rond « pl-i » (photo) n'apparaît qu'en nouveau look ; en V1, c'est le petit rond d'initiales d'avant.
+  return '<span class="pl pl-aut" style="--pc:'+co.color+';display:inline-flex;align-items:center;gap:5px;background:'+co.bg+';'
        + 'color:'+co.color+';padding:2px 8px 2px 2px;border-radius:20px;white-space:nowrap;'
        + 'border:1px solid '+co.color+';vertical-align:middle;">'
-       +   '<span class="av" style="background:'+co.color+';color:'+co.bg+';width:18px;height:18px;'
+       +   '<span class="av pl-v1" style="background:'+co.color+';color:'+co.bg+';width:18px;height:18px;'
        +     'font-size:8.5px;">'+(co.id||_initiales(nom))+'</span>'
+       +   '<i class="pl-i"'+(co.id?' data-ph="'+co.id+'"':'')+'>'+(co.id||_initiales(nom))+'</i>'
        +   '<span style="font-size:10px;font-weight:700;">'+nom+'</span>'
        + '</span>';
 }
@@ -5396,12 +5399,12 @@ function _frCarte(c){
     ? '<button type="button" onclick="event.stopPropagation();retirerClientCollecteFrance(\''+c._id+'\')" style="background:#fde0e0;color:#992020;border:1.5px solid #c0392b;border-radius:7px;width:26px;height:26px;flex-shrink:0;font-size:13px;cursor:pointer;line-height:1;">✕</button>'
     : '';
   return '<div class="fr-carte'+(sel&&coche?' fr-sel':'')+(anc?' fr-anc':'')+'" onclick="'+act+'" style="'+cadre+'border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;">'
-    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
-    +   '<div style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
+    + '<div class="fr-h" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+    +   '<div class="fr-nm" style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
     +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
-    +   '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+btnRetirer+'</div></div>'
-    + '<div style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
-    + '<div style="font-size:11.5px;color:#555;margin-top:5px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'
+    +   '<div class="fr-ch" style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+btnRetirer+'</div></div>'
+    + '<div class="fr-ad" style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
+    + '<div class="fr-co" style="font-size:11.5px;color:#555;margin-top:5px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'
     +   '<span>📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')
     +     (_montantsVisibles()?(' · <b style="color:#006b2d;">'+(c.prix||0)+' €</b>'):'')+'</span>'
     // v3.96.1 — Cobey, le 12/10/2026 : « on le voit pas assez [...] sur
@@ -5412,7 +5415,7 @@ function _frCarte(c){
           ? ('<span class="badge" style="background:#D7F1F3;color:#00636b;">🛣️ '+c.prixRamassage+' € déplacement</span>')
           : '')
     + '</div>'
-    + '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;">'
+    + '<div class="fr-bas" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;">'
     +   '<span style="font-size:11.5px;color:var(--text3);">🗓 '+_dateFr(c.creeTs)
     +     ' · <span style="'+(anc?('color:'+anc.bord+';font-weight:800;'):'')+'">'+j+' j</span></span>'
     +   _pastilleAuteur(c.creePar)
