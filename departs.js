@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.47';
+var DEP_VERSION = 'v2.22.48';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10564,7 +10564,7 @@ window.depPartagerWhatsapp = function(){
   // fonctionne même si le client n'est pas dans les contacts.
   var tel = _depTelIntlRelance(c.tel);
   if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
+  _depOuvrirWhatsapp('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
 };
 
 // v2.20.52 — Cobey, 12/10/2026 : après l'essai (puis l'abandon, voir
@@ -10651,7 +10651,7 @@ window.depPrevenirArriveeExpediteur = function(collecteId, clientId, depot, fran
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   var tel = _depTelIntlRelance(c.tel);
   if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteMessageArriveeExpediteur(c)), '_blank');
+  _depOuvrirWhatsapp('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteMessageArriveeExpediteur(c)));
   // Aucune confirmation de lecture possible côté WhatsApp — on note donc
   // que le message a été OUVERT (pas "envoyé"), avec qui et quand, comme
   // demandé : « je veux aussi un historique des messages de notification
@@ -10702,7 +10702,7 @@ window.depDemanderAvisExpediteur = function(collecteId, clientId, depot, france)
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   var tel = _depTelIntlRelance(c.tel);
   if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteMessageAvisExpediteur(c)), '_blank');
+  _depOuvrirWhatsapp('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteMessageAvisExpediteur(c)));
   _depMarquerAvisDemande(c, 'a ouvert WhatsApp', collecteId, clientId, depot, france);
 };
 
@@ -10787,6 +10787,21 @@ function _depTexteRelancePaiement(c, d, p, estLiv){
     + 'Merci de votre confiance !\nL’équipe Dakar City Transport';
 }
 
+// Ouvre WhatsApp. Un lien « cliqué » (plutôt que window.open) passe mieux dans le raccourci iPhone ; et si l'appli est
+// restée au premier plan 1,6 s après, on le dit (Cobey, 06/11/2026 : « ça a validé mais ça ne m'a pas amené sur WhatsApp »).
+function _depOuvrirWhatsapp(url){
+  try{
+    var a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ try{ document.body.removeChild(a); }catch(e){} }, 500);
+  }catch(e){ try{ window.open(url, '_blank'); }catch(e2){} }
+  setTimeout(function(){
+    if(!document.hidden && typeof toast === 'function') toast('ℹ️ WhatsApp ne s\'est pas ouvert ? Utilise le bouton « Copier ».');
+  }, 1600);
+}
+
 function _depClientRelancePaiement(src, colId, clientId){
   return src === 'depot'
     ? (window.depotClients || {})[clientId]
@@ -10834,7 +10849,7 @@ window.depRelancerPaiement = function(src, colId, clientId, estLiv, departId){
   var p = estLiv ? depCalculerPaiementLivraison(c) : depCalculerPaiement(c);
   var tel = _depTelIntlRelance(c.tel);
   if(!tel){ toast('⚠️ Numéro de téléphone manquant.'); return; }
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteRelancePaiement(c, d, p, estLiv)), '_blank');
+  _depOuvrirWhatsapp('https://wa.me/' + tel + '?text=' + encodeURIComponent(_depTexteRelancePaiement(c, d, p, estLiv)));
   _depMarquerRelancePaiement(c, p, 'a ouvert WhatsApp', src, colId, clientId, estLiv);
 };
 
@@ -10886,11 +10901,35 @@ function _depBoutonsRelancePaiement(c, x, d, departId, fondBlanc){
       + 'onclick="event.stopPropagation();depChoisirRelance(' + args + ',' + did + ')">' + label + '</button>';
   }
   var estLiv = !inf.colis;
+  var annul = (rel && typeof peutDeplacerClient === 'function' && peutDeplacerClient())
+    ? ('<button class="dep-cli-btn lk-annul" style="background:#fff;border-color:#ddd;color:#666;" '
+      + 'onclick="event.stopPropagation();depAnnulerRelancePaiement(' + args + ',' + (estLiv ? 'true' : 'false') + ',' + did + ')">&#8617; Annuler</button>')
+    : '';
   return '<button class="dep-cli-btn" style="' + style + '" '
     + 'onclick="event.stopPropagation();depRelancerPaiement(' + args + ',' + (estLiv ? 'true' : 'false') + ',' + did + ')">' + label + '</button>'
     + '<button class="dep-cli-btn" style="background:#1a237e;border-color:#1a237e;color:#fff;" '
-    + 'onclick="event.stopPropagation();depCopierRelancePaiement(' + args + ',' + (estLiv ? 'true' : 'false') + ',' + did + ')">&#128203; Copier</button>';
+    + 'onclick="event.stopPropagation();depCopierRelancePaiement(' + args + ',' + (estLiv ? 'true' : 'false') + ',' + did + ')">&#128203; Copier</button>' + annul;
 }
+
+// Annule une relance de paiement marquée par erreur (Cobey, 06/11/2026) : retire le marquage « Relancé » et la ligne d'historique.
+window.depAnnulerRelancePaiement = function(src, colId, clientId, estLiv, departId){
+  if(!peutDeplacerClient()){ toast('🔒 Réservé à la direction et à Aminata.'); return; }
+  var c = _depClientRelancePaiement(src, colId, clientId);
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  if(!confirm('Annuler la relance de paiement de ce client ?\n\nLe bouton redeviendra « Relancer le paiement ».')) return;
+  var champ = estLiv ? 'relancePaiementLivraison' : 'relancePaiementColis';
+  var hist = Array.isArray(c.hist) ? c.hist.slice() : [];
+  var motif = estLiv ? 'livraison' : 'colis';
+  for(var i = hist.length - 1; i >= 0; i--){
+    if(hist[i] && hist[i].type === 'relance' && String(hist[i].a || '').indexOf(motif) >= 0){ hist.splice(i, 1); break; }
+  }
+  c.hist = hist; delete c[champ];
+  var maj = { hist: hist }; maj[champ] = null;
+  _depEcrireFacture({ depot: src === 'depot', france: src === 'france', collecteId: colId || '', clientId: clientId }, maj);
+  toast('↩ Relance annulée.');
+  if($('s-rapfin-container') && $('s-rapfin-container').classList.contains('active') && _depRapfinId){ depRapfinContainer(_depRapfinId); }
+  if($('s-depart-detail') && $('s-depart-detail').classList.contains('active') && _depDetailId){ window.depDetail(_depDetailId, true); }
+};
 
 // Le client doit le colis ET la livraison : un petit choix, une ligne par caisse.
 window.depChoisirRelance = function(src, colId, clientId, departId){
@@ -20214,7 +20253,7 @@ function _depAjouterWhatsappCamion(k, src){
     btnWa.onclick = (function(numero, texte){ return function(e){
       if(e) e.stopPropagation();
       if(!numero){ toast('⚠️ Numéro de téléphone manquant.'); return; }
-      window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(texte), '_blank');
+      _depOuvrirWhatsapp('https://wa.me/' + numero + '?text=' + encodeURIComponent(texte));
     }; })(tel, msg);
 
     var btnCop = document.createElement('button');

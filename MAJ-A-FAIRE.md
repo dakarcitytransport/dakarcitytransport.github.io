@@ -6636,3 +6636,9 @@ V2 (CSS + look.js `actionsClients`) : haut = rang + nom à gauche, prix 19 px ve
 - Un seul bouton « ⇄ Déplacer » (`depChoixDeplacement`) : fenêtre « Vers un autre container » (ancien Déplacer) ou « Remettre au dépôt de Mitry » (ancien Détacher, avec sa confirmation). Le bouton Détacher disparaît de la carte. Les deux anciennes fonctions sont réutilisées telles quelles.
 - look.js (V2) : « Copier » (relance / prévenir / avis) se range à droite du bouton principal, dans la même ligne (`.lk-ln`).
 Test : droits (BO non, SA non, AM / IS / AB / AD oui) ; fenêtre vue ; 74/74. Le bouton Déplacer lui-même n'apparaît que sur un container « en préparation » : non vu dans mes fausses données.
+
+### 06/11/2026 — Relance de paiement : annuler + ouverture de WhatsApp plus fiable (v3.99.268, departs.js v2.22.48)
+> Cobey : « Pour Kudjassar, j'ai appuyé sur relancer le paiement sans faire exprès, ça a validé. Peux-tu remettre normalement ? » ; « c'est pas censé m'envoyer sur WhatsApp ? ça ne m'a pas amené sur WhatsApp » → « ok vas-y ».
+- Je ne peux pas écrire dans la base (compte lecteur seulement) : nouvelle action « ↩ Annuler » sous « Relancé — … » (`depAnnulerRelancePaiement`) — réservée à la direction et Aminata (`peutDeplacerClient`) ; demande confirmation, supprime `relancePaiementColis/Livraison` et la dernière ligne d'historique « relance » correspondante. Pas encore dans la fenêtre du double choix colis + livraison.
+- `_depOuvrirWhatsapp` : ouvre WhatsApp par un lien « cliqué » (au lieu de window.open, souvent bloqué dans le raccourci iPhone) pour les 5 endroits (relance, prévenir, avis, etc.) ; si l'appli reste au premier plan 1,6 s après, un message dit d'utiliser « Copier ». Le marquage « relancé » est inchangé (on ne peut pas savoir côté web si WhatsApp s'est ouvert).
+Test (fausses données) : relance → « Relancé » + 1 ouverture ; Annuler → « Relancer le paiement ». Non testé : l'ouverture réelle de WhatsApp sur iPhone. 74/74.

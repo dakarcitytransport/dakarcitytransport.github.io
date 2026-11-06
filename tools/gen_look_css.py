@@ -479,6 +479,7 @@ html.look-v2 .dep-cli-btns > .lk-ln{grid-column:1 / -1;display:flex;gap:8px;alig
 html.look-v2 .dep-cli-btns > .lk-ln > .lk-main{flex:1 1 auto}
 html.look-v2 .screen .dep-cli-btns > .lk-ln > button.dep-cli-btn.lk-cop[style],html.look-v2 .dep-cli-btn.lk-cop{flex:0 0 64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 4px;border-radius:18px;font-size:10.5px;font-weight:800;background:rgba(255,255,255,.85) !important;color:#26338f !important;border:1px solid #fff !important;box-shadow:0 3px 8px rgba(0,0,0,.08)}
 html.look-v2 .dep-cli-btn.lk-cop svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+html.look-v2 .dep-cli-btns > .dep-cli-btn.lk-annul{grid-column:1 / -1;min-height:34px !important;padding:6px !important;font-size:12px !important;font-weight:700 !important;background:transparent !important;border:0 !important;box-shadow:none !important;color:#7d8e85 !important}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
