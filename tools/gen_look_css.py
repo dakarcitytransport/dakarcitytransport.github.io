@@ -504,8 +504,8 @@ html.look-v2 #s-depart-detail .cli-t{font-size:13.5px;font-weight:700;line-heigh
 html.look-v2 #s-depart-detail .cli-bd .dep-cli-btns{margin-top:10px !important}
 
 /* ── clients d'une collecte : même carte que dans un container (bandeau / paiement / contenu / auteur-camion-bouton) ── */
-html.look-v2 #collecte-content .client-row{display:block !important;padding:0 !important;overflow:hidden;background:var(--lk-glass);border:1px solid var(--lk-edge) !important;border-radius:24px;margin:0 0 12px;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
-html.look-v2 #collecte-content .client-row:last-child{border-bottom:1px solid var(--lk-edge) !important}
+html.look-v2 #collecte-content .client-row:has(> .cr-hd){display:block !important;padding:0 !important;overflow:hidden;background:var(--lk-glass);border:1px solid var(--lk-edge) !important;border-radius:24px;margin:0 0 12px;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 #collecte-content .client-row:has(> .cr-hd):last-child{border-bottom:1px solid var(--lk-edge) !important}
 html.look-v2 #collecte-content .cr-hd{display:grid;grid-template-columns:auto 1fr auto;column-gap:12px;align-items:center;padding:13px 14px}
 html.look-v2 #collecte-content .cr-hd.hk{background:linear-gradient(135deg,rgba(224,80,63,.22),rgba(224,80,63,.07))}
 html.look-v2 #collecte-content .cr-hd.ho{background:linear-gradient(135deg,rgba(26,138,92,.22),rgba(26,138,92,.07))}
@@ -587,6 +587,14 @@ html.look-v2 .fr-hd .fr-h{display:contents !important}
 html.look-v2 .fr-hd .fr-nm{order:1;flex:none !important;display:flex !important}
 html.look-v2 .fr-hd > .fr-ad{order:2}
 html.look-v2 .fr-hd .fr-ch{order:3;margin-top:8px}
+/* onglet Dispatch : lignes simples (avatar, nom, ville, prix, camion) en cartes de verre */
+html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)){display:flex !important;align-items:center;gap:12px;background:var(--lk-glass);border:1px solid var(--lk-edge) !important;border-radius:22px;margin:0 0 10px;padding:12px 14px !important;box-shadow:var(--shadow)}
+html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) .av{width:42px;height:42px;font-size:13px;flex:none}
+html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) .client-info{flex:1;min-width:0}
+html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) .client-name{font-size:15.5px;font-weight:800;white-space:normal}
+html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) .client-sub{white-space:normal;font-size:12px}
+html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) > div:last-child{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}
+html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) .truck-pill{border-radius:99px;font-size:11.5px;font-weight:800;padding:5px 12px;white-space:nowrap}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

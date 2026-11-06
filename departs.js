@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.57';
+var DEP_VERSION = 'v2.22.58';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19031,6 +19031,22 @@ function greffer(){
       }catch(e4){ console.error('departs: extras france', e4); }
     };
     window.saveClientFrance._depPatch = true;
+  }
+
+  /* --- N bis. Revenir sur la liste France / Collecte redessine la liste (Cobey, 06/11/2026 : « j'ai retiré la livraison dans
+     la fiche, ça ne l'a pas retirée dans la liste »). Les listes ne se redessinaient que si l'écran était affiché AU
+     MOMENT du changement ; modifié depuis une fiche (autre écran), elles gardaient l'ancienne image en revenant. --- */
+  if(typeof window.goTo === 'function' && !window.goTo._depListes){
+    var origGoToListes = window.goTo;
+    window.goTo = function(id){
+      var r = origGoToListes.apply(this, arguments);
+      try{
+        if(id === 's-france' && typeof window.renderFrance === 'function') window.renderFrance();
+        else if(id === 's-collecte' && typeof window.renderCollecteContent === 'function') window.renderCollecteContent();
+      }catch(e){ console.error('departs: redessin liste au retour', e); }
+      return r;
+    };
+    window.goTo._depListes = true;
   }
 
   /* --- O. Liste des clients d'une collecte (onglet "Clients", écran
