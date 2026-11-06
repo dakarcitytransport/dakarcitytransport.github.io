@@ -6625,3 +6625,7 @@ Ajout d'un `<span class="fr-px">` (caché en V1) dans l'en-tête de la carte : e
 ### 06/11/2026 — Clients France : adresse / colis / déplacement distincts (v3.99.264)
 > Cobey : « leur carte c'est un peu brouillon. On ne distingue pas l'adresse des colis, c'est écrit en même couleur. Le prix du déplacement est mis soit en bas, soit à droite selon le client. »
 V2 : adresse en gris avec 📍 ; colis dans une pastille verte (📦 N colis · description) ; « 🛣️ N € déplacement » toujours sur sa propre ligne sous les colis (plus de wrap aléatoire à droite). 74/74.
+
+### 06/11/2026 — Client d'un container : nouvelle organisation (v3.99.265–266)
+> Cobey : « pour les clients des conteneurs, je voudrais une nouvelle organisation. Trop brouillon. Les icônes, on ne sait pas trop à quoi ça correspond. » → aperçu → « Pourquoi as-tu retiré les factures d'un client impayé ? » (oubli de la maquette, Facture reste partout) → « Ok ».
+V2 (CSS + look.js `actionsClients`) : haut = rang + nom à gauche, prix 19 px vert à droite ; ligne d'état (pastille paiement) + bouton téléphone rond ; un gros bouton principal (Relancer / Prévenir / Avis / Facture) ; boutons secondaires avec leur NOM écrit (Facture, Photos, Déplacer, Copier, Détacher) en grille de 2 colonnes, Détacher seul en rouge pleine largeur. Plus de boutons icône seule. Aucune action modifiée. Testé sur 3 clients ; Déplacer / Détacher non visibles dans mon test (droits). 74/74.

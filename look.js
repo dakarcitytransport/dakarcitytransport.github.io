@@ -369,14 +369,8 @@
       g.setAttribute('data-lk', '1');
       btns.forEach(function(b){
         if(b === princ){ b.classList.add('lk-main'); return; }
-        var t = b.textContent.trim();
-        var m = /^(\S+)\s+(.*)$/.exec(t);
-        var ico = m ? m[1] : (ICONE_DE[t] || t.charAt(0));
-        var lib = m ? m[2] : t;
-        b.setAttribute('data-lk-orig', b.innerHTML);
-        b.setAttribute('title', lib); b.setAttribute('aria-label', lib);
-        b.innerHTML = '<span aria-hidden="true">' + ico + '</span>';
-        b.classList.add('lk-ico');
+        b.classList.add('lk-ico');                         // bouton secondaire : étiquette écrite en toutes lettres
+        if(/D[ée]tacher/i.test(b.textContent)) b.classList.add('lk-det');
       });
       g.insertBefore(princ, g.firstChild);
     });
