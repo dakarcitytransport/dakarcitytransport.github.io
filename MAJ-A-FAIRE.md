@@ -6572,3 +6572,7 @@ V2 seulement, CSS + look.js `barresLaterales` (étendu) : détail d'une collecte
 ### 06/11/2026 — Photos à la place des initiales dans le détail collecte, Équipe, etc. (v3.99.245)
 > Cobey : « Au niveau des initiales, on aurait pu mettre leurs photos. Maintenant on a des photos. »
 photos.js `pastilles()` : toute pastille d'initiales `.av` dont le texte est l'identifiant d'une personne ayant une photo reçoit sa photo (détail d'une collecte, etc.), et les pastilles rondes d'Administration > Équipe / Codes admin aussi. Observation légère (une passe par image d'écran). Les personnes sans photo gardent leurs initiales (ex. Abdoulaye / Eric dans mes fausses données). 74/74.
+
+### 06/11/2026 — Fenêtres (modales) en verre dépoli (v3.99.247)
+> Cobey : « Il y a aussi des modales avec l'ancien look » (capture : « Ajouter… Un camion DCT / Un chauffeur externe / Annuler »).
+V2, CSS : toutes les fenêtres `.modal-overlay` — fond flouté, feuille en verre aux coins arrondis 30 px avec poignée, titres 20 px, boutons arrondis 52 px (principal en vert), « Annuler » en verre, champs arrondis. Testé sur 3 fenêtres (Ajouter camion, Valider dispatch, Client déjà existant) ; 74/74. Reste : la case France (écrans).

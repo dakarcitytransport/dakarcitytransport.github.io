@@ -295,6 +295,20 @@ html.look-v2 #admin-section-equipe > div.lk-bl > button:first-of-type{margin-lef
 html.look-v2 #admin-section-equipe > div.lk-bl > div:first-child{box-shadow:0 4px 10px rgba(0,0,0,.12)}
 html.look-v2 #s-admin .lk-bl > button{border-radius:16px}
 
+
+/* ── fenêtres (modales) : verre dépoli, coins très arrondis, boutons arrondis ── */
+html.look-v2 .modal-overlay{background:rgba(6,16,12,.38) !important;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+html.look-v2 .modal-sheet{background:rgba(250,252,251,.82) !important;border:1px solid var(--lk-edge);border-bottom:0;border-radius:30px 30px 0 0 !important;box-shadow:0 -12px 40px rgba(0,0,0,.22);backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5)}
+html.look-v2 .modal-sheet::before{content:'';display:block;width:42px;height:5px;border-radius:99px;background:rgba(120,130,125,.4);margin:-8px auto 14px}
+html.look-v2 .modal-title,html.look-v2 .modal-confirm-title{font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+html.look-v2 .modal-confirm-sub{color:var(--text2)}
+html.look-v2 .modal-sheet .btn{border-radius:18px !important;min-height:52px;border-width:1px !important;font-size:15px;font-weight:800;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+html.look-v2 .modal-sheet .btn-gray,html.look-v2 .modal-sheet .btn-gray-sm,html.look-v2 .btn-modal-cancel{background:rgba(120,135,128,.16) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;box-shadow:none}
+html.look-v2 .modal-sheet .btn-sm,html.look-v2 .btn-modal-cancel{border-radius:16px !important;padding:14px !important;font-size:14.5px;font-weight:800}
+html.look-v2 .modal-sheet .btn-green,html.look-v2 .modal-sheet .btn-modal-ok{background:linear-gradient(145deg,#2fb27c,#1a8a5c) !important;color:#fff !important;border:0 !important;box-shadow:0 8px 18px rgba(26,138,92,.3)}
+html.look-v2 .modal-option{border-radius:18px;border-width:1px;background:var(--lk-field)}
+html.look-v2 .modal-sheet input,html.look-v2 .modal-sheet select,html.look-v2 .modal-sheet textarea{border-radius:14px !important}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
