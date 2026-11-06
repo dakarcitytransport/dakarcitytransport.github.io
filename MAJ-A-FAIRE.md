@@ -6688,3 +6688,7 @@ Vérification : le bandeau de la liste (« Montant ») et la facture additionnen
 ### 06/11/2026 — Clients France : couleurs sans paiement + total plus grand (v3.99.285–286)
 > Cobey : « dans France, les clients ne paient pas avant qu'on aille récupérer leur colis, donc pas de paiement en attente, sauf ceux qui veulent payer quand même » ; « vers le colis ramassé non, parce que si le colis est ramassé il disparaît de la liste » ; « le total colis est un peu trop petit ».
 Bandeau d'un client de France : bleu-violet (normal) ou orange (attend depuis plus de 14 j) — plus de rose ni de vert. Aucune pastille « reste à payer » : seulement « Payé X € » / « Soldé » si un versement existe (`_frPastillePaye`). Total (27 px), « Colis X € » et déplacement plus grands ; prix seul en 24 px. 74/74.
+
+### 06/11/2026 — Clients France : total, colis et déplacement toujours affichés (v3.99.287)
+> Cobey : « chaque client en France va obligatoirement avoir un prix de déplacement ; s'il n'est pas indiqué, tu mettras 0 ; il y aura toujours total, colis et déplacement affichés. »
+Bloc en haut à droite : « TOTAL », « Colis », « 🛣️ N € déplacement » même quand le déplacement est vide (0 €). 74/74.
