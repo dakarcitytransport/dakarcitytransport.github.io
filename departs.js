@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.58';
+var DEP_VERSION = 'v2.22.59';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8957,6 +8957,7 @@ window.depDetail = function(id, gardeFiltres){
         +     _depLienTelIcone(c.tel)
         +   '</div></div>'
         +   '<div class="cli-bd">'
+        +   (typeof _htmlBlocPrix === 'function' ? _htmlBlocPrix(c, !!x.france) : '')
         +   '<div class="cli-b1">' + _depLignePaiementCarte(c) + _depBadgeLivraison(c, _depDepartAuDepotDakar(d), _cliColoree) + '</div>'
         +   (String(c.colis || '').trim()
               ? ('<div class="cli-ct"><span class="cli-n">' + (parseInt(c.nb, 10) > 0 ? parseInt(c.nb, 10) : '&#128230;') + '</span>'
@@ -9110,6 +9111,7 @@ window.depCalculerPaiement = function(c){
 function depCalculerPaiementLivraison(c){
   return depCalculerPaiementGenerique(c && c.livraisonDakar ? (parseFloat(c.prixLivraison) || 0) : 0, c && c.versementsLivraison);
 }
+window.depCalculerPaiementLivraison = depCalculerPaiementLivraison;
 
 // v1.19.27 : statut GLOBAL de la facture — combine colis ET livraison.
 // Avant, le badge "Payé"/"Partiellement payé" ne regardait que le colis

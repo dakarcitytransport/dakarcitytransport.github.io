@@ -601,6 +601,10 @@ html.look-v2 #collecte-content .cr-dr .cr-bas{flex-wrap:nowrap !important;gap:6p
 html.look-v2 #collecte-content .cr-dr .pl{min-width:0;flex:0 1 auto;font-size:11px !important;padding:2px 9px 2px 2px !important;overflow:hidden;text-overflow:ellipsis;gap:4px !important}
 html.look-v2 #collecte-content .cr-dr .pl .pl-i{width:20px;height:20px;flex:none}
 html.look-v2 #collecte-content .cr-dr button.cr-chg{flex:none;padding:6px 9px !important;font-size:11.5px !important;gap:4px;min-height:30px}
+html.look-v2 .pb-t.pb-ok{background:linear-gradient(145deg,#2fb27c,#1a8a5c);box-shadow:0 6px 14px rgba(26,138,92,.35)}
+html.look-v2 #s-depart-detail .cli-px,html.look-v2 #s-depart-detail .cli-liv2{display:none !important}
+html.look-v2 #s-depart-detail .cli-bd > .pb{margin-bottom:10px}
+html.look-v2 #s-depart-detail .cli-bd > .pb + .cli-b1{border-top:0;padding-top:0;margin-top:0}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
