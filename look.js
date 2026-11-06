@@ -373,6 +373,15 @@
         if(/D[ée]tacher/i.test(b.textContent)) b.classList.add('lk-det');
       });
       g.insertBefore(princ, g.firstChild);
+      // « Copier » appartient au bouton principal (relance sans WhatsApp) : il se range juste à côté, dans la même ligne.
+      var cop = btns.filter(function(b){ return b !== princ && /Copier/.test(b.textContent); })[0];
+      if(cop){
+        var ln = document.createElement('div'); ln.className = 'lk-ln';
+        g.insertBefore(ln, princ); ln.appendChild(princ); ln.appendChild(cop);
+        cop.classList.remove('lk-ico'); cop.classList.add('lk-cop');
+        cop.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copier</span>';
+        cop.setAttribute('title', 'Copier le message (pour ceux qui n\u2019ont pas WhatsApp)');
+      }
     });
   }
   var obsAction = null;

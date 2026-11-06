@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.46';
+var DEP_VERSION = 'v2.22.47';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2214,6 +2214,12 @@ function estDirection(){
   return !!(u.admin || u.patron || IDS_DIRECTION.indexOf(u.id) >= 0);
 }
 window._estDirection = estDirection;
+// Droit à part (Cobey, 06/11/2026) : changer un client de container / le remettre au dépôt = la direction + Aminata.
+// On ne l'ajoute PAS à IDS_DIRECTION, pour qu'elle n'ait pas les autres droits de la direction.
+function peutDeplacerClient(){
+  var u = window.currentUser;
+  return !!(u && (estDirection() || u.id === 'AM'));
+}
 
 /* ═══════════════════════════════════════════════════════════
    v1.99.0 — LES CASES DE L'ACCUEIL, PERSONNE PAR PERSONNE
@@ -8959,11 +8965,7 @@ window.depDetail = function(id, gardeFiltres){
               + '<button class="dep-cli-btn" style="background:#F3EFFF;border-color:#D9C8F5;color:#6d28d9;" '
                 + 'onclick="event.stopPropagation();depOuvrirPhotosRapide(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">&#128247; Photos</button>'
               + (peutBouger
-                ? '<button class="dep-cli-btn" onclick="event.stopPropagation();depOuvrirMove(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">D&eacute;placer</button>'
-                : '')
-              + (peutDetacher
-                ? '<button class="dep-cli-btn" style="background:#FDEDED;border-color:#F5C6C6;color:#992020;" '
-                  + 'onclick="event.stopPropagation();depDetacherClient(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+')">D&eacute;tacher</button>'
+                ? '<button class="dep-cli-btn" onclick="event.stopPropagation();depChoixDeplacement(\''+(x.collecteId||'')+'\',\''+x.clientId+'\','+(x.depot?'true':'false')+','+(x.france?'true':'false')+','+(peutDetacher?'true':'false')+')">&#8644; D&eacute;placer</button>'
                 : '')
               // v2.20.52 — n'a de sens qu'une fois le container réellement
               // arrivé (même condition que le badge "en attente de
@@ -14346,8 +14348,31 @@ function _depPastilleRang(c, departId){
     + 'N&deg;' + n + '</span>';
 }
 
+// Un seul bouton « Déplacer » : une fenêtre propose « Vers un autre container » ou « Remettre au dépôt de Mitry »
+// (les deux anciens écrans — Déplacer / Détacher — sont réutilisés tels quels).
+window.depChoixDeplacement = function(collecteId, clientId, depot, france, peutDepot){
+  if(!peutDeplacerClient()){ toast('🔒 Réservé à la direction et à Aminata.'); return; }
+  var m = document.getElementById('modal-dep-deplacer-choix');
+  if(!m){
+    m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'modal-dep-deplacer-choix';
+    document.body.appendChild(m);
+  }
+  var args = "'" + collecteId + "','" + clientId + "'," + (depot ? 'true' : 'false') + ',' + (france ? 'true' : 'false');
+  m.innerHTML = '<div class="modal-sheet"><div style="padding:6px 2px 4px;">'
+    + '<div style="font-size:17px;font-weight:800;margin:2px 4px 14px;">D&eacute;placer ce client</div>'
+    + '<button class="btn" style="margin:0 0 10px;background:#e8eaf6;color:#1a237e;border:2px solid #1a237e;" '
+    +   'onclick="closeModal(\'modal-dep-deplacer-choix\');depOuvrirMove(' + args + ')">&#128666; Vers un autre container</button>'
+    + (peutDepot
+        ? '<button class="btn" style="margin:0 0 10px;background:#FFF3E0;color:#A04800;border:2px solid #E58A00;" '
+          + 'onclick="closeModal(\'modal-dep-deplacer-choix\');depDetacherClient(' + args + ')">&#127970; Remettre au d&eacute;p&ocirc;t de Mitry</button>'
+        : '')
+    + '<button class="btn btn-gray" style="margin:0;" onclick="closeModal(\'modal-dep-deplacer-choix\')">Annuler</button>'
+    + '</div></div>';
+  openModal('modal-dep-deplacer-choix');
+};
+
 window.depOuvrirMove = function(collecteId, clientId, depot, france){
-  if(!estDirection()){ toast('🔒 Seul Issyaka peut changer un client de départ.'); return; }
+  if(!peutDeplacerClient()){ toast('🔒 Réservé à la direction et à Aminata.'); return; }
   var src = { collecteId:collecteId, clientId:clientId, depot:!!depot, france:!!france };
   var c = _depFicheParcours(src);
   if(!c){ toast('⚠️ Client introuvable.'); return; }
@@ -14568,7 +14593,7 @@ window.depConfirmerMoveCollecte = function(){
    ───────────────────────────────────────────── */
 
 window.depDetacherClient = function(collecteId, clientId, depot, france){
-  if(!estDirection()){ toast('🔒 Seul Issyaka peut détacher un client.'); return; }
+  if(!peutDeplacerClient()){ toast('🔒 Réservé à la direction et à Aminata.'); return; }
   var c = _depFicheParcours({ collecteId:collecteId, clientId:clientId, depot:!!depot, france:!!france });
   if(!c){ toast('⚠️ Client introuvable.'); return; }
 
