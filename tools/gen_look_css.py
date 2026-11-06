@@ -558,6 +558,35 @@ html.look-v2 .fr-carte .fr-ln{display:block;font-size:12.5px;font-weight:700;col
 html.look-v2 .liv-dk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:#6b3fa0;background:rgba(122,92,240,.14);border-radius:99px;padding:5px 12px 5px 8px;margin:4px 6px 2px 0}
 html.look-v2 .liv-dk-i{display:inline-block;width:14px;height:14px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.5' y='4' width='14' height='11.5' rx='2'/%3E%3Cpath d='M15.5 8.5h3.6a2 2 0 0 1 1.6.8l1.8 2.4a2 2 0 0 1 .4 1.2V15a1.5 1.5 0 0 1-1.5 1.5h-5.9'/%3E%3Ccircle cx='6' cy='18' r='2.2'/%3E%3Ccircle cx='17.5' cy='18' r='2.2'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.5' y='4' width='14' height='11.5' rx='2'/%3E%3Cpath d='M15.5 8.5h3.6a2 2 0 0 1 1.6.8l1.8 2.4a2 2 0 0 1 .4 1.2V15a1.5 1.5 0 0 1-1.5 1.5h-5.9'/%3E%3Ccircle cx='6' cy='18' r='2.2'/%3E%3Ccircle cx='17.5' cy='18' r='2.2'/%3E%3C/svg%3E") center/contain no-repeat}
 html.look-v2 .cr-b1 .liv-dk{display:inline-flex}
+
+/* ── bloc des prix : TOTAL À PAYER (bandeau sombre) + détail (colis bleu, déplacement turquoise, livraison violet) ── */
+html.look-v2 .pb{display:block;margin-bottom:10px}
+html.look-v2 .pb-t{display:flex;justify-content:space-between;align-items:center;border-radius:16px;padding:10px 14px;background:linear-gradient(145deg,#3b4a45,#1c2a25);color:#fff;box-shadow:0 6px 14px rgba(0,0,0,.2)}
+html.look-v2 .pb-t span{font-size:11.5px;font-weight:800;letter-spacing:.1em;opacity:.8}
+html.look-v2 .pb-t b{font-size:26px;letter-spacing:-.02em;line-height:1.1}
+html.look-v2 .pb-g{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin-top:6px}
+html.look-v2 .pb-g > div{border-radius:12px;padding:6px 10px;min-width:0}
+html.look-v2 .pb-g small{display:block;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.look-v2 .pb-g b{font-size:14px}
+html.look-v2 .pb-c{background:rgba(60,70,200,.12);color:#26338f}.pb-c small{color:#7d8e85}
+html.look-v2 .pb-d{background:rgba(0,140,150,.14);color:#00636b}.pb-d small{color:#6a8f93}
+html.look-v2 .pb-l{background:rgba(122,92,240,.14);color:#6b3fa0}.pb-l small{color:#8a7fb0}
+/* prix du bandeau remplacés par ce bloc */
+html.look-v2 #collecte-content .cr-px{display:none !important}
+html.look-v2 .fr-carte .fr-px{display:none !important}
+html.look-v2 .liv-dk{display:none !important}
+/* pastilles « reste à payer » : toujours sur la MÊME ligne */
+html.look-v2 .pp-ln,html.look-v2 .cr-b1 > div,html.look-v2 .fr-pay{display:flex !important;flex-wrap:nowrap;gap:6px}
+html.look-v2 .pp-ln .pp{flex:0 1 auto;min-width:0;white-space:nowrap;margin:0 !important;padding:5px 9px 5px 7px !important;font-size:11.5px !important;gap:4px !important}
+html.look-v2 .pp-ln .pp-i{width:12px;height:12px;flex:none}
+html.look-v2 .fr-hd > .fr-ad{margin:7px 0 0 !important;padding:0 !important;border:0 !important;font-size:12.5px !important;color:var(--text3);display:block !important}
+html.look-v2 .fr-hd > .fr-ad::before{content:none !important}
+html.look-v2 .fr-pay + .fr-ad,html.look-v2 .fr-bd > .fr-co:first-child{border-top:0}
+html.look-v2 .fr-hd{display:flex;flex-direction:column}
+html.look-v2 .fr-hd .fr-h{display:contents !important}
+html.look-v2 .fr-hd .fr-nm{order:1;flex:none !important;display:flex !important}
+html.look-v2 .fr-hd > .fr-ad{order:2}
+html.look-v2 .fr-hd .fr-ch{order:3;margin-top:8px}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

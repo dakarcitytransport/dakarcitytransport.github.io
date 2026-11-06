@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.56';
+var DEP_VERSION = 'v2.22.57';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13311,7 +13311,7 @@ function _depLignePaiementCarte(c){
       else h += puce('&#10060;', 'Livraison&nbsp;: rien pay&eacute; (' + pl.total + ' &euro;)', 'Livraison &middot; reste ' + pl.total + ' &euro;', 'k', '#B3261E', true);
     }
   }
-  return h ? '<div style="margin:4px 0 2px;">' + h + '</div>' : '';
+  return h ? '<div class="pp-ln" style="margin:4px 0 2px;">' + h + '</div>' : '';
 }
 
 window._depLignePaiementCarte = _depLignePaiementCarte;
