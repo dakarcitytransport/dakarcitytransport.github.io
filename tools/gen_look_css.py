@@ -309,6 +309,50 @@ html.look-v2 .modal-sheet .btn-green,html.look-v2 .modal-sheet .btn-modal-ok{bac
 html.look-v2 .modal-option{border-radius:18px;border-width:1px;background:var(--lk-field)}
 html.look-v2 .modal-sheet input,html.look-v2 .modal-sheet select,html.look-v2 .modal-sheet textarea{border-radius:14px !important}
 
+
+/* ── couche générale : boutons, formulaires, cartes, blocs (tous les écrans) ── */
+html.look-v2 .btn{border-radius:20px;min-height:54px;font-size:15.5px;font-weight:800;border-width:1px;letter-spacing:-.005em;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+html.look-v2 .btn-green,html.look-v2 .btn-green-sm,html.look-v2 .btn-pdf{background:linear-gradient(145deg,#2fb27c,#1a8a5c) !important;color:#fff !important;border:1px solid rgba(255,255,255,.4) !important;box-shadow:0 8px 20px rgba(26,138,92,.3)}
+html.look-v2 .btn-gray,html.look-v2 .btn-gray-sm{background:rgba(120,135,128,.16) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;box-shadow:none}
+html.look-v2 .btn-red{background:linear-gradient(145deg,#e0503f,#b8301f) !important;border:1px solid rgba(255,255,255,.35) !important;box-shadow:0 8px 20px rgba(192,57,43,.3)}
+html.look-v2 .btn-sm,html.look-v2 .btn-pdf{border-radius:14px;min-height:40px;padding:9px 16px}
+html.look-v2 .fl{font-size:12px;font-weight:800;color:var(--text2);letter-spacing:.03em;text-transform:uppercase;margin-bottom:7px}
+html.look-v2 .fi,html.look-v2 .screen select,html.look-v2 .screen textarea,html.look-v2 .screen input[type=text],html.look-v2 .screen input[type=tel],html.look-v2 .screen input[type=number],html.look-v2 .screen input[type=date],html.look-v2 .screen input[type=search]{border:1px solid var(--lk-edge) !important;border-radius:16px !important;background:var(--lk-field) !important;color:var(--text);padding:13px 15px;font-size:15px;box-shadow:inset 0 1px 2px rgba(0,0,0,.04)}
+html.look-v2 .fi:focus,html.look-v2 .screen select:focus,html.look-v2 .screen textarea:focus,html.look-v2 .screen input:focus{border-color:var(--green) !important;box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 22%,transparent)}
+html.look-v2 .fg{margin-bottom:14px}
+html.look-v2 .slabel{font-size:11.5px;font-weight:800;letter-spacing:.09em;color:var(--text3);margin:20px 4px 10px}
+html.look-v2 .card,html.look-v2 .dept-block,html.look-v2 .suivi-card{background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:26px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 .dept-head{background:rgba(120,135,128,.1);border-bottom:1px solid var(--lk-line);padding:13px 16px}
+html.look-v2 .dept-name{font-size:14.5px;font-weight:800;color:var(--text)}
+html.look-v2 .dept-count{background:rgba(26,138,92,.14);color:var(--green-dark);border-radius:99px;padding:3px 11px}
+html.look-v2 .client-row{padding:13px 16px;border-bottom:1px solid var(--lk-line)}
+html.look-v2 .client-name{font-size:14.5px;font-weight:800;color:var(--text)}
+html.look-v2 .client-sub{font-size:12px;color:var(--text3)}
+html.look-v2 .client-price{font-size:14.5px}
+html.look-v2 .badge{border-radius:99px;padding:4px 11px;font-weight:800}
+html.look-v2 .truck-pill{border-radius:99px;border-width:1px}
+html.look-v2 .progress-bg{height:9px;border-radius:99px;background:rgba(120,135,128,.2);border:0}
+html.look-v2 .progress-bar{border-radius:99px}
+html.look-v2 .suivi-band{background:linear-gradient(135deg,#1a3a5c,#0f2740) !important;border-radius:24px;margin:8px 16px}
+html.look-v2 .toast{border-radius:18px;border-width:1px}
+html.look-v2 .tab-bar,html.look-v2 .stabs{border-radius:99px}
+
+
+/* ── onglets, fonds plats et blocs à bordure épaisse (case France, camions, etc.) ── */
+html.look-v2 .subtabs{margin:0 16px 10px;background:var(--lk-field);border:1px solid var(--lk-edge);border-radius:99px;padding:4px;gap:4px;border-bottom:1px solid var(--lk-edge)}
+html.look-v2 .subtab{border:0 !important;margin:0 !important;border-radius:99px;padding:10px 6px;color:var(--text2,#6b7b72)}
+html.look-v2 .subtab.active{background:linear-gradient(145deg,#2fb27c,#1a8a5c);color:#fff !important;box-shadow:0 6px 14px rgba(26,138,92,.3)}
+html.look-v2 #france-content,html.look-v2 .screen .content[style*="background:#F2F3F5"],html.look-v2 .screen [style*="background:#F2F3F5"]{background:transparent !important}
+html.look-v2 #fr-recherche{background:transparent !important;border:0 !important;padding:2px 16px 8px !important}
+html.look-v2 .screen [style*="border:2px solid #1a237e"][style*="border-radius"],html.look-v2 .screen [style*="border:2.5px solid #1a237e"][style*="border-radius"]{background:var(--lk-glass) !important;border:1px solid rgba(60,70,200,.4) !important;border-radius:26px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 .screen button[style*="background:#111"],html.look-v2 .screen button[style*="background:#000"]{background:linear-gradient(145deg,#2a3a34,#10201a) !important;border:1px solid rgba(255,255,255,.2) !important;border-radius:20px !important;min-height:52px;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+html.look-v2 .screen [style*="background:white"][style*="border-radius"],html.look-v2 .screen [style*="background:#fff"][style*="border-radius:var(--radius)"]{background:var(--lk-glass) !important}
+html.look-v2 .screen [style*="background:#e8eaf6"][style*="border-radius"],html.look-v2 .screen [style*="background:#E8EAF6"][style*="border-radius"]{border-radius:16px !important;border-width:1px !important}
+
+html.look-v2 .screen > div[style*="background:#fff"][style*="border-bottom"],html.look-v2 .screen > div[style*="background:#fff"][style*="border-top"]{background:var(--lk-glass) !important;border-color:var(--lk-line) !important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+html.look-v2 #s-fr-proches > div[style*="min-height:230px"]{margin:6px 16px;border-radius:24px;overflow:hidden;border:1px solid var(--lk-edge)}
+html.look-v2 #fr-proches-contenu{background:transparent !important}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
