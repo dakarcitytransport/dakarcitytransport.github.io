@@ -353,6 +353,19 @@ html.look-v2 .screen > div[style*="background:#fff"][style*="border-bottom"],htm
 html.look-v2 #s-fr-proches > div[style*="min-height:230px"]{margin:6px 16px;border-radius:24px;overflow:hidden;border:1px solid var(--lk-edge)}
 html.look-v2 #fr-proches-contenu{background:transparent !important}
 
+
+/* ── liste des clients de la case France : cartes, puces, avertissements ── */
+html.look-v2 .fr-carte{background-color:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:24px !important;padding:14px 16px !important;margin-bottom:12px !important;box-shadow:var(--shadow) !important;backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 .fr-carte.fr-anc{border-left-width:1px !important}
+html.look-v2 .fr-carte.fr-sel{background-image:linear-gradient(135deg,rgba(46,143,106,.30),rgba(46,143,106,.07)) !important;border-color:rgba(46,143,106,.6) !important}
+html.look-v2 .fr-carte > div:first-child > div:first-child > div:last-child{font-size:16.5px !important;font-weight:800 !important;letter-spacing:-.015em}
+html.look-v2 .fr-carte .badge{font-size:11.5px}
+html.look-v2 .fr-chip{background:var(--lk-glass) !important;color:var(--text2) !important;border:1px solid var(--lk-edge) !important;border-radius:99px !important;padding:8px 14px !important;font-size:12.5px !important;font-weight:700 !important}
+html.look-v2 .fr-chip.on{background:linear-gradient(145deg,#2fb27c,#1a8a5c) !important;color:#fff !important;border-color:transparent !important;box-shadow:0 6px 14px rgba(26,138,92,.3)}
+html.look-v2 #france-content .slabel{margin:16px 4px 10px}
+html.look-v2 #france-content > div[onclick^="ouvrirProchesFrance"]{border-radius:22px !important;border-width:1px !important;background:linear-gradient(135deg,rgba(60,70,200,.18),rgba(60,70,200,.05)) !important;padding:14px 16px !important}
+html.look-v2 #france-content > div[style*="background:#FFF"],html.look-v2 #france-content > div[style*="background:#fff3"],html.look-v2 #france-content > div[style*="background:#fde"]{border-radius:20px !important}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

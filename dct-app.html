@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.250">
+<link rel="stylesheet" href="look-v2.css?v=3.99.251">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -2284,7 +2284,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.250';
+var APP_VERSION = 'v3.99.251';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -4266,7 +4266,7 @@ function _actionsClient(id){
 
 function _chipD(lib,on,action,col){
   col=col||'#1a237e';
-  return '<span onclick="event.stopPropagation();'+action+'" style="font-size:11.5px;font-weight:'+(on?700:600)+';padding:5px 10px;border-radius:18px;white-space:nowrap;cursor:pointer;'
+  return '<span class="fr-chip'+(on?' on':'')+'" onclick="event.stopPropagation();'+action+'" style="font-size:11.5px;font-weight:'+(on?700:600)+';padding:5px 10px;border-radius:18px;white-space:nowrap;cursor:pointer;'
     +(on?('background:'+col+';color:#fff;border:1.5px solid '+col+';'):'background:#fff;border:1.5px solid var(--border);color:#555;')+'">'+lib+'</span>';
 }
 function setDannyRegion(r){ dannyRegion=(dannyRegion===r?'':r); dannyDept=''; renderDanny(); }
@@ -4863,7 +4863,7 @@ function _drapeauRegion(r){
   return '🇧🇪 ';
 }
 function _chip(lib,on,action,col){
-  return '<span onclick="'+action+'" style="font-size:11.5px;font-weight:'+(on?700:600)+';padding:5px 10px;border-radius:18px;white-space:nowrap;cursor:pointer;'
+  return '<span class="fr-chip'+(on?' on':'')+'" onclick="'+action+'" style="font-size:11.5px;font-weight:'+(on?700:600)+';padding:5px 10px;border-radius:18px;white-space:nowrap;cursor:pointer;'
        + (on?('background:'+col+';color:#fff;border:1.5px solid '+col+';'):'background:#fff;border:1.5px solid var(--border);color:#555;')+'">'+lib+'</span>';
 }
 
@@ -5391,7 +5391,7 @@ function _frCarte(c){
   var btnRetirer = (currentCollecteFrId && c.collecteId===currentCollecteFrId && c.statut==='planifie' && !_frEstRamasse(c) && _peutGererFrance())
     ? '<button type="button" onclick="event.stopPropagation();retirerClientCollecteFrance(\''+c._id+'\')" style="background:#fde0e0;color:#992020;border:1.5px solid #c0392b;border-radius:7px;width:26px;height:26px;flex-shrink:0;font-size:13px;cursor:pointer;line-height:1;">✕</button>'
     : '';
-  return '<div onclick="'+act+'" style="'+cadre+'border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;">'
+  return '<div class="fr-carte'+(sel&&coche?' fr-sel':'')+(anc?' fr-anc':'')+'" onclick="'+act+'" style="'+cadre+'border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;">'
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
     +   '<div style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
     +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
