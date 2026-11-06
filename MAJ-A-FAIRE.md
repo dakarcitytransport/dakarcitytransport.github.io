@@ -6672,3 +6672,7 @@ Carte du container : nouveau bloc `.cli-ct` (champ `colis` du client tel quel, `
 - Collecte classique : lignes `.client-row` → `cr-hd` (avatar, nom, adresse, prix, bandeau rose / vert selon paiement, bleu sans paiement) + `cr-bd` (pastille de paiement, contenu des colis avec tuile 📦 / nombre, auteur + camion + bouton changer de collecte), traits fins ; `cr-hd` / `cr-bd` en `display:contents` en V1. Le bouton « Changer de collecte » est maintenant ajouté dans `.cr-dr`.
 - France : `fr-hd` (bandeau : case, nom, prix, puces de statut) + `fr-bd` (adresse, colis, déplacement, date et auteur, note) ; bandeau vert si ramassé, rose si ancien, bleu-violet sinon.
 `_depLignePaiementCarte` et `_depEtatCarte` exposées sur window. 74/74. Non vu avec un camion affecté ni avec un client de collecte soldé.
+
+### 06/11/2026 — « Changer de collecte » devient « Changer de date » (v3.99.278–279, departs.js v2.22.56)
+> Cobey : « le bouton changement n'est pas trop compréhensible » → « Changer de date ».
+Bouton sur chaque client d'une collecte : en V2, « 🔁 Changer de date » (vrai bouton arrondi avec texte, bas de carte à droite) ; V1 garde la petite 🔁 (texte caché). Titre de la fenêtre : « Changer de date ». 74/74.

@@ -343,7 +343,7 @@ html.look-v2 .pl.pl-cam{font-size:0 !important}
 html.look-v2 .pl.pl-cam > *{font-size:0}
 html.look-v2 .pl.pl-cam{font-size:12px !important}
 
-html.look-v2 button[title="Changer de collecte"]{width:34px;height:34px;border-radius:12px !important;background:rgba(255,255,255,.75) !important;border:1px solid #fff !important;box-shadow:0 4px 10px rgba(0,0,0,.1);padding:0 !important;font-size:15px !important;color:#26338f !important;display:flex;align-items:center;justify-content:center}
+html.look-v2 button[title="Changer de collecte"],html.look-v2 button.cr-chg{width:34px;height:34px;border-radius:12px !important;background:rgba(255,255,255,.75) !important;border:1px solid #fff !important;box-shadow:0 4px 10px rgba(0,0,0,.1);padding:0 !important;font-size:15px !important;color:#26338f !important;display:flex;align-items:center;justify-content:center}
 
 /* carte client d'une collecte : haut (avatar, nom, prix) / milieu (adresse, colis) / bas (pastilles + bouton) */
 
@@ -470,7 +470,7 @@ html.look-v2 #collecte-content .cr-t{font-size:13.5px;font-weight:700;line-heigh
 html.look-v2 #collecte-content .cr-dr{display:flex !important;flex-direction:row !important;align-items:center !important;gap:8px;border-top:1px solid var(--lk-line);margin-top:10px;padding-top:10px}
 html.look-v2 #collecte-content .cr-dr .client-price{display:none}
 html.look-v2 #collecte-content .cr-dr .cr-bas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1}
-html.look-v2 #collecte-content .cr-dr button[title="Changer de collecte"]{margin-left:auto}
+html.look-v2 #collecte-content .cr-dr button.cr-chg{margin-left:auto}
 
 /* ── clients France : même carte (bandeau coloré, corps blanc, traits fins) ── */
 html.look-v2 .fr-carte{padding:0 !important;overflow:hidden;background:var(--lk-glass) !important}
@@ -485,6 +485,9 @@ html.look-v2 .fr-bd > .fr-ad{margin-top:0 !important}
 html.look-v2 .fr-bd > .fr-co{border-top:1px solid var(--lk-line);margin-top:10px !important;padding-top:10px}
 html.look-v2 .fr-bd > .fr-bas{border-top:1px solid var(--lk-line);margin-top:10px !important;padding-top:10px}
 html.look-v2 .fr-bd > .fr-note,html.look-v2 .fr-bd > .fr-etat{margin-top:10px !important}
+html.look-v2 button.cr-chg{width:auto !important;height:auto !important;min-height:34px;padding:7px 12px !important;border-radius:12px !important;font-size:12.5px !important;font-weight:800 !important;gap:6px;white-space:nowrap}
+html.look-v2 button.cr-chg .cr-chg-i{display:inline-flex}
+html.look-v2 button.cr-chg .cr-chg-t{display:inline}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

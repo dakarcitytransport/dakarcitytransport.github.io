@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.55';
+var DEP_VERSION = 'v2.22.56';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4517,7 +4517,7 @@ function injecterEcrans(){
   mCol.id = 'modal-dep-move-collecte';
   mCol.innerHTML = '<div class="modal-sheet"><div class="modal-confirm">'
     + '<div class="modal-emoji">&#128197;</div>'
-    + '<div class="modal-confirm-title">Changer de collecte</div>'
+    + '<div class="modal-confirm-title">Changer de date</div>'
     + '<div id="dep-move-collecte-info" style="font-size:13px;color:#555;margin:8px 0 12px;"></div>'
     + '<select class="fi" id="dep-move-collecte-select" style="margin-bottom:12px;"></select>'
     + '<div id="dep-move-collecte-warn" style="display:none;" class="dep-alert"></div>'
@@ -17455,10 +17455,11 @@ function _depAjouterDrapeauxCollecte(){
       if(colDroite){
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.title = 'Changer de collecte';
+        btn.title = 'Changer de date';
+        btn.className = 'cr-chg';
         btn.style.cssText = 'background:#EEF1FF;color:#1a1a2e;border:1px solid #D7DCF5;'
           + 'border-radius:8px;font-size:11px;font-weight:700;padding:3px 7px;cursor:pointer;';
-        btn.textContent = '🔁';
+        btn.innerHTML = '<span class="cr-chg-i">🔁</span> <span class="cr-chg-t">Changer de date</span>';
         (function(cid){
           btn.onclick = function(ev){ ev.stopPropagation(); window.depOuvrirMoveCollecte(cid); };
         })(c.id);
