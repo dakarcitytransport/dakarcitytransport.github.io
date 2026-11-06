@@ -546,6 +546,9 @@ html.look-v2 button.cr-chg .cr-chg-t{display:inline}
 html.look-v2 .fr-carte .fr-px{display:flex !important;flex-direction:column;align-items:flex-end;text-align:right;line-height:1.15}
 html.look-v2 .fr-carte .fr-dp{display:inline-block;font-size:11px;font-weight:800;letter-spacing:0;color:#00636b;background:rgba(0,140,150,.14);border-radius:99px;padding:3px 9px;margin-top:5px}
 html.look-v2 .fr-carte .fr-dpb{display:none !important}
+html.look-v2 .fr-carte .fr-tot{font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--green-dark,#0a7a45)}
+html.look-v2 .fr-carte .fr-tot i{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-right:3px}
+html.look-v2 .fr-carte .fr-ln{display:block;font-size:11.5px;font-weight:700;color:var(--text2);margin-top:3px}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

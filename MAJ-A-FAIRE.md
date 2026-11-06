@@ -6680,3 +6680,7 @@ Bouton sur chaque client d'une collecte : en V2, « 🔁 Changer de date » (vra
 ### 06/11/2026 — Clients France : le déplacement sous le prix, bien distinct (v3.99.280–283)
 > Cobey : « le prix du déplacement devrait être plutôt en dessous du tarif total en haut à droite » ; « c'est pas "dont" : le prix du colis est différent du prix de déplacement, il faut faire une distinction. »
 V2 : le prix du colis (vert, gros) en haut à droite ; juste dessous une pastille turquoise « 🛣️ 15 € déplacement » (séparée, pas « dont »). L'ancienne pastille dans la ligne des colis est cachée en V2. Question restée ouverte avec Cobey : signification des couleurs de bandeau en France (rose = attend depuis plus de 14 j, vert = ramassé, bleu = autre) — proposition : orange pour l'ancienneté, rose réservé aux impayés.
+
+### 06/11/2026 — Clients France : le total en premier (v3.99.284)
+> Cobey : « le prix du déplacement et le prix des colis ne s'additionnent pas… vérifie » → « mettre d'abord le total, après le prix du colis, après le déplacement, comme ça le collaborateur sait quel total prendre. Le code part. »
+Vérification : le bandeau de la liste (« Montant ») et la facture additionnent déjà colis + déplacement ; la carte client, non. V2 : en haut à droite de chaque carte avec déplacement — « TOTAL 75 € » (gros, vert), « Colis 60 € », puis la pastille « 🛣️ 15 € déplacement ». Sans déplacement : le prix seul. V1 inchangée (74/74).
