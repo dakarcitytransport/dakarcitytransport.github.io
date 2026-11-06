@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.50';
+var DEP_VERSION = 'v2.22.51';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2823,6 +2823,7 @@ function injecterStyles(){
     + '.doc-ch{color:var(--text3);opacity:.6;display:flex;}'
     + '.doc-lien{display:block;width:100%;margin-top:18px;padding:10px;background:none;border:0;color:var(--text2);font-family:var(--font);font-weight:700;font-size:14px;cursor:pointer;}'
     + '.dep-cli-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}'
+    + '.rg-l{font-style:normal;}.cli-liv2{display:none;}'
     + '.dep-cli-btn{background:#EEF0FA;border:1.5px solid #C5CAE9;color:#252599;border-radius:8px;'
     +   'padding:7px 6px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);'
     +   'flex:1 1 auto;min-width:72px;text-align:center;}'
@@ -8941,16 +8942,21 @@ window.depDetail = function(id, gardeFiltres){
         : (_nbFus ? 'border-left:4px solid #00b34e;' : (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : ''));
       h += '<div class="dep-cli" style="cursor:pointer;' + _bordureCli
         +     '" onclick="'+clic+'">'
+        +   '<div class="cli-hd ' + (_depEtatCarte(c, x)) + '">'
         +   '<div class="dep-cli-n">'+_depPastilleRang(c, id)
-        +     esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))+' '+drapeauCli+_pastilleDouble
+        +     '<span class="cli-nom">'+esc(c.name || ((c.prenom||'')+' '+(c.nom||'')))+' '+drapeauCli+_pastilleDouble+'</span>'
+        +     '<span class="cli-tags">'
         +     (x.depot ? ' <span style="font-size:10.5px;font-weight:700;color:#006b2d;">&#127970; D&eacute;p&ocirc;t direct</span>' : '')
-        +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France</span>' : '')+'</div>'
+        +     (x.france ? ' <span style="font-size:10.5px;font-weight:700;color:#1a237e;">&#9992;&#65039; France</span>' : '')
+        +     (c.livraisonDakar ? '<span class="cli-liv2">&#128666; livraison</span>' : '')
+        +     '</span></div>'
         +   '<div class="dep-cli-s" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">'
-        +     '<span>'+(c.prixADefinir ? '&agrave; d&eacute;finir' : ((parseFloat(c.prix)||0)+' &euro;'))
-        +       (c.livraisonDakar ? ' &middot; &#128666; livraison' : '')
+        +     '<span class="cli-px">'+(c.prixADefinir ? '&agrave; d&eacute;finir' : ((parseFloat(c.prix)||0)+' &euro;'))
+        +       (c.livraisonDakar ? '<span class="cli-liv"> &middot; &#128666; livraison</span>' : '')
         +       '</span>'
         +     _depLienTelIcone(c.tel)
-        +   '</div>'
+        +   '</div></div>'
+        +   '<div class="cli-bd">'
         +   _depLignePaiementCarte(c)
         +   _depBadgeLivraison(c, _depDepartAuDepotDakar(d), _cliColoree)
         +   '<div class="dep-cli-btns" style="margin-top:12px;">'
@@ -9015,7 +9021,7 @@ window.depDetail = function(id, gardeFiltres){
                     + '&#128203; Copier</button>')
                   : ''))
             + _depBoutonsRelancePaiement(c, x, d, id, _cliColoree)
-            + '</div>'
+            + '</div></div>'
         + '</div>';
     });
   }
@@ -14377,14 +14383,23 @@ function _depRattraperRangs(liste, departId){
 }
 
 // Le numéro de place d'un client dans CE container — celui de l'étiquette.
+// Couleur du bandeau d'un client dans un container (nouveau look) : rouge = il reste à payer, vert = soldé, bleu = France.
+function _depEtatCarte(c, x){
+  try{
+    if(x && x.france) return 'hn';
+    var inf = _depRelanceInfos(c);
+    return (inf && (inf.colis || inf.liv)) ? 'hk' : 'ho';
+  }catch(e){ return 'ho'; }
+}
+
 function _depPastilleRang(c, departId){
   if(!c || c.rangDepartId !== departId) return '';
   var n = parseInt(c.rangDepart, 10) || 0;
   if(!n) return '';
-  return '<span title="Place dans le container" style="display:inline-block;min-width:22px;text-align:center;'
+  return '<span class="rg-n" title="Place dans le container" style="display:inline-block;min-width:22px;text-align:center;'
     + 'font-size:11px;font-weight:800;color:#1a1a2e;background:#EDEFF3;border:1.5px solid var(--border);'
     + 'border-radius:20px;padding:1px 7px;margin-right:6px;font-variant-numeric:tabular-nums;">'
-    + 'N&deg;' + n + '</span>';
+    + '<i class="rg-l">N&deg;</i>' + n + '</span>';
 }
 
 // Un seul bouton « Déplacer » : une fenêtre propose « Vers un autre container » ou « Remettre au dépôt de Mitry »

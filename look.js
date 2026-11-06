@@ -364,18 +364,16 @@
       if(!btns.length) return;
       var princ = null;
       btns.forEach(function(b){ if(!princ && RE_PRINCIPAL.test(b.textContent)) princ = b; });
-      if(!princ) btns.forEach(function(b){ if(!princ && /Facture/.test(b.textContent)) princ = b; });
-      if(!princ) princ = btns[0];
       g.setAttribute('data-lk', '1');
       btns.forEach(function(b){
         if(b === princ){ b.classList.add('lk-main'); return; }
         b.classList.add('lk-ico');                         // bouton secondaire : étiquette écrite en toutes lettres
         if(/D[ée]tacher/i.test(b.textContent)) b.classList.add('lk-det');
       });
-      g.insertBefore(princ, g.firstChild);
+      if(princ) g.insertBefore(princ, g.firstChild);
       // « Copier » appartient au bouton principal (relance sans WhatsApp) : il se range juste à côté, dans la même ligne.
       var cop = btns.filter(function(b){ return b !== princ && /Copier/.test(b.textContent); })[0];
-      if(cop){
+      if(cop && princ){
         var ln = document.createElement('div'); ln.className = 'lk-ln';
         g.insertBefore(ln, princ); ln.appendChild(princ); ln.appendChild(cop);
         cop.classList.remove('lk-ico'); cop.classList.add('lk-cop');

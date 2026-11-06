@@ -402,15 +402,7 @@ html.look-v2 .fr-carte .fr-co .badge{display:inline-flex;align-items:center;bord
 
 
 /* ── client d'un container : haut (rang, nom, prix) / état / action principale / boutons secondaires écrits ── */
-html.look-v2 #s-depart-detail .dep-cli{display:grid;grid-template-columns:1fr auto;column-gap:10px;align-items:center;border-radius:26px !important;padding:16px !important}
-html.look-v2 #s-depart-detail .dep-cli > *{grid-column:1 / -1}
-html.look-v2 #s-depart-detail .dep-cli > .dep-cli-n{grid-column:1;grid-row:1;font-size:17px;font-weight:800;letter-spacing:-.02em;min-width:0}
-html.look-v2 #s-depart-detail .dep-cli > .dep-cli-s{display:contents !important}
-html.look-v2 #s-depart-detail .dep-cli > .dep-cli-s > span{grid-column:2;grid-row:1;font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--green-dark,#0a7a45);white-space:nowrap;text-align:right}
-html.look-v2 #s-depart-detail .dep-cli > .dep-cli-s > :not(span){grid-column:2;grid-row:2;justify-self:end}
-html.look-v2 #s-depart-detail .dep-cli > .dep-cli-s ~ :not(.dep-cli-btns){grid-column:1 / -1}
-html.look-v2 #s-depart-detail .dep-cli > .dep-cli-s + div{grid-column:1;grid-row:2;margin-top:8px}
-html.look-v2 .dep-cli-btns{display:grid !important;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px !important}
+html.look-v2 .dep-cli-btns{display:grid !important;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px !important}
 html.look-v2 .dep-cli-btn.lk-main{grid-column:1 / -1}
 html.look-v2 .dep-cli-btn.lk-ico{grid-column:auto;height:auto;min-height:44px;width:auto;min-width:0;flex:none;padding:10px 8px;border-radius:15px;font-size:13px;font-weight:800;background:rgba(255,255,255,.8) !important;border:1px solid #fff !important;color:#26338f !important;box-shadow:0 3px 8px rgba(0,0,0,.07);display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
 html.look-v2 .dep-cli-btn.lk-det{grid-column:1 / -1;color:#a02a1e !important;background:rgba(192,57,43,.1) !important;border-color:rgba(192,57,43,.25) !important}
@@ -425,6 +417,33 @@ html.look-v2 .dep-cli-btns > .lk-ln > .lk-main{flex:1 1 auto}
 html.look-v2 .screen .dep-cli-btns > .lk-ln > button.dep-cli-btn.lk-cop[style],html.look-v2 .dep-cli-btn.lk-cop{flex:0 0 64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 4px;border-radius:18px;font-size:10.5px;font-weight:800;background:rgba(255,255,255,.85) !important;color:#26338f !important;border:1px solid #fff !important;box-shadow:0 3px 8px rgba(0,0,0,.08)}
 html.look-v2 .dep-cli-btn.lk-cop svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 html.look-v2 .dep-cli-btns > .dep-cli-btn.lk-annul{grid-column:1 / -1;min-height:34px !important;padding:6px !important;font-size:12px !important;font-weight:700 !important;background:transparent !important;border:0 !important;box-shadow:none !important;color:#7d8e85 !important}
+
+/* ── client d'un container : bandeau coloré (numéro, nom, prix, téléphone) / corps blanc (état, actions) ── */
+html.look-v2 #s-depart-detail .dep-cli{padding:0 !important;border-radius:24px !important;overflow:hidden;background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;box-shadow:var(--shadow);margin-bottom:12px}
+html.look-v2 #s-depart-detail .cli-hd{display:grid;grid-template-columns:auto 1fr auto auto;column-gap:10px;row-gap:2px;align-items:center;padding:13px 14px 11px}
+html.look-v2 #s-depart-detail .cli-hd.hk{background:linear-gradient(135deg,rgba(224,80,63,.22),rgba(224,80,63,.07))}
+html.look-v2 #s-depart-detail .cli-hd.ho{background:linear-gradient(135deg,rgba(26,138,92,.22),rgba(26,138,92,.07))}
+html.look-v2 #s-depart-detail .cli-hd.hn{background:linear-gradient(135deg,rgba(60,70,200,.18),rgba(60,70,200,.05))}
+html.look-v2 #s-depart-detail .cli-hd .dep-cli-n{display:contents !important}
+html.look-v2 #s-depart-detail .cli-hd .dep-cli-s{display:contents !important}
+html.look-v2 #s-depart-detail .rg-n{grid-column:1;grid-row:1 / span 2;min-width:42px !important;height:42px;border-radius:13px !important;background:linear-gradient(145deg,#3b4a45,#1c2a25) !important;color:#fff !important;border:0 !important;display:flex !important;flex-direction:column;align-items:center;justify-content:center;font-size:17px !important;font-weight:800;line-height:1;letter-spacing:-.02em;padding:0 !important;margin:0 !important;box-shadow:0 4px 10px rgba(0,0,0,.22)}
+html.look-v2 #s-depart-detail .rg-l{font-style:normal;font-size:7.5px;font-weight:800;letter-spacing:.08em;opacity:.7;margin-bottom:2px}
+html.look-v2 #s-depart-detail .cli-nom{grid-column:2;grid-row:1;font-size:16.5px;font-weight:800;letter-spacing:-.015em;min-width:0}
+html.look-v2 #s-depart-detail .cli-tags{grid-column:2;grid-row:2;display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:var(--text3)}
+html.look-v2 #s-depart-detail .cli-tags > span{font-size:12px !important;font-weight:600 !important;color:var(--text3) !important}
+html.look-v2 #s-depart-detail .cli-px{grid-column:3;grid-row:1 / span 2;font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--green-dark,#0a7a45);white-space:nowrap}
+html.look-v2 #s-depart-detail .cli-liv{display:none}
+html.look-v2 #s-depart-detail .cli-liv2{display:inline !important}
+html.look-v2 #s-depart-detail .cli-hd > :not(.rg-n):not(.cli-nom):not(.cli-tags):not(.cli-px):not(.dep-cli-n):not(.dep-cli-s){grid-column:4;grid-row:1 / span 2}
+html.look-v2 #s-depart-detail .cli-hd .dep-cli-s > :not(.cli-px){grid-column:4;grid-row:1 / span 2}
+html.look-v2 #s-depart-detail .cli-bd{padding:10px 14px 14px;background:rgba(255,255,255,.55)}
+html.look-v2 #s-depart-detail .cli-bd .dep-cli-btns{margin-top:10px !important}
+html.look-v2 #s-depart-detail .lk-main{min-height:42px !important;font-size:13.5px !important;border-radius:14px !important}
+html.look-v2 #s-depart-detail .dep-cli-btn.lk-ico{min-height:38px !important;padding:8px 6px !important;border-radius:13px !important}
+html.look-v2 #s-depart-detail .lk-cop{border-radius:14px !important}
+
+html.look-v2 #s-depart-detail .dep-cli-btn.lk-main[style*="#FFF4E0"],html.look-v2 #s-depart-detail .dep-cli-btn.lk-main[style*="background:#fff;border-color:#E58A00"]{background:linear-gradient(145deg,#e08a2b,#c26a00) !important;color:#fff !important;border:0 !important;box-shadow:0 6px 14px rgba(194,106,0,.28)}
+html.look-v2 #s-depart-detail .dep-cli-btn.lk-main[style*="#D4F0E0"]{background:rgba(26,138,92,.14) !important;color:#0a6b3d !important;border:1px solid rgba(26,138,92,.3) !important;box-shadow:none}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
