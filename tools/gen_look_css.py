@@ -367,6 +367,21 @@ html.look-v2 #france-content > div[onclick^="ouvrirProchesFrance"]{border-radius
 html.look-v2 #france-content > div[style*="background:#FFF"],html.look-v2 #france-content > div[style*="background:#fff3"],html.look-v2 #france-content > div[style*="background:#fde"]{border-radius:20px !important}
 
 html.look-v2 #s-home .header img[alt="DCT"]{display:none !important}
+
+/* ── gros boutons : contour épais d'ancien look → dégradé, bords fins et arrondis (écrans, hors modales déjà traitées) ── */
+html.look-v2 .add-banner,html.look-v2 .new-btn{background:linear-gradient(145deg,#2fb27c,#1a8a5c) !important;border:1px solid rgba(255,255,255,.4) !important;border-radius:26px !important;box-shadow:0 10px 24px rgba(26,138,92,.32)}
+html.look-v2 .screen button[style*="border:2px solid"],html.look-v2 .screen button[style*="border:2.5px solid"],html.look-v2 .screen div[onclick][style*="border:2px solid"][style*="text-align:center"],html.look-v2 .screen div[onclick][style*="border:2.5px solid"][style*="text-align:center"]{border-width:1px !important;border-radius:18px !important}
+html.look-v2 .screen button[style*="background:#1a237e"],html.look-v2 .screen button[style*="background:#0d47a1"],html.look-v2 .screen div[onclick][style*="background:#1a237e"]{background:linear-gradient(145deg,#4a55c8,#26338f) !important;border-color:rgba(255,255,255,.35) !important;box-shadow:0 8px 20px rgba(38,51,143,.3)}
+html.look-v2 .screen button[style*="background:#006b2d"],html.look-v2 .screen button[style*="background:#009A44"],html.look-v2 .screen button[style*="background:#0E9F5B"],html.look-v2 .screen button[style*="background:var(--green)"]{background:linear-gradient(145deg,#2fb27c,#1a8a5c) !important;border-color:rgba(255,255,255,.35) !important;box-shadow:0 8px 20px rgba(26,138,92,.3)}
+html.look-v2 .screen button[style*="background:#c0392b"],html.look-v2 .screen button[style*="background:#B3261E"]{background:linear-gradient(145deg,#e0503f,#b8301f) !important;border-color:rgba(255,255,255,.35) !important}
+html.look-v2 .screen button[style*="background:#e65100"],html.look-v2 .screen button[style*="background:#E65100"]{background:linear-gradient(145deg,#f07a1a,#d9560a) !important;border-color:rgba(255,255,255,.35) !important}
+html.look-v2 .screen button[style*="background:#FFF3E0"],html.look-v2 .screen button[style*="background:#fff3e0"],html.look-v2 .screen button[style*="background:#FFF8E1"]{border-radius:18px !important;border-width:1px !important}
+html.look-v2 .screen button[style*="background:#555"],html.look-v2 .screen button[style*="background:#444"],html.look-v2 .screen button[style*="background:#333"]{background:rgba(120,135,128,.18) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:18px !important}
+
+html.look-v2 .modal-sheet button[style*="border:2px solid"],html.look-v2 .modal-sheet button[style*="border:2.5px solid"],html.look-v2 .modal-sheet div[onclick][style*="border:2px solid"]{border-width:1px !important;border-radius:18px !important}
+html.look-v2 .modal-sheet button[style*="background:#1a237e"]{background:linear-gradient(145deg,#4a55c8,#26338f) !important;border-color:rgba(255,255,255,.35) !important}
+html.look-v2 .modal-sheet button[style*="background:#006b2d"],html.look-v2 .modal-sheet button[style*="background:#009A44"]{background:linear-gradient(145deg,#2fb27c,#1a8a5c) !important;border-color:rgba(255,255,255,.35) !important}
+html.look-v2 .modal-sheet button[style*="background:#c0392b"]{background:linear-gradient(145deg,#e0503f,#b8301f) !important;border-color:rgba(255,255,255,.35) !important}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

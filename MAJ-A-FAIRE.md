@@ -6589,3 +6589,7 @@ dct-app.html : classes `fr-carte` (carte client) et `fr-chip` (puces région / d
 ### 06/11/2026 — Écran Collecte : logo DCT retiré (v3.99.252)
 > Cobey : « Le logo de DCT ici ne devrait plus y être. Il était avant parce qu'il n'y avait que la collecte. »
 V2 : le logo rond à gauche du titre « Collecte » (écran `s-home`) est masqué. V1 inchangée (74/74).
+
+### 06/11/2026 — Gros boutons : fin des contours épais (v3.99.253–254)
+> Cobey : « Oui, c'est vrai [le bouton Créer une nouvelle collecte]. Et vérifie dans l'application qu'il n'y a pas d'autres boutons qui ont le même style de l'ancien look. »
+V2 : `.add-banner` / `.new-btn` (Créer une collecte, Ajouter un client…) en dégradé vert, bord fin, 26 px ; tous les boutons / lignes cliquables à contour de 2–2,5 px (écrans et fenêtres) passent en bord fin arrondi, les fonds pleins marine / vert / rouge / orange en dégradé, les gris foncés en verre. Contrôle par script sur 75 écrans : plus de bouton à contour ≥ 2 px sur les écrans visibles (écrans vides sans données non vus). 74/74.
