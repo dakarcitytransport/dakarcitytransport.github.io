@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.275">
+<link rel="stylesheet" href="look-v2.css?v=3.99.277">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -274,6 +274,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .truck-pills-wrap{padding:8px 14px 10px;display:flex;flex-wrap:wrap;gap:5px;}
 .pl-i{display:none;}
 .cr-bas{display:contents;}
+.cr-hd,.cr-bd{display:contents;}.cr-px,.cr-b1,.cr-ct{display:none;}
 .fr-px{display:none;}
 .pl-v1{display:inline-flex;}
 .truck-pill-item{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700;border:1.5px solid;}
@@ -2288,7 +2289,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.275';
+var APP_VERSION = 'v3.99.277';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5400,12 +5401,13 @@ function _frCarte(c){
     ? '<button type="button" onclick="event.stopPropagation();retirerClientCollecteFrance(\''+c._id+'\')" style="background:#fde0e0;color:#992020;border:1.5px solid #c0392b;border-radius:7px;width:26px;height:26px;flex-shrink:0;font-size:13px;cursor:pointer;line-height:1;">✕</button>'
     : '';
   return '<div class="fr-carte'+(sel&&coche?' fr-sel':'')+(anc?' fr-anc':'')+'" onclick="'+act+'" style="'+cadre+'border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;">'
+    + '<div class="fr-hd '+(c.statut==='ramasse'||_frEstRamasse(c)?'ho':(anc&&anc.bord?'hk':'hn'))+'">'
     + '<div class="fr-h" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
     +   '<div class="fr-nm" style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
     +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
     +   (_montantsVisibles()?('<span class="fr-px">'+(c.prix||0)+' €</span>'):'')
-    +   '<div class="fr-ch" style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+btnRetirer+'</div></div>'
-    + '<div class="fr-ad" style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
+    +   '<div class="fr-ch" style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+btnRetirer+'</div></div></div>'
+    + '<div class="fr-bd"><div class="fr-ad" style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
     + '<div class="fr-co" style="font-size:11.5px;color:#555;margin-top:5px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'
     +   '<span>📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')
     +     (_montantsVisibles()?('<span class="fr-sep"> · </span><b style="color:#006b2d;">'+(c.prix||0)+' €</b>'):'')+'</span>'
@@ -5429,7 +5431,7 @@ function _frCarte(c){
             : ''))
     // v3.79.0 : la dernière note de suivi, sans ouvrir la fiche.
     + _frBlocNotes(c._id)
-    + '</div>';
+    + '</div></div>';
 }
 
 // ═══════════ CONSULTER UNE TOURNÉE — v3.46.0 ═══════════
@@ -11013,11 +11015,18 @@ function renderClientsTab(){
       // v3.86.1 : bg et color n'existent pas sur un client — l'avatar
       // recevait « background:undefined », que le navigateur jette, et
       // s'affichait donc sans couleur. Gris de repli, comme ailleurs.
-      row.innerHTML='<div class="av" style="background:'+(c.bg||'#e8eaed')+';color:'+(c.color||'#555')+';font-size:12px;">'+init+'</div>'
+      // Nouveau look : bandeau (avatar, nom, adresse, prix) + corps (paiement, contenu, auteur / camion / bouton). cr-hd et cr-bd sont
+      // « display:contents » en V1 (rien ne change) ; cr-px, cr-b1 et cr-ct n'existent qu'en nouveau look.
+      var _etat='hn', _pay='';
+      try{ var _pc=depCalculerPaiement(c); if(_pc && _pc.total>0) _etat=(_pc.statut==='paye'?'ho':'hk'); _pay=window._depLignePaiementCarte?window._depLignePaiementCarte(c):''; }catch(e){}
+      row.innerHTML='<div class="cr-hd '+_etat+'"><div class="av" style="background:'+(c.bg||'#e8eaed')+';color:'+(c.color||'#555')+';font-size:12px;">'+init+'</div>'
         +'<div class="client-info"><div class="client-name">'+c.name+'</div>'
         +'<div class="client-sub">'+(c.adresse?c.adresse+', ':'')+c.cp+' '+c.ville+'</div>'
-        +'<div class="client-sub" style="color:#888;font-size:11px;">'+c.colis+'</div></div>'
-        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
+        +'<div class="client-sub cr-colis1" style="color:#888;font-size:11px;">'+c.colis+'</div></div>'
+        +'<span class="cr-px">'+c.prix+' €</span></div>'
+        +'<div class="cr-bd"><div class="cr-b1">'+_pay+'</div>'
+        +(String(c.colis||'').trim()?'<div class="cr-ct"><span class="cr-n">'+(parseInt(c.nb,10)>0?parseInt(c.nb,10):'&#128230;')+'</span><span class="cr-t">'+String(c.colis).trim()+'</span></div>':'')
+        +'<div class="cr-dr" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
         +'<div class="client-price">'+c.prix+' €</div>'
         // v3.86.1 : cette pastille lisait bg, color et by sur le client.
         // Or ces champs appartiennent au collaborateur : elle affichait
@@ -11026,7 +11035,7 @@ function renderClientsTab(){
         // nom, comme le fait déjà la feuille de route du camion, et on ne
         // dessine rien quand l'auteur est inconnu.
         +'<div class="cr-bas">'+_pastilleAuteurClient(c.by)
-        +pillHtml+'</div></div>';
+        +pillHtml+'</div></div></div>';
       (function(cid){row.onclick=function(){openClientFiche(cid,'s-collecte');};})(c.id);
       block.appendChild(row);
     });

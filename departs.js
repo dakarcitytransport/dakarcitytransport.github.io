@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.54';
+var DEP_VERSION = 'v2.22.55';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -13314,6 +13314,7 @@ function _depLignePaiementCarte(c){
   return h ? '<div style="margin:4px 0 2px;">' + h + '</div>' : '';
 }
 
+window._depLignePaiementCarte = _depLignePaiementCarte;
 function _depBadgeLivraison(c, arrive, fondBlanc){
   if(!c) return '';
   var fondFait = fondBlanc ? '#fff' : '#EAF7EE';
@@ -14397,6 +14398,7 @@ function _depEtatCarte(c, x){
   }catch(e){ return 'ho'; }
 }
 
+window._depEtatCarte = _depEtatCarte;
 function _depPastilleRang(c, departId){
   if(!c || c.rangDepartId !== departId) return '';
   var n = parseInt(c.rangDepart, 10) || 0;
@@ -17449,7 +17451,7 @@ function _depAjouterDrapeauxCollecte(){
     // ouvert à tout le monde, pas réservé à la direction ("le bouton
     // changer de collecte peut être appliqué à tout le monde").
     if(!rows[i]._depBoutonMoveAjoute){
-      var colDroite = rows[i].lastElementChild;
+      var colDroite = rows[i].querySelector('.cr-dr') || rows[i].lastElementChild;
       if(colDroite){
         var btn = document.createElement('button');
         btn.type = 'button';

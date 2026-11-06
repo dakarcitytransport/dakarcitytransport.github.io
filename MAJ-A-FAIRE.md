@@ -6666,3 +6666,9 @@ Les 3 formulaires de versement (facture colis, facture livraison, versement avan
 ### 06/11/2026 — Client d'un container : contenu des colis + traits de séparation (v3.99.275, departs.js v2.22.54)
 > Cobey : « dans ces cases on n'a pas le détail des colis » → encadré « contenu » (proposition A) ; « sépare le nom, les colis, les boutons et les statuts avec des petits tirets » → « pas les tirets, des petits traits comme pour les collectes ».
 Carte du container : nouveau bloc `.cli-ct` (champ `colis` du client tel quel, `nb` dans la tuile, 📦 sinon) ; visible en V2 seulement ; `.cli-b1` regroupe pastilles de paiement + badge de livraison ; traits fins (1 px) entre bandeau / statut / colis / boutons. La livraison n'est pas retirée du texte (26 anciens clients l'ont seulement là). 74/74.
+
+### 06/11/2026 — Même carte pour les clients d'une collecte et de France (v3.99.276–277, departs.js v2.22.55)
+> Cobey : « La présentation des clients, comme tu as fait dans le départ, est très belle. Tu peux la refaire la même sur les collectes France et sur les collectes classiques ? »
+- Collecte classique : lignes `.client-row` → `cr-hd` (avatar, nom, adresse, prix, bandeau rose / vert selon paiement, bleu sans paiement) + `cr-bd` (pastille de paiement, contenu des colis avec tuile 📦 / nombre, auteur + camion + bouton changer de collecte), traits fins ; `cr-hd` / `cr-bd` en `display:contents` en V1. Le bouton « Changer de collecte » est maintenant ajouté dans `.cr-dr`.
+- France : `fr-hd` (bandeau : case, nom, prix, puces de statut) + `fr-bd` (adresse, colis, déplacement, date et auteur, note) ; bandeau vert si ramassé, rose si ancien, bleu-violet sinon.
+`_depLignePaiementCarte` et `_depEtatCarte` exposées sur window. 74/74. Non vu avec un camion affecté ni avec un client de collecte soldé.

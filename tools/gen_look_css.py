@@ -387,12 +387,6 @@ html.look-v2 .modal-sheet button[style*="background:#c0392b"]{background:linear-
 html.look-v2 #collecte-content .dept-block{background:transparent !important;border:0 !important;box-shadow:none !important;backdrop-filter:none;-webkit-backdrop-filter:none;overflow:visible;margin-bottom:6px}
 html.look-v2 #collecte-content .dept-head{background:transparent;border:0;padding:12px 6px 8px}
 html.look-v2 #collecte-content .dept-name{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
-html.look-v2 #collecte-content .client-row{background:var(--lk-glass);border:1px solid var(--lk-edge) !important;border-radius:24px;margin:0 0 10px;padding:14px 16px;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);gap:12px}
-html.look-v2 #collecte-content .client-row:last-child{border-bottom:1px solid var(--lk-edge) !important}
-html.look-v2 #collecte-content .client-row .av{width:42px;height:42px;font-size:13px}
-html.look-v2 #collecte-content .client-row > div:last-child{gap:6px !important}
-html.look-v2 #collecte-content .client-row button,html.look-v2 #collecte-content .client-row [onclick]{border-radius:14px !important;border-width:1px !important}
-html.look-v2 #collecte-content .client-row span[style*="border-radius:20px"],html.look-v2 #collecte-content .client-row .truck-pill{border-radius:99px !important;border-width:1px !important;font-weight:800;padding:4px 11px !important;font-size:11.5px !important;white-space:nowrap}
 html.look-v2 #collecte-content .client-price{font-size:16px;font-weight:800;letter-spacing:-.01em}
 
 
@@ -407,15 +401,6 @@ html.look-v2 .pl.pl-cam{font-size:12px !important}
 html.look-v2 button[title="Changer de collecte"]{width:34px;height:34px;border-radius:12px !important;background:rgba(255,255,255,.75) !important;border:1px solid #fff !important;box-shadow:0 4px 10px rgba(0,0,0,.1);padding:0 !important;font-size:15px !important;color:#26338f !important;display:flex;align-items:center;justify-content:center}
 
 /* carte client d'une collecte : haut (avatar, nom, prix) / milieu (adresse, colis) / bas (pastilles + bouton) */
-html.look-v2 #collecte-content .client-row{display:grid;grid-template-columns:42px 1fr auto;column-gap:12px;row-gap:0;align-items:start}
-html.look-v2 #collecte-content .client-row > .av{grid-column:1;grid-row:1 / span 2}
-html.look-v2 #collecte-content .client-row > .client-info{grid-column:2;grid-row:1;min-width:0}
-html.look-v2 #collecte-content .client-row > div:last-child{display:contents !important}
-html.look-v2 #collecte-content .client-row .client-price{grid-column:3;grid-row:1;font-size:18px;text-align:right}
-html.look-v2 #collecte-content .client-row .client-name{font-size:16.5px;font-weight:800;letter-spacing:-.015em;white-space:normal}
-html.look-v2 #collecte-content .client-row .client-sub{white-space:normal;overflow:visible;text-overflow:clip;font-size:12.5px;line-height:1.4}
-html.look-v2 #collecte-content .client-row .cr-bas{display:flex;flex-wrap:wrap;gap:8px;grid-column:2;grid-row:2;margin-top:11px;padding-top:11px;border-top:1px solid var(--lk-line);align-items:center}
-html.look-v2 #collecte-content .client-row button[title="Changer de collecte"]{grid-column:3;grid-row:2;align-self:end;margin-top:11px}
 
 
 /* carte client France : nom sur toute la largeur, puces de statut dessous, adresse / colis, bande basse (date + auteur) */
@@ -517,6 +502,44 @@ html.look-v2 #s-depart-detail .cli-ct{display:flex;gap:10px;align-items:flex-sta
 html.look-v2 #s-depart-detail .cli-n{flex:none;min-width:30px;height:30px;border-radius:10px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-weight:800;color:#26338f;font-size:14px;padding:0 6px}
 html.look-v2 #s-depart-detail .cli-t{font-size:13.5px;font-weight:700;line-height:1.35;padding-top:5px;white-space:pre-line}
 html.look-v2 #s-depart-detail .cli-bd .dep-cli-btns{margin-top:10px !important}
+
+/* ── clients d'une collecte : même carte que dans un container (bandeau / paiement / contenu / auteur-camion-bouton) ── */
+html.look-v2 #collecte-content .client-row{display:block !important;padding:0 !important;overflow:hidden;background:var(--lk-glass);border:1px solid var(--lk-edge) !important;border-radius:24px;margin:0 0 12px;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 #collecte-content .client-row:last-child{border-bottom:1px solid var(--lk-edge) !important}
+html.look-v2 #collecte-content .cr-hd{display:grid;grid-template-columns:auto 1fr auto;column-gap:12px;align-items:center;padding:13px 14px}
+html.look-v2 #collecte-content .cr-hd.hk{background:linear-gradient(135deg,rgba(224,80,63,.22),rgba(224,80,63,.07))}
+html.look-v2 #collecte-content .cr-hd.ho{background:linear-gradient(135deg,rgba(26,138,92,.22),rgba(26,138,92,.07))}
+html.look-v2 #collecte-content .cr-hd.hn{background:linear-gradient(135deg,rgba(60,70,200,.14),rgba(60,70,200,.04))}
+html.look-v2 #collecte-content .cr-hd .av{width:42px;height:42px;font-size:13px}
+html.look-v2 #collecte-content .cr-hd .client-name{font-size:16.5px;font-weight:800;letter-spacing:-.015em;white-space:normal}
+html.look-v2 #collecte-content .cr-hd .client-sub{white-space:normal;overflow:visible;text-overflow:clip;font-size:12.5px;line-height:1.35;color:var(--text3)}
+html.look-v2 #collecte-content .cr-colis1{display:none}
+html.look-v2 #collecte-content .cr-px{display:block;font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--green-dark,#0a7a45);white-space:nowrap}
+html.look-v2 #collecte-content .cr-bd{display:block;padding:10px 14px 13px;background:rgba(255,255,255,.55)}
+html.look-v2 #collecte-content .cr-b1:empty{display:none}
+html.look-v2 #collecte-content .cr-b1,html.look-v2 #collecte-content .cr-ct{display:block}
+html.look-v2 #collecte-content .cr-ct{display:flex;gap:10px;align-items:flex-start;border-top:1px solid var(--lk-line);margin-top:10px;padding-top:10px}
+html.look-v2 #collecte-content .cr-b1:empty + .cr-ct{border-top:0;margin-top:0;padding-top:0}
+html.look-v2 #collecte-content .cr-n{flex:none;min-width:30px;height:30px;border-radius:10px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-weight:800;color:#26338f;font-size:14px;padding:0 6px}
+html.look-v2 #collecte-content .cr-t{font-size:13.5px;font-weight:700;line-height:1.35;padding-top:5px;white-space:pre-line}
+html.look-v2 #collecte-content .cr-dr{display:flex !important;flex-direction:row !important;align-items:center !important;gap:8px;border-top:1px solid var(--lk-line);margin-top:10px;padding-top:10px}
+html.look-v2 #collecte-content .cr-dr .client-price{display:none}
+html.look-v2 #collecte-content .cr-dr .cr-bas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1}
+html.look-v2 #collecte-content .cr-dr button[title="Changer de collecte"]{margin-left:auto}
+
+/* ── clients France : même carte (bandeau coloré, corps blanc, traits fins) ── */
+html.look-v2 .fr-carte{padding:0 !important;overflow:hidden;background:var(--lk-glass) !important}
+html.look-v2 .fr-hd{padding:13px 14px 11px}
+html.look-v2 .fr-hd.hk{background:linear-gradient(135deg,rgba(224,80,63,.2),rgba(224,80,63,.06))}
+html.look-v2 .fr-hd.ho{background:linear-gradient(135deg,rgba(26,138,92,.22),rgba(26,138,92,.07))}
+html.look-v2 .fr-hd.hn{background:linear-gradient(135deg,rgba(60,70,200,.16),rgba(60,70,200,.05))}
+html.look-v2 .fr-hd .fr-h{display:flex;flex-wrap:wrap;align-items:center}
+html.look-v2 .fr-hd .fr-ch{margin-top:8px}
+html.look-v2 .fr-bd{padding:10px 14px 13px;background:rgba(255,255,255,.55)}
+html.look-v2 .fr-bd > .fr-ad{margin-top:0 !important}
+html.look-v2 .fr-bd > .fr-co{border-top:1px solid var(--lk-line);margin-top:10px !important;padding-top:10px}
+html.look-v2 .fr-bd > .fr-bas{border-top:1px solid var(--lk-line);margin-top:10px !important;padding-top:10px}
+html.look-v2 .fr-bd > .fr-note,html.look-v2 .fr-bd > .fr-etat{margin-top:10px !important}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
