@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.284">
+<link rel="stylesheet" href="look-v2.css?v=3.99.286">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -2289,7 +2289,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.284';
+var APP_VERSION = 'v3.99.286';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5353,6 +5353,16 @@ function toggleFrPret(id){
   });
 }
 
+// Clients de France : on ne paie qu'au ramassage, donc AUCUNE pastille « reste à payer » ; seulement ce qui a déjà été versé.
+function _frPastillePaye(c){
+  try{
+    var p=depCalculerPaiement(c);
+    if(!p || !(p.paye>0)) return '';
+    var ok=(p.statut==='paye');
+    return '<div class="fr-pay"><div class="pp '+(ok?'pp-v':'pp-o')+'" style="display:inline-block;font-size:11.5px;font-weight:800;border:1.5px solid '+(ok?'#0a6b30':'#8A5200')+';color:'+(ok?'#0a6b30':'#8A5200')+';padding:2px 10px;border-radius:14px;margin:6px 0 2px;">'
+      +'<span class="pp-e">'+(ok?'✅ ':'🟠 ')+'</span><i class="pp-i"></i><span class="pp-l">'+(ok?'Payé en totalité':'Payé '+p.paye+' € sur '+p.total+' €')+'</span><span class="pp-c">'+(ok?'Soldé':'Payé '+p.paye+' €')+'</span></div></div>';
+  }catch(e){ return ''; }
+}
 function _frCarte(c){
   var st=FR_STATUTS[c.statut]||FR_STATUTS.attente;
   var lieu='';
@@ -5401,7 +5411,7 @@ function _frCarte(c){
     ? '<button type="button" onclick="event.stopPropagation();retirerClientCollecteFrance(\''+c._id+'\')" style="background:#fde0e0;color:#992020;border:1.5px solid #c0392b;border-radius:7px;width:26px;height:26px;flex-shrink:0;font-size:13px;cursor:pointer;line-height:1;">✕</button>'
     : '';
   return '<div class="fr-carte'+(sel&&coche?' fr-sel':'')+(anc?' fr-anc':'')+'" onclick="'+act+'" style="'+cadre+'border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;">'
-    + '<div class="fr-hd '+(c.statut==='ramasse'||_frEstRamasse(c)?'ho':(anc&&anc.bord?'hk':'hn'))+'">'
+    + '<div class="fr-hd '+(anc&&anc.bord?'ha':'hn')+'">'
     + '<div class="fr-h" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
     +   '<div class="fr-nm" style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
     +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
@@ -5409,7 +5419,7 @@ function _frCarte(c){
           ? ('<b class="fr-tot"><i>Total</i> '+((parseFloat(c.prix)||0)+(parseFloat(c.prixRamassage)||0))+' €</b><small class="fr-ln">Colis '+(c.prix||0)+' €</small><small class="fr-dp">🛣️ '+c.prixRamassage+' € déplacement</small>')
           : ((c.prix||0)+' €'))+'</span>'):'')
     +   '<div class="fr-ch" style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+btnRetirer+'</div></div></div>'
-    + '<div class="fr-bd"><div class="fr-ad" style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
+    + '<div class="fr-bd">'+_frPastillePaye(c)+'<div class="fr-ad" style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
     + '<div class="fr-co" style="font-size:11.5px;color:#555;margin-top:5px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'
     +   '<span>📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')
     +     (_montantsVisibles()?('<span class="fr-sep"> · </span><b style="color:#006b2d;">'+(c.prix||0)+' €</b>'):'')+'</span>'

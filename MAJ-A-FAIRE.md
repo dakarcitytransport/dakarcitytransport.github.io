@@ -6684,3 +6684,7 @@ V2 : le prix du colis (vert, gros) en haut à droite ; juste dessous une pastill
 ### 06/11/2026 — Clients France : le total en premier (v3.99.284)
 > Cobey : « le prix du déplacement et le prix des colis ne s'additionnent pas… vérifie » → « mettre d'abord le total, après le prix du colis, après le déplacement, comme ça le collaborateur sait quel total prendre. Le code part. »
 Vérification : le bandeau de la liste (« Montant ») et la facture additionnent déjà colis + déplacement ; la carte client, non. V2 : en haut à droite de chaque carte avec déplacement — « TOTAL 75 € » (gros, vert), « Colis 60 € », puis la pastille « 🛣️ 15 € déplacement ». Sans déplacement : le prix seul. V1 inchangée (74/74).
+
+### 06/11/2026 — Clients France : couleurs sans paiement + total plus grand (v3.99.285–286)
+> Cobey : « dans France, les clients ne paient pas avant qu'on aille récupérer leur colis, donc pas de paiement en attente, sauf ceux qui veulent payer quand même » ; « vers le colis ramassé non, parce que si le colis est ramassé il disparaît de la liste » ; « le total colis est un peu trop petit ».
+Bandeau d'un client de France : bleu-violet (normal) ou orange (attend depuis plus de 14 j) — plus de rose ni de vert. Aucune pastille « reste à payer » : seulement « Payé X € » / « Soldé » si un versement existe (`_frPastillePaye`). Total (27 px), « Colis X € » et déplacement plus grands ; prix seul en 24 px. 74/74.
