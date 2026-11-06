@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.279">
+<link rel="stylesheet" href="look-v2.css?v=3.99.283">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -2289,7 +2289,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.279';
+var APP_VERSION = 'v3.99.283';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5405,7 +5405,7 @@ function _frCarte(c){
     + '<div class="fr-h" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
     +   '<div class="fr-nm" style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
     +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
-    +   (_montantsVisibles()?('<span class="fr-px">'+(c.prix||0)+' €</span>'):'')
+    +   (_montantsVisibles()?('<span class="fr-px">'+(c.prix||0)+' €'+((parseFloat(c.prixRamassage)||0)>0?('<small class="fr-dp">🛣️ '+c.prixRamassage+' € déplacement</small>'):'')+'</span>'):'')
     +   '<div class="fr-ch" style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+btnRetirer+'</div></div></div>'
     + '<div class="fr-bd"><div class="fr-ad" style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
     + '<div class="fr-co" style="font-size:11.5px;color:#555;margin-top:5px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'
@@ -5416,7 +5416,7 @@ function _frCarte(c){
     // évidence. » Remplace le petit texte gris en aparté par une vraie
     // pastille, au même traitement visuel que les badges de statut.
     +   (_montantsVisibles() && (parseFloat(c.prixRamassage)||0)>0
-          ? ('<span class="badge" style="background:#D7F1F3;color:#00636b;">🛣️ '+c.prixRamassage+' € déplacement</span>')
+          ? ('<span class="badge fr-dpb" style="background:#D7F1F3;color:#00636b;">🛣️ '+c.prixRamassage+' € déplacement</span>')
           : '')
     + '</div>'
     + '<div class="fr-bas" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;">'
@@ -7548,7 +7548,7 @@ function renderCamionFrance(){
       +   '<div class="route-detail-row">'+(tel?('<a href="tel:'+tel+'" style="color:#1a237e;font-weight:700;text-decoration:none;">📞 '+(c.tel||'')+'</a>'):'📞 —')+'</div>'
       +   '<div class="route-detail-row">📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')+'</div>'
       +   '<div class="route-detail-row">💰 <strong style="color:#006b2d;font-size:15px;">'+_frPrixClient(id)+' €</strong>'
-      +     ((parseFloat(c.prixRamassage)||0)>0 ? ('<span style="font-size:11px;color:var(--text3);font-weight:500;"> (dont '+c.prixRamassage+' € de déplacement)</span>') : '')+'</div>'
+      +     ((parseFloat(c.prixRamassage)||0)>0 ? ('<span style="font-size:11px;color:var(--text3);font-weight:500;"> (+ '+c.prixRamassage+' € déplacement)</span>') : '')+'</div>'
       + '</div>'
       + '<div class="route-actions">';
     if(fige){

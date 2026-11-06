@@ -6676,3 +6676,7 @@ Carte du container : nouveau bloc `.cli-ct` (champ `colis` du client tel quel, `
 ### 06/11/2026 — « Changer de collecte » devient « Changer de date » (v3.99.278–279, departs.js v2.22.56)
 > Cobey : « le bouton changement n'est pas trop compréhensible » → « Changer de date ».
 Bouton sur chaque client d'une collecte : en V2, « 🔁 Changer de date » (vrai bouton arrondi avec texte, bas de carte à droite) ; V1 garde la petite 🔁 (texte caché). Titre de la fenêtre : « Changer de date ». 74/74.
+
+### 06/11/2026 — Clients France : le déplacement sous le prix, bien distinct (v3.99.280–283)
+> Cobey : « le prix du déplacement devrait être plutôt en dessous du tarif total en haut à droite » ; « c'est pas "dont" : le prix du colis est différent du prix de déplacement, il faut faire une distinction. »
+V2 : le prix du colis (vert, gros) en haut à droite ; juste dessous une pastille turquoise « 🛣️ 15 € déplacement » (séparée, pas « dont »). L'ancienne pastille dans la ligne des colis est cachée en V2. Question restée ouverte avec Cobey : signification des couleurs de bandeau en France (rose = attend depuis plus de 14 j, vert = ramassé, bleu = autre) — proposition : orange pour l'ancienneté, rose réservé aux impayés.
