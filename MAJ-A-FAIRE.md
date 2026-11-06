@@ -6692,3 +6692,7 @@ Bandeau d'un client de France : bleu-violet (normal) ou orange (attend depuis pl
 ### 06/11/2026 — Clients France : total, colis et déplacement toujours affichés (v3.99.287)
 > Cobey : « chaque client en France va obligatoirement avoir un prix de déplacement ; s'il n'est pas indiqué, tu mettras 0 ; il y aura toujours total, colis et déplacement affichés. »
 Bloc en haut à droite : « TOTAL », « Colis », « 🛣️ N € déplacement » même quand le déplacement est vide (0 €). 74/74.
+
+### 06/11/2026 — Mention « Livraison à Dakar » sur les cartes client (v3.99.288–289)
+> Cobey : « on n'a mis aucune visuelle sur livraison à Dakar. Même si c'est pas dans la caisse, il faut que ce soit mentionné quelque part sur la carte du client. »
+Nouvelle pastille violette « 🚚 Livraison à Dakar · <ville> · <prix> € » (`_htmlLivDakar`), sur les cartes France (dans le bloc colis) et sur les clients d'une collecte (avec le bloc paiement) ; dans un container, la mention « 🚚 livraison » sous le nom existait déjà. Visible en nouveau look seulement. Premier essai (v3.99.288) cassé : `esc` au lieu de `_esc` → écran France en erreur ; corrigé en v3.99.289 avant mise en ligne par Cobey. 74/74.

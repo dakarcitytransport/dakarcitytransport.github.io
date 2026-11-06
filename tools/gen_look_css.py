@@ -553,6 +553,11 @@ html.look-v2 .fr-carte .fr-dpb{display:none !important}
 html.look-v2 .fr-carte .fr-tot{font-size:27px;line-height:1.05;font-weight:800;letter-spacing:-.02em;color:var(--green-dark,#0a7a45)}
 html.look-v2 .fr-carte .fr-tot i{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-right:3px}
 html.look-v2 .fr-carte .fr-ln{display:block;font-size:12.5px;font-weight:700;color:var(--text2);margin-top:3px}
+
+/* mention « Livraison à Dakar » (hors caisse) sur les cartes client */
+html.look-v2 .liv-dk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:#6b3fa0;background:rgba(122,92,240,.14);border-radius:99px;padding:5px 12px 5px 8px;margin:4px 6px 2px 0}
+html.look-v2 .liv-dk-i{display:inline-block;width:14px;height:14px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.5' y='4' width='14' height='11.5' rx='2'/%3E%3Cpath d='M15.5 8.5h3.6a2 2 0 0 1 1.6.8l1.8 2.4a2 2 0 0 1 .4 1.2V15a1.5 1.5 0 0 1-1.5 1.5h-5.9'/%3E%3Ccircle cx='6' cy='18' r='2.2'/%3E%3Ccircle cx='17.5' cy='18' r='2.2'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.5' y='4' width='14' height='11.5' rx='2'/%3E%3Cpath d='M15.5 8.5h3.6a2 2 0 0 1 1.6.8l1.8 2.4a2 2 0 0 1 .4 1.2V15a1.5 1.5 0 0 1-1.5 1.5h-5.9'/%3E%3Ccircle cx='6' cy='18' r='2.2'/%3E%3Ccircle cx='17.5' cy='18' r='2.2'/%3E%3C/svg%3E") center/contain no-repeat}
+html.look-v2 .cr-b1 .liv-dk{display:inline-flex}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
