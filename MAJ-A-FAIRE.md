@@ -6601,3 +6601,7 @@ V2 : chaque client = une carte en verre arrondie (avatar 42 px, prix 16 px, past
 ### 06/11/2026 — Bug : un client « MN » avait la photo de Mamadou Niass (v3.99.256)
 > Cobey : « Pourquoi ce client a la photo de profil de Mamadou Niass ? » (Mor Ndoye, initiales MN, collecte archivée du 20/09).
 Cause : ma règle v3.99.245 (photos.js `pastilles`) mettait la photo de toute pastille `.av` dont les initiales = l'identifiant d'une personne ; or « MN » (Mor Ndoye) = identifiant de Mamadou Niass. Corrigé : seules les pastilles de collaborateurs (`.collab-card .av`, pastille d'en-tête) reçoivent une photo ; les pastilles de CLIENTS ne sont plus concernées. Peut aussi avoir touché d'autres clients aux initiales IS, AB, SA, IB, BO, AM, AD dans les listes — corrigé pareil.
+
+### 06/11/2026 — Pastilles auteur et camion en verre, avec photo (v3.99.257–258)
+> Cobey : « L'endroit où les noms des collaborateurs sont affichés pour chaque client encadré… un peu à l'ancien look ? » → aperçu → « Ya pas la photo là ? » → « on peut faire ça partout où il y a cette même pastille ? »
+`_pastilleAuteurClient` (dct-app.html) et les pastilles camion (liste des clients d'une collecte, France) portent maintenant `.pl` + une pastille ronde `.pl-i` (cachée en V1) : l'auteur reçoit sa photo (`data-ph`, photos.js), le camion une icône camion. V2 : verre teinté à la couleur de la personne / du camion. Bouton « Changer de collecte » en tuile blanche arrondie. Non couvert : d'éventuelles pastilles auteur écrites autrement dans departs.js (cartes du départ). V1 inchangée (74/74).
