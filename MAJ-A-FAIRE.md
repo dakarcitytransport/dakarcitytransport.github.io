@@ -6662,3 +6662,7 @@ Les 3 formulaires de versement (facture colis, facture livraison, versement avan
 ### 06/11/2026 — Pastilles de paiement au nouveau look (v3.99.274, departs.js v2.22.53)
 > Cobey : « la pastille colis soldé ou colis non payé, elle fait ancien look » → aperçu → « et si la livraison est soldée, il est indiqué aussi » → « ok code ».
 `_depLignePaiementCarte` : chaque pastille porte `pp pp-v|k|o` (+ `pp-liv`) avec 4 morceaux (emoji + texte long, icône + texte court) ; V1 inchangée, V2 : pastille pleine sans contour, icône en trait (coche / croix / camion pour la livraison), texte court « Colis · reste 230 € », « Livraison · reste 15 € », « Colis soldé », « Livraison soldée ». Partiel = ambre « reste X € ». Vu : impayé colis, soldé, impayé livraison. Non vu : livraison soldée, partiel. 74/74.
+
+### 06/11/2026 — Client d'un container : contenu des colis + traits de séparation (v3.99.275, departs.js v2.22.54)
+> Cobey : « dans ces cases on n'a pas le détail des colis » → encadré « contenu » (proposition A) ; « sépare le nom, les colis, les boutons et les statuts avec des petits tirets » → « pas les tirets, des petits traits comme pour les collectes ».
+Carte du container : nouveau bloc `.cli-ct` (champ `colis` du client tel quel, `nb` dans la tuile, 📦 sinon) ; visible en V2 seulement ; `.cli-b1` regroupe pastilles de paiement + badge de livraison ; traits fins (1 px) entre bandeau / statut / colis / boutons. La livraison n'est pas retirée du texte (26 anciens clients l'ont seulement là). 74/74.

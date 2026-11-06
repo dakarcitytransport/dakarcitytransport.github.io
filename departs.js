@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.53';
+var DEP_VERSION = 'v2.22.54';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2823,7 +2823,7 @@ function injecterStyles(){
     + '.doc-ch{color:var(--text3);opacity:.6;display:flex;}'
     + '.doc-lien{display:block;width:100%;margin-top:18px;padding:10px;background:none;border:0;color:var(--text2);font-family:var(--font);font-weight:700;font-size:14px;cursor:pointer;}'
     + '.dep-cli-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}'
-    + '.rg-l{font-style:normal;}.cli-liv2{display:none;}.pp-i,.pp-c{display:none;}'
+    + '.rg-l{font-style:normal;}.cli-liv2{display:none;}.pp-i,.pp-c{display:none;}.cli-ct{display:none;}'
     + '.dep-cli-btn{background:#EEF0FA;border:1.5px solid #C5CAE9;color:#252599;border-radius:8px;'
     +   'padding:7px 6px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);'
     +   'flex:1 1 auto;min-width:72px;text-align:center;}'
@@ -8957,8 +8957,11 @@ window.depDetail = function(id, gardeFiltres){
         +     _depLienTelIcone(c.tel)
         +   '</div></div>'
         +   '<div class="cli-bd">'
-        +   _depLignePaiementCarte(c)
-        +   _depBadgeLivraison(c, _depDepartAuDepotDakar(d), _cliColoree)
+        +   '<div class="cli-b1">' + _depLignePaiementCarte(c) + _depBadgeLivraison(c, _depDepartAuDepotDakar(d), _cliColoree) + '</div>'
+        +   (String(c.colis || '').trim()
+              ? ('<div class="cli-ct"><span class="cli-n">' + (parseInt(c.nb, 10) > 0 ? parseInt(c.nb, 10) : '&#128230;') + '</span>'
+                 + '<span class="cli-t">' + esc(String(c.colis).trim()) + '</span></div>')
+              : '')
         +   '<div class="dep-cli-btns" style="margin-top:12px;">'
               + '<button class="dep-cli-btn" style="background:' + (_cliColoree ? '#fff' : '#EAF7EE') + ';border-color:#C8E6D0;color:#006b2d;" '
                 + (x.france
