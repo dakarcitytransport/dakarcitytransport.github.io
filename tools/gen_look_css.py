@@ -382,6 +382,19 @@ html.look-v2 .modal-sheet button[style*="border:2px solid"],html.look-v2 .modal-
 html.look-v2 .modal-sheet button[style*="background:#1a237e"]{background:linear-gradient(145deg,#4a55c8,#26338f) !important;border-color:rgba(255,255,255,.35) !important}
 html.look-v2 .modal-sheet button[style*="background:#006b2d"],html.look-v2 .modal-sheet button[style*="background:#009A44"]{background:linear-gradient(145deg,#2fb27c,#1a8a5c) !important;border-color:rgba(255,255,255,.35) !important}
 html.look-v2 .modal-sheet button[style*="background:#c0392b"]{background:linear-gradient(145deg,#e0503f,#b8301f) !important;border-color:rgba(255,255,255,.35) !important}
+
+/* ── détail d'une collecte : chaque client est une carte en verre (et non plus une ligne dans un bloc) ── */
+html.look-v2 #collecte-content .dept-block{background:transparent !important;border:0 !important;box-shadow:none !important;backdrop-filter:none;-webkit-backdrop-filter:none;overflow:visible;margin-bottom:6px}
+html.look-v2 #collecte-content .dept-head{background:transparent;border:0;padding:12px 6px 8px}
+html.look-v2 #collecte-content .dept-name{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+html.look-v2 #collecte-content .client-row{background:var(--lk-glass);border:1px solid var(--lk-edge) !important;border-radius:24px;margin:0 0 10px;padding:14px 16px;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);gap:12px}
+html.look-v2 #collecte-content .client-row:last-child{border-bottom:1px solid var(--lk-edge) !important}
+html.look-v2 #collecte-content .client-row .av{width:42px;height:42px;font-size:13px}
+html.look-v2 #collecte-content .client-row > div:last-child{gap:6px !important}
+html.look-v2 #collecte-content .client-row button,html.look-v2 #collecte-content .client-row [onclick]{border-radius:14px !important;border-width:1px !important}
+html.look-v2 #collecte-content .client-row span[style*="border-radius:20px"],html.look-v2 #collecte-content .client-row .truck-pill{border-radius:99px !important;border-width:1px !important;font-weight:800;padding:4px 11px !important;font-size:11.5px !important;white-space:nowrap}
+html.look-v2 #collecte-content .client-price{font-size:16px;font-weight:800;letter-spacing:-.01em}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

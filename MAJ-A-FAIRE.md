@@ -6593,3 +6593,7 @@ V2 : le logo rond à gauche du titre « Collecte » (écran `s-home`) est masqu�
 ### 06/11/2026 — Gros boutons : fin des contours épais (v3.99.253–254)
 > Cobey : « Oui, c'est vrai [le bouton Créer une nouvelle collecte]. Et vérifie dans l'application qu'il n'y a pas d'autres boutons qui ont le même style de l'ancien look. »
 V2 : `.add-banner` / `.new-btn` (Créer une collecte, Ajouter un client…) en dégradé vert, bord fin, 26 px ; tous les boutons / lignes cliquables à contour de 2–2,5 px (écrans et fenêtres) passent en bord fin arrondi, les fonds pleins marine / vert / rouge / orange en dégradé, les gris foncés en verre. Contrôle par script sur 75 écrans : plus de bouton à contour ≥ 2 px sur les écrans visibles (écrans vides sans données non vus). 74/74.
+
+### 06/11/2026 — Détail d'une collecte : clients en cartes de verre (v3.99.255)
+> Cobey (capture d'une collecte archivée, « ça, c'est un look, non ? ») : les clients étaient de longues lignes plates dans un grand bloc blanc.
+V2 : chaque client = une carte en verre arrondie (avatar 42 px, prix 16 px, pastilles d'auteur / camion arrondies, bouton de changement arrondi) ; les en-têtes de département deviennent de petits titres en capitales. V1 inchangée (74/74).
