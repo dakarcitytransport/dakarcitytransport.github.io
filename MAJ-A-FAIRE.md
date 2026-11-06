@@ -6613,3 +6613,7 @@ dct-app.html : les pastilles auteur + camion sont dans un conteneur `.cr-bas` (`
 ### 06/11/2026 — Même organisation et mêmes pastilles partout : clients France (v3.99.260)
 > Cobey : « faire ça partout, même dans les collectes de France… Tous les endroits où il y a la pastille, on fait la même chose. »
 `_pastilleAuteur` (France, fiche contact, fiche client du départ…) reçoit le même habillage que `_pastilleAuteurClient` : rond photo `pl-i` + verre teinté en V2 (rond d'initiales d'avant conservé en V1). Carte client France : classes `fr-h / fr-nm / fr-ch / fr-ad / fr-co / fr-bas` ; V2 : nom sur toute la largeur, puces de statut dessous, adresse et colis sur lignes entières, bande basse séparée (date · ancienneté à gauche, pastille auteur à droite). Testé avec 3 faux clients ; 74/74.
+
+### 06/11/2026 — Case France : bloc « Dernière note », état de collecte, barre du bas (v3.99.261)
+> Cobey (capture d'un client planifié, message dicté : « il y a encore de l'ancien look dans la case »).
+Interprété : le bloc « DERNIÈRE NOTE » (barre bleue sur le côté, fond plat), la ligne « Collecte du … » et la barre blanche du bas. Classes `fr-note`, `fr-etat` ajoutées ; V2 : note en verre bleuté arrondi (texte 13,5 px), « Aucune note » en pastille pointillée, état de collecte en pastille, barres du bas transparentes en dégradé, bouton « Mettre dans un camion » en dégradé. Non vu avec une vraie note : testé seulement « Aucune note ». 74/74.
