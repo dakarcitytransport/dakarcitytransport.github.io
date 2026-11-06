@@ -405,6 +405,18 @@ html.look-v2 .pl.pl-cam > *{font-size:0}
 html.look-v2 .pl.pl-cam{font-size:12px !important}
 
 html.look-v2 button[title="Changer de collecte"]{width:34px;height:34px;border-radius:12px !important;background:rgba(255,255,255,.75) !important;border:1px solid #fff !important;box-shadow:0 4px 10px rgba(0,0,0,.1);padding:0 !important;font-size:15px !important;color:#26338f !important;display:flex;align-items:center;justify-content:center}
+
+/* carte client d'une collecte : haut (avatar, nom, prix) / milieu (adresse, colis) / bas (pastilles + bouton) */
+html.look-v2 #collecte-content .client-row{display:grid;grid-template-columns:42px 1fr auto;column-gap:12px;row-gap:0;align-items:start}
+html.look-v2 #collecte-content .client-row > .av{grid-column:1;grid-row:1 / span 2}
+html.look-v2 #collecte-content .client-row > .client-info{grid-column:2;grid-row:1;min-width:0}
+html.look-v2 #collecte-content .client-row > div:last-child{display:contents !important}
+html.look-v2 #collecte-content .client-row .client-price{grid-column:3;grid-row:1;font-size:18px;text-align:right}
+html.look-v2 #collecte-content .client-row .client-name{font-size:16.5px;font-weight:800;letter-spacing:-.015em;white-space:normal}
+html.look-v2 #collecte-content .client-row .client-sub{white-space:normal;overflow:visible;text-overflow:clip;font-size:12.5px;line-height:1.4}
+html.look-v2 #collecte-content .client-row .cr-bas{display:flex;flex-wrap:wrap;gap:8px;grid-column:2;grid-row:2;margin-top:11px;padding-top:11px;border-top:1px solid var(--lk-line);align-items:center}
+html.look-v2 #collecte-content .client-row button[title="Changer de collecte"]{grid-column:3;grid-row:2;align-self:end;margin-top:11px}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

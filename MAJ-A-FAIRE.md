@@ -6605,3 +6605,7 @@ Cause : ma règle v3.99.245 (photos.js `pastilles`) mettait la photo de toute pa
 ### 06/11/2026 — Pastilles auteur et camion en verre, avec photo (v3.99.257–258)
 > Cobey : « L'endroit où les noms des collaborateurs sont affichés pour chaque client encadré… un peu à l'ancien look ? » → aperçu → « Ya pas la photo là ? » → « on peut faire ça partout où il y a cette même pastille ? »
 `_pastilleAuteurClient` (dct-app.html) et les pastilles camion (liste des clients d'une collecte, France) portent maintenant `.pl` + une pastille ronde `.pl-i` (cachée en V1) : l'auteur reçoit sa photo (`data-ph`, photos.js), le camion une icône camion. V2 : verre teinté à la couleur de la personne / du camion. Bouton « Changer de collecte » en tuile blanche arrondie. Non couvert : d'éventuelles pastilles auteur écrites autrement dans departs.js (cartes du départ). V1 inchangée (74/74).
+
+### 06/11/2026 — Carte client d'une collecte en trois bandes (v3.99.259)
+> Cobey : « la mise en place, dans la capture… les clients… pas belle, pas bien organisée. Que peux-tu me proposer ? » → aperçu → « Ok ».
+dct-app.html : les pastilles auteur + camion sont dans un conteneur `.cr-bas` (`display:contents` → V1 strictement identique). V2 : grille — haut : avatar, nom 16,5 px (sur toute la largeur), prix 18 px ; milieu : adresse et colis sur des lignes entières (plus de « … ») ; bas sous un fin trait : pastilles à gauche, bouton de changement à droite. Testé avec une carte ; 74/74.
