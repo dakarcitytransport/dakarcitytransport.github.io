@@ -6705,3 +6705,7 @@ Nouvelle pastille violette « 🚚 Livraison à Dakar · <ville> · <prix> € �
 > Cobey : « j'avais ajouté 10 € de livraison pour tester ; j'ai retiré, ça l'a retiré dans sa fiche mais pas ici » ; « problème d'affichage ici » (onglet Dispatch).
 - Cause : les listes France / Collecte ne se redessinaient que si l'écran était affiché au moment du changement ; modifié depuis une fiche, elles gardaient l'ancienne image au retour. departs.js (N bis) : `goTo` redessine `renderFrance` / `renderCollecteContent` quand on arrive sur ces écrans. Test : livraison ajoutée puis retirée pendant qu'on est ailleurs → au retour, la liste est à jour.
 - Dispatch : mon nouveau style de carte (v3.99.277+) s'appliquait aussi aux lignes simples de l'onglet Dispatch (même classe) et les cassait. Il ne s'applique plus qu'aux cartes avec bandeau (`:has(> .cr-hd)`) ; les lignes du Dispatch ont leur propre style (avatar, nom, ville, colis, prix, pastille « Non affecté »). 74/74.
+
+### 06/11/2026 — Bas de carte de collecte sur une seule ligne (v3.99.297)
+> Cobey (capture, collecte du 18/10) : « on regarde Aminata, le camion et changer la date : normalement tout doit être sur une ligne, pas sur deux. »
+`.cr-dr` : plus de retour à la ligne ; pastilles auteur et camion plus petites (11 px, texte tronqué si trop long) ; bouton « Changer de date » compact. Testé avec auteur + camion + bouton : 41 px de haut = une seule ligne à 400 px. 74/74.

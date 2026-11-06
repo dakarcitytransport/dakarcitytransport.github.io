@@ -595,6 +595,12 @@ html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) .client-name{font
 html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) .client-sub{white-space:normal;font-size:12px}
 html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) > div:last-child{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}
 html.look-v2 #collecte-content .client-row:not(:has(> .cr-hd)) .truck-pill{border-radius:99px;font-size:11.5px;font-weight:800;padding:5px 12px;white-space:nowrap}
+/* bas de carte de collecte : auteur + camion + « Changer de date » toujours sur UNE ligne */
+html.look-v2 #collecte-content .cr-dr{flex-wrap:nowrap !important;gap:6px !important}
+html.look-v2 #collecte-content .cr-dr .cr-bas{flex-wrap:nowrap !important;gap:6px !important;min-width:0;flex:1 1 auto}
+html.look-v2 #collecte-content .cr-dr .pl{min-width:0;flex:0 1 auto;font-size:11px !important;padding:2px 9px 2px 2px !important;overflow:hidden;text-overflow:ellipsis;gap:4px !important}
+html.look-v2 #collecte-content .cr-dr .pl .pl-i{width:20px;height:20px;flex:none}
+html.look-v2 #collecte-content .cr-dr button.cr-chg{flex:none;padding:6px 9px !important;font-size:11.5px !important;gap:4px;min-height:30px}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
