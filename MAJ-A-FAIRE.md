@@ -6597,3 +6597,7 @@ V2 : `.add-banner` / `.new-btn` (Créer une collecte, Ajouter un client…) en d
 ### 06/11/2026 — Détail d'une collecte : clients en cartes de verre (v3.99.255)
 > Cobey (capture d'une collecte archivée, « ça, c'est un look, non ? ») : les clients étaient de longues lignes plates dans un grand bloc blanc.
 V2 : chaque client = une carte en verre arrondie (avatar 42 px, prix 16 px, pastilles d'auteur / camion arrondies, bouton de changement arrondi) ; les en-têtes de département deviennent de petits titres en capitales. V1 inchangée (74/74).
+
+### 06/11/2026 — Bug : un client « MN » avait la photo de Mamadou Niass (v3.99.256)
+> Cobey : « Pourquoi ce client a la photo de profil de Mamadou Niass ? » (Mor Ndoye, initiales MN, collecte archivée du 20/09).
+Cause : ma règle v3.99.245 (photos.js `pastilles`) mettait la photo de toute pastille `.av` dont les initiales = l'identifiant d'une personne ; or « MN » (Mor Ndoye) = identifiant de Mamadou Niass. Corrigé : seules les pastilles de collaborateurs (`.collab-card .av`, pastille d'en-tête) reçoivent une photo ; les pastilles de CLIENTS ne sont plus concernées. Peut aussi avoir touché d'autres clients aux initiales IS, AB, SA, IB, BO, AM, AD dans les listes — corrigé pareil.

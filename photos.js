@@ -136,7 +136,7 @@
   // Administration > Équipe, Codes admin…), on y met sa photo. Cobey, 06/11/2026 : « au niveau des initiales, on aurait
   // pu mettre leurs photos, maintenant on a des photos. » (Observation légère : une passe par image d'écran.)
   function pastilles(){
-    [].forEach.call(document.querySelectorAll('.av:not([data-ph]):not([data-phx])'), function(el){
+    [].forEach.call(document.querySelectorAll('.collab-card .av:not([data-ph]):not([data-phx]), #col-av:not([data-ph]):not([data-phx]), .header > .av:not([data-ph]):not([data-phx])'), function(el){
       var t = (el.textContent || '').trim();
       if(!/^[A-Z]{2,3}$/.test(t) || !source(t)){ if(t.length > 3 || /[^A-Z]/.test(t)) el.setAttribute('data-phx', '1'); return; }
       el.setAttribute('data-ph', t);
