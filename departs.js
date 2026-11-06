@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.51';
+var DEP_VERSION = 'v2.22.52';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -4712,7 +4712,7 @@ function injecterEcrans(){
     + '<div class="modal-emoji" id="dep-vav-emoji">&#128176;</div>'
     + '<div class="modal-confirm-title" id="dep-vav-titre">Ajouter un versement</div>'
     + '<div style="font-size:12.5px;color:#666;margin:2px 0 14px;" id="dep-vav-sous">Paiement re&ccedil;u avant la collecte (ex. virement) &mdash; sera d&eacute;j&agrave; comptabilis&eacute; sur la facture, le jour de la ramasse.</div>'
-    + '<div style="display:flex;gap:8px;margin-bottom:10px;">'
+    + '<div style="display:none;">'
     +   '<button type="button" class="dep-st on" id="dep-vav-dev-eur" onclick="depVersAvanceDevise(\'eur\')" style="flex:1;">&euro; Euros</button>'
     +   '<button type="button" class="dep-st" id="dep-vav-dev-fcfa" onclick="depVersAvanceDevise(\'fcfa\')" style="flex:1;">FCFA</button>'
     + '</div>'
@@ -12077,7 +12077,7 @@ function depRenderFacture(c){
   _depVersDevise = 'eur';
   _depVersMethode = '';
   h += '<div class="dep-sec">Ajouter un versement</div>'
-    + '<div style="display:flex;gap:8px;margin-bottom:10px;">'
+    + '<div style="display:none;">'
     +   '<button type="button" class="dep-st on" id="dep-vers-dev-eur" onclick="depVersDevise(\'eur\')" style="flex:1;">&euro; Euros</button>'
     +   '<button type="button" class="dep-st" id="dep-vers-dev-fcfa" onclick="depVersDevise(\'fcfa\')" style="flex:1;">FCFA</button>'
     + '</div>'
@@ -12148,7 +12148,7 @@ function depRenderFacture(c){
     _depVersDeviseLivraison = 'eur';
     _depVersMethodeLivraison = '';
     h += '<div class="dep-sec">Ajouter un versement (livraison)</div>'
-      + '<div style="display:flex;gap:8px;margin-bottom:10px;">'
+      + '<div style="display:none;">'
       +   '<button type="button" class="dep-st on" id="dep-vers-liv-dev-eur" onclick="depVersDeviseLivraison(\'eur\')" style="flex:1;">&euro; Euros</button>'
       +   '<button type="button" class="dep-st" id="dep-vers-liv-dev-fcfa" onclick="depVersDeviseLivraison(\'fcfa\')" style="flex:1;">FCFA</button>'
       + '</div>'
