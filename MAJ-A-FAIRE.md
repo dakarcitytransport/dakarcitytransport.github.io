@@ -6658,3 +6658,7 @@ departs.js (carte du container) : markup en deux blocs `.cli-hd` (numéro, nom, 
 ### 06/11/2026 — Versements côté DCT : plus de choix FCFA (v3.99.273, departs.js v2.22.52)
 > Cobey : « Pour les versements côté DCT, tu peux enlever francs CFA. En France, on n'encaisse qu'en euros. »
 Les 3 formulaires de versement (facture colis, facture livraison, versement avant la collecte) n'affichent plus les boutons « € Euros / FCFA » : la rangée est cachée, la devise reste « euros ». Le code de conversion FCFA et les anciens versements en FCFA sont conservés (ils s'affichent toujours). mamadou.html (côté Dakar) non touché. 74/74.
+
+### 06/11/2026 — Pastilles de paiement au nouveau look (v3.99.274, departs.js v2.22.53)
+> Cobey : « la pastille colis soldé ou colis non payé, elle fait ancien look » → aperçu → « et si la livraison est soldée, il est indiqué aussi » → « ok code ».
+`_depLignePaiementCarte` : chaque pastille porte `pp pp-v|k|o` (+ `pp-liv`) avec 4 morceaux (emoji + texte long, icône + texte court) ; V1 inchangée, V2 : pastille pleine sans contour, icône en trait (coche / croix / camion pour la livraison), texte court « Colis · reste 230 € », « Livraison · reste 15 € », « Colis soldé », « Livraison soldée ». Partiel = ambre « reste X € ». Vu : impayé colis, soldé, impayé livraison. Non vu : livraison soldée, partiel. 74/74.
