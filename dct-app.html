@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.261">
+<link rel="stylesheet" href="look-v2.css?v=3.99.263">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -274,6 +274,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .truck-pills-wrap{padding:8px 14px 10px;display:flex;flex-wrap:wrap;gap:5px;}
 .pl-i{display:none;}
 .cr-bas{display:contents;}
+.fr-px{display:none;}
 .pl-v1{display:inline-flex;}
 .truck-pill-item{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700;border:1.5px solid;}
 
@@ -2287,7 +2288,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.261';
+var APP_VERSION = 'v3.99.263';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -5402,11 +5403,12 @@ function _frCarte(c){
     + '<div class="fr-h" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
     +   '<div class="fr-nm" style="display:flex;align-items:center;flex:1;min-width:0;">'+boite
     +   '<div style="font-size:14.5px;font-weight:700;color:var(--text);">'+_nomAffiche(c)+'</div></div>'
+    +   (_montantsVisibles()?('<span class="fr-px">'+(c.prix||0)+' €</span>'):'')
     +   '<div class="fr-ch" style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+_frPretChip(c)+lieu+btnSuppr+btnRetirer+'</div></div>'
     + '<div class="fr-ad" style="font-size:12px;color:var(--text3);margin-top:3px;">'+(c.adresse||'')+(c.cp?(' · '+c.cp+' '+(c.ville||'')):'')+'</div>'
     + '<div class="fr-co" style="font-size:11.5px;color:#555;margin-top:5px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'
     +   '<span>📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')
-    +     (_montantsVisibles()?(' · <b style="color:#006b2d;">'+(c.prix||0)+' €</b>'):'')+'</span>'
+    +     (_montantsVisibles()?('<span class="fr-sep"> · </span><b style="color:#006b2d;">'+(c.prix||0)+' €</b>'):'')+'</span>'
     // v3.96.1 — Cobey, le 12/10/2026 : « on le voit pas assez [...] sur
     // chaque carte client on devrait aussi voir le prix de ramassage en
     // évidence. » Remplace le petit texte gris en aparté par une vraie

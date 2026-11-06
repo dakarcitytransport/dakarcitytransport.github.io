@@ -440,6 +440,13 @@ html.look-v2 .fr-note.vide{background:rgba(120,135,128,.1) !important;border:1px
 html.look-v2 #fr-barre,html.look-v2 #s-france > div[style*="border-top"]{background:linear-gradient(180deg,transparent,var(--lk-glass) 40%) !important;border-top:0 !important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 html.look-v2 #fr-btn-tournee{background:linear-gradient(145deg,#4a55c8,#26338f) !important;border:1px solid rgba(255,255,255,.35) !important;border-radius:20px !important}
 
+
+/* prix du client France : en évidence en haut à droite, comme dans une collecte */
+html.look-v2 .fr-carte .fr-nm{flex:1 1 0 !important;min-width:0}
+html.look-v2 .fr-carte .fr-px{display:block;order:2;font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--green-dark,#0a7a45);white-space:nowrap}
+html.look-v2 .fr-carte .fr-ch{order:3;flex:1 1 100%}
+html.look-v2 .fr-carte .fr-co b,html.look-v2 .fr-carte .fr-sep{display:none}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

@@ -6617,3 +6617,7 @@ dct-app.html : les pastilles auteur + camion sont dans un conteneur `.cr-bas` (`
 ### 06/11/2026 — Case France : bloc « Dernière note », état de collecte, barre du bas (v3.99.261)
 > Cobey (capture d'un client planifié, message dicté : « il y a encore de l'ancien look dans la case »).
 Interprété : le bloc « DERNIÈRE NOTE » (barre bleue sur le côté, fond plat), la ligne « Collecte du … » et la barre blanche du bas. Classes `fr-note`, `fr-etat` ajoutées ; V2 : note en verre bleuté arrondi (texte 13,5 px), « Aucune note » en pastille pointillée, état de collecte en pastille, barres du bas transparentes en dégradé, bouton « Mettre dans un camion » en dégradé. Non vu avec une vraie note : testé seulement « Aucune note ». 74/74.
+
+### 06/11/2026 — Clients France : prix en évidence (v3.99.262–263)
+> Cobey : « Et le prix est mal placé du client, c'est pas mis en évidence comme dans la collecte classique. »
+Ajout d'un `<span class="fr-px">` (caché en V1) dans l'en-tête de la carte : en V2, le prix (19 px, vert, gras) est en haut à droite sur la ligne du nom ; il disparaît de la ligne des colis (`fr-sep` + `b` masqués). 74/74.
