@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.44';
+var DEP_VERSION = 'v2.22.45';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -28994,7 +28994,7 @@ function _depPlanningBlocEquipe(dim){
     // v2.6.0 : distingue une absence choisie d'une absence d'office,
     // faute d'avoir répondu avant jeudi 22h — sinon on croirait que la
     // personne a explicitement dit non.
-    else if(r.auto){ ic = '&#9940;'; coul = '#992020'; txt = 'Absent d\'office (pas r&eacute;pondu &agrave; temps)'; }
+    else if(r.auto){ ic = '&#9940;'; coul = '#992020'; txt = 'Absent d\'office'; }
     else { ic = '&#10060;'; coul = '#992020'; txt = 'Indisponible' + (r.mot ? ' &middot; ' + esc(r.mot) : ''); }
     // v2.4.2 : la date et l'heure de la réponse, pas seulement ce qui a
     // été répondu. v2.5.0 : « modifié par X » quand ce n'est pas la

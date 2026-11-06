@@ -6556,3 +6556,7 @@ Pastilles en haut de chaque dimanche : « 1 dispo » → « 1 disponible » (plu
 ### 05/11/2026 — Planning : « 🔒 verrouillé » remonté à droite du titre (v3.99.240)
 > Cobey : « Le verrouillé, tu peux le mettre ailleurs, parce que là ça fait une ligne pour rien. »
 V2 : la pastille passe en haut à droite de la carte, sur la ligne du titre ; les compteurs tiennent sur une seule ligne. CSS seulement, V1 inchangée (74/74).
+
+### 06/11/2026 — Planning : « Absent d'office » ne déborde plus (v3.99.241, departs.js v2.22.45)
+> Cobey (capture) : le statut « Absent d'office (pas répondu à temps) » passait par-dessus le nom (Ibrahima, Boubacar).
+Texte raccourci en « Absent d'office » ; la pastille de statut peut maintenant passer sur deux lignes (largeur max 48 %) au lieu de forcer une seule ligne.
