@@ -219,7 +219,9 @@
   /* ---------- barre colorée sur le côté → verre teinté (Dépôt Dakar, clients du dépôt…) : V2 seulement ---------- */
   function barresLaterales(){
     if(effectif() !== 'v2') return;
-    [].forEach.call(document.querySelectorAll('.screen .dep-cli[style*="border-left"]:not([data-bl])'), function(c){
+    [].forEach.call(document.querySelectorAll('.screen .dep-cli:not([data-bl]), .screen .collab-card:not([data-bl]), #s-admin [id^="admin-section-"] div:not([data-bl])'), function(c){
+      var w = c.style && c.style.borderLeftWidth;
+      if(!w || parseFloat(w) < 3) return;      // seulement les cartes à barre colorée sur le côté
       c.setAttribute('data-bl', '1');
       var col = c.style.borderLeftColor;
       if(col) c.style.setProperty('--pc', col);

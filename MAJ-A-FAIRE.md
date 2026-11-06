@@ -6564,3 +6564,7 @@ Texte raccourci en « Absent d'office » ; la pastille de statut peut maintenant
 ### 06/11/2026 — Planning : « noté absent le … » pour les absents d'office (v3.99.242, departs.js v2.22.46)
 > Cobey : « ok vas-y » (sous Ibrahima / Boubacar il était écrit « répondu le 05/11 à 23h00 » alors qu'ils n'ont pas répondu).
 `_depPlQuiEtQuand` : si la réponse est automatique (`r.auto`), la ligne dit « noté absent le JJ/MM à HHhMM » au lieu de « répondu le … ». Non testé avec une vraie donnée auto (fausses données sans absent d'office) ; code relu.
+
+### 06/11/2026 — Nouveau look, vague 4 : détail d'une collecte, Équipe, Codes admin (v3.99.244)
+> Cobey : « Fais ça maintenant » (fiches ouvertes depuis les écrans refaits).
+V2 seulement, CSS + look.js `barresLaterales` (étendu) : détail d'une collecte — bandeau chiffres vert en carte arrondie, onglets Clients / Dispatch en pilule, cartes collaborateurs en verre teinté, pastilles de filtre et recherche arrondies ; Administration > Équipe — chaque collaborateur en verre teinté, nom + flèches ↑↓ sur la première ligne et boutons (✏️ 🚫 🔑 🗑️) en dessous (avant : 6 boutons écrasaient le nom) ; Codes admin — carte en verre, bouton arrondi. V1 inchangée (74/74). Le détail d'un départ (container) avait déjà été refait (boutons v3.99.220).

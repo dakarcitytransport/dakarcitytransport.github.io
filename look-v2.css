@@ -176,7 +176,7 @@ html.look-v2 .collecte-card.border-green{background-image:linear-gradient(135deg
 html.look-v2 .collecte-card.border-blue{background-image:linear-gradient(135deg,rgba(60,70,200,.26),rgba(60,70,200,.06) 70%,rgba(60,70,200,.14)) !important;border-color:rgba(60,70,200,.45) !important}
 html.look-v2 .collecte-card-date{font-size:14.5px;font-weight:800;letter-spacing:-.01em}
 html.look-v2 .collecte-card-top .badge,html.look-v2 .collecte-card-top [class*="badge"]{white-space:nowrap}
-html.look-v2 .dep-cli.lk-bl{background-color:var(--lk-glass) !important;background-image:linear-gradient(135deg,color-mix(in srgb,var(--pc,#888) 26%,transparent),color-mix(in srgb,var(--pc,#888) 6%,transparent) 70%,color-mix(in srgb,var(--pc,#888) 14%,transparent)) !important;border:1px solid color-mix(in srgb,var(--pc,#888) 50%,#fff) !important;border-left-width:1px !important;border-radius:24px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 .lk-bl{background-color:var(--lk-glass) !important;background-image:linear-gradient(135deg,color-mix(in srgb,var(--pc,#888) 26%,transparent),color-mix(in srgb,var(--pc,#888) 6%,transparent) 70%,color-mix(in srgb,var(--pc,#888) 14%,transparent)) !important;border:1px solid color-mix(in srgb,var(--pc,#888) 50%,#fff) !important;border-left-width:1px !important;border-radius:24px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
 html.look-v2 .dep-cli-btn{border-radius:16px;min-height:42px;font-weight:800;font-size:13px;border-width:1px}
 html.look-v2 #dep-devis-liste .dep-card,html.look-v2 #dep-fm-liste .dep-card{background-color:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-left-width:1px !important;border-radius:26px !important;padding:16px 18px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
 html.look-v2 #dep-devis-liste .dep-nom,html.look-v2 #dep-fm-liste .dep-nom{font-size:19px;letter-spacing:-.02em}
@@ -219,6 +219,26 @@ html.look-v2 #fid-liste-contenu .dep-cli::after{content:'';position:absolute;rig
 html.look-v2 #fid-liste-contenu .dep-cli-n{font-size:17px;font-weight:800;letter-spacing:-.01em}
 html.look-v2 #fid-liste-contenu .dep-cli-s{flex-wrap:wrap}
 html.look-v2 #fid-liste-contenu .dep-cli-s b{display:inline-block;padding:3px 11px;border-radius:99px;background:rgba(224,140,30,.18);border:1px solid rgba(224,140,30,.45)}
+
+
+/* ── vague 4 : détail d'une collecte, Équipe, Codes admin ── */
+html.look-v2 #s-collecte .sbar{margin:12px 16px 8px;border-radius:24px;padding:14px 10px;background:linear-gradient(135deg,#1fae74,#0d7a50) !important;box-shadow:0 10px 24px rgba(13,122,80,.28);border:1px solid rgba(255,255,255,.4)}
+html.look-v2 #s-collecte .sbar-label{color:rgba(255,255,255,.88);font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+html.look-v2 #s-collecte .sbar-val{font-size:22px;letter-spacing:-.02em}
+html.look-v2 #s-collecte .subtabs{margin:0 16px 10px;background:var(--lk-field);border:1px solid var(--lk-edge);border-radius:99px;padding:4px;gap:4px}
+html.look-v2 #s-collecte .subtab{border:0;margin:0;border-radius:99px;padding:10px 8px;color:var(--text2,#6b7b72)}
+html.look-v2 #s-collecte .subtab.active{background:linear-gradient(145deg,#2fb27c,#1a8a5c);color:#fff;box-shadow:0 6px 14px rgba(26,138,92,.3)}
+html.look-v2 #s-collecte .collab-card{border-radius:22px;padding:13px}
+html.look-v2 .filter-pill{border-width:1px;border-color:var(--lk-edge);background:var(--lk-glass);padding:8px 15px;font-size:12.5px}
+html.look-v2 .filter-pill.active{background:linear-gradient(145deg,#2fb27c,#1a8a5c);color:#fff;border-color:transparent;box-shadow:0 6px 14px rgba(26,138,92,.3)}
+html.look-v2 .search-wrap input{border-radius:99px;border-width:1px;background:var(--lk-field)}
+html.look-v2 .add-banner{border-radius:24px;border-width:1px}
+html.look-v2 #admin-section-equipe > div.lk-bl,html.look-v2 #s-admin div.lk-bl{border-radius:24px !important;padding:12px 14px !important;margin-bottom:12px !important;flex-wrap:wrap}
+html.look-v2 #admin-section-equipe > div.lk-bl > div[style*="flex:1"],html.look-v2 #admin-section-equipe > div.lk-bl > div[style*="flex: 1"]{flex:1 1 130px !important}
+html.look-v2 #admin-section-equipe > div.lk-bl > button,html.look-v2 #s-admin .lk-bl > button{border-radius:13px !important;min-width:42px;min-height:38px;border-width:1px !important;font-size:15px !important}
+html.look-v2 #admin-section-equipe > div.lk-bl > button:first-of-type{margin-left:0}
+html.look-v2 #admin-section-equipe > div.lk-bl > div:first-child{box-shadow:0 4px 10px rgba(0,0,0,.12)}
+html.look-v2 #s-admin .lk-bl > button{border-radius:16px}
 
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
