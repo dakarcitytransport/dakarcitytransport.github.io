@@ -6646,3 +6646,7 @@ Test (fausses données) : relance → « Relancé » + 1 ouverture ; Annuler →
 ### 06/11/2026 — Bouton « Annuler » de la relance retiré (v3.99.269, departs.js v2.22.49)
 > Cobey : « J'ai annulé la relance, c'est bon, et ça marche sur WhatsApp. Tu peux retirer le bouton annuler, c'était juste pour moi. »
 Le bouton n'est plus affiché (fonction `depAnnulerRelancePaiement` conservée, inutilisée). L'ouverture de WhatsApp (v3.99.268) est confirmée par Cobey sur iPhone.
+
+### 06/11/2026 — Drapeaux : seulement le Mali (v3.99.270, departs.js v2.22.50)
+> Cobey : « on va retirer les drapeaux à côté de chaque client. On laisse juste un drapeau du Mali pour les clients du Mali. Le reste, c'est 99 % sénégalais. » ; « sur les autres écrans, on enlève, pareil. »
+Cartes des clients d'un container, liste des clients d'une collecte et titre de la fiche contact : plus de 🇸🇳, seul 🇲🇱 reste (V1 aussi). Les drapeaux des containers / départs (titres) ne sont pas touchés. NON fait : la nouvelle carte (bandeau coloré, numéro en tuile, bouton de relance réduit) — aperçu validé en cours, en attente du « ok » de Cobey.

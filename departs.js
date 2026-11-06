@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.49';
+var DEP_VERSION = 'v2.22.50';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8906,7 +8906,7 @@ window.depDetail = function(id, gardeFiltres){
       // collecte, voir _depAjouterDrapeauxCollecte) manquait ici — retour
       // de Cobey du 24/08/2026 : "il devrait être partout où un parcours
       // est ouvert pour un client".
-      var drapeauCli = (DEP_PAYS_DEST[depPaysFiche(c)] || {}).drapeau || '';
+      var drapeauCli = (depPaysFiche(c) === 'ML') ? ((DEP_PAYS_DEST.ML || {}).drapeau || '') : '';   // drapeau seulement pour le Mali (Cobey, 06/11/2026)
       // v1.33.0 : pastille sur les clients qui ont plusieurs factures ici.
       // v1.37.0 : et mention sur ceux dont la facture EST un regroupement
       // — une fois regroupée elle redevient unique, donc la pastille
@@ -12620,7 +12620,7 @@ function depRenderFicheLecture(colId, clientId, depot, france){
   // v1.19.45 : drapeau pays sur la fiche aussi (voir dep-cli-n, même
   // demande de Cobey).
   var drapeauTitre = '';
-  try{ drapeauTitre = (DEP_PAYS_DEST[depPaysFiche(c)] || {}).drapeau ? ' ' + (DEP_PAYS_DEST[depPaysFiche(c)] || {}).drapeau : ''; }catch(e){}
+  try{ drapeauTitre = (depPaysFiche(c) === 'ML' && (DEP_PAYS_DEST.ML || {}).drapeau) ? ' ' + DEP_PAYS_DEST.ML.drapeau : ''; }catch(e){}
   if(titre) titre.innerHTML = esc(nomAff) + drapeauTitre;
 
   var kv = function(k, v){
@@ -17418,7 +17418,7 @@ function _depAjouterDrapeauxCollecte(){
   var rows = container.querySelectorAll('.client-row');
   for(var i = 0; i < rows.length && i < ordre.length; i++){
     var c = ordre[i];
-    var drapeau = depPaysFiche(c) === 'ML' ? ' 🇲🇱' : ' 🇸🇳';
+    var drapeau = depPaysFiche(c) === 'ML' ? ' 🇲🇱' : '';   // plus de 🇸🇳 (Cobey, 06/11/2026)
     var nameEl = rows[i].querySelector('.client-name');
     if(nameEl && !nameEl._depDrapeauAjoute){
       nameEl.textContent = (c.name || '') + drapeau;
