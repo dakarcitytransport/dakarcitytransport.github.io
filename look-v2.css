@@ -392,6 +392,14 @@ html.look-v2 .fr-carte .fr-px{display:block;order:2;font-size:19px;font-weight:8
 html.look-v2 .fr-carte .fr-ch{order:3;flex:1 1 100%}
 html.look-v2 .fr-carte .fr-co b,html.look-v2 .fr-carte .fr-sep{display:none}
 
+
+/* carte client France : adresse / colis / déplacement bien distincts, toujours à la même place */
+html.look-v2 .fr-carte .fr-ad{display:flex;gap:6px;align-items:flex-start;color:var(--text3) !important;font-weight:500}
+html.look-v2 .fr-carte .fr-ad::before{content:'\1F4CD';font-size:13px;flex:none}
+html.look-v2 .fr-carte .fr-co{flex-direction:column !important;align-items:flex-start !important;flex-wrap:nowrap !important;gap:7px !important;margin-top:9px !important}
+html.look-v2 .fr-carte .fr-co > span:first-child{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:14px;background:rgba(26,138,92,.1);border:1px solid rgba(26,138,92,.22);color:var(--text) !important;font-size:13px !important;font-weight:700;line-height:1.3}
+html.look-v2 .fr-carte .fr-co .badge{display:inline-flex;align-items:center;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:800;border:1px solid rgba(0,120,130,.25)}
+
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

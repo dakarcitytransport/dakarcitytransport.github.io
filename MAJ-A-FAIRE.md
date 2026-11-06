@@ -6621,3 +6621,7 @@ Interprété : le bloc « DERNIÈRE NOTE » (barre bleue sur le côté, fond pla
 ### 06/11/2026 — Clients France : prix en évidence (v3.99.262–263)
 > Cobey : « Et le prix est mal placé du client, c'est pas mis en évidence comme dans la collecte classique. »
 Ajout d'un `<span class="fr-px">` (caché en V1) dans l'en-tête de la carte : en V2, le prix (19 px, vert, gras) est en haut à droite sur la ligne du nom ; il disparaît de la ligne des colis (`fr-sep` + `b` masqués). 74/74.
+
+### 06/11/2026 — Clients France : adresse / colis / déplacement distincts (v3.99.264)
+> Cobey : « leur carte c'est un peu brouillon. On ne distingue pas l'adresse des colis, c'est écrit en même couleur. Le prix du déplacement est mis soit en bas, soit à droite selon le client. »
+V2 : adresse en gris avec 📍 ; colis dans une pastille verte (📦 N colis · description) ; « 🛣️ N € déplacement » toujours sur sa propre ligne sous les colis (plus de wrap aléatoire à droite). 74/74.
