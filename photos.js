@@ -132,6 +132,32 @@
       return r;
     };
   }
+  // Partout où une pastille d'initiales (.av) porte l'identifiant d'une personne qui a une photo (détail d'une collecte,
+  // Administration > Équipe, Codes admin…), on y met sa photo. Cobey, 06/11/2026 : « au niveau des initiales, on aurait
+  // pu mettre leurs photos, maintenant on a des photos. » (Observation légère : une passe par image d'écran.)
+  function pastilles(){
+    [].forEach.call(document.querySelectorAll('.av:not([data-ph]):not([data-phx])'), function(el){
+      var t = (el.textContent || '').trim();
+      if(!/^[A-Z]{2,3}$/.test(t) || !source(t)){ if(t.length > 3 || /[^A-Z]/.test(t)) el.setAttribute('data-phx', '1'); return; }
+      el.setAttribute('data-ph', t);
+    });
+    // Administration (Équipe, Codes admin) : pastilles rondes écrites en style direct, sans la classe .av
+    [].forEach.call(document.querySelectorAll('#s-admin [id^="admin-section-"] div:not([data-ph]):not([data-phx])'), function(el){
+      if(el.children.length) return;
+      var t = (el.textContent || '').trim();
+      if(!/^[A-Z]{2,3}$/.test(t) || !source(t)) return;
+      if(String(el.style.borderRadius).indexOf('50%') < 0) return;
+      el.setAttribute('data-ph', t);
+    });
+  }
+  if(window.MutationObserver){
+    var planifie = false;
+    new MutationObserver(function(){
+      if(planifie) return; planifie = true;
+      (window.requestAnimationFrame || setTimeout)(function(){ planifie = false; try{ pastilles(); }catch(e){} });
+    }).observe(document.body, { childList:true, subtree:true });
+    try{ pastilles(); }catch(e){}
+  }
   if(typeof window.depRenderEspaces === 'function'){
     var origEsp = window.depRenderEspaces;
     window.depRenderEspaces = function(){ var r = origEsp.apply(this, arguments); tout(); try{ nouveautes(); }catch(e){} return r; };

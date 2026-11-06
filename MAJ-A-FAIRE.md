@@ -6568,3 +6568,7 @@ Texte raccourci en « Absent d'office » ; la pastille de statut peut maintenant
 ### 06/11/2026 — Nouveau look, vague 4 : détail d'une collecte, Équipe, Codes admin (v3.99.244)
 > Cobey : « Fais ça maintenant » (fiches ouvertes depuis les écrans refaits).
 V2 seulement, CSS + look.js `barresLaterales` (étendu) : détail d'une collecte — bandeau chiffres vert en carte arrondie, onglets Clients / Dispatch en pilule, cartes collaborateurs en verre teinté, pastilles de filtre et recherche arrondies ; Administration > Équipe — chaque collaborateur en verre teinté, nom + flèches ↑↓ sur la première ligne et boutons (✏️ 🚫 🔑 🗑️) en dessous (avant : 6 boutons écrasaient le nom) ; Codes admin — carte en verre, bouton arrondi. V1 inchangée (74/74). Le détail d'un départ (container) avait déjà été refait (boutons v3.99.220).
+
+### 06/11/2026 — Photos à la place des initiales dans le détail collecte, Équipe, etc. (v3.99.245)
+> Cobey : « Au niveau des initiales, on aurait pu mettre leurs photos. Maintenant on a des photos. »
+photos.js `pastilles()` : toute pastille d'initiales `.av` dont le texte est l'identifiant d'une personne ayant une photo reçoit sa photo (détail d'une collecte, etc.), et les pastilles rondes d'Administration > Équipe / Codes admin aussi. Observation légère (une passe par image d'écran). Les personnes sans photo gardent leurs initiales (ex. Abdoulaye / Eric dans mes fausses données). 74/74.
