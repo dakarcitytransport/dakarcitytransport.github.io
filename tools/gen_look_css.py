@@ -605,6 +605,32 @@ html.look-v2 .pb-t.pb-ok{background:linear-gradient(145deg,#2fb27c,#1a8a5c);box-
 html.look-v2 #s-depart-detail .cli-px,html.look-v2 #s-depart-detail .cli-liv2{display:none !important}
 html.look-v2 #s-depart-detail .cli-bd > .pb{margin-bottom:10px}
 html.look-v2 #s-depart-detail .cli-bd > .pb + .cli-b1{border-top:0;padding-top:0;margin-top:0}
+
+/* ── feuille de route d'un camion (collecte et France) ── */
+html.look-v2 #s-camion .content > div[style*="border:2px solid var(--green)"],html.look-v2 #s-fr-camion .content > div[style*="border:2px solid var(--green)"],html.look-v2 #s-camion .content > div[style*="border:2px solid #1a237e"],html.look-v2 #s-fr-camion .content > div[style*="border:2px solid #1a237e"]{background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:26px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);padding:16px !important}
+html.look-v2 #s-camion div[style*="background:#F9F9F7"],html.look-v2 #s-fr-camion div[style*="background:#F9F9F7"]{background:rgba(255,255,255,.55) !important;border:1px solid var(--lk-edge) !important;border-radius:20px !important}
+html.look-v2 .finance-bar-bg{height:10px;border-radius:99px !important;background:rgba(120,135,128,.2) !important;border:0 !important;overflow:hidden}
+html.look-v2 .finance-bar-bg > div{border-radius:99px !important}
+html.look-v2 .route-card{background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:26px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);margin-bottom:12px}
+html.look-v2 .route-card.done{background-image:linear-gradient(135deg,rgba(26,138,92,.22),rgba(26,138,92,.06)) !important;border-color:rgba(26,138,92,.5) !important}
+html.look-v2 .route-card.refused{background-image:linear-gradient(135deg,rgba(224,80,63,.2),rgba(224,80,63,.05)) !important;border-color:rgba(224,80,63,.5) !important}
+html.look-v2 .route-top{padding:13px 14px;background:linear-gradient(135deg,rgba(60,70,200,.12),rgba(60,70,200,.03))}
+html.look-v2 .route-num{width:38px;height:38px;font-size:15px;box-shadow:0 4px 10px rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.5)}
+html.look-v2 .route-client-name{font-size:16px;letter-spacing:-.015em;text-decoration:none}
+html.look-v2 .route-top [style*="border:2px solid"],html.look-v2 .route-top [style*="border:2.5px solid"],html.look-v2 .route-time{border-width:1px !important;border-radius:99px !important}
+html.look-v2 .route-details{background:rgba(255,255,255,.55);border-top:1px solid var(--lk-line);padding:11px 14px}
+html.look-v2 .route-detail-row{font-size:13.5px;margin-bottom:7px}
+html.look-v2 .route-actions{gap:8px;padding:10px 14px 14px}
+html.look-v2 .route-action-btn{border-width:1px !important;border-radius:16px !important;min-height:48px;font-size:14px}
+html.look-v2 .route-action-validate{background:linear-gradient(145deg,#2fb27c,#1a8a5c) !important;border-color:rgba(255,255,255,.4) !important;box-shadow:0 8px 18px rgba(26,138,92,.3)}
+html.look-v2 .route-action-refuse{background:linear-gradient(145deg,#e0503f,#b8301f) !important;border-color:rgba(255,255,255,.35) !important}
+html.look-v2 .route-action-more{background:rgba(255,255,255,.85) !important;color:#26338f !important;border:1px solid #fff !important;box-shadow:0 3px 8px rgba(0,0,0,.07)}
+html.look-v2 .route-action-done-g{background:rgba(26,138,92,.14) !important;border-color:rgba(26,138,92,.35) !important}
+html.look-v2 .route-action-done-r{background:rgba(224,80,63,.14) !important;border-color:rgba(224,80,63,.35) !important}
+html.look-v2 .route-actions.dep-extra-camion button,html.look-v2 .route-card button[style*="border:2px solid #bbb"],html.look-v2 .route-card button[style*="border:2px solid #E58A00"],html.look-v2 .route-card button[style*="border:2px solid #1a237e"]{border-width:1px !important;border-radius:14px !important;min-height:40px;background-color:rgba(255,255,255,.85) !important;box-shadow:0 3px 8px rgba(0,0,0,.06)}
+html.look-v2 .route-card .route-actions button[style*="#25D366"],html.look-v2 .route-card button[style*="background:#25D366"]{border-radius:14px !important;border-width:0 !important}
+html.look-v2 .route-card button[style*="background:#1a237e"]{background:linear-gradient(145deg,#4a55c8,#26338f) !important;border-radius:14px !important;border-width:0 !important;color:#fff !important}
+html.look-v2 #s-camion .content > button[style*="background:#111"],html.look-v2 #s-camion .content > button[style*="background:#000"],html.look-v2 #s-fr-camion .content > button[style*="background:#111"]{background:linear-gradient(145deg,#2a3a34,#10201a) !important;border-radius:20px !important;min-height:52px}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
