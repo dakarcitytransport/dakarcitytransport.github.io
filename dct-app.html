@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.299">
+<link rel="stylesheet" href="look-v2.css?v=3.99.301">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -274,7 +274,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .truck-pills-wrap{padding:8px 14px 10px;display:flex;flex-wrap:wrap;gap:5px;}
 .pl-i{display:none;}
 .cr-bas{display:contents;}
-.cr-chg-t{display:none;}.pb{display:none;}.liv-dk{display:none;}.cr-hd,.cr-bd{display:contents;}.cr-px,.cr-b1,.cr-ct{display:none;}
+.cr-chg-t{display:none;}.route-by,.rd-l,.rd-px{display:none;}.pb{display:none;}.liv-dk{display:none;}.cr-hd,.cr-bd{display:contents;}.cr-px,.cr-b1,.cr-ct{display:none;}
 .fr-px{display:none;}
 .pl-v1{display:inline-flex;}
 .truck-pill-item{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700;border:1.5px solid;}
@@ -2289,7 +2289,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.299';
+var APP_VERSION = 'v3.99.301';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -7589,11 +7589,12 @@ function renderCamionFrance(){
              +(heure||'Fixer heure')+'</button>')
           : ('<div style="font-size:13px;font-weight:800;flex-shrink:0;color:'+(isVal?'#006b2d':isRef?'#c0392b':heure?tc.color:'#aaa')+';">'+(heure||'--h--')+'</div>'))
       + '</div>'
+      + (c.creePar ? ('<div class="route-by"><span class="rb-l">Ajout\u00e9 par</span>'+_pastilleAuteurClient(c.creePar)+'</div>') : '')
       + '<div class="route-details">'
-      +   '<div class="route-detail-row" onclick="_frOuvrirWaze(\''+id+'\')" style="cursor:pointer;">📍 <strong style="color:#009A44;text-decoration:underline;">'+adresse+'</strong></div>'
-      +   '<div class="route-detail-row">'+(tel?('<a href="tel:'+tel+'" style="color:#1a237e;font-weight:700;text-decoration:none;">📞 '+(c.tel||'')+'</a>'):'📞 —')+'</div>'
-      +   '<div class="route-detail-row">📦 '+(c.nb||1)+' colis'+(c.colis?(' · '+c.colis):'')+'</div>'
-      +   '<div class="route-detail-row">💰 <strong style="color:#006b2d;font-size:15px;">'+_frPrixClient(id)+' €</strong>'
+      +   '<div class="route-detail-row rd-adr" onclick="_frOuvrirWaze(\''+id+'\')" style="cursor:pointer;"><span class="rd-ic">📍</span> <span class="rd-t"><small class="rd-l">Adresse</small><strong style="color:#009A44;text-decoration:underline;">'+adresse+'</strong></span></div>'
+      +   '<div class="route-detail-row rd-tel"><span class="rd-ic">📞</span> <span class="rd-t"><small class="rd-l">T\u00e9l\u00e9phone</small>'+(tel?('<a href="tel:'+tel+'" style="color:#1a237e;font-weight:700;text-decoration:none;">'+(c.tel||'')+'</a>'):'—')+'</span></div>'
+      +   '<div class="route-detail-row rd-col"><span class="rd-ic">📦</span> <span class="rd-t"><small class="rd-l">Colis</small>'+(c.nb||1)+' colis'+(c.colis?(' · '+_esc(c.colis)):'')+'</span><span class="rd-px">'+_frPrixClient(id)+' €</span></div>'
+      +   '<div class="route-detail-row rd-prix1">💰 <strong style="color:#006b2d;font-size:15px;">'+_frPrixClient(id)+' €</strong>'
       +     ((parseFloat(c.prixRamassage)||0)>0 ? ('<span style="font-size:11px;color:var(--text3);font-weight:500;"> (+ '+c.prixRamassage+' € déplacement)</span>') : '')+'</div>'
       + '</div>'
       + '<div class="route-actions">';
@@ -12612,6 +12613,10 @@ function renderCamion(k){
       heureEl.textContent=heure||'--h--';
     }
     top.appendChild(num);top.appendChild(info);top.appendChild(heureEl);
+    // Bande « Ajouté par » bien visible (nouveau look seulement ; en V1 la mention reste sous le nom).
+    var parBande=null;
+    if(c.by){ parBande=document.createElement('div'); parBande.className='route-by';
+      parBande.innerHTML='<span class="rb-l">Ajout\u00e9 par</span>'+_pastilleAuteurClient(c.by); }
     var det=document.createElement('div');det.className='route-details';
     var telClean=(c.tel||'').replace(/\s/g,'');
     var adresseFull=(c.adresse||'')+', '+(c.cp||'')+' '+(c.ville||'');
@@ -12619,8 +12624,8 @@ function renderCamion(k){
     var wazeLink='https://waze.com/ul?q='+wazeQ+'&navigate=yes';
     // ADRESSE cliquable Waze avec confirmation
     var adresseEl=document.createElement('div');adresseEl.className='route-detail-row';
-    adresseEl.style.cssText='cursor:pointer;';
-    adresseEl.innerHTML='📍 <strong style="color:#009A44;text-decoration:underline;">'+adresseFull+'</strong>';
+    adresseEl.style.cssText='cursor:pointer;';adresseEl.classList.add('rd-adr');
+    adresseEl.innerHTML='<span class="rd-ic">📍</span> <span class="rd-t"><small class="rd-l">Adresse</small><strong style="color:#009A44;text-decoration:underline;">'+adresseFull+'</strong></span>';
     (function(wl,af,cid){
       adresseEl.onclick=function(){
         // v2.8.3 : aucune écriture ici. Le départ est enregistré
@@ -12629,27 +12634,32 @@ function renderCamion(k){
       };
     })(wazeLink,adresseFull,id);   // v2.8.6 : 'id' (clé du client), pas 'c.id' qui n'existe pas
     det.appendChild(adresseEl);
-    var telEl=document.createElement('div');telEl.className='route-detail-row';
+    var telEl=document.createElement('div');telEl.className='route-detail-row rd-tel';
     if(telClean){
       var telLink=document.createElement('a');
       telLink.href='tel:'+telClean;
       telLink.style.cssText='color:#1a237e;font-weight:700;text-decoration:none;';
-      telLink.textContent='📞 '+(c.tel||'');
-      telEl.appendChild(telLink);
+      telLink.textContent=(c.tel||'');
+      var telIc=document.createElement('span');telIc.className='rd-ic';telIc.textContent='📞';
+      var telT=document.createElement('span');telT.className='rd-t';
+      telT.innerHTML='<small class="rd-l">T\u00e9l\u00e9phone</small>';
+      telEl.appendChild(telIc);telEl.appendChild(document.createTextNode(' '));telEl.appendChild(telT);
+      telT.appendChild(telLink);
       if((c.tel2||'').trim()){
         var telLink2=document.createElement('a');
         telLink2.href='tel:'+String(c.tel2).replace(/ /g,'');
         telLink2.style.cssText='color:#1a237e;font-weight:700;text-decoration:none;margin-left:10px;';
         telLink2.textContent='📞 '+c.tel2;
-        telEl.appendChild(telLink2);
+        telT.appendChild(telLink2);
       }
     } else {
       telEl.textContent='📞 —';
     }
     det.appendChild(telEl);
-    var colisEl=document.createElement('div');colisEl.className='route-detail-row';colisEl.textContent='📦 '+(c.colis||'');
+    var colisEl=document.createElement('div');colisEl.className='route-detail-row rd-col';
+    colisEl.innerHTML='<span class="rd-ic">📦</span> <span class="rd-t"><small class="rd-l">Colis</small>'+_esc(c.colis||'')+'</span><span class="rd-px">'+(c.prix||0)+' €</span>';
     det.appendChild(colisEl);
-    var prixEl=document.createElement('div');prixEl.className='route-detail-row';
+    var prixEl=document.createElement('div');prixEl.className='route-detail-row rd-prix1';
     prixEl.innerHTML='💰 <strong style="color:#006b2d;font-size:15px;">'+(c.prix||0)+' €</strong>';
     det.appendChild(prixEl);
     var act=document.createElement('div');act.className='route-actions';
@@ -12697,7 +12707,7 @@ function renderCamion(k){
       (function(cid,kk,cn){ba.onclick=function(){ouvrirModalPlus(cid,kk,cn);};})(id,k,c.name);
       act.appendChild(bv);act.appendChild(br);act.appendChild(ba);
     }
-    card.appendChild(top);card.appendChild(det);card.appendChild(act);route.appendChild(card);
+    card.appendChild(top);if(parBande)card.appendChild(parBande);card.appendChild(det);card.appendChild(act);route.appendChild(card);
   });
   if(pct===100&&tk.clients.length>0){
     var b=document.createElement('div');b.className='complete-banner';

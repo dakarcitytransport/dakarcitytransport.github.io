@@ -631,6 +631,27 @@ html.look-v2 .route-actions.dep-extra-camion button,html.look-v2 .route-card but
 html.look-v2 .route-card .route-actions button[style*="#25D366"],html.look-v2 .route-card button[style*="background:#25D366"]{border-radius:14px !important;border-width:0 !important}
 html.look-v2 .route-card button[style*="background:#1a237e"]{background:linear-gradient(145deg,#4a55c8,#26338f) !important;border-radius:14px !important;border-width:0 !important;color:#fff !important}
 html.look-v2 #s-camion .content > button[style*="background:#111"],html.look-v2 #s-camion .content > button[style*="background:#000"],html.look-v2 #s-fr-camion .content > button[style*="background:#111"]{background:linear-gradient(145deg,#2a3a34,#10201a) !important;border-radius:20px !important;min-height:52px}
+
+/* feuille de route : « Ajouté par » en bande + blocs Adresse / Téléphone / Colis et prix */
+html.look-v2 .route-top .by-v1,html.look-v2 .route-top > div:nth-child(2) > div:nth-child(2){display:none}
+html.look-v2 .route-top > div:nth-child(2)::after{content:'Tap pour modifier';display:block;font-size:11px;color:var(--text3);margin-top:2px}
+html.look-v2 .route-by{display:flex;align-items:center;gap:9px;padding:9px 14px;background:rgba(255,255,255,.6);border-top:1px solid var(--lk-line)}
+html.look-v2 .rb-l{display:inline;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)}
+html.look-v2 .route-by .pl{font-size:14px !important;padding:4px 14px 4px 4px !important;box-shadow:0 3px 8px rgba(0,0,0,.1)}
+html.look-v2 .route-by .pl .pl-i{width:28px;height:28px}
+html.look-v2 .route-details{padding:2px 14px 4px}
+html.look-v2 .route-detail-row{display:flex;align-items:center;gap:11px;padding:10px 0;margin:0 !important}
+html.look-v2 .rd-adr,html.look-v2 .rd-col{border-top:1px solid var(--lk-line)}
+html.look-v2 .rd-adr{border-top:0}
+html.look-v2 .rd-tel{padding-top:2px}
+html.look-v2 .rd-ic{flex:none;width:32px;height:32px;border-radius:11px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:15px}
+html.look-v2 .rd-t{flex:1;min-width:0;display:block}
+html.look-v2 .rd-l{display:block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:1px}
+html.look-v2 .rd-px{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--green-dark,#0a7a45);white-space:nowrap}
+html.look-v2 .rd-prix1{display:none !important}
+html.look-v2 .rd-tel .rd-t a{display:inline-block;margin-right:10px}
+html.look-v2 .dep-obs-avant{width:auto !important;display:block;margin:10px 14px 0 !important;border-radius:14px !important;border-width:1px !important;min-height:42px;font-size:13px !important;background-color:rgba(255,255,255,.85) !important;box-shadow:0 3px 8px rgba(0,0,0,.06);width:calc(100% - 28px) !important}
+html.look-v2 .route-actions.dep-extra-camion{padding:10px 14px 0}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
