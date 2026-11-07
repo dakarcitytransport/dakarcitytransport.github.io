@@ -6733,3 +6733,7 @@ V2 : bandeau et liseré de la carte — bleu-violet (à faire), vert soutenu + �
 ### 07/11/2026 — Feuille de route : toute la carte colorée selon l'état (v3.99.305)
 > Cobey : « les bandeaux sont coloriés mais le fond est blanc ; comme le fond blanc est plus grand que le bandeau, c'est moins facile de se repérer vite quel client a été fait, annulé ou autre. »
 V2 : le fond entier de la carte prend la teinte de l'état (vert ramassé, orange reporté, violet annulé, rouge refusé, bleu-violet léger à faire) ; bandeau plus soutenu ; zones « Ajouté par » et détails transparentes. 74/74.
+
+### 07/11/2026 — « Observation à lire » : orange bien visible (v3.99.306, departs.js v2.22.60)
+> Cobey : « le bouton observation à lire, avant il était bien orange, bien visible, et là il est un peu assombri… quand il y en a une, bien sûr » (c'est une observation importante à lire avant d'aller chez le client).
+Cause : ma règle générale des boutons arrondis (blanc translucide) écrasait l'orange. departs.js : classe `dep-obs-lire` ajoutée au bouton quand le client a au moins une observation (avant collecte et après validation). V2 : dégradé orange plein, texte blanc gras, ombre orange. Sans observation : bouton blanc discret, comme avant. Vu avec une observation (testée sur une étape reportée). 74/74.

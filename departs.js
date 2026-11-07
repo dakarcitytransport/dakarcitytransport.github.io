@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.59';
+var DEP_VERSION = 'v2.22.60';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20553,6 +20553,7 @@ function _depAjouterObservationAvantCollecte(k, src){
       b.className = 'dep-obs-avant';
       var aUneObs = false;
       try{ aUneObs = _depObservationsListe(fiche).length > 0; }catch(e){}
+      if(aUneObs) b.className += ' dep-obs-lire';
       b.style.cssText = 'width:100%;padding:8px;border-radius:10px;font-size:12px;font-weight:800;'
         + 'cursor:pointer;font-family:var(--font);margin-bottom:7px;'
         + (aUneObs ? 'background:#FFF3E0;color:#B45309;border:2px solid #E58A00;'
@@ -20620,6 +20621,7 @@ function _depAjouterBoutonsExtraCamionValide(k, src){
       bObs.type = 'button';
       bObs.style.cssText = 'flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--font);'
         + (aUneObs ? 'background:#FFF3E0;color:#B45309;border:2px solid #E58A00;' : 'background:#F0F0F0;color:#555;border:2px solid #bbb;');
+      if(aUneObs) bObs.className = 'dep-obs-lire';
       bObs.innerHTML = aUneObs ? '&#9888;&#65039; Observation' : '&#128221; Observation';
       bObs.onclick = function(e){ if(e) e.stopPropagation(); depOuvrirObservation(colIdPourObs, cid, estFr ? 'france' : 'collecte'); };
 
