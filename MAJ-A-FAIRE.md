@@ -6729,3 +6729,7 @@ Camion collecte (`renderCamion`) et camion France (`renderCamionFrance`) : bande
 ### 07/11/2026 — États d'une étape de la feuille de route (v3.99.303–304)
 > Cobey : « quand on valide un client pendant la ramasse, y a-t-il un changement visuel ? » → « montre les coloris : pas validé, validé, reporté, annulé » → « Ok code ».
 V2 : bandeau et liseré de la carte — bleu-violet (à faire), vert soutenu + « ✓ heure » (ramassé), orange (reporté), violet (annulé), rouge (refusé) ; pastille numéro de la même couleur ; boutons « Ramassé / Reporté / Annulé / Non effectuée » teintés ; ↩️ en tuile blanche. Piège : les styles posés en JS sont réécrits par le navigateur (`#856404` → `rgb(…)`), donc les sélecteurs `[style*="#hex"]` ne les attrapent pas — utiliser des classes. Vu : à faire, ramassé, refusé, reporté ; non vu : annulé. 74/74.
+
+### 07/11/2026 — Feuille de route : toute la carte colorée selon l'état (v3.99.305)
+> Cobey : « les bandeaux sont coloriés mais le fond est blanc ; comme le fond blanc est plus grand que le bandeau, c'est moins facile de se repérer vite quel client a été fait, annulé ou autre. »
+V2 : le fond entier de la carte prend la teinte de l'état (vert ramassé, orange reporté, violet annulé, rouge refusé, bleu-violet léger à faire) ; bandeau plus soutenu ; zones « Ajouté par » et détails transparentes. 74/74.

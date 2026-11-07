@@ -685,6 +685,17 @@ html.look-v2 .route-card.reported .route-actions div.route-action-btn{background
 html.look-v2 .route-card.cancelled .route-actions div.route-action-btn{background:rgba(122,92,240,.14) !important;color:#6b3fa0 !important;border:1px solid rgba(122,92,240,.35) !important;border-radius:16px !important;min-height:48px}
 html.look-v2 .route-actions .route-action-done-g,html.look-v2 .route-actions .route-action-done-r{flex:1 1 auto;min-width:0;white-space:nowrap;font-size:12.5px;padding:0 6px !important;display:flex;align-items:center;justify-content:center}
 html.look-v2 .route-card.done .route-actions button[onclick*="Facture"],html.look-v2 .route-card.done .route-actions button:not(.route-action-btn){border-radius:14px !important;border-width:1px !important}
+/* toute la carte prend la couleur de l'état (pas seulement le bandeau) */
+html.look-v2 .route-card .route-details,html.look-v2 .route-card .route-by{background:transparent !important}
+html.look-v2 .route-card{background-image:linear-gradient(180deg,rgba(60,70,200,.07),rgba(60,70,200,.04)) !important}
+html.look-v2 .route-card.done{background-image:linear-gradient(180deg,rgba(26,138,92,.2),rgba(26,138,92,.13)) !important}
+html.look-v2 .route-card.reported{background-image:linear-gradient(180deg,rgba(235,150,30,.22),rgba(235,150,30,.14)) !important}
+html.look-v2 .route-card.cancelled{background-image:linear-gradient(180deg,rgba(122,92,240,.18),rgba(122,92,240,.11)) !important}
+html.look-v2 .route-card.refused{background-image:linear-gradient(180deg,rgba(224,80,63,.19),rgba(224,80,63,.12)) !important}
+html.look-v2 .route-card.done .route-top{background:linear-gradient(135deg,rgba(26,138,92,.42),rgba(26,138,92,.2))}
+html.look-v2 .route-card.reported .route-top{background:linear-gradient(135deg,rgba(235,150,30,.46),rgba(235,150,30,.22))}
+html.look-v2 .route-card.cancelled .route-top{background:linear-gradient(135deg,rgba(122,92,240,.38),rgba(122,92,240,.18))}
+html.look-v2 .route-card.refused .route-top{background:linear-gradient(135deg,rgba(224,80,63,.4),rgba(224,80,63,.18))}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
