@@ -698,6 +698,40 @@ html.look-v2 .route-card.cancelled .route-top{background:linear-gradient(135deg,
 html.look-v2 .route-card.refused .route-top{background:linear-gradient(135deg,rgba(224,80,63,.4),rgba(224,80,63,.18))}
 /* observation à lire : orange bien visible (c'est important avant d'aller chez le client) */
 html.look-v2 .dep-obs-avant.dep-obs-lire,html.look-v2 button.dep-obs-lire{background:linear-gradient(145deg,#f5a623,#e07a10) !important;background-color:#f08a1a !important;color:#fff !important;border:1px solid rgba(255,255,255,.5) !important;font-weight:800 !important;box-shadow:0 8px 20px rgba(224,122,16,.4) !important;min-height:46px;font-size:14px !important;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+
+/* ── Dispatch : barre de boutons + cartes de camion repliables, à la couleur de chaque camion ── */
+html.look-v2 .cam-map-v1,html.look-v2 .cam-add-v1{display:none !important}
+html.look-v2 .cam-tb{display:flex;gap:8px;margin:2px 0 14px}
+html.look-v2 .cam-tb button{border-radius:16px;padding:13px 10px;font-weight:800;font-size:13.5px;font-family:inherit;cursor:pointer;border:0}
+html.look-v2 .cam-tb-a{flex:1.3;color:#fff;background:linear-gradient(145deg,#4a55c8,#26338f);box-shadow:0 8px 18px rgba(38,51,143,.3)}
+html.look-v2 .cam-tb-b{flex:1;color:#26338f;background:rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(0,0,0,.07)}
+html.look-v2 .truck-card.lk-cam{display:grid;grid-template-columns:1fr 1fr;padding:0 !important;overflow:hidden;background:var(--lk-glass) !important;border:1px solid color-mix(in srgb,var(--tc) 45%,#fff) !important;border-radius:24px !important;box-shadow:var(--shadow);margin-bottom:12px;backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}
+html.look-v2 .lk-cam .truck-head{grid-column:1 / -1;padding:13px 14px !important;margin:0 !important;border:0 !important;background:linear-gradient(135deg,color-mix(in srgb,var(--tc) 34%,transparent),color-mix(in srgb,var(--tc) 9%,transparent)) !important;display:flex;align-items:center;gap:10px}
+html.look-v2 .lk-cam .truck-name{font-size:17px;font-weight:800;letter-spacing:-.01em;color:var(--text) !important}
+html.look-v2 .lk-cam .truck-head [onclick*="toggleRename"],html.look-v2 .lk-cam .truck-head [onclick*="demanderSupprimerCamion"]{width:34px;height:34px;padding:0 !important;border-radius:11px !important;background:#fff !important;border:0 !important;box-shadow:0 2px 6px rgba(0,0,0,.08);display:inline-flex;align-items:center;justify-content:center;font-size:14px !important}
+html.look-v2 .lk-cam .truck-count{border:0 !important;border-radius:99px !important;background:#fff !important;font-weight:800;padding:5px 11px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+html.look-v2 .lk-cam .rename-zone{grid-column:1 / -1}
+html.look-v2 .lk-cam .truck-finance{margin:12px 4px 0 14px !important;padding:9px 12px !important;border-radius:14px;background:rgba(120,135,128,.1) !important;border:0 !important}
+html.look-v2 .lk-cam .truck-ramasse{margin:12px 14px 0 4px !important;padding:9px 12px !important;border-radius:14px;background:rgba(120,135,128,.1) !important;border:0 !important}
+html.look-v2 .lk-cam .truck-pills-wrap{display:none !important}
+html.look-v2 .lk-cam .cam-next{display:block;grid-column:1 / -1;padding:10px 14px 12px;font-size:12.5px;font-weight:700;color:var(--text2)}
+html.look-v2 .lk-cam .cam-next b{color:color-mix(in srgb,var(--tc) 70%,#000)}
+html.look-v2 .lk-cam .cam-list{display:none;grid-column:1 / -1;padding:6px 14px 8px;border-top:1px solid var(--lk-line)}
+html.look-v2 .lk-cam.ouvert .cam-list{display:block}
+html.look-v2 .lk-cam .cam-r{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px;font-weight:700}
+html.look-v2 .lk-cam .cam-r + .cam-r{border-top:1px solid var(--lk-line)}
+html.look-v2 .lk-cam .cam-h{flex:none;width:58px;text-align:center;border-radius:10px;padding:5px 0;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.08);font-weight:800;font-size:13px;color:color-mix(in srgb,var(--tc) 70%,#000)}
+html.look-v2 .lk-cam .cam-more{color:var(--text3)}
+html.look-v2 .lk-cam .cam-more .cam-h{background:transparent;box-shadow:none}
+html.look-v2 .lk-cam .cam-toggle{display:flex;grid-column:1 / -1;justify-content:center;padding:11px;border-top:1px solid var(--lk-line);font-weight:800;font-size:13px;color:#26338f;cursor:pointer}
+html.look-v2 .lk-cam .cam-t-f{display:none}
+html.look-v2 .lk-cam.ouvert .cam-t-o{display:none}
+html.look-v2 .lk-cam.ouvert .cam-t-f{display:inline}
+html.look-v2 .cam-tb{width:100%;flex:0 0 100%;box-sizing:border-box}
+html.look-v2 .cam-tb button{white-space:nowrap}
+html.look-v2 .lk-cam .truck-head > div:first-child{flex-wrap:nowrap !important}
+html.look-v2 .lk-cam .truck-name{min-width:0;flex:1 1 auto}
+html.look-v2 #collecte-content > button[onclick*="Externe"],html.look-v2 #collecte-content > button[onclick*="externe"]{width:100%;border-radius:16px !important;border-width:1px !important;margin-bottom:12px}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
