@@ -557,8 +557,6 @@ html.look-v2 #s-camion div[style*="background:#F9F9F7"],html.look-v2 #s-fr-camio
 html.look-v2 .finance-bar-bg{height:10px;border-radius:99px !important;background:rgba(120,135,128,.2) !important;border:0 !important;overflow:hidden}
 html.look-v2 .finance-bar-bg > div{border-radius:99px !important}
 html.look-v2 .route-card{background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:26px !important;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);margin-bottom:12px}
-html.look-v2 .route-card.done{background-image:linear-gradient(135deg,rgba(26,138,92,.22),rgba(26,138,92,.06)) !important;border-color:rgba(26,138,92,.5) !important}
-html.look-v2 .route-card.refused{background-image:linear-gradient(135deg,rgba(224,80,63,.2),rgba(224,80,63,.05)) !important;border-color:rgba(224,80,63,.5) !important}
 html.look-v2 .route-top{padding:13px 14px;background:linear-gradient(135deg,rgba(60,70,200,.12),rgba(60,70,200,.03))}
 html.look-v2 .route-num{width:38px;height:38px;font-size:15px;box-shadow:0 4px 10px rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.5)}
 html.look-v2 .route-client-name{font-size:16px;letter-spacing:-.015em;text-decoration:none}
@@ -608,6 +606,30 @@ html.look-v2 .rd-dep .rd-ic{background:rgba(0,140,150,.16)}
 html.look-v2 .rd-dep .rd-l,html.look-v2 .rd-dep .rd-t{color:#00636b}
 html.look-v2 .rd-dep .rd-px{color:#00636b;font-size:17px}
 html.look-v2 .rd-liv,html.look-v2 .rd-dep{padding-top:0 !important}
+
+/* états d'une étape : à faire (bleu) / ramassé (vert) / reporté (orange) / annulé (violet) / refusé (rouge) */
+html.look-v2 .route-card.done{border-color:rgba(26,138,92,.55) !important;background-image:none !important}
+html.look-v2 .route-card.done .route-top{background:linear-gradient(135deg,rgba(26,138,92,.32),rgba(26,138,92,.1))}
+html.look-v2 .route-card.done .route-num{background:#0a6b3d !important}
+html.look-v2 .route-card.done .route-top > div:last-child::before{content:'\2713 '}
+html.look-v2 .route-card.done .route-top > div:last-child{background:#fff;border-radius:99px;padding:6px 12px;box-shadow:0 2px 6px rgba(0,0,0,.08);color:#0a6b3d !important}
+html.look-v2 .route-card.reported{border-color:rgba(235,150,30,.6) !important}
+html.look-v2 .route-card.reported .route-top{background:linear-gradient(135deg,rgba(235,150,30,.34),rgba(235,150,30,.1))}
+html.look-v2 .route-card.reported .route-num{background:#d9560a !important}
+html.look-v2 .route-card.cancelled{border-color:rgba(122,92,240,.5) !important}
+html.look-v2 .route-card.cancelled .route-top{background:linear-gradient(135deg,rgba(122,92,240,.28),rgba(122,92,240,.08))}
+html.look-v2 .route-card.cancelled .route-num{background:#6b3fa0 !important}
+html.look-v2 .route-card.refused{border-color:rgba(224,80,63,.55) !important;background-image:none !important}
+html.look-v2 .route-card.refused .route-top{background:linear-gradient(135deg,rgba(224,80,63,.3),rgba(224,80,63,.08))}
+html.look-v2 .route-card.refused .route-num{background:#b8301f !important}
+html.look-v2 .route-card.reported .route-action-btn:not(button),html.look-v2 .route-card .route-actions div.route-action-btn[style*="#e65100"]{background:rgba(235,150,30,.18) !important;color:#a04800 !important;border:1px solid rgba(235,150,30,.4) !important;border-radius:16px !important;min-height:48px}
+html.look-v2 .route-card .route-actions div.route-action-btn[style*="#6b21a8"]{background:rgba(122,92,240,.14) !important;color:#6b3fa0 !important;border:1px solid rgba(122,92,240,.35) !important;border-radius:16px !important;min-height:48px}
+html.look-v2 .route-card .route-actions button.route-action-btn[style*="#856404"]{background:rgba(255,255,255,.9) !important;border:1px solid #fff !important;border-radius:16px !important;box-shadow:0 2px 8px rgba(0,0,0,.07);flex:0 0 48px;min-height:48px;padding:0 !important}
+html.look-v2 .route-actions button.route-action-btn:not(.route-action-validate):not(.route-action-refuse):not(.route-action-more){background:rgba(255,255,255,.9) !important;color:#26338f !important;border:1px solid #fff !important;border-radius:16px !important;box-shadow:0 2px 8px rgba(0,0,0,.07);flex:0 0 48px;min-height:48px;padding:0 !important}
+html.look-v2 .route-card.reported .route-actions div.route-action-btn{background:rgba(235,150,30,.18) !important;color:#a04800 !important;border:1px solid rgba(235,150,30,.4) !important;border-radius:16px !important;min-height:48px}
+html.look-v2 .route-card.cancelled .route-actions div.route-action-btn{background:rgba(122,92,240,.14) !important;color:#6b3fa0 !important;border:1px solid rgba(122,92,240,.35) !important;border-radius:16px !important;min-height:48px}
+html.look-v2 .route-actions .route-action-done-g,html.look-v2 .route-actions .route-action-done-r{flex:1 1 auto;min-width:0;white-space:nowrap;font-size:12.5px;padding:0 6px !important;display:flex;align-items:center;justify-content:center}
+html.look-v2 .route-card.done .route-actions button[onclick*="Facture"],html.look-v2 .route-card.done .route-actions button:not(.route-action-btn){border-radius:14px !important;border-width:1px !important}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

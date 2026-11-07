@@ -6725,3 +6725,7 @@ Camion collecte (`renderCamion`) et camion France (`renderCamionFrance`) : bande
 ### 07/11/2026 — Feuille de route : ligne Livraison, Déplacement et Total à payer (v3.99.302)
 > Cobey : « une ligne spéciale pour la livraison, pour savoir s'il y en a une et son prix ; les prix du colis, de la livraison et un total » → aperçu → « Ok code ».
 Étape d'un camion (collecte et France), nouveau look : « Colis » + prix en bleu ; ligne violette « Livraison à Dakar » (ville + prix) si livraison ; ligne turquoise « Déplacement » (France, toujours) ; bandeau sombre « TOTAL À PAYER » (`_htmlBlocPrix(c, france, true)` = colis + déplacement + livraison). Le bouton Valider garde son montant d'avant (prix du colis) : la livraison a sa propre caisse. V1 inchangée (74/74). Vu : collecte avec et sans livraison ; non vu : France.
+
+### 07/11/2026 — États d'une étape de la feuille de route (v3.99.303–304)
+> Cobey : « quand on valide un client pendant la ramasse, y a-t-il un changement visuel ? » → « montre les coloris : pas validé, validé, reporté, annulé » → « Ok code ».
+V2 : bandeau et liseré de la carte — bleu-violet (à faire), vert soutenu + « ✓ heure » (ramassé), orange (reporté), violet (annulé), rouge (refusé) ; pastille numéro de la même couleur ; boutons « Ramassé / Reporté / Annulé / Non effectuée » teintés ; ↩️ en tuile blanche. Piège : les styles posés en JS sont réécrits par le navigateur (`#856404` → `rgb(…)`), donc les sélecteurs `[style*="#hex"]` ne les attrapent pas — utiliser des classes. Vu : à faire, ramassé, refusé, reporté ; non vu : annulé. 74/74.
