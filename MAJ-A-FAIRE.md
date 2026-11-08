@@ -6752,3 +6752,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Rythme attendu : régulier entre l'ouverture du container (`creeLe` / `creeTs` / `ts` s'il existe, sinon 28 jours avant le départ) et son départ ; en avance si ≥ attendu + 8 % de l'objectif, dans les temps si ≥ attendu − 5 %, sinon en retard. Sans date de départ : pas de verdict.
 - Réglages > OBJECTIFS (réservé à Eric) : `dct_config/objectifs = { container, dimanche }` (défaut 100 / 20) ; trace dans l'activité.
 - `compteursDepart` exposé sur window. Test : bannière placée sous #bd-accueil, alternance container / dimanche, tuile et formulaire des Réglages ; 74/74.
+
+### 08/11/2026 — Objectifs : bilan du dimanche + panel de messages variés (v3.99.312, objectifs.js)
+> Cobey : « le message n'est pas cohérent le dimanche même » ; « vaut mieux mettre le bilan, si c'est bien ou si c'est pas bien » ; « il faut des messages divers, pas toujours les mêmes, un panel de messages divers et variés ».
+- Du lundi au samedi : objectif du PROCHAIN dimanche avec compte à rebours (« dans 3 jours », « demain »). Le dimanche même : BILAN de la collecte du jour (doré ≥ objectif, bleu « presque » ≥ 75 %, orange sinon, sans consigne). Dès le lundi, passage automatique au dimanche suivant.
+- Panel : 3 à 4 phrases par situation (container : atteint / en avance / dans les temps / en retard ; dimanche : atteint, dépassé, proche, moyen, bas ; bilan : bien / presque / pas atteint). La phrase change chaque jour (choix fixe dans la journée, pas de clignotement). Tout est dans `PANEL` en haut de la partie « calcul » d'objectifs.js.
+- Testé (faux Firebase) : bilan 24 / 17 / 11 clients, prochain dimanche avec 15 et 3 clients, container en retard. Balayage des 74 écrans non relancé (script introuvable) : seul objectifs.js a changé.

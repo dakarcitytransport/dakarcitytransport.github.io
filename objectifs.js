@@ -79,26 +79,51 @@
     var p = (a - debut) / (fin - debut);
     return Math.max(0, Math.min(1, p)) * objectif;
   }
+  // Panel de messages : plusieurs phrases par situation, une différente chaque jour (stable dans la journée, pas de clignotement).
+  function hash(t){ var h = 0; for(var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0; return h; }
+  function pl(n, mot){ return n + ' ' + mot + (n > 1 ? 's' : ''); }
+  function choisir(liste, cle, vars){
+    var t = liste[hash(auj() + '|' + cle) % liste.length];
+    return t.replace(/\{(\w+)\}/g, function(m, k){ return vars[k] != null ? vars[k] : m; });
+  }
+  var PANEL = {
+    cAtteint: ['🎉 {obj} clients, bravo l’équipe !', '🏆 Container plein, on peut être fiers', '🎉 Objectif rempli, le reste est du bonus', '💪 {obj} clients : mission accomplie !'],
+    cAvance: ['🔥 En avance — il reste {pl}', '🚀 Beau rythme : {n} déjà !', '🔥 L’équipe assure, encore {pl}', '😎 On prend de l’avance, continuez'],
+    cTemps: ['👍 Bon rythme — il reste {pl}', '✅ Dans les temps, ne lâchez rien', '👍 Ça avance bien, encore {pl}', '🙂 On garde ce cap : {pl} à trouver'],
+    cRetard: ['⏳ Il faut accélérer — {pl} avant le {date}', '📣 Un coup de collier : {pl} à trouver', '⏳ Un peu de retard, on s’y met !', '💥 Allez, {pl} avant le {date}'],
+    cSans: ['Il reste {pl} à trouver', 'Encore {pl} pour remplir le container', '{pl} à trouver, on y va'],
+    dAtteint: ['🎯 Objectif atteint, bravo !', '🎉 Objectif rempli, bien joué', '💪 On y est : objectif atteint !'],
+    dDepasse: ['🎯 Objectif dépassé de {plus} !', '🔥 +{plus} au-dessus de l’objectif', '🏆 Dépassé de {plus}, bravo !'],
+    dProche: ['Encore {reste} pour atteindre l’objectif', 'Presque ! Plus que {reste}', '👀 Il manque seulement {reste}'],
+    dMoyen: ['Courage, {reste} de plus pour l’objectif', 'On avance : encore {reste} à trouver', '💬 {reste} de plus et c’est bon'],
+    dBas: ['Il en manque {reste} : on s’y met !', '📞 Il faut en trouver {reste}, allez !', '⏳ Encore {reste} à chercher, on s’y met'],
+    bBien: ['🎯 Dépassé de {plus}, belle journée !', '🎉 {n} clients aujourd’hui, bravo !', '🏆 Objectif atteint, super dimanche !'],
+    bPresque: ['👍 {n} clients, presque ! Dimanche prochain', '🙂 Pas loin de l’objectif, bon travail', '💪 Presque, on vise l’objectif la prochaine fois'],
+    bPas: ['{n} clients seulement : on fera mieux la semaine prochaine', 'Dimanche calme, on vise plus haut', '📈 Objectif manqué, on se rattrape dimanche prochain']
+  };
   function messageContainer(d){
     var obj = cfg.container, n = nbContainer(d._id), pct = Math.max(0, Math.min(100, obj ? n / obj * 100 : 0));
-    var att = attendu(d, obj), reste = Math.max(0, obj - n), classe, txt;
+    var att = attendu(d, obj), reste = Math.max(0, obj - n), classe, liste;
     var nom = (d.nom || 'Container') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
-    if(n >= obj){ classe = 'd'; txt = '🎉 ' + obj + ' clients, bravo l’équipe !'; }
-    else if(att === null){ classe = 'b'; txt = 'Il reste ' + reste + ' client' + (reste > 1 ? 's' : '') + ' à trouver'; }
-    else if(n >= att + obj * 0.08){ classe = 'v'; txt = '🔥 En avance sur le rythme — il reste ' + reste + ' client' + (reste > 1 ? 's' : ''); }
-    else if(n >= att - obj * 0.05){ classe = 'b'; txt = '👍 Bon rythme — il reste ' + reste + ' client' + (reste > 1 ? 's' : ''); }
-    else { classe = 'o'; txt = '⏳ Il faut accélérer — ' + reste + ' avant le ' + dateCourte(d.dateDepart); }
+    if(n >= obj){ classe = 'd'; liste = PANEL.cAtteint; }
+    else if(att === null){ classe = 'b'; liste = PANEL.cSans; }
+    else if(n >= att + obj * 0.08){ classe = 'v'; liste = PANEL.cAvance; }
+    else if(n >= att - obj * 0.05){ classe = 'b'; liste = PANEL.cTemps; }
+    else { classe = 'o'; liste = PANEL.cRetard; }
+    var txt = choisir(liste, 'c' + d._id + classe, { obj: obj, n: n, pl: pl(reste, 'client'), date: dateCourte(d.dateDepart) });
     return { cle: 'c' + d._id, icone: '🚛', nom: nom, n: n, obj: obj, pct: pct, repere: att === null ? null : (att / obj * 100), classe: classe, txt: txt };
   }
   function messageDimanche(){
     var obj = cfg.dimanche, aujIso = auj(), ref = null, refIso = '';
     var cols = (typeof collectes !== 'undefined' && Array.isArray(collectes)) ? collectes.filter(function(c){ return c && c.date; }) : [];
-    var enCours = cols.filter(function(c){ return c.statut === 'en_cours'; })[0];
-    if(enCours){ ref = enCours; refIso = isoDeLibelle(enCours.date); }
+    // Le dimanche même : bilan de la collecte du jour (quel que soit son statut). Sinon : le prochain dimanche.
+    var duJour = cols.filter(function(c){ return isoDeLibelle(c.date) === aujIso; })[0];
+    if(duJour){ ref = duJour; refIso = aujIso; }
     else {
-      var avenir = cols.filter(function(c){ var i = isoDeLibelle(c.date); return c.statut === 'a_venir' && i && i >= aujIso; })
+      var avenir = cols.filter(function(c){ var i = isoDeLibelle(c.date); return c.statut !== 'terminee' && i && i > aujIso; })
         .sort(function(a, b){ return isoDeLibelle(a.date).localeCompare(isoDeLibelle(b.date)); })[0];
-      if(avenir){ ref = avenir; refIso = isoDeLibelle(avenir.date); }
+      var enCours = cols.filter(function(c){ return c.statut === 'en_cours'; })[0];
+      ref = avenir || enCours || null; refIso = ref ? isoDeLibelle(ref.date) : '';
     }
     var n = 0;
     if(ref){ try{ n += Object.keys((typeof clientsParCollecte !== 'undefined' && clientsParCollecte[ref.id]) || {}).length; }catch(e){} }
@@ -119,11 +144,18 @@
     if(!ref && !refIso) return null;
     var libelle = ref ? String(ref.date).replace(/\s+\d{4}\s*$/, '') : '';
     if(!libelle && refIso){ var p = refIso.split('-'); libelle = 'Dimanche ' + (+p[2]) + ' ' + MOIS[+p[1] - 1]; }
-    var reste = Math.max(0, obj - n), pct = Math.max(0, Math.min(100, obj ? n / obj * 100 : 0)), classe, txt;
-    if(n >= obj){ classe = 'd'; txt = n > obj ? '🎯 Objectif dépassé de ' + (n - obj) + ' !' : '🎯 Objectif atteint, bravo !'; }
-    else if(n >= obj * 0.7){ classe = 'v'; txt = 'Encore ' + reste + ' pour atteindre l’objectif'; }
-    else if(n >= obj * 0.4){ classe = 'b'; txt = 'Courage, ' + reste + ' de plus pour l’objectif'; }
-    else { classe = 'o'; txt = 'Il en manque ' + reste + ' : on s’y met !'; }
+    var jr = jours(refIso) - jours(aujIso), bilan = (jr === 0);
+    libelle += bilan ? ' · bilan' : (jr > 0 ? ' · ' + (jr === 1 ? 'demain' : 'dans ' + jr + ' jours') : '');
+    var reste = Math.max(0, obj - n), pct = Math.max(0, Math.min(100, obj ? n / obj * 100 : 0)), classe, liste;
+    if(bilan){
+      if(n >= obj){ classe = 'd'; liste = PANEL.bBien; }
+      else if(n >= obj * 0.75){ classe = 'b'; liste = PANEL.bPresque; }
+      else { classe = 'o'; liste = PANEL.bPas; }
+    } else if(n >= obj){ classe = 'd'; liste = n > obj ? PANEL.dDepasse : PANEL.dAtteint; }
+    else if(n >= obj * 0.7){ classe = 'v'; liste = PANEL.dProche; }
+    else if(n >= obj * 0.4){ classe = 'b'; liste = PANEL.dMoyen; }
+    else { classe = 'o'; liste = PANEL.dBas; }
+    var txt = choisir(liste, 'd' + refIso + classe, { n: n, obj: obj, reste: reste, plus: n - obj });
     return { cle: 'd' + refIso, icone: '📅', nom: libelle, n: n, obj: obj, pct: pct, repere: null, classe: classe, txt: txt };
   }
   function messages(){
