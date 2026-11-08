@@ -97,6 +97,11 @@
       + '#obj-page .pg-col.ok .pg-bar{background:linear-gradient(180deg,#3fc58e,#1a8a5c)}#obj-page .pg-col.fut .pg-bar{background:rgba(0,0,0,.1)}#obj-page .pg-col.cur .pg-bar{box-shadow:0 0 0 2px rgba(14,159,91,.8)}'
       + '#obj-page .pg-col small{font-size:10.5px;font-weight:800;color:#556;margin-top:3px}'
       + '#obj-page .pg-obj{position:absolute;left:0;right:0;border-top:2px dashed rgba(224,138,30,.85)}#obj-page .pg-obj span{position:absolute;right:0;top:-15px;font-size:10px;font-weight:800;color:#a04800}'
+      + '#obj-page .pg-duo{display:flex;align-items:flex-end;justify-content:center;gap:4px;width:100%}#obj-page .pg-b{flex:1;max-width:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}'
+      + '#obj-page .pg-b.p .pg-bar{background:linear-gradient(180deg,#3fc58e,#1a8a5c)}#obj-page .pg-col.cur .pg-b.p .pg-bar,#obj-page .pg-col.cur .pg-b.t .pg-bar{box-shadow:none}'
+      + '#obj-page .pg-leg{display:flex;gap:14px;font-size:11px;font-weight:800;color:#334;margin-bottom:2px}#obj-page .pg-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}#obj-page .pg-leg .lt{background:#4a55c8}#obj-page .pg-leg .lp{background:#1a8a5c}'
+      + '#obj-page .pg-objp{border-top-color:rgba(26,138,92,.85)}#obj-page .pg-objp span{left:0;right:auto;color:#0a6b3d}'
+      + '#obj-page .pg-vue{display:flex;align-items:center;gap:10px;margin:2px 4px 10px;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.95)}#obj-page .pg-vue label{font-size:12px;font-weight:800;white-space:nowrap}#obj-page .pg-vue select{flex:1;min-width:0;padding:8px;border-radius:10px;border:1.5px solid var(--border,#ddd);font:700 15px var(--font,inherit);background:var(--white,#fff);color:inherit}'
       + '#obj-page .pg-pied{font-size:11.5px;color:var(--text3,#667);font-weight:600;line-height:1.45;margin:10px 4px 20px}';
     document.head.appendChild(st);
   })();
@@ -617,8 +622,26 @@
     (frere && frere.parentNode ? frere.parentNode : document.body).appendChild(e);
     return e;
   }
+  function estAdminVue(){
+    var u = (window.currentUser || {}).id, l = window.COLLABS || [];
+    for(var i = 0; i < l.length; i++){ if(l[i] && l[i].id === u) return !!l[i].admin; }
+    return false;
+  }
+  function lireVue(){ try{ var v = localStorage.getItem('dct_obj_voir') || ''; return collabsClassement().some(function(c){ return c.id === v; }) ? v : ''; }catch(e){ return ''; } }
+  document.addEventListener('change', function(e){
+    var t = e.target; if(!t || t.id !== 'obj-vue') return;
+    try{ localStorage.setItem('dct_obj_voir', t.value || ''); }catch(x){}
+    pageSig = ''; rendrePage(true);
+  });
   function htmlPage(){
-    var h = '', cs = containers(), classement = slidesClassement(), moi = (window.currentUser || {}).id;
+    var h = '', cs = containers(), classement = slidesClassement(), reel = (window.currentUser || {}).id;
+    // Cobey : « un sous-menu pour avoir accès à chaque fenêtre de chacun, pour me éviter de me connecter dans leur profil : uniquement pour moi ».
+    var admin = estAdminVue(), vue = lireVue(), moi = admin ? vue : reel, cibleNom = '';
+    collabsClassement().forEach(function(c){ if(c.id === moi) cibleNom = c.name; });
+    if(admin){
+      h += '<div class="pg-vue"><label for="obj-vue">👁️ Voir comme</label><select id="obj-vue"><option value="">Équipe</option>'
+        + collabsClassement().map(function(c){ return '<option value="' + esc(c.id) + '"' + (c.id === vue ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select></div>';
+    }
     if(!cs.length) return '<div class="pg-pied" style="text-align:center;margin-top:40px">Aucun container en préparation pour le moment.</div>';
     // « Pour chaque profil, en haut de la page, son objectif à lui » (Cobey) : la carte personnelle de la personne connectée.
     var perso = classement.filter(function(x){ return x.id === moi; })[0], inf1 = infoContainer(cs[0]);
@@ -633,8 +656,8 @@
         + '<div class="ob-bar"><i style="width:' + perso.pct.toFixed(1) + '%"></i>' + (perso.repere !== null && perso.n < perso.obj ? '<u style="left:calc(' + perso.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
         + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(perso.txt) + '</i></span>' + (perso.nSem > 0 ? '<span class="cl-wk">+' + perso.nSem + ' cette semaine</span>' : '') + '</div>'
         + (noteP ? '<div class="pg-note">' + noteP + '</div>' : '') + '</div></div>';
-    } else if(moi && collabsClassement().every(function(c){ return c.id !== moi; })){
-      h += '<div class="pg-pied" style="margin:0 4px 4px">Tu suis l’équipe depuis un profil administrateur : tu n’apparais pas dans le classement.</div>';
+    } else if(admin && !moi){
+      h += '<div class="pg-pied" style="margin:0 4px 4px">Tu suis l’équipe depuis un profil administrateur : tu n’apparais pas dans le classement. Choisis une personne dans « Voir comme » pour voir sa page.</div>';
     }
     cs.forEach(function(d){
       var nomC = String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
@@ -650,17 +673,33 @@
         + '<div class="pg-big">' + m.n + ' <i>/ ' + obj + ' clients ramassés</i></div>'
         + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i>' + (m.repere !== null && m.classe !== 'd' ? '<u style="left:calc(' + m.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
         + '<div class="ob-l2">' + esc(m.txt) + '</div>' + note + '</div></div>';
-      // 2. par dimanche
+      // 2. par dimanche : la ramasse de toute l'équipe, et à côté ce que CETTE personne a ramené (statistique personnelle)
       if(info){
-        var dj = jours(info.debut), cnt = []; for(var k = 0; k < info.N; k++) cnt.push(0);
-        fichesRamassees(d._id).forEach(function(x){ var di = dateRamasse(x); if(!di) return; var w = Math.max(0, Math.min(info.N - 1, Math.floor((jours(di) - dj) / 7))); cnt[w]++; });
-        var od = objDimanche(), mx = Math.max(od, Math.max.apply(null, cnt), 1), col = '';
+        var dj = jours(info.debut), cnt = [], cntP = [], liste0 = collabsClassement(); for(var k = 0; k < info.N; k++){ cnt.push(0); cntP.push(0); }
+        fichesRamassees(d._id).forEach(function(x){
+          var di = dateRamasse(x); if(!di) return;
+          var w = Math.max(0, Math.min(info.N - 1, Math.floor((jours(di) - dj) / 7))); cnt[w]++;
+          if(moi){ var co = auteurDe(x.c, liste0); if(co && co.id === moi) cntP[w]++; }
+        });
+        var od = objDimanche(), objP = perso ? Math.max(1, Math.ceil(perso.obj / info.N)) : 0, mx = Math.max(od, Math.max.apply(null, cnt), 1), col = '';
         for(var w = 0; w < info.N; w++){
-          var cl = (w + 1 > info.sem ? 'fut' : (cnt[w] >= od ? 'ok' : '')) + (w + 1 === info.sem ? ' cur' : '');
-          col += '<div class="pg-col ' + cl + '"><b>' + (w + 1 > info.sem ? '' : cnt[w]) + '</b><div class="pg-bar" style="height:' + (w + 1 > info.sem ? 3 : Math.max(3, Math.round(cnt[w] / mx * 70))) + 'px"></div><small>S' + (w + 1) + '</small></div>';
+          var fut = w + 1 > info.sem, cl = (fut ? 'fut' : (cnt[w] >= od ? 'ok' : '')) + (w + 1 === info.sem ? ' cur' : '');
+          var hT = fut ? 3 : Math.max(3, Math.round(cnt[w] / mx * 70)), hP = fut ? 3 : Math.max(3, Math.round(cntP[w] / mx * 70));
+          col += '<div class="pg-col ' + cl + '"><div class="pg-duo"><div class="pg-b t"><b>' + (fut ? '' : cnt[w]) + '</b><div class="pg-bar" style="height:' + hT + 'px"></div></div>'
+            + (moi ? '<div class="pg-b p"><b>' + (fut ? '' : cntP[w]) + '</b><div class="pg-bar" style="height:' + hP + 'px"></div></div>' : '') + '</div><small>S' + (w + 1) + '</small></div>';
         }
         h += '<div class="pg-t"><b>📅 PAR DIMANCHE</b><span>objectif ' + od + ' clients</span></div>'
-          + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.16),rgba(74,85,200,.05))"><div class="pg-gr"><div class="pg-obj" style="bottom:' + Math.round(od / mx * 70 + 23) + 'px"><span>' + od + '</span></div>' + col + '</div></div></div>';
+          + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.16),rgba(74,85,200,.05))">'
+          + (moi ? '<div class="pg-leg"><span><i class="lt"></i>Toute la ramasse</span><span><i class="lp"></i>' + (admin ? esc(cibleNom) : 'Toi') + '</span></div>' : '')
+          + '<div class="pg-gr"><div class="pg-obj" style="bottom:' + Math.round(od / mx * 70 + 23) + 'px"><span>' + od + '</span></div>'
+          + (objP ? '<div class="pg-obj pg-objp" style="bottom:' + Math.round(objP / mx * 70 + 23) + 'px"><span>' + objP + '</span></div>' : '') + col + '</div>';
+        if(moi){
+          var sT = 0, sP = 0; cnt.forEach(function(v){ sT += v; }); cntP.forEach(function(v){ sP += v; });
+          var wk = info.sem - 1, pc = cnt[wk] > 0 ? Math.round(cntP[wk] / cnt[wk] * 100) : 0, sujet = admin ? esc(cibleNom) : 'Tu';
+          h += '<div class="pg-note" style="margin-top:8px">' + sujet + (admin ? ' a apporté ' : ' as apporté ') + '<b>' + cntP[wk] + ' client' + (cntP[wk] > 1 ? 's' : '') + ' sur ' + cnt[wk] + '</b> cette semaine' + (cnt[wk] > 0 ? ' (' + pc + ' % de la ramasse)' : '')
+            + '. Sur tout le container : <b>' + sP + ' sur ' + sT + '</b>' + (sT > 0 ? ' (' + Math.round(sP / sT * 100) + ' %)' : '') + '.</div>';
+        }
+        h += '</div></div>';
       }
       // 3. le classement, tout le monde en même temps
       var lignes = classement.filter(function(x){ return x.container === String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : ''); });
@@ -669,7 +708,7 @@
         lignes.forEach(function(x){
           var av = (window.photosProfil && window.photosProfil.avatar) ? window.photosProfil.avatar(x.id, 28) : '';
           var md = x.medaille ? '<span class="cl-md">' + ['🥇', '🥈', '🥉'][x.i] + '</span>' : '<span class="cl-md num">' + (x.i + 1) + '</span>';
-          h += '<div class="opg"><div class="ob-m ' + x.classe + ' on cp' + (x.id === moi ? ' moi' : '') + '"><div class="ob-l1">' + md + av + '<span class="cl-nom">' + esc(x.nom) + (x.id === moi ? ' (toi)' : '') + '</span><span class="cl-rk"></span>'
+          h += '<div class="opg"><div class="ob-m ' + x.classe + ' on cp' + (x.id === moi ? ' moi' : '') + '"><div class="ob-l1">' + md + av + '<span class="cl-nom">' + esc(x.nom) + (x.id === moi ? (admin ? ' 👁️' : ' (toi)') : '') + '</span><span class="cl-rk"></span>'
             + '<span class="cl-n"><b>' + eurosFr(x.eu) + '</b></span></div>'
             + '<div class="ob-bar"><i style="width:' + x.pct.toFixed(1) + '%"></i>' + (x.repere !== null && x.n < x.obj ? '<u style="left:calc(' + x.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
             + '<div class="ob-l2 cl-l2"><span style="font-weight:800">🎯 Objectif ' + x.n + ' / ' + x.obj + '</span>' + (x.nSem > 0 ? '<span class="cl-wk">+' + x.nSem + ' cette semaine</span>' : '') + '</div></div></div>';
@@ -687,7 +726,7 @@
       if(!force && h === pageSig) return;
       pageSig = h; z.innerHTML = h;
       var cs = containers()[0], inf = cs && infoContainer(cs), sous = document.getElementById('obj-sous');
-      if(sous) sous.textContent = inf ? 'Semaine ' + inf.sem + ' sur ' + inf.N : 'Container et classement';
+      if(sous) sous.textContent = (inf ? 'Semaine ' + inf.sem + ' sur ' + inf.N : 'Container et classement') + (estAdminVue() && lireVue() ? ' · vue de ' + (collabsClassement().filter(function(c){ return c.id === lireVue(); })[0] || {}).name : '');
     }catch(e){ console.error('objectifs : page', e); }
   }
   function ouvrirPage(){
