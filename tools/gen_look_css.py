@@ -748,6 +748,48 @@ html.look-v2 .cam-tb button{white-space:nowrap}
 html.look-v2 .lk-cam .truck-head > div:first-child{flex-wrap:nowrap !important}
 html.look-v2 .lk-cam .truck-name{min-width:0;flex:1 1 auto}
 html.look-v2 #collecte-content > button[onclick*="Externe"],html.look-v2 #collecte-content > button[onclick*="externe"]{width:100%;border-radius:16px !important;border-width:1px !important;margin-bottom:12px}
+/* feuille de route d'un camion (collecte et France) : cartes sobres — suivi financier, kilométrage, boutons */
+html.look-v2 :is(#s-camion,#s-fr-camion) .content > div:first-child{background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:22px !important;padding:12px 16px 12px !important;box-shadow:0 4px 14px rgba(30,60,45,.1)}
+html.look-v2 :is(#s-camion,#s-fr-camion) .content > div:first-child > div:first-child{margin-bottom:8px !important}
+html.look-v2 :is(#c-pct,#frc-pct){display:none !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) .finance-bar-bg{height:8px !important;border:0 !important;background:rgba(0,0,0,.08);border-radius:99px !important;margin:6px 0 0 !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) .finance-bar-bg > div{border-radius:99px !important}
+html.look-v2 :is(#c-bar,#frc-bar){background:linear-gradient(90deg,#2fb27c,#1a8a5c) !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct){background:transparent !important;border:0 !important;padding:0 !important;display:flex;flex-wrap:wrap}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > *{width:100%;box-sizing:border-box}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > div:first-child{order:0;font-size:0 !important;margin:2px 0 0 !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > div:first-child::after{content:"SUIVI FINANCIER";font-size:10.5px;font-weight:800;letter-spacing:.09em;color:var(--text3)}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > .finance-row{order:6;margin:0 !important;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.07)}
+html.look-v2 :is(#s-camion,#s-fr-camion) .finance-row .finance-label{font-size:0 !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) .finance-row .finance-label::after{font-size:14px;font-weight:600;color:var(--text2)}
+html.look-v2 :is(#s-camion,#s-fr-camion) .finance-row .finance-val{font-size:15.5px}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > .finance-row:not([id]){order:1}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > .finance-row:not([id]) .finance-label::after{content:"Facturé";font-weight:800;color:var(--text);font-size:15px}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > .finance-row:not([id]) .finance-val{font-size:19px;color:var(--text) !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-encaisse"]{order:2 !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-adu"]{order:3 !important;border-bottom:0 !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) :is([id$="finance-encaisse"],[id$="finance-adu"]) .finance-label::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:1px}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-encaisse"] .finance-label::before{background:#1a8a5c}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-adu"] .finance-label::before{background:#e08a1e}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-encaisse"] .finance-label::after{content:"Encaissé"}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-adu"] .finance-label::after{content:"Encore dû"}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-encaisse"] .finance-val{color:#0a6b3d !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-adu"] .finance-val{color:#b45a00 !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) .finance-bar-bg{order:4}
+html.look-v2 :is(#s-camion,#s-fr-camion) .finance-pct{order:5;text-align:left !important;font-size:11.5px !important;font-weight:700 !important;color:var(--text3) !important;margin:4px 0 8px !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct):has([id$="finance-especes"])::after{content:"ENCAISSÉ PAR MODE";order:7;width:100%;font-size:10.5px;font-weight:800;letter-spacing:.09em;color:var(--text3);padding:8px 0 4px;border-top:1px solid rgba(0,0,0,.08)}
+html.look-v2 :is(#s-camion,#s-fr-camion) :is([id$="finance-especes"],[id$="finance-virement"]){order:8 !important;width:50% !important;flex-direction:column;align-items:flex-start !important;border:0 !important;padding:2px 0 !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-virement"]{border-left:1px solid rgba(0,0,0,.08) !important;padding-left:14px !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-especes"] .finance-label::after{content:"💵 Espèces";font-size:11.5px;font-weight:700}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-virement"] .finance-label::after{content:"🏦 Virement";font-size:11.5px;font-weight:700}
+html.look-v2 :is(#s-camion,#s-fr-camion) :is([id$="finance-especes"],[id$="finance-virement"]) .finance-val{font-size:16px;color:var(--text) !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) .content > div:has(> button[id$="km-btn"]){background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:22px !important;padding:10px 16px !important;display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 10px;box-shadow:0 4px 14px rgba(30,60,45,.1)}
+html.look-v2 :is(#s-camion,#s-fr-camion) .content > div:has(> button[id$="km-btn"]) > div:first-child{grid-column:1 / 3;margin:0 !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="km-btn"]{grid-row:2;grid-column:2;width:auto !important;height:34px !important;min-height:0 !important;line-height:1;white-space:nowrap;align-self:center;padding:0 14px !important;font-size:12.5px !important;border-radius:12px !important;background:transparent !important;color:#1a8a5c !important;border:1.5px solid #1a8a5c !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="km-note"]{grid-row:2;grid-column:1;margin:0 !important}
+html.look-v2 :is(#dep-btn-etq-camion,#dep-btn-depenses,#dep-btn-carte-camion){display:flex !important;align-items:center;gap:10px;height:42px;padding:0 16px !important;margin-bottom:7px !important;border-radius:14px !important;text-align:left;font-size:14px !important;background:var(--lk-glass) !important;color:var(--text) !important;border:1.5px solid var(--lk-edge) !important}
+html.look-v2 #dep-btn-etq-camion{background:#1d2b26 !important;color:#fff !important;border:0 !important}
+html.look-v2 :is(#dep-btn-etq-camion,#dep-btn-depenses,#dep-btn-carte-camion)::after{content:"›";margin-left:auto;font-size:20px;opacity:.5}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

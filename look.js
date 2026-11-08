@@ -237,6 +237,28 @@
     barresLaterales();
   }
 
+  /* ---------- feuille de route d'un camion : la barre financière montre « encaissé sur facturé » (V2 seulement) ---------- */
+  function suiviFinancier(){
+    if(!document.documentElement.classList.contains('look-v2')) return;
+    [].forEach.call(document.querySelectorAll('#s-camion .finance-pct, #s-fr-camion .finance-pct'), function(p){
+      var box = p.parentNode, bar = box.querySelector('.finance-bar-bg > div[id$="fin-bar"]'); if(!bar) return;
+      var fac = box.querySelector('.finance-row:not([id]) .finance-val'), enc = box.querySelector('[id$="finance-encaisse"] .finance-val');
+      if(!fac || !enc) return;
+      var num = function(e){ return parseFloat(String(e.textContent).replace(/\s/g, '').replace(',', '.')) || 0; };
+      var f = num(fac), e = num(enc), pct = f > 0 ? Math.max(0, Math.min(100, e / f * 100)) : 0;
+      var w = pct.toFixed(1) + '%'; if(bar.style.width !== w) bar.style.width = w;
+      var t = Math.round(pct) + ' % encaissé' + (f > 0 ? ' · sur ' + (Math.round(f * 100) / 100) + ' € facturés' : ''); if(p.textContent !== t) p.textContent = t;
+    });
+  }
+  var obsFin = null;
+  function surveillerFinance(){
+    if(obsFin || !window.MutationObserver) return;
+    var en = false;
+    obsFin = new MutationObserver(function(){ if(en) return; en = true; try{ suiviFinancier(); }catch(e){} en = false; });
+    ['s-camion', 's-fr-camion'].forEach(function(id){ var z = document.getElementById(id); if(z) obsFin.observe(z, { childList:true, subtree:true }); });
+    suiviFinancier();
+  }
+
   /* ---------- appliquer ---------- */
   function appliquer(){
     var h = document.documentElement;
@@ -251,6 +273,7 @@
     try{ barreRecherche(); }catch(e){}
     try{ majDock(); }catch(e){}
     try{ actionsClients(); }catch(e){}
+    try{ surveillerFinance(); suiviFinancier(); }catch(e){}
   }
   window.lookEffectif = effectif;
   window.lookAppliquer = appliquer;
