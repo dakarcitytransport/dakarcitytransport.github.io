@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.62';
+var DEP_VERSION = 'v2.22.63';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2546,7 +2546,15 @@ function _depBlocCaisse(cp){
     // clients qui n'ont pas encore payé, ça me permet de vérifier vite").
     var tapable = du > 0;
     var actif = (_depFiltreDu === cle);
-    return '<div style="margin-top:12px;">'
+    var titreCap = titre.charAt(0) + titre.slice(1).toLowerCase();
+    var v2 = '<div class="cs2"><div class="cs2-h"><span>' + icone + ' <b>' + titreCap + '</b></span><span>'
+      + (total > 0 ? '<b>' + paye + ' &euro;</b> / ' + total + ' &euro;' : 'Aucun montant') + '</span></div>'
+      + '<div class="cs2-bar"><i style="width:' + pct + '%"></i></div>'
+      + '<div class="cs2-r"><span><i class="cs2-d g"></i>Pay&eacute;</span><b class="g">' + paye + ' &euro;</b></div>'
+      + '<div class="cs2-r"><span><i class="cs2-d o"></i>Reste d&ucirc;</span><b class="o">' + du + ' &euro;</b></div>'
+      + (tapable ? '<div class="cs2-lk" onclick="depVoirRestants(\'' + cle + '\')"><span>' + (actif ? '&#10003; Liste affich&eacute;e' : '&#128071; Voir qui doit') + '</span><span>&rsaquo;</span></div>' : '')
+      + '</div>';
+    return '<div class="cs-l">' + v2 + '<div class="cs-v1" style="margin-top:12px;">'
       + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px;">'
       +   '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;">'
       +     icone + ' ' + titre + '</div>'
@@ -2574,12 +2582,12 @@ function _depBlocCaisse(cp){
           : '')
       +   '</div>'
       + '</div>'
-      + '</div>';
+      + '</div></div>';
   }
 
-  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+  return '<div class="cs-card" style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
     +   'padding:14px;margin-bottom:14px;">'
-    + '<div style="font-size:12px;font-weight:800;color:var(--text);letter-spacing:.02em;">'
+    + '<div class="cs-t" style="font-size:12px;font-weight:800;color:var(--text);letter-spacing:.02em;">'
     +   '&#128176; Caisse de ce container</div>'
     + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;">'
     +   'Les colis et les livraisons sont deux caisses s&eacute;par&eacute;es.</div>'
@@ -23056,7 +23064,7 @@ window.depRenderRapfinContainers = function(){
     var st = STATUTS_DEPART[d.statut] || STATUTS_DEPART.preparation;
     var pM = DEP_PAYS_DEST[depPaysDepart(d)] || {};
     var duTot = depArrondi2(cp.colisDu + cp.livDu);
-    h += '<div class="dep-card" style="cursor:pointer;border-left-color:'
+    h += '<div class="dep-card rf-ct" style="cursor:pointer;border-left-color:'
       +   (duTot > 0 ? '#B3261E' : '#009A44') + ';" onclick="depRapfinContainer(\''+d._id+'\')">'
       +   '<div class="dep-card-top">'
       +     '<div class="dep-nom">' + (estDepot ? '&#127970;' : (pM.drapeau||''))
@@ -23086,16 +23094,17 @@ function _depRapfinDeuxCaisses(cp){
   function ligne(icone, libelle, total, paye, du){
     if(!total) return '<div style="font-size:11.5px;color:var(--text3);font-weight:600;padding:2px 0;">'
       + icone + ' ' + libelle + ' &middot; aucun montant</div>';
-    return '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;'
+    var pctL = total > 0 ? Math.max(0, Math.min(100, paye / total * 100)) : 0;
+    return '<div class="rf-l" style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;'
       + 'font-size:12px;font-weight:700;padding:2px 0;">'
-      + '<span style="color:var(--text3);">' + icone + ' ' + libelle + '</span>'
-      + '<b style="color:#006b2d;">' + paye + ' &euro;</b>'
-      + '<span style="color:var(--text3);font-weight:600;">sur ' + total + ' &euro;</span>'
+      + '<span class="rf-n" style="color:var(--text3);">' + icone + ' ' + libelle + '</span>'
+      + '<b class="rf-p" style="color:#006b2d;">' + paye + ' &euro;</b>'
+      + '<span class="rf-s" style="color:var(--text3);font-weight:600;">sur ' + total + ' &euro;</span>'
       + (du > 0
-        ? '<span style="margin-left:auto;background:#FBE3E3;color:#B3261E;border-radius:20px;'
+        ? '<span class="rf-r" style="margin-left:auto;background:#FBE3E3;color:#B3261E;border-radius:20px;'
           + 'padding:2px 9px;font-size:11.5px;font-weight:800;">reste ' + du + ' &euro;</span>'
-        : '<span style="margin-left:auto;color:#006b2d;font-size:11.5px;font-weight:800;">&#10003; sold&eacute;</span>')
-      + '</div>';
+        : '<span class="rf-r rf-ok" style="margin-left:auto;color:#006b2d;font-size:11.5px;font-weight:800;">&#10003; sold&eacute;</span>')
+      + '</div><div class="rf-bar"><i style="width:' + pctL.toFixed(1) + '%"></i></div>';
   }
   return ligne('&#128230;', 'Colis',     cp.colisTotal, cp.colisPaye, cp.colisDu)
        + ligne('&#128666;', 'Livraison', cp.livTotal,   cp.livPaye,   cp.livDu);
@@ -23113,7 +23122,7 @@ function _depRapfinLigneResultat(departId, cp){
   // Mali — ce n'est pas "dépenses" qui est retiré (DCT n'en a aucune
   // là-dessus) mais la taxe du partenaire.
   var sousTitre = _depEstContainerMali(departId) ? 'encaiss&eacute; &minus; taxe prestataire' : 'encaiss&eacute; &minus; d&eacute;penses';
-  return '<div style="display:flex;justify-content:space-between;align-items:baseline;'
+  return '<div class="rf-res" style="display:flex;justify-content:space-between;align-items:baseline;'
     + 'margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
     + '<span style="font-size:11.5px;color:var(--text3);font-weight:700;">&#128176; B&eacute;n&eacute;fice r&eacute;el'
     +   '<span style="font-weight:500;color:#999;"> (' + sousTitre + ')</span></span>'
@@ -23217,22 +23226,22 @@ window.depRapfinContainer = function(id){
     var repFixes = _depRepartitionFixes(id);
     var repCont  = _depRepartitionDepensesContainer(id);
 
-    h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
+    h += '<div class="dp-card" style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
       +   'padding:14px;margin-bottom:14px;">'
-      + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">'
+      + '<div class="dp-t" style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">'
       +   '&#127991;&#65039; D&eacute;penses de ce container</div>'
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
+      + '<div class="dp-r" style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">'
       +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#127968; D&eacute;penses fixes</span>'
       +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totFix) + ' &euro;</b>'
       + '</div>'
       +   _depLignesRepartition(repFixes)
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;'
+      + '<div class="dp-r" style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;'
       +   'margin-top:3px;">'
       +   '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">&#128666; Tourn&eacute;es des camions</span>'
       +   '<b style="font-size:13.5px;color:#B3261E;">' + _depEuros(totCam) + ' &euro;</b>'
       + '</div>'
       +   _depLignesRepartition(repCont)
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
+      + '<div class="dp-res" style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0 2px;'
       +   'margin-top:5px;border-top:2px solid var(--border);">'
       +   '<span style="font-size:13px;font-weight:800;color:var(--text);">R&eacute;sultat colis'
       +     '<span style="font-weight:600;color:#999;"> (colis encaiss&eacute;s &minus; d&eacute;penses)</span></span>'
@@ -23244,7 +23253,7 @@ window.depRapfinContainer = function(id){
           + '&#128666; La livraison a sa propre caisse : ' + _depEuros(cp.livPaye)
           + ' &euro; encaiss&eacute;s, non compt&eacute;s ici.</div>'
         : '')
-      + '<button class="btn btn-gray" style="margin-top:12px;" onclick="depOuvrirRapfinFixes(\'' + id + '\')">'
+      + '<button class="btn btn-gray dp-btn" style="margin-top:12px;" onclick="depOuvrirRapfinFixes(\'' + id + '\')">'
       +   '&#127968; G&eacute;rer les d&eacute;penses de ce container</button>'
       + '</div>';
   }

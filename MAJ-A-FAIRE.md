@@ -6775,3 +6775,10 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - `_depBlocFinanceGlobalV2` (departs.js) : bloc `.fg2` (caché en V1, remplace l'ancien bandeau en V2) = Facturé / Encaissé / Encore dû + barre « X % encaissé » ; « Encaissé par mode » Espèces | Virement (total de tous les camions) ; ligne « Détail par camion (N) ⌄ » qui déplie un tableau CAMION / FACTURÉ / ESPÈCES / VIREMENT / RESTE + ligne Total (replié à l'ouverture ; l'état est gardé pendant que l'écran se redessine). « Affectés à un camion » restylé (`.fg-aff`).
 - Code couleur V2 (classes `.c-fa` `.c-es` `.c-vi` `.c-du`) : Facturé indigo, Espèces turquoise, Virement violet, Encaissé vert, Reste / dû orange — aussi dans la feuille de route d'un camion.
 - Facturé = colis des clients ramassés ; encaissé = leurs versements ; un versement sans méthode n'est compté ni en espèces ni en virement. Testé (faux Firebase). Dispatch France (`_frDispatchDetail`) non fait ; balayage 74 écrans non relancé (script introuvable).
+
+### 08/11/2026 — Rapport financier > Containers : liste, caisse et dépenses en nouveau look (v3.99.316, departs.js v2.22.63)
+> Cobey : « ancien look, proposition ? aperçu » (liste des containers + détail d'un container). Ok.
+- Liste : carte de verre sans la barre rouge ; nom + état, date · clients ; Colis et Livraison avec « 500 € sur 1140 € », « reste … » en orange et une barre de progression verte ; Bénéfice réel en vert en bas.
+- Détail, encart Caisse : par caisse (Colis, Livraison) une barre, « Payé » (point vert), « Reste dû » (point orange) et un bouton « 👇 Voir qui doit › » (même action qu'avant : `depVoirRestants`). Markup V2 `.cs2` à côté de l'ancien `.cs-v1` (l'un caché selon le look, V1 inchangé).
+- Détail, encart Dépenses : lignes sobres, Résultat colis en gros, bouton « Gérer les dépenses » blanc.
+- Testé (faux Firebase) : liste, détail d'un container à 79 clients et à 0 client. Balayage des 74 écrans non relancé (script introuvable). Non fait : containers du Mali (taxes par client), même carte.

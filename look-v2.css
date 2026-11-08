@@ -766,6 +766,34 @@ html.look-v2 .fg2-tb .fg2-tot td{font-weight:800;font-size:14.5px;border-top:2px
 html.look-v2 .fg-aff{border-top:1px solid rgba(0,0,0,.08) !important;margin-top:12px !important;padding-top:10px !important}
 html.look-v2 .fg-aff-t{font-size:10.5px !important;letter-spacing:.09em;color:var(--text3)}html.look-v2 .fg-aff-t span:first-child{text-transform:uppercase}
 html.look-v2 .fg-aff .progress-bg{height:8px !important;border-radius:99px !important;border:0 !important}html.look-v2 .fg-aff .progress-bar{border-radius:99px !important;background:linear-gradient(90deg,#2fb27c,#1a8a5c) !important}
+/* Rapport financier > Containers : liste, caisse, dépenses */
+html.look-v2 .rf-ct{border:1px solid var(--lk-edge) !important;border-left:1px solid var(--lk-edge) !important;border-radius:22px !important;background:var(--lk-glass) !important;padding:12px 16px !important;box-shadow:0 4px 14px rgba(30,60,45,.1)}
+html.look-v2 .rf-ct .dep-card-top{margin-bottom:2px}
+html.look-v2 .rf-ct .dep-meta{margin-bottom:0}
+html.look-v2 .rf-ct > div[style*="margin-top:10px"]{border-top:1px solid rgba(0,0,0,.08);margin-top:10px !important;padding-top:6px}
+html.look-v2 .rf-l{font-size:13.5px !important;flex-wrap:wrap;padding:3px 0 0 !important;gap:6px !important}
+html.look-v2 .rf-n{flex:1;min-width:0;white-space:nowrap}
+html.look-v2 .rf-p{font-size:15px}
+html.look-v2 .rf-r{background:transparent !important;color:#b45a00 !important;padding:0 !important;font-size:13px !important;margin-left:4px !important}html.look-v2 .rf-r.rf-ok{color:#0a6b3d !important}
+html.look-v2 .rf-bar{height:7px;border-radius:99px;background:#f2d9b8;overflow:hidden;margin:3px 0 7px}html.look-v2 .rf-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2fb27c,#1a8a5c)}
+html.look-v2 .rf-res{border-top:1px solid rgba(0,0,0,.08) !important;margin-top:2px !important}
+html.look-v2 .rf-res b{font-size:19px !important;white-space:nowrap}
+html.look-v2 .cs-card,html.look-v2 .dp-card{background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:22px !important;padding:12px 16px !important;box-shadow:0 4px 14px rgba(30,60,45,.1)}
+html.look-v2 .cs-t,html.look-v2 .dp-t{font-size:10.5px !important;letter-spacing:.09em !important;text-transform:uppercase;color:var(--text3) !important}
+html.look-v2 .cs-v1{display:none !important}
+html.look-v2 .cs2{display:block;border-top:1px solid rgba(0,0,0,.08);margin-top:10px;padding-top:9px}
+html.look-v2 .cs2-h{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;font-weight:700;color:var(--text2)}html.look-v2 .cs2-h b{font-size:15px;color:var(--text)}
+html.look-v2 .cs2-h span:last-child b{color:#0a6b3d}
+html.look-v2 .cs2-bar{height:7px;border-radius:99px;background:#f2d9b8;overflow:hidden;margin:5px 0 4px}html.look-v2 .cs2-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2fb27c,#1a8a5c)}
+html.look-v2 .cs2-r{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.07);font-size:14px}
+html.look-v2 .cs2-r span{color:var(--text2);font-weight:600;display:flex;align-items:center}html.look-v2 .cs2-r b{font-size:15.5px}
+html.look-v2 .cs2-d{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}html.look-v2 .cs2-d.g{background:#1a8a5c}html.look-v2 .cs2-d.o{background:#e08a1e}
+html.look-v2 .cs2-r b.g{color:#0a6b3d}html.look-v2 .cs2-r b.o{color:#b45a00}
+html.look-v2 .cs2-lk{display:flex;justify-content:space-between;align-items:center;margin-top:7px;padding:9px 12px;border-radius:12px;background:rgba(224,138,30,.12);color:#a04800;font-weight:800;font-size:13px;cursor:pointer}
+html.look-v2 .dp-r b{color:var(--text) !important}
+html.look-v2 .dp-res{border-top:1px solid rgba(0,0,0,.08) !important}
+html.look-v2 .dp-res b{font-size:22px !important;white-space:nowrap}html.look-v2 .dp-res > span{min-width:0}html.look-v2 .dp-res > span > span{display:block;font-size:11px;margin-top:1px}
+html.look-v2 .dp-btn{height:42px;border-radius:14px !important;background:rgba(255,255,255,.85) !important;border:1.5px solid #cfd8d3 !important;color:var(--text) !important;font-weight:800 !important;font-size:14px !important}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
