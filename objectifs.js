@@ -108,6 +108,17 @@
       + '#obj-page .pg-b.t{background:linear-gradient(180deg,#6b79de,#3a4bb8)}#obj-page .pg-b.p{background:linear-gradient(180deg,#3fc58e,#1a8a5c)}'
       + '#obj-page .pg-lab{display:grid;margin-top:6px;text-align:center;font-weight:800;font-size:12.5px}#obj-page .pg-lab .cur{color:#0a6b3d}#obj-page .pg-lab .fut{opacity:.35}'
       + '#obj-page .pg-sum{display:grid;gap:6px;margin-top:12px}#obj-page .pg-sum > div{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.62);border-radius:12px;padding:8px 10px;font-size:13px;font-weight:700;line-height:1.35;color:#16241e}#obj-page .pg-sum i{font-style:normal;flex:none}'
+      + '#obj-page .pg-seg{display:flex;background:rgba(255,255,255,.7);border-radius:14px;padding:3px;margin:0 0 10px}#obj-page .pg-seg button{flex:1;border:0;background:transparent;padding:9px 0;border-radius:11px;font:800 13.5px var(--font,inherit);color:#556;cursor:pointer}#obj-page .pg-seg button.on{background:#0E9F5B;color:#fff;box-shadow:0 2px 8px rgba(14,159,91,.4)}'
+      + '#obj-page .ob-m.ld{background:linear-gradient(135deg,#e0820f,#a8500a) !important;color:#fff;border:0;padding:12px 14px 13px}#obj-page .ld-j{float:right;text-align:right}#obj-page .ld-j b{display:block;font-size:30px;line-height:1;letter-spacing:-.02em}#obj-page .ld-j small{font-size:11.5px;font-weight:700;opacity:.9}'
+      + '#obj-page .ld-l{font-size:10.5px;font-weight:800;letter-spacing:.1em;opacity:.85}#obj-page .ld-d{font-size:23px;font-weight:800;letter-spacing:-.02em;margin:2px 0}#obj-page .ld-c{font-size:12px;font-weight:700;opacity:.92}'
+      + '#obj-page .ld-fr{display:flex;align-items:center;margin-top:11px;clear:both}#obj-page .ld-s{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.3);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}#obj-page .ld-s.ok{background:rgba(255,255,255,.92);color:#a8500a}#obj-page .ld-s.cur{background:#fff;color:#0a6b3d;box-shadow:0 0 0 3px rgba(14,159,91,.65)}#obj-page .ld-b{flex:1;height:3px;background:rgba(255,255,255,.35)}#obj-page .ld-f{font-size:18px;margin-left:5px}'
+      + '#obj-page .hs-card{display:flex;flex-wrap:wrap;gap:8px 11px;align-items:center;background:rgba(255,255,255,.72);border:1.5px solid rgba(255,255,255,.95);box-shadow:0 4px 14px rgba(30,60,45,.1);border-radius:18px;padding:10px 12px;cursor:pointer}#obj-page .hs-card.hs-cur{background:linear-gradient(135deg,rgba(224,130,15,.25),rgba(224,130,15,.08))}'
+      + '#obj-page .hs-ic{flex:none;width:40px;height:40px;border-radius:12px;background:#e1e5fb;display:flex;align-items:center;justify-content:center;font-size:20px}#obj-page .hs-x{flex:1;min-width:0}#obj-page .hs-x b{font-size:15px}#obj-page .hs-x small{display:block;font-size:11.5px;color:#667;font-weight:700;margin:1px 0 3px}#obj-page .hs-ch{font-size:24px;color:#999}'
+      + '#obj-page .hs-chip{display:inline-block;border-radius:99px;padding:2px 9px;font-size:10.5px;font-weight:800;background:#e1e5fb;color:#26338f}#obj-page .hs-bil{flex:0 0 100%;border-radius:11px;background:rgba(0,0,0,.05);padding:6px 10px;font-size:12.5px;font-weight:700;color:#334}#obj-page .hs-bil b{color:#10241a}'
+      + '#obj-page .hs-back{color:#0a6b3d;font-weight:800;font-size:13.5px;margin:2px 4px 6px;cursor:pointer;display:inline-block}#obj-page .hs-titre{text-align:center;font-size:20px;font-weight:800;margin:0 0 6px}'
+      + '#obj-page .hs-pl{display:flex;gap:10px;align-items:center}#obj-page .hs-md{font-size:36px;line-height:1;width:44px;text-align:center}#obj-page .hs-md.num{font-size:15px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.1);line-height:26px;margin:0 9px}#obj-page .hs-pl b{font-size:22px}#obj-page .hs-pl small{display:block;font-size:12px;color:#556;font-weight:700}'
+      + '#obj-page .hs-tl{display:flex;gap:7px;margin-top:9px}#obj-page .hs-tl div{flex:1;border-radius:12px;background:rgba(255,255,255,.7);padding:6px 8px;font-size:10px;font-weight:800;color:#667;letter-spacing:.03em}#obj-page .hs-tl b{display:block;font-size:17px;color:#10241a;letter-spacing:-.02em;margin-top:1px}'
+      + '#obj-page .hs-r{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid rgba(0,0,0,.07);font-size:13.5px;font-weight:700}#obj-page .hs-r:last-child{border:0}#obj-page .hs-r.moi{outline:2.5px solid rgba(14,159,91,.75);border-radius:10px;outline-offset:-1px}#obj-page .hs-r .hs-md{font-size:22px;width:28px}#obj-page .hs-r .hs-md.num{font-size:12px;width:24px;height:24px;line-height:24px;margin:0 2px}#obj-page .hs-n{flex:1;min-width:0}#obj-page .hs-k{font-size:11.5px;color:#556}#obj-page .hs-r b{font-size:14px}'
       + '#obj-page .pg-pied{font-size:11.5px;color:var(--text3,#667);font-weight:600;line-height:1.45;margin:10px 4px 20px}';
     document.head.appendChild(st);
   })();
@@ -728,24 +739,162 @@
   };
   function rediger(liste, v, tu, nom, cle, sig){
     var jet = { S: tu ? 'tu' : nom, a: tu ? 'as' : 'a', es: tu ? 'es' : 'est', son: tu ? 'ton' : 'son', sa: tu ? 'ta' : 'sa', ses: tu ? 'tes' : 'ses',
-      s: v.n > 1 ? 's' : '', r: v.reste > 1 ? 's' : '', cr: v.cn > 1 ? 's' : '', os: v.objS > 1 ? 's' : '' };
+      s: v.n > 1 ? 's' : '', r: v.reste > 1 ? 's' : '', cr: v.cn > 1 ? 's' : '', os: v.objS > 1 ? 's' : '', bs: v.bn > 1 ? 's' : '' };
     var fam = liste.map(function(t){
       var x = t.replace(/\{(\w+)\}/g, function(m, k){ return jet[k] != null ? jet[k] : (v[k] != null ? v[k] : m); });
       return x.charAt(0).toUpperCase() + x.slice(1);
     });
     return phraseStable(cle, sig, fam);
   }
+  /* ---------- Historique des containers et bilan (Cobey : « un côté l'historique, un côté le container en cours, sans rien mélanger ») ---------- */
+  var pageOnglet = 'cours', pageBilan = '';
+  var JOURS_L = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  function jourLong(iso){ var j = jours(iso); if(isNaN(j)) return ''; var t = JOURS_L[(j + 4) % 7] + ' ' + dateJour(iso); return t.charAt(0).toUpperCase() + t.slice(1); }
+  function qui(){
+    var admin = estAdminVue(), reel = (window.currentUser || {}).id, moi = admin ? lireVue() : reel, nom = '';
+    collabsClassement().forEach(function(c){ if(c.id === moi) nom = c.name; });
+    return { admin: admin, reel: reel, moi: nom ? moi : '', tu: !admin && moi === reel && !!nom, nom: nom };
+  }
+  function statsContainer(d){
+    var liste = collabsClassement(), xs = fichesRamassees(d._id), info = infoContainer(d), N = info ? info.N : 1, dj = info ? jours(info.debut) : 0;
+    var tot = {}, cnt = [];
+    for(var k = 0; k < N; k++) cnt.push(0);
+    liste.forEach(function(co){ var c = []; for(var k2 = 0; k2 < N; k2++) c.push(0); tot[co.id] = { co: co, n: 0, eu: 0, cnt: c }; });
+    var nT = 0, euT = 0;
+    xs.forEach(function(x){
+      var pr = parseFloat(x.c.prix) || 0; nT++; euT += pr;
+      var di = dateRamasse(x), w = (info && di) ? Math.max(0, Math.min(N - 1, Math.floor((jours(di) - dj) / 7))) : -1;
+      if(w >= 0) cnt[w]++;
+      var co = auteurDe(x.c, liste); if(!co) return;
+      tot[co.id].n++; tot[co.id].eu += pr; if(w >= 0) tot[co.id].cnt[w]++;
+    });
+    var rang = liste.map(function(co){ return tot[co.id]; }).sort(function(a, b){ return (b.eu - a.eu) || (b.n - a.n) || a.co.name.localeCompare(b.co.name); });
+    return { d: d, info: info, N: N, cnt: cnt, tot: tot, rang: rang, nT: nT, euT: euT };
+  }
+  // Barres verticales alignées : toute la ramasse (bleu) et, à côté, la personne (vert).
+  function barresHtml(cnt, cntP, N, sem, avecP){
+    var mx = Math.max(Math.max.apply(null, cnt), avecP ? Math.max.apply(null, cntP) : 0, 1), bars = '', labs = '';
+    var hh = function(v){ return v > 0 ? Math.max(4, Math.round(v / mx * 88)) : 2; };
+    for(var w = 0; w < N; w++){
+      var fut = w + 1 > sem;
+      bars += '<div class="pg-c' + (fut ? ' fut' : '') + '"><div class="pg-duo">'
+        + (fut ? '' : '<div class="pg-b t" style="height:' + hh(cnt[w]) + 'px"><b>' + cnt[w] + '</b></div>' + (avecP ? '<div class="pg-b p" style="height:' + hh(cntP[w]) + 'px"><b>' + cntP[w] + '</b></div>' : '')) + '</div></div>';
+      labs += '<span class="' + (w + 1 === sem ? 'cur' : (fut ? 'fut' : '')) + '">S' + (w + 1) + '</span>';
+    }
+    return { bars: bars, labs: labs };
+  }
+  // Le chargement, en grand : date, compte à rebours et frise des semaines.
+  function chargementHtml(d){
+    var info = infoContainer(d); if(!info) return '';
+    var reste = jours(info.fin) - jours(auj()), j = reste > 1 ? '<b>' + reste + '</b><small>jours</small>' : (reste === 1 ? '<b>demain</b>' : (reste === 0 ? '<b>aujourd’hui</b>' : '<b>chargé</b>')), fr = '';
+    for(var k = 1; k <= info.N; k++){
+      fr += '<div class="ld-s ' + (k < info.sem ? 'ok' : (k === info.sem ? 'cur' : '')) + '">' + (k < info.sem ? '✓' : k) + '</div>' + (k < info.N ? '<div class="ld-b"></div>' : '');
+    }
+    return '<div class="opg"><div class="ob-m ld on"><div class="ld-j">' + j + '</div><div class="ld-l">🚛 CHARGEMENT</div><div class="ld-d">' + esc(jourLong(info.fin)) + '</div>'
+      + '<div class="ld-c">Container ' + esc(String(d.nom || '').replace(/^Chargement\s+/i, '')) + ' · semaine ' + info.sem + ' sur ' + info.N + '</div><div class="ld-fr">' + fr + '<span class="ld-f">🏁</span></div></div></div>';
+  }
+  var BILAN_R1 = {
+    zero: ['{S} n’{a} pas ramené de client sur ce container.', 'Aucun client de {S} sur les {ct} de ce container.', 'Pas de client ramené cette fois : le prochain container est une nouvelle chance.'],
+    petit: ['{S} {a} ramené {n} client{s} sur les {ct} du container ({pc} %).', 'Une petite contribution : {n} client{s} sur {ct}, soit {pc} %.', '{n} client{s} pour {S} sur {ct} au total : {pc} % du container.'],
+    moyen: ['{S} {a} apporté {n} clients sur {ct} : {pc} % du container.', 'Belle participation : {n} clients sur les {ct} du container ({pc} %).', 'Sur {ct} clients, {S} en {a} ramené {n}, soit {pc} %.'],
+    gros: ['{S} {a} porté ce container : {n} clients sur {ct}, soit {pc} % !', 'Énorme contribution : {n} clients sur {ct} ({pc} % du container).', '{S} {a} fait le gros du travail : {n} sur {ct} ({pc} %).']
+  };
+  var BILAN_R2 = {
+    zero: ['Aucune semaine à retenir cette fois : rendez-vous au prochain container.', 'Le compteur est resté à zéro : le prochain container est une nouvelle chance.'],
+    best: ['{sa} meilleure semaine : la semaine {bw}, avec {bn} client{bs}.', 'Le plus gros dimanche : semaine {bw}, {bn} client{bs} ramené{bs}.', 'C’est en semaine {bw} que {S} {a} le plus apporté : {bn} client{bs}.']
+  };
+  var BILAN_R3 = {
+    premier: ['Premier du classement final : bravo !', 'Première place au classement final, félicitations !', 'Le meilleur du container, tout simplement !'],
+    podium: ['Sur le podium du classement final : place {p} sur {nb}.', 'Belle place {p} sur {nb} au classement final.', 'Place {p} sur {nb} : un très bon container.'],
+    autre: ['Place {p} sur {nb} au classement final : on fait mieux au prochain.', 'Classement final : {p}e sur {nb}, de la marge pour le prochain container.', '{p}e sur {nb} : le prochain container est l’occasion de monter.'],
+    zero: ['Classement final : {p}e sur {nb}, rendez-vous au prochain container.', 'Pas de client cette fois, {p}e sur {nb} : on repart pour le prochain.']
+  };
+  function etatLib(o){ return o.statut === 'arrive' ? ((o.pays || 'SN') === 'ML' ? 'Arrivé à Bamako' : 'Arrivé à Dakar') : (o.statut === 'cloture' ? 'Clôturé' : 'Parti'); }
+  function containersPartis(){
+    var dd = window.departsData || {};
+    return Object.keys(dd).map(function(k){ var o = dd[k]; if(!o || typeof o !== 'object') return null; o = Object.assign({}, o); o._id = k; return o; })
+      .filter(function(o){ return o && o.statut !== 'preparation' && o.special !== 'depot' && o.dateDepart; })
+      .sort(function(a, b){ return String(b.dateDepart).localeCompare(String(a.dateDepart)); });
+  }
+  function histoHtml(){
+    var q = qui(), h = '', liste = containersPartis(), nb = 0;
+    var cartes = '';
+    liste.forEach(function(o){
+      var st = statsContainer(o); if(!st.nT) return; nb++;
+      var nomC = String(o.nom || 'Container').replace(/^Chargement\s+/i, '') + ' · ' + dateCourte(o.dateDepart);
+      var bil;
+      if(q.moi){
+        var me = st.tot[q.moi], pl = st.rang.indexOf(me) + 1;
+        bil = '<b>' + (q.tu ? 'Ton bilan' : 'Bilan de ' + esc(q.nom)) + ' :</b> ' + pl + (pl === 1 ? 'er' : 'e') + ' sur ' + st.rang.length + ' · ' + me.n + ' client' + (me.n > 1 ? 's' : '') + ' · ' + eurosFr(me.eu);
+      } else bil = '<b>Container :</b> ' + st.nT + ' client' + (st.nT > 1 ? 's' : '') + ' · ' + eurosFr(st.euT);
+      cartes += '<div class="opg"><div class="hs-card" data-bilan="' + esc(o._id) + '"><div class="hs-ic">🚛</div><div class="hs-x"><b>' + esc(nomC) + '</b><small>' + st.N + ' semaines · ' + st.nT + ' client' + (st.nT > 1 ? 's' : '') + '</small>'<span class="hs-chip">' + esc(etatLib(o)) + '</span></div><div class="hs-ch">›</div><div class="hs-bil">' + bil + '</div></div></div>';
+    });
+    h += '<div class="pg-t"><b>CONTAINERS TERMINÉS</b><span>' + nb + '</span></div>' + (cartes || '<div class="pg-pied" style="text-align:center">Aucun container terminé pour le moment.</div>');
+    var cs = containers();
+    if(cs.length){
+      h += '<div class="pg-t"><b>🔎 EN PRÉPARATION</b></div>';
+      cs.forEach(function(d){
+        var inf = infoContainer(d);
+        h += '<div class="opg"><div class="hs-card hs-cur" data-otab="cours"><div class="hs-ic">🚛</div><div class="hs-x"><b>' + esc(String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + ' · ' + dateCourte(d.dateDepart || '')) + '</b><small>' + (inf ? 'semaine ' + inf.sem + ' sur ' + inf.N + ' · ' : '') + nbContainer(d._id) + ' client' + (nbContainer(d._id) > 1 ? 's' : '') + '</small></div><div class="hs-ch">›</div></div></div>';
+      });
+    }
+    return h + '<div class="pg-pied">Les containers partis sont rangés ici, du plus récent au plus ancien. Touche-en un pour voir le bilan.</div>';
+  }
+  function bilanHtml(cid){
+    var o = (window.departsData || {})[cid], q = qui();
+    if(!o) return '<div class="pg-pied"><span class="hs-back" data-retour="1">← Historique</span><br>Container introuvable.</div>';
+    o = Object.assign({}, o, { _id: cid });
+    var st = statsContainer(o), nomC = String(o.nom || 'Container').replace(/^Chargement\s+/i, '') + ' · ' + dateCourte(o.dateDepart || '');
+    var h = '<div class="hs-back" data-retour="1">← Historique</div><div class="hs-titre">' + esc(nomC) + '</div>'
+      + '<div style="text-align:center;margin-bottom:6px"><span class="hs-chip">Chargé le ' + esc(jourLong(o.dateDepart).replace(/^./, function(c){ return c.toLowerCase(); })) + ' · ' + st.N + ' semaines</span></div>';
+    var me = q.moi ? st.tot[q.moi] : null, pl = me ? st.rang.indexOf(me) + 1 : 0;
+    if(me){
+      var pc = st.nT > 0 ? Math.round(me.n / st.nT * 100) : 0, bw = 0, bn = 0;
+      me.cnt.forEach(function(v, i){ if(v > bn){ bn = v; bw = i + 1; } });
+      var v = { n: me.n, ct: st.nT, pc: pc, bw: bw, bn: bn, p: pl, nb: st.rang.length, N: st.N };
+      var c1 = me.n === 0 ? 'zero' : (pc < 10 ? 'petit' : (pc < 25 ? 'moyen' : 'gros')), c3 = me.n === 0 ? 'zero' : (pl === 1 ? 'premier' : (pl <= 3 ? 'podium' : 'autre'));
+      var base = 'bil' + q.moi + cid;
+      var l1 = rediger(BILAN_R1[c1], v, q.tu, q.nom, base + 'a', me.n + ':' + st.nT + c1);
+      var l2 = bn > 0 ? rediger(BILAN_R2.best, v, q.tu, q.nom, base + 'b', bw + ':' + bn) : rediger(BILAN_R2.zero, v, q.tu, q.nom, base + 'b', '0');
+      var l3 = rediger(BILAN_R3[c3], v, q.tu, q.nom, base + 'c', pl + ':' + st.rang.length + c3);
+      var md = me.eu > 0 && pl <= 3 ? '<span class="hs-md">' + ['🥇', '🥈', '🥉'][pl - 1] + '</span>' : '<span class="hs-md num">' + pl + '</span>';
+      h += '<div class="pg-t"><b>🎯 ' + (q.tu ? 'TON BILAN' : 'BILAN DE ' + esc(q.nom.toUpperCase())) + '</b></div>'
+        + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="hs-pl">' + md + '<div><b>' + pl + (pl === 1 ? 'er' : 'e') + ' sur ' + st.rang.length + '</b><small>' + esc(q.nom) + '</small></div></div>'
+        + '<div class="hs-tl"><div>CLIENTS<b>' + me.n + '</b></div><div>EUROS<b>' + eurosFr(me.eu) + '</b></div><div>PART DU CONTAINER<b>' + pc + ' %</b></div></div>'
+        + '<div class="pg-sum"><div><i>📦</i><span>' + esc(l1) + '</span></div><div><i>📅</i><span>' + esc(l2) + '</span></div><div><i>🏅</i><span>' + esc(l3) + '</span></div></div></div></div>';
+    } else {
+      h += '<div class="pg-t"><b>📦 LE CONTAINER</b></div><div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="hs-tl"><div>CLIENTS<b>' + st.nT + '</b></div><div>EUROS<b>' + eurosFr(st.euT) + '</b></div><div>SEMAINES<b>' + st.N + '</b></div></div></div></div>';
+    }
+    var gb = barresHtml(st.cnt, me ? me.cnt : [], st.N, st.N, !!me);
+    h += '<div class="pg-t"><b>📅 PAR DIMANCHE</b><span>' + (me ? (q.tu ? 'ta ramasse' : 'vue de ' + esc(q.nom)) : 'toute la ramasse') + '</span></div>'
+      + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="pg-leg"><span><i class="lt"></i>Toute la ramasse</span>' + (me ? '<span><i class="lp"></i>' + (q.tu ? 'Toi' : esc(q.nom)) + '</span>' : '') + '</div>'
+      + '<div class="pg-gr2" style="grid-template-columns:repeat(' + st.N + ',1fr)">' + gb.bars + '</div><div class="pg-lab" style="grid-template-columns:repeat(' + st.N + ',1fr)">' + gb.labs + '</div></div></div>';
+    h += '<div class="pg-t"><b>🏆 CLASSEMENT FINAL</b></div><div class="opg"><div class="ob-m b on hs-cl" style="background:rgba(255,255,255,.55)">';
+    st.rang.forEach(function(r, i){
+      var av = (window.photosProfil && window.photosProfil.avatar) ? window.photosProfil.avatar(r.co.id, 26) : '';
+      var md = r.eu > 0 && i < 3 ? '<span class="hs-md">' + ['🥇', '🥈', '🥉'][i] + '</span>' : '<span class="hs-md num">' + (i + 1) + '</span>';
+      h += '<div class="hs-r' + (r.co.id === q.moi ? ' moi' : '') + '">' + md + av + '<span class="hs-n">' + esc(r.co.name) + (r.co.id === q.moi ? (q.admin ? ' 👁️' : ' (toi)') : '') + '</span><span class="hs-k">' + r.n + ' client' + (r.n > 1 ? 's' : '') + '</span><b>' + eurosFr(r.eu) + '</b></div>';
+    });
+    return h + '</div></div><div class="pg-pied">Bilan calculé sur les clients ramassés de ce container (collecte validée, France ramassée, dépôt direct).</div>';
+  }
   function htmlPage(){
+    var q = qui(), h = '';
+    if(q.admin){
+      h += '<div class="pg-vue"><label for="obj-vue">👁️ Voir comme</label><select id="obj-vue"><option value="">Équipe</option>'
+        + collabsClassement().map(function(c){ return '<option value="' + esc(c.id) + '"' + (c.id === lireVue() ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select></div>';
+    }
+    if(pageBilan) return h + bilanHtml(pageBilan);
+    h += '<div class="pg-seg"><button type="button" data-otab="cours" class="' + (pageOnglet === 'cours' ? 'on' : '') + '">🚛 En cours</button><button type="button" data-otab="histo" class="' + (pageOnglet === 'histo' ? 'on' : '') + '">🗂️ Historique</button></div>';
+    return h + (pageOnglet === 'histo' ? histoHtml() : htmlEnCours());
+  }
+  function htmlEnCours(){
     var h = '', cs = containers(), classement = slidesClassement(), reel = (window.currentUser || {}).id;
     // Cobey : « un sous-menu pour avoir accès à chaque fenêtre de chacun, pour me éviter de me connecter dans leur profil : uniquement pour moi ».
     var admin = estAdminVue(), vue = lireVue(), moi = admin ? vue : reel, cibleNom = '';
     collabsClassement().forEach(function(c){ if(c.id === moi) cibleNom = c.name; });
-    if(admin){
-      h += '<div class="pg-vue"><label for="obj-vue">👁️ Voir comme</label><select id="obj-vue"><option value="">Équipe</option>'
-        + collabsClassement().map(function(c){ return '<option value="' + esc(c.id) + '"' + (c.id === vue ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select></div>';
-    }
-    if(!cs.length) return '<div class="pg-pied" style="text-align:center;margin-top:40px">Aucun container en préparation pour le moment.</div>';
+    if(!cs.length) return '<div class="pg-pied" style="text-align:center;margin-top:40px">Aucun container en préparation pour le moment.<br>Les containers terminés sont dans l’onglet Historique.</div>';
     // « Pour chaque profil, en haut de la page, son objectif à lui » (Cobey) : la carte personnelle de la personne connectée.
+    h += chargementHtml(cs[0]);
     var perso = classement.filter(function(x){ return x.id === moi; })[0], inf1 = infoContainer(cs[0]);
     if(perso){
       var fs1 = inf1 ? Math.min(1, (7 * inf1.sem) / ((jours(inf1.fin) - jours(inf1.debut)) + 1)) : null, cible = fs1 === null ? null : Math.round(perso.obj * fs1);
@@ -783,13 +932,7 @@
           var w = Math.max(0, Math.min(info.N - 1, Math.floor((jours(di) - dj) / 7))); cnt[w]++;
           if(moi){ var co = auteurDe(x.c, liste0); if(co && co.id === moi) cntP[w]++; }
         });
-        var od = objDimanche(), mx = Math.max(Math.max.apply(null, cnt), Math.max.apply(null, cntP), 1), bars = '', labs = '';
-        for(var w = 0; w < info.N; w++){
-          var fut = w + 1 > info.sem, hh = function(v){ return v > 0 ? Math.max(4, Math.round(v / mx * 88)) : 2; };
-          bars += '<div class="pg-c' + (fut ? ' fut' : '') + '"><div class="pg-duo">'
-            + (fut ? '' : '<div class="pg-b t" style="height:' + hh(cnt[w]) + 'px"><b>' + cnt[w] + '</b></div>' + (moi ? '<div class="pg-b p" style="height:' + hh(cntP[w]) + 'px"><b>' + cntP[w] + '</b></div>' : '')) + '</div></div>';
-          labs += '<span class="' + (w + 1 === info.sem ? 'cur' : (fut ? 'fut' : '')) + '">S' + (w + 1) + '</span>';
-        }
+        var od = objDimanche(), gb = barresHtml(cnt, cntP, info.N, info.sem, !!moi), bars = gb.bars, labs = gb.labs;
         var tu = !admin && moi === reel, wk = info.sem - 1, nT = cnt[wk], nP = cntP[wk], pcw = nT > 0 ? Math.round(nP / nT * 100) : 0, sT = 0, sP = 0;
         cnt.forEach(function(v){ sT += v; }); cntP.forEach(function(v){ sP += v; });
         var resume = '';
@@ -833,6 +976,14 @@
     h += '<div class="pg-pied">Seuls les clients <b>ramassés</b> (validés) comptent : collecte validée dans un camion, France ramassée par notre chauffeur ou le chauffeur externe, dépôt direct. Le trait sur chaque barre montre où l’on devrait en être aujourd’hui. Le classement est refait chaque dimanche, après la ramasse.</div>';
     return h;
   }
+  document.addEventListener('click', function(e){
+    var t = e.target.closest ? e.target.closest('[data-otab],[data-bilan],[data-retour]') : null; if(!t) return;
+    if(t.hasAttribute('data-otab')){ pageOnglet = t.getAttribute('data-otab'); pageBilan = ''; }
+    else if(t.hasAttribute('data-bilan')){ pageBilan = t.getAttribute('data-bilan'); pageOnglet = 'histo'; }
+    else { pageBilan = ''; pageOnglet = 'histo'; }
+    pageSig = ''; rendrePage(true);
+    try{ var c = document.querySelector('#s-objectifs .content'); if(c) c.scrollTop = 0; }catch(x){}
+  });
   var pageSig = '';
   function rendrePage(force){
     try{
@@ -841,7 +992,7 @@
       if(!force && h === pageSig) return;
       pageSig = h; z.innerHTML = h;
       var cs = containers()[0], inf = cs && infoContainer(cs), sous = document.getElementById('obj-sous');
-      if(sous) sous.textContent = (inf ? 'Semaine ' + inf.sem + ' sur ' + inf.N : 'Container et classement') + (estAdminVue() && lireVue() ? ' · vue de ' + (collabsClassement().filter(function(c){ return c.id === lireVue(); })[0] || {}).name : '');
+      if(sous) sous.textContent = (pageBilan ? 'Bilan du container' : (pageOnglet === 'histo' ? 'Historique des containers' : (inf ? 'Semaine ' + inf.sem + ' sur ' + inf.N : 'Container et classement'))) + (estAdminVue() && lireVue() ? ' · vue de ' + (collabsClassement().filter(function(c){ return c.id === lireVue(); })[0] || {}).name : '');
     }catch(e){ console.error('objectifs : page', e); }
   }
   function ouvrirPage(){
