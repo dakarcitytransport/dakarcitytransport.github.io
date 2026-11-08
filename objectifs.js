@@ -62,7 +62,7 @@
       + '#cl-accueil .cl-rk{flex:1;min-width:0;font-size:11px;font-weight:800;color:#556;overflow:hidden;text-overflow:ellipsis}'
       + '#cl-accueil .cl-n{flex:none;font-size:12px;font-weight:700;color:#445}#cl-accueil .cl-n b{font-size:16px;color:#10241a;letter-spacing:-.02em}'
       + '#cl-accueil .cl-l2{display:flex;justify-content:space-between;align-items:baseline;gap:8px}'
-      + '#cl-accueil .cl-l2 span{min-width:0;overflow:hidden;text-overflow:ellipsis}#cl-accueil .cl-l2 small{flex:none;font-size:10.5px;color:#667;font-weight:700}'
+      + '#cl-accueil .cl-l2 span{min-width:0;overflow:hidden;text-overflow:ellipsis}#cl-accueil .cl-l2 small{flex:none;font-size:11.5px;color:#10241a;font-weight:800;background:rgba(255,255,255,.7);border-radius:99px;padding:2px 9px;white-space:nowrap}'
       + '#cl-accueil .ob-l1 .ph-mini{border:2px solid #fff;box-sizing:border-box}'
       + '#cl-pt{margin-top:-8px}'
       + '#cl-accueil .ob-l1{min-height:30px}'
@@ -377,8 +377,8 @@
   function htmlCl(m, k, tous){
     var av = (window.photosProfil && window.photosProfil.avatar) ? window.photosProfil.avatar(m.id, 28) : '';
     var md = m.medaille ? '<span class="cl-md">' + ['🥇', '🥈', '🥉'][m.i] + '</span>' : '<span class="cl-md num">' + (m.i + 1) + '</span>';
-    var petit = (tous.multi ? m.container + ' · ' : '') + m.n + ' / ' + m.obj + ' client' + (m.obj > 1 ? 's' : '');
-    return '<div class="ob-m ' + m.classe + (k === 0 ? ' on' : '') + '"><div class="ob-l1">' + md + av + '<span class="cl-nom">' + esc(m.nom) + '</span><span class="cl-rk">' + esc(m.rang) + '</span>'
+    var petit = '🎯 Objectif ' + m.n + ' / ' + m.obj;
+    return '<div class="ob-m ' + m.classe + (k === 0 ? ' on' : '') + '"><div class="ob-l1">' + md + av + '<span class="cl-nom">' + esc(m.nom) + '</span><span class="cl-rk">' + esc(m.rang + (tous.multi ? ' · ' + m.container : '')) + '</span>'
       + '<span class="cl-n"><b>' + eurosFr(m.eu) + '</b></span></div>'
       + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i></div>'
       + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(m.txt) + '</i></span><small>' + esc(petit) + '</small></div></div>';

@@ -6833,3 +6833,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Médaille 🥇🥈🥉 grande (27 px) à gauche de la photo ; ronds numérotés pour les places suivantes ; place en gras. Couleurs propres au classement : doré (1er), argent (2e), bronze (3e), violet (milieu), rose (bas), ardoise (aucun client).
 - Passage des cases : 9 s (classement), 7 s (objectifs). Toujours tous les non-administrateurs (Eric absent), aussi à 0 client.
 - Testé (faux Firebase) : phrases identiques après plusieurs redessins, nouvelle phrase après un client de plus, rendu des 4 types de cases, formulaire Réglages (total 100/100, puis 130/100). Balayage des 74 écrans non relancé.
+
+### 08/11/2026 — Classement : le compteur dit « Objectif » (v3.99.327)
+> Cobey : « c'est assez petit, les objectifs : on voit 0 sur 30, 0 sur 50. Il faudrait un mot à côté, genre objectif, pour qu'ils comprennent que c'est leur objectif. »
+- Le compteur de chaque case est maintenant une pastille blanche plus grande : « 🎯 Objectif 16 / 30 ». S'il y a plusieurs containers, le nom du container passe à côté de la place. Testé (faux Firebase).
