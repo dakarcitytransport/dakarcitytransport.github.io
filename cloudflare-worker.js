@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.12.0 · 08/11/2026
+   v1.12.1 · 08/11/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
@@ -766,7 +766,7 @@ async function traiteClassement(env, io, maintenant){
   if(now.dow === 0 && now.h >= 20 && !etat['hebdo_' + now.iso]){
     for(const cid of cids){
       const dep = (await io.lire('departs/' + cid, env)) || {};
-      if(dep.statut !== 'preparation') continue;
+      if(dep.statut !== 'preparation' || (dep.pays || 'SN') !== 'SN') continue;   // Mali : rien (Cobey : « tout ce qui est Mali, on ne compte pas »)
       if(dep.dateDepart === now.iso) continue;                      // jour de chargement : rien (le bilan viendra demain)
       const prevSnap = (await io.lire('dct_classement_snap/' + cid, env)) || null;
       const n = await clEnvoyerContainer(env, io, cid, memos[cid], dep, false, prevSnap && prevSnap.par ? prevSnap : null, now.iso + cid, now.iso);
@@ -781,6 +781,7 @@ async function traiteClassement(env, io, maintenant){
   for(const cid of cids){
     if(etat['final_' + cid]) continue;
     const dep = (await io.lire('departs/' + cid, env)) || {};
+    if((dep.pays || 'SN') !== 'SN'){ await io.ecrire('dct_classement_etat', { ['final_' + cid]: true }, env); continue; }
     const depart = dep.dateDepart || memos[cid].dateDepart;
     if(!depart || now.iso <= depart) continue;                      // pas encore chargé, ou jour même
     const ecart = (Date.parse(now.iso + 'T00:00:00Z') - Date.parse(depart + 'T00:00:00Z')) / 86400000;

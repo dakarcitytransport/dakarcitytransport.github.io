@@ -166,7 +166,7 @@
   function containers(){
     var d = window.departsData || {};
     return Object.keys(d).map(function(k){ var o = d[k]; if(!o || typeof o !== 'object') return null; o = Object.assign({}, o); o._id = k; return o; })
-      .filter(function(o){ return o && o.statut === 'preparation' && o.special !== 'depot'; })
+      .filter(function(o){ return o && o.statut === 'preparation' && o.special !== 'depot' && (o.pays || 'SN') === 'SN'; })   // Cobey : « tout ce qui est Mali, on ne met rien ici, on ne compte pas »
       .sort(function(a, b){ return String(a.dateDepart || '').localeCompare(String(b.dateDepart || '')); });
   }
   // Un container se remplit en 4 semaines de ramasse (parfois 5) : du premier dimanche de ramasse jusqu'au jour de chargement.
@@ -178,8 +178,9 @@
     var f = jours(fin), dj = debut ? jours(debut) : f - 21;
     // Cobey : « la semaine dernière était la première semaine : le dernier chargement a été fait il y a 2 semaines, mais on n'a pas fait de ramasse faute de
     // clients ». Le container commence donc le premier DIMANCHE APRÈS LE CHARGEMENT DU PRÉCÉDENT (même pays), qu'il y ait eu une ramasse ou non.
+    var prec = null;
     try{
-      var dd = window.departsData || {}, prec = null, pays = d.pays || 'SN';
+      var dd = window.departsData || {}, pays = d.pays || 'SN';
       Object.keys(dd).forEach(function(k){
         var o = dd[k]; if(!o || typeof o !== 'object' || k === d._id || o.special === 'depot' || !o.dateDepart) return;
         if((o.pays || 'SN') !== pays || String(o.dateDepart) >= String(fin)) return;
@@ -192,7 +193,7 @@
     var a = jours(auj());
     var sem = Math.max(1, Math.min(N, Math.floor((a - dj) / 7) + 1));
     var p = Math.max(0, Math.min(1, (a - dj + 1) / (f - dj + 1)));
-    return { debut: isoDe(dj), fin: fin, N: N, sem: sem, p: p, bucket: sem >= N ? 'D' : String(Math.min(sem, 4)), dimanche: isoDe(dj + 7 * (sem - 1)) };
+    return { incertain: !prec, debut: isoDe(dj), fin: fin, N: N, sem: sem, p: p, bucket: sem >= N ? 'D' : String(Math.min(sem, 4)), dimanche: isoDe(dj + 7 * (sem - 1)) };
   }
   // Situation par rapport au rythme : en avance / dans les temps / en retard (jamais de reproche en semaine 1 : « début »).
   function situation(n, obj, info){
@@ -813,7 +814,7 @@
   function containersPartis(){
     var dd = window.departsData || {};
     return Object.keys(dd).map(function(k){ var o = dd[k]; if(!o || typeof o !== 'object') return null; o = Object.assign({}, o); o._id = k; return o; })
-      .filter(function(o){ return o && o.statut !== 'preparation' && o.special !== 'depot' && o.dateDepart; })
+      .filter(function(o){ return o && o.statut !== 'preparation' && o.special !== 'depot' && o.dateDepart && (o.pays || 'SN') === 'SN'; })
       .sort(function(a, b){ return String(b.dateDepart).localeCompare(String(a.dateDepart)); });
   }
   function histoHtml(){
@@ -827,7 +828,7 @@
         var me = st.tot[q.moi], pl = st.rang.indexOf(me) + 1;
         bil = '<b>' + (q.tu ? 'Ton bilan' : 'Bilan de ' + esc(q.nom)) + ' :</b> ' + pl + (pl === 1 ? 'er' : 'e') + ' sur ' + st.rang.length + ' · ' + me.n + ' client' + (me.n > 1 ? 's' : '') + ' · ' + eurosFr(me.eu);
       } else bil = '<b>Container :</b> ' + st.nT + ' client' + (st.nT > 1 ? 's' : '') + ' · ' + eurosFr(st.euT);
-      cartes += '<div class="opg"><div class="hs-card" data-bilan="' + esc(o._id) + '"><div class="hs-ic">🚛</div><div class="hs-x"><b>' + esc(nomC) + '</b><small>' + st.N + ' semaines · ' + st.nT + ' client' + (st.nT > 1 ? 's' : '') + '</small><span class="hs-chip">' + esc(etatLib(o)) + '</span></div><div class="hs-ch">›</div><div class="hs-bil">' + bil + '</div></div></div>';
+      cartes += '<div class="opg"><div class="hs-card" data-bilan="' + esc(o._id) + '"><div class="hs-ic">🚛</div><div class="hs-x"><b>' + esc(nomC) + '</b><small>' + (st.info && !st.info.incertain ? st.N + ' semaines · ' : '') + st.nT + ' client' + (st.nT > 1 ? 's' : '') + '</small><span class="hs-chip">' + esc(etatLib(o)) + '</span></div><div class="hs-ch">›</div><div class="hs-bil">' + bil + '</div></div></div>';
     });
     h += '<div class="pg-t"><b>CONTAINERS TERMINÉS</b><span>' + nb + '</span></div>' + (cartes || '<div class="pg-pied" style="text-align:center">Aucun container terminé pour le moment.</div>');
     var cs = containers();
@@ -846,7 +847,7 @@
     o = Object.assign({}, o, { _id: cid });
     var st = statsContainer(o), nomC = String(o.nom || 'Container').replace(/^Chargement\s+/i, '') + ' · ' + dateCourte(o.dateDepart || '');
     var h = '<div class="hs-back" data-retour="1">← Historique</div><div class="hs-titre">' + esc(nomC) + '</div>'
-      + '<div style="text-align:center;margin-bottom:6px"><span class="hs-chip">Chargé le ' + esc(jourLong(o.dateDepart).replace(/^./, function(c){ return c.toLowerCase(); })) + ' · ' + st.N + ' semaines</span></div>';
+      + '<div style="text-align:center;margin-bottom:6px"><span class="hs-chip">Chargé le ' + esc(jourLong(o.dateDepart).replace(/^./, function(c){ return c.toLowerCase(); })) + (st.info && !st.info.incertain ? ' · ' + st.N + ' semaines' : '') + '</span></div>';
     var me = q.moi ? st.tot[q.moi] : null, pl = me ? st.rang.indexOf(me) + 1 : 0;
     if(me){
       var pc = st.nT > 0 ? Math.round(me.n / st.nT * 100) : 0, bw = 0, bn = 0;
@@ -863,10 +864,11 @@
         + '<div class="hs-tl"><div>CLIENTS<b>' + me.n + '</b></div><div>EUROS<b>' + eurosFr(me.eu) + '</b></div><div>PART DU CONTAINER<b>' + pc + ' %</b></div></div>'
         + '<div class="pg-sum"><div><i>📦</i><span>' + esc(l1) + '</span></div><div><i>📅</i><span>' + esc(l2) + '</span></div><div><i>🏅</i><span>' + esc(l3) + '</span></div></div></div></div>';
     } else {
-      h += '<div class="pg-t"><b>📦 LE CONTAINER</b></div><div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="hs-tl"><div>CLIENTS<b>' + st.nT + '</b></div><div>EUROS<b>' + eurosFr(st.euT) + '</b></div><div>SEMAINES<b>' + st.N + '</b></div></div></div></div>';
+      h += '<div class="pg-t"><b>📦 LE CONTAINER</b></div><div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="hs-tl"><div>CLIENTS<b>' + st.nT + '</b></div><div>EUROS<b>' + eurosFr(st.euT) + '</b></div><div>' + (st.info && !st.info.incertain ? 'SEMAINES<b>' + st.N : 'ÉTAT<b>' + esc(etatLib(o))) + '</b></div></div></div></div>';
     }
     var gb = barresHtml(st.cnt, me ? me.cnt : [], st.N, st.N, !!me);
-    h += '<div class="pg-t"><b>📅 PAR DIMANCHE</b><span>' + (me ? (q.tu ? 'ta ramasse' : 'vue de ' + esc(q.nom)) : 'toute la ramasse') + '</span></div>'
+    if(st.info && st.info.incertain) h += '<div class="pg-pied" style="margin:8px 4px">📅 Pas de détail par semaine pour ce container : c’est le plus ancien enregistré, on ne sait pas quand sa ramasse a commencé.</div>';
+    else h += '<div class="pg-t"><b>📅 PAR DIMANCHE</b><span>' + (me ? (q.tu ? 'ta ramasse' : 'vue de ' + esc(q.nom)) : 'toute la ramasse') + '</span></div>'
       + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="pg-leg"><span><i class="lt"></i>Toute la ramasse</span>' + (me ? '<span><i class="lp"></i>' + (q.tu ? 'Toi' : esc(q.nom)) + '</span>' : '') + '</div>'
       + '<div class="pg-gr2" style="grid-template-columns:repeat(' + st.N + ',1fr)">' + gb.bars + '</div><div class="pg-lab" style="grid-template-columns:repeat(' + st.N + ',1fr)">' + gb.labs + '</div></div></div>';
     h += '<div class="pg-t"><b>🏆 CLASSEMENT FINAL</b></div><div class="opg"><div class="ob-m b on hs-cl" style="background:rgba(255,255,255,.55)">';
