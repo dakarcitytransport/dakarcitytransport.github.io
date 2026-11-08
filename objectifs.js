@@ -53,6 +53,15 @@
       + '.ob-reg label{display:block;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text3,#666);margin:14px 0 6px}'
       + '.ob-reg input{width:100%;box-sizing:border-box;padding:13px;border-radius:14px;border:1.5px solid var(--border,#ddd);font:700 18px var(--font,inherit);background:var(--white,#fff);color:inherit}'
       + '.ob-reg .ob-ok{width:100%;margin-top:18px;height:50px;border:0;border-radius:16px;background:#0E9F5B;color:#fff;font:800 16px var(--font,inherit);cursor:pointer}';
+    // La bannière « classement » reprend l'habillage de celle des objectifs (mêmes classes), sous un autre identifiant.
+    st.textContent += st.textContent.replace(/#ob-accueil/g, '#cl-accueil').replace(/#ob-pt/g, '#cl-pt')
+      + '#cl-accueil .cl-nom{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis}'
+      + '#cl-accueil .cl-rk{flex:1;min-width:0;font-size:11px;font-weight:800;color:#556;overflow:hidden;text-overflow:ellipsis}'
+      + '#cl-accueil .cl-n{flex:none;font-size:12px;font-weight:700;color:#445}#cl-accueil .cl-n b{font-size:16px;color:#10241a;letter-spacing:-.02em}'
+      + '#cl-accueil .cl-l2{display:flex;justify-content:space-between;align-items:baseline;gap:8px}'
+      + '#cl-accueil .cl-l2 span{min-width:0;overflow:hidden;text-overflow:ellipsis}#cl-accueil .cl-l2 small{flex:none;font-size:10.5px;color:#667;font-weight:700}'
+      + '#cl-accueil .ob-l1 .ph-mini{border:2px solid #fff;box-sizing:border-box}'
+      + '#cl-pt{margin-top:-8px}';
     document.head.appendChild(st);
   })();
 
@@ -217,7 +226,7 @@
     if(minuteur){ clearTimeout(minuteur); minuteur = null; }
     if(liste.length > 1) minuteur = setTimeout(suivant, DUREE);
   }
-  function maj(){ try{ dessiner(); }catch(e){ console.error('objectifs', e); } }
+  function maj(){ try{ dessiner(); }catch(e){ console.error('objectifs', e); } try{ dessinerCl(); }catch(e){ console.error('classement', e); } }
 
   if(typeof window.depRenderEspaces === 'function'){
     var orig = window.depRenderEspaces;
@@ -236,9 +245,115 @@
     var surveille = function(){
       var c = cible(); if(!c || c._obObs) return;
       c._obObs = true;
-      new MutationObserver(function(){ if(enCours) return; enCours = true; try{ placer(); }catch(e){} enCours = false; }).observe(c, { childList: true });
+      new MutationObserver(function(){ if(enCours) return; enCours = true; try{ placer(); placerCl(); }catch(e){} enCours = false; }).observe(c, { childList: true });
     };
     setInterval(surveille, 3000); surveille();
+  }
+
+  /* ---------- classement des collaborateurs (2e bannière, sous les objectifs) ----------
+     Cobey (08/11/2026) : « le nombre de clients que chaque collaborateur a ramené par conteneur, du premier dimanche de ramasse
+     jusqu'au dernier, et le nombre d'euros, en faisant un classement » ; « une case par collaborateur, avec sa photo, le nombre de
+     clients, les euros et un petit mot selon sa situation » ; « moi, tu me mets pas, tout le monde y compris Aminata » ;
+     « le prix facturé : au final ce sera le prix encaissé ».
+     Ramené par = auteur de la fiche (c.by, ou c.creePar côté France). Euros = prix du colis des fiches du container
+     (collecte + dépôt direct + France, sans les fiches fusionnées). Les profils administrateurs ne figurent pas au classement. */
+  var PANEL_CL = {
+    tete: ['👑 En tête du container, bravo !', '🥇 La première place, bien joué !', '🔥 Le meilleur du container, continue !', '🏆 Au sommet du classement !'],
+    belle: ['🔥 Belle place, continue comme ça', '👏 Très bon travail, accroche-toi', '💪 Dans le trio de tête, bravo !', '🚀 Bonne dynamique, ça tient !'],
+    moyen: ['💪 Bien parti, on peut faire mieux', '🙂 Bon début, il faut en ramener plus', '📈 Continue, tu peux monter', '👍 Pas mal, un petit effort !'],
+    faible: ['📣 Il faut en ramener plus', '⏳ Pas assez pour l’instant, on s’y met', '🎯 Tu peux faire bien mieux, allez !', '💬 Appelle tes contacts, ça peut décoller'],
+    zero: ['📣 Aucun client : à toi de jouer !', '🚀 C’est le moment de commencer !', '☎️ Zéro pour l’instant, on y va !', '🌱 Premier client à trouver !']
+  };
+  function eurosFr(n){ var r = Math.round(n * 100) / 100, t = String(r).split('.'); t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return t.join(',') + ' €'; }
+  function rangLib(i, medaille){ var m = medaille ? ['🥇 ', '🥈 ', '🥉 '][i] || '' : ''; return m + (i === 0 ? '1er' : (i + 1) + 'e'); }
+  function collabsClassement(){
+    return (window.COLLABS || []).filter(function(c){ return c && !c.admin; });
+  }
+  function auteurDe(c, liste){
+    var v = String((c && (c.by || c.creePar)) || '');
+    if(!v) return null;
+    for(var i = 0; i < liste.length; i++){ if(liste[i].id === v || liste[i].name === v) return liste[i]; }
+    return null;
+  }
+  function slidesClassement(){
+    var out = [], liste = collabsClassement();
+    if(!liste.length || typeof window._depToutesLesFiches !== 'function') return out;
+    var fiches = window._depToutesLesFiches();
+    containers().forEach(function(d){
+      var tot = {}; liste.forEach(function(co){ tot[co.id] = { co: co, n: 0, eu: 0 }; });
+      var nb = 0;
+      fiches.forEach(function(x){
+        var c = x.c; if(!c || c.departId !== d._id) return;
+        try{ if(typeof window._depEstFusionnee === 'function' && window._depEstFusionnee(c)) return; }catch(e){}
+        nb++;
+        var co = auteurDe(c, liste); if(!co) return;
+        tot[co.id].n++; tot[co.id].eu += parseFloat(c.prix) || 0;
+      });
+      if(!nb) return;
+      var rang = liste.map(function(co){ return tot[co.id]; }).sort(function(a, b){ return (b.eu - a.eu) || (b.n - a.n) || a.co.name.localeCompare(b.co.name); });
+      var chef = rang[0].eu, nomC = String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
+      rang.forEach(function(r, i){
+        var ratio = chef > 0 ? r.eu / chef : 0, classe, famille;
+        if(r.eu <= 0 && r.n === 0){ classe = 'o'; famille = 'zero'; }
+        else if(i === 0 || r.eu >= chef){ classe = 'd'; famille = 'tete'; }
+        else if(i <= 2){ classe = 'v'; famille = 'belle'; }
+        else if(ratio >= 0.4){ classe = 'b'; famille = 'moyen'; }
+        else { classe = 'o'; famille = 'faible'; }
+        out.push({ cle: 'k' + d._id + r.co.id, id: r.co.id, nom: r.co.name, rang: rangLib(i, r.eu > 0) + ' sur ' + rang.length, n: r.n, eu: r.eu,
+          pct: chef > 0 ? Math.max(0, Math.min(100, r.eu / chef * 100)) : 0, classe: classe, container: nomC,
+          txt: choisir(PANEL_CL[famille], 'k' + d._id + r.co.id + famille, {}) });
+      });
+    });
+    return out;
+  }
+  function htmlCl(m, i){
+    var av = (window.photosProfil && window.photosProfil.avatar) ? window.photosProfil.avatar(m.id, 28) : '';
+    return '<div class="ob-m ' + m.classe + (i === 0 ? ' on' : '') + '"><div class="ob-l1">' + av + '<span class="cl-nom">' + esc(m.nom) + '</span><span class="cl-rk">' + esc(m.rang) + '</span>'
+      + '<span class="cl-n">' + m.n + ' client' + (m.n > 1 ? 's' : '') + ' · <b>' + eurosFr(m.eu) + '</b></span></div>'
+      + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i></div>'
+      + '<div class="ob-l2 cl-l2"><span>' + esc(m.txt) + '</span><small>' + esc(m.container) + '</small></div></div>';
+  }
+  var listeCl = [], idxCl = 0, minuteurCl = null, sigCl = '';
+  function suivantCl(){
+    var el = document.getElementById('cl-accueil'); if(!el || listeCl.length < 2) return;
+    var a = document.querySelector('.screen.active');
+    if(document.hidden || !a || a.id !== 's-espaces'){ minuteurCl = setTimeout(suivantCl, 1000); return; }
+    idxCl = (idxCl + 1) % listeCl.length;
+    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){ n.classList.toggle('on', k === idxCl); });
+    [].forEach.call(document.querySelectorAll('#cl-pt i'), function(n, k){ n.classList.toggle('on', k === idxCl); });
+    minuteurCl = setTimeout(suivantCl, DUREE);
+  }
+  function placerCl(){
+    var contenu = document.querySelector('#s-espaces .content'); if(!contenu) return;
+    var el = document.getElementById('cl-accueil'), pt = document.getElementById('cl-pt');
+    if(!listeCl.length){ if(el) el.remove(); if(pt) pt.remove(); return; }
+    if(!el) return;
+    var ancre = document.getElementById('ob-pt') || document.getElementById('ob-accueil') || document.getElementById('bd-accueil');
+    if(ancre){ if(ancre.nextElementSibling !== el) ancre.insertAdjacentElement('afterend', el); }
+    else if(el.parentNode !== contenu) contenu.insertBefore(el, contenu.firstChild);
+    if(pt && el.nextElementSibling !== pt) el.insertAdjacentElement('afterend', pt);
+  }
+  function dessinerCl(){
+    var contenu = document.querySelector('#s-espaces .content'); if(!contenu) return;
+    listeCl = slidesClassement();
+    var el = document.getElementById('cl-accueil');
+    if(!listeCl.length){ if(el) el.remove(); var p0 = document.getElementById('cl-pt'); if(p0) p0.remove(); sigCl = ''; if(minuteurCl){ clearTimeout(minuteurCl); minuteurCl = null; } return; }
+    var s2 = listeCl.map(function(m){ return [m.cle, m.n, Math.round(m.eu), m.classe, m.txt, m.rang].join(':'); }).join('|');
+    if(el && s2 === sigCl){ placerCl(); return; }
+    sigCl = s2;
+    if(!el){ el = document.createElement('div'); el.id = 'cl-accueil'; el.setAttribute('role', 'status'); }
+    if(idxCl >= listeCl.length) idxCl = 0;
+    el.innerHTML = listeCl.map(htmlCl).join('');
+    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){ n.classList.toggle('on', k === idxCl); });
+    var pt = document.getElementById('cl-pt');
+    if(listeCl.length > 1){
+      if(!pt){ pt = document.createElement('div'); pt.id = 'cl-pt'; }
+      pt.innerHTML = listeCl.map(function(m, k){ return '<i' + (k === idxCl ? ' class="on"' : '') + '></i>'; }).join('');
+    } else if(pt){ pt.remove(); }
+    if(!el.parentNode) contenu.insertBefore(el, contenu.firstChild);
+    placerCl();
+    if(minuteurCl){ clearTimeout(minuteurCl); minuteurCl = null; }
+    if(listeCl.length > 1) minuteurCl = setTimeout(suivantCl, DUREE + 1500);
   }
 
   /* ---------- lecture des chiffres dans Firebase ---------- */
@@ -287,5 +402,5 @@
       maj();
     }).catch(function(err){ try{ showToastNew('❌ Échec : ' + ((err && err.message) || 'écriture refusée')); }catch(x){} });
   });
-  window.objectifs = { afficher: maj, messages: messages, config: function(){ return cfg; } };
+  window.objectifs = { afficher: maj, messages: messages, classement: slidesClassement, config: function(){ return cfg; } };
 })();

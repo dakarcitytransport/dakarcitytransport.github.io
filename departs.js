@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.67';
+var DEP_VERSION = 'v2.22.68';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2728,7 +2728,8 @@ function nomDepart(id){
 // container (voir _frCarte dans dct-app.html), et l'hôte ne voit pas
 // l'intérieur de ce module.
 window._depNomDepart = nomDepart;
-window.compteursDepart = compteursDepart;   // objectifs.js : clients rentrés dans un container
+window.compteursDepart = compteursDepart;
+window._depToutesLesFiches = _depToutesLesFiches; window._depEstFusionnee = _depEstFusionnee;   // objectifs.js : clients rentrés dans un container
 
 // v1.20.29 : numéro de place du client dans ce départ (container) — utilisé
 // sur l'étiquette colis (voir depRenderEtiquettes) à la place du numéro de
