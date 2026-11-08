@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.321">
+<link rel="stylesheet" href="look-v2.css?v=3.99.322">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -2289,7 +2289,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.321';
+var APP_VERSION = 'v3.99.322';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -12863,6 +12863,31 @@ function ouvrirModalAnnuler(id,tk,type){
   var el=document.getElementById('annuler-sub');if(el)el.textContent='Annuler '+typeLabel+' de '+c.name+' ?';
   openModal('modal-annuler');
 }
+// Retire la copie créée par un report. 'ok' = retirée (copie gardée 30 jours dans la corbeille), 'garde' = laissée car déjà
+// affectée à un camion ou payée, 'absent' = déjà partie.
+function _retirerCopieReport(lien){
+  try{
+    var dest=lien.colId, nid=lien.newId;
+    var c=(clientsParCollecte[dest]||{})[nid];
+    if(!c) return 'absent';
+    var aff=((dispatchParCollecte[dest]||{}).assigned||{})[nid];
+    var nbVers=Object.keys(c.versements||{}).length+Object.keys(c.versementsLivraison||{}).length;
+    if(aff || nbVers>0) return 'garde';
+    var col=(collectes||[]).filter(function(x){return x&&x.id===dest;})[0];
+    try{ if(typeof window._depCorbeille==='function') window._depCorbeille('clientCol', dest+'_'+nid, {
+      titre:c.name||((c.prenom||'')+' '+(c.nom||'')).trim()||'Client', sous:'Collecte'+(col?' du '+col.date:'')+' · copie d\u2019un report annulé', departId:c.departId||'',
+      ecritures:[{p:'dct/clients/'+dest+'/'+nid, v:c}], apres:['dct_supprimes/'+dest+'/'+nid] }); }catch(e){}
+    delete clientsParCollecte[dest][nid];
+    if(dispatchParCollecte[dest]&&dispatchParCollecte[dest].assigned) delete dispatchParCollecte[dest].assigned[nid];
+    window._lastWriteTime=Date.now();
+    if(firebaseReady && db){
+      db.ref('dct/clients/'+dest+'/'+nid).remove();
+      db.ref('dct/dispatch/'+dest+'/assigned/'+nid).remove();
+      db.ref('dct_supprimes/'+dest+'/'+nid).set(true);
+    }
+    return 'ok';
+  }catch(e){ console.error('retirer copie report', e); return 'absent'; }
+}
 function confirmerAnnuler(){
   var type=curAnnulerType||'valider';
   var trks=getTrucks();var tk=trks[curAnnulerTk];if(!tk)return;
@@ -12870,6 +12895,12 @@ function confirmerAnnuler(){
   else if(type==='refus'){tk.refused=(tk.refused||[]).filter(function(i){return i!==curAnnulerId;});}
   else if(type==='annulation'){tk.cancelled=(tk.cancelled||[]).filter(function(i){return i!==curAnnulerId;});}
   else if(type==='report'){tk.reported=(tk.reported||[]).filter(function(i){return i!==curAnnulerId;});}
+  // Annuler un report = retirer aussi la copie posée dans l'autre collecte (Cobey, 08/11/2026 : « le client est toujours affiché dans la collecte reportée »).
+  var _lienReport = (type==='report' && tk.reportLinks) ? tk.reportLinks[curAnnulerId] : null, _resCopie = '';
+  if(type==='report'){
+    if(_lienReport){ _resCopie = _retirerCopieReport(_lienReport); if(_resCopie!=='garde') delete tk.reportLinks[curAnnulerId]; }
+    else _resCopie = 'sanslien';
+  }
   // Supprimer le finTs aussi
   if(tk.finTs) delete tk.finTs[curAnnulerId];
   var typeLabel=type==='valider'?'la collecte':type==='refus'?'le refus':type==='annulation'?'l\'annulation':'le report';
@@ -12883,8 +12914,12 @@ function confirmerAnnuler(){
     else if(type==='annulation') updates['dct/dispatch/'+currentCollecteId+'/trucks/'+curAnnulerTk+'/cancelled']=tk.cancelled;
     else if(type==='report') updates['dct/dispatch/'+currentCollecteId+'/trucks/'+curAnnulerTk+'/reported']=tk.reported;
     updates['dct/dispatch/'+currentCollecteId+'/trucks/'+curAnnulerTk+'/finTs/'+curAnnulerId]=null;
+    if(_lienReport && _resCopie!=='garde') updates['dct/dispatch/'+currentCollecteId+'/trucks/'+curAnnulerTk+'/reportLinks/'+curAnnulerId]=null;
     db.ref().update(updates);
   }
+  if(_resCopie==='ok') showToastNew('🗑️ Report annulé : la copie a été retirée de l\u2019autre collecte');
+  else if(_resCopie==='garde') showToastNew('⚠️ Report annulé, mais la copie de l\u2019autre collecte est déjà affectée ou payée : à vérifier');
+  else if(_resCopie==='sanslien') showToastNew('⚠️ Report annulé. Ce report est ancien : retire la copie à la main dans l\u2019autre collecte');
   sauvegarder();closeModal('modal-annuler');renderCamion(curAnnulerTk);
   if(currentSubtab==='dispatch')renderDispatchTab();
 }
@@ -13131,6 +13166,9 @@ function _appliquerReport(colIdDest){
   var newId = _nouvelIdClient();
   if(clientOrigine){
     clientsParCollecte[colIdDest][newId] = Object.assign({}, clientOrigine);
+    // On retient où la copie a été posée : si on annule le report, c'est elle qu'il faut retirer (voir _retirerCopieReport).
+    if(!tk.reportLinks) tk.reportLinks = {};
+    tk.reportLinks[_plusClientId] = { colId: colIdDest, newId: newId };
     // Ajouter dans assigned comme un client normal (non affecté)
     if(!dispatchParCollecte[colIdDest]) dispatchParCollecte[colIdDest] = {trucks:{},assigned:{}};
     if(!dispatchParCollecte[colIdDest].assigned) dispatchParCollecte[colIdDest].assigned = {};
@@ -13145,6 +13183,7 @@ function _appliquerReport(colIdDest){
     if(clientOrigine){
       updates['dct/clients/'+colIdDest+'/'+newId] = clientsParCollecte[colIdDest][newId];
       updates['dct/dispatch/'+colIdDest+'/assigned/'+newId] = null;
+      updates['dct/dispatch/'+colIdOrigine+'/trucks/'+_plusTruckKey+'/reportLinks/'+_plusClientId] = { colId: colIdDest, newId: newId };
     }
     db.ref().update(updates);
   }

@@ -6802,3 +6802,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 
 ### 08/11/2026 — Liste des containers : Dépensé en rouge (v3.99.321)
 > Cobey : « le dépensé devrait pas être rouge plutôt ? » (= en rouge). CSS seulement (V2) : montant « Dépensé » / « Taxe prestataire » en rouge.
+
+### 08/11/2026 — Annuler un report retire la copie de l'autre collecte (v3.99.322)
+> Cobey : « Issyaka avait reporté un client, il s'est mis sur la collecte de la semaine prochaine. Après, il a annulé le report et validé le client, mais le client est toujours affiché dans la collecte reportée. Peux-tu vérifier ? » → oui, bug confirmé. Ok code.
+- Cause : `_appliquerReport` crée une COPIE du client dans la collecte de destination sans garder de lien ; `confirmerAnnuler('report')` ne retirait que la mention « reporté » sur l'original.
+- Maintenant : le report retient `tk.reportLinks[idClient] = {colId, newId}` (Firebase `dct/dispatch/<col>/trucks/<camion>/reportLinks/…`). Annuler le report retire la copie (`_retirerCopieReport` : corbeille 30 jours type `clientCol`, suppression `dct/clients`, `assigned`, tombstone `dct_supprimes`), sauf si la copie est déjà affectée à un camion ou payée (alors gardée + message). Anciens reports sans lien : message « retire la copie à la main ».
+- Testé (faux Firebase) : report puis annulation → copie retirée ; copie affectée → gardée. Les annulations de validation / refus ne créent pas de copie : rien à nettoyer. Reste à faire par Cobey : supprimer à la main la copie de Ndeye Gueye dans la collecte du 15/11 (report fait avant ce correctif).
