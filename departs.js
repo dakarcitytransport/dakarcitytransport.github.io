@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.64';
+var DEP_VERSION = 'v2.22.65';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -23064,7 +23064,7 @@ window.depRenderRapfinContainers = function(){
     var st = STATUTS_DEPART[d.statut] || STATUTS_DEPART.preparation;
     var pM = DEP_PAYS_DEST[depPaysDepart(d)] || {};
     var duTot = depArrondi2(cp.colisDu + cp.livDu);
-    h += '<div class="dep-card rf-ct" style="cursor:pointer;border-left-color:'
+    h += '<div class="dep-card rf-ct rf-s-' + (STATUTS_DEPART[d.statut] ? d.statut : 'preparation') + '" style="cursor:pointer;border-left-color:'
       +   (duTot > 0 ? '#B3261E' : '#009A44') + ';" onclick="depRapfinContainer(\''+d._id+'\')">'
       +   '<div class="dep-card-top">'
       +     '<div class="dep-nom">' + (estDepot ? '&#127970;' : (pM.drapeau||''))

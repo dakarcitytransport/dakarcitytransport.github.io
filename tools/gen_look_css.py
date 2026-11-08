@@ -823,6 +823,11 @@ html.look-v2 .fg-aff-t{font-size:10.5px !important;letter-spacing:.09em;color:va
 html.look-v2 .fg-aff .progress-bg{height:8px !important;border-radius:99px !important;border:0 !important}html.look-v2 .fg-aff .progress-bar{border-radius:99px !important;background:linear-gradient(90deg,#2fb27c,#1a8a5c) !important}
 /* Rapport financier > Containers : liste, caisse, dépenses */
 html.look-v2 .rf-ct{border:1px solid var(--lk-edge) !important;border-left:1px solid var(--lk-edge) !important;border-radius:22px !important;background:var(--lk-glass) !important;padding:12px 16px !important;box-shadow:0 4px 14px rgba(30,60,45,.1)}
+/* couleur de la carte = état du container, comme sur l'accueil : orange en préparation, bleu en route, vert arrivé, gris clôturé */
+html.look-v2 .rf-s-preparation{background:linear-gradient(150deg,rgba(224,130,15,.26),rgba(224,130,15,.07)) !important;border-color:rgba(224,130,15,.35) !important}
+html.look-v2 .rf-s-parti{background:linear-gradient(150deg,rgba(61,99,227,.24),rgba(61,99,227,.06)) !important;border-color:rgba(61,99,227,.33) !important}
+html.look-v2 .rf-s-arrive{background:linear-gradient(150deg,rgba(26,138,92,.26),rgba(26,138,92,.07)) !important;border-color:rgba(26,138,92,.35) !important}
+html.look-v2 .rf-s-cloture{background:linear-gradient(150deg,rgba(120,125,130,.22),rgba(120,125,130,.06)) !important;border-color:rgba(120,125,130,.3) !important}
 html.look-v2 .rf-ct .dep-card-top{margin-bottom:2px}
 html.look-v2 .rf-ct .dep-meta{margin-bottom:0}
 html.look-v2 .rf-ct > div[style*="margin-top:10px"]{border-top:1px solid rgba(0,0,0,.08);margin-top:10px !important;padding-top:6px}

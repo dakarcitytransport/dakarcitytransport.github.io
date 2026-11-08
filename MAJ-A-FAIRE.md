@@ -6787,3 +6787,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 > Cobey : « avant le bénéfice, je pense qu'il devrait y avoir le détail : combien on a facturé, combien on a dépensé, et le bénéfice ». Vas-y code.
 - Chaque carte de container (Rapport financier > Containers, V2 seulement) : Livraison (sa propre caisse) puis Facturé (colis) / Encaissé / Dépensé (ou « Taxe prestataire » pour le Mali) puis Bénéfice réel. Le bénéfice part de l'encaissé, colis seulement : Encaissé − Dépensé = Bénéfice. La ligne « Colis … sur … » est cachée en V2 (elle répétait Facturé / Encaissé). V1 inchangée.
 - Dépensé = encaissé colis − résultat (même chiffre que `_depResultatColis`). Testé (faux Firebase) : containers Sénégal et Mali. Balayage des 74 écrans non relancé (script introuvable).
+
+### 08/11/2026 — Liste des containers : cartes colorées selon l'état (v3.99.318, departs.js v2.22.65)
+> Cobey : « les cartes sont toutes blanches, il devrait y avoir un code couleur aussi, comme les cartes de l'accueil ».
+- Classe `rf-s-<statut>` sur chaque carte (Rapport financier > Containers, V2 seulement) : fond orange clair = en préparation, bleu = parti / en route, vert = arrivé, gris = clôturé (mêmes couleurs que l'accueil). Testé (faux Firebase) ; balayage des 74 écrans non relancé.
