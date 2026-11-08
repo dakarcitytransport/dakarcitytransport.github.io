@@ -65,7 +65,9 @@
       + '#cl-accueil .cl-l2{display:flex;justify-content:space-between;align-items:baseline;gap:8px}'
       + '#cl-accueil .cl-l2 span{min-width:0;overflow:hidden;text-overflow:ellipsis}#cl-accueil .cl-l2 small{flex:none;font-size:11.5px;color:#10241a;font-weight:800;background:rgba(255,255,255,.7);border-radius:99px;padding:2px 9px;white-space:nowrap}'
       + '#cl-accueil .ob-l1 .ph-mini{border:2px solid #fff;box-sizing:border-box}'
+      + '#ob-accueil .cl-l2{display:flex;justify-content:space-between;align-items:baseline;gap:8px}#ob-accueil .cl-l2 span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ob-accueil .cl-l2 small{flex:none;font-size:11px;color:#556;font-weight:800;background:rgba(255,255,255,.7);border-radius:99px;padding:2px 9px;white-space:nowrap}'
       + '#cl-pt{margin-top:-8px}'
+      + '#cl-accueil .cl-wk{flex:none;font-size:11px;font-weight:800;color:#0a6b3d;background:rgba(26,138,92,.16);border-radius:99px;padding:1px 8px}'
       + '#cl-semaine{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 4px 6px;font-size:10.5px;color:var(--text3,#667);font-weight:700}#cl-semaine b{font-size:11px;letter-spacing:.06em;color:var(--text,#10241a);font-weight:800}#cl-semaine span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}'
       + '#cl-accueil .ob-l1{min-height:30px}'
       + '#cl-accueil .cl-md{flex:none;width:30px;text-align:center;font-size:27px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}'
@@ -137,6 +139,17 @@
     var debut = null;
     fichesRamassees(d._id).forEach(function(x){ if(x.src === 'depot') return; var i = dateRamasse(x); if(i && (!debut || i < debut)) debut = i; });
     var f = jours(fin), dj = debut ? jours(debut) : f - 21;
+    // Cobey : « la semaine dernière était la première semaine : le dernier chargement a été fait il y a 2 semaines, mais on n'a pas fait de ramasse faute de
+    // clients ». Le container commence donc le premier DIMANCHE APRÈS LE CHARGEMENT DU PRÉCÉDENT (même pays), qu'il y ait eu une ramasse ou non.
+    try{
+      var dd = window.departsData || {}, prec = null, pays = d.pays || 'SN';
+      Object.keys(dd).forEach(function(k){
+        var o = dd[k]; if(!o || typeof o !== 'object' || k === d._id || o.special === 'depot' || !o.dateDepart) return;
+        if((o.pays || 'SN') !== pays || String(o.dateDepart) >= String(fin)) return;
+        if(!prec || String(o.dateDepart) > prec) prec = String(o.dateDepart);
+      });
+      if(prec && !isNaN(jours(prec))){ var jp = jours(prec), dow = (jp + 4) % 7; dj = jp + (((7 - dow) % 7) || 7); }
+    }catch(e){}
     if(dj > f) dj = f - 21;
     var N = Math.max(3, Math.min(6, Math.floor((f - dj) / 7) + 1));
     var a = jours(auj());
@@ -287,7 +300,7 @@
   function messageContainer(d){
     var obj = cfg.container, n = nbContainer(d._id), pct = Math.max(0, Math.min(100, obj ? n / obj * 100 : 0));
     var info = infoContainer(d), reste = Math.max(0, obj - n), classe, liste, att = null, fk;
-    var nom = (d.nom || 'Container') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '') + (info ? ' · sem. ' + info.sem + '/' + info.N : '');
+    var nom = String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
     if(!info){ classe = 'b'; liste = PANEL.cSans; fk = 'cx'; }
     else {
       att = obj * info.p;
@@ -298,7 +311,7 @@
     var vars = { obj: obj, n: n, pl: pl(reste, 'client'), reste: reste, date: dateCourte(d.dateDepart), sem: info ? info.sem : '', N: info ? info.N : '',
       manque: Math.max(1, Math.round((att || 0) - n)), avance: Math.max(1, Math.round(n - (att || 0))) };
     var fam = candidats(liste, vars), txt = phraseStable('c' + d._id, n + ':' + fk, fam);
-    return { cle: 'c' + d._id, fk: fk, fam: fam, icone: '🚛', nom: nom, n: n, obj: obj, pct: pct, repere: att === null ? null : (att / obj * 100), classe: classe, txt: txt };
+    return { cle: 'c' + d._id, fk: fk, fam: fam, icone: '🚛', petit: info ? 'Semaine ' + info.sem + '/' + info.N : '', nom: nom, n: n, obj: obj, pct: pct, repere: att === null ? null : (att / obj * 100), classe: classe, txt: txt };
   }
   function messageDimanche(){
     var obj = objDimanche(), aujIso = auj(), ref = null, refIso = '';
@@ -329,8 +342,7 @@
       }
     }catch(e){}
     if(!ref && !refIso) return null;
-    var libelle = ref ? String(ref.date).replace(/\s+\d{4}\s*$/, '') : '';
-    if(!libelle && refIso){ var p = refIso.split('-'); libelle = 'Dimanche ' + (+p[2]) + ' ' + MOIS[+p[1] - 1]; }
+    var libelle = refIso ? 'Dimanche ' + dateJour(refIso) : (ref ? String(ref.date).replace(/\s+\d{4}\s*$/, '') : '');
     var jr = jours(refIso) - jours(aujIso), bilan = (jr === 0);
     libelle += bilan ? ' · bilan' : (jr > 0 ? ' · ' + (jr === 1 ? 'demain' : 'dans ' + jr + ' jours') : '');
     var reste = Math.max(0, obj - n), pct = Math.max(0, Math.min(100, obj ? n / obj * 100 : 0)), classe, liste;
@@ -356,9 +368,9 @@
   var liste = [], idx = 0, minuteur = null, sig = '';
   function html(m, i){
     return '<div class="ob-m ' + m.classe + (i === 0 ? ' on' : '') + '"><div class="ob-l1"><span class="ob-tag">OBJECTIF</span><span class="ob-nom">' + m.icone + ' ' + esc(m.nom) + '</span>'
-      + '<span class="ob-n">' + m.n + ' <i>/ ' + m.obj + '</i></span></div>'
+      + '<span class="ob-n">' + m.n + ' <i>/ ' + m.obj + ' clients</i></span></div>'
       + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i>' + (m.repere !== null && m.classe !== 'd' ? '<u style="left:calc(' + m.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
-      + '<div class="ob-l2"><i class="ob-t">' + esc(m.txt) + '</i></div></div>';
+      + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(m.txt) + '</i></span>' + (m.petit ? '<small>' + esc(m.petit) + '</small>' : '') + '</div></div>';
   }
   function suivant(){
     var el = document.getElementById('ob-accueil'); if(!el || liste.length < 1) return;
@@ -490,7 +502,7 @@
         var sigC = [r.n, Math.round(r.eu), famCle].join(':');
         memos[d._id].rang.push({ id: r.co.id, nom: r.co.name, n: r.n, nSem: r.nSem, eu: Math.round(r.eu * 100) / 100, obj: obj, place: i + 1 });
         out.push({ cle: 'k' + d._id + r.co.id, id: r.co.id, nom: r.co.name, i: i, medaille: r.eu > 0 && i < 3,
-          rang: rangLib(i, false) + ' sur ' + rang.length + (r.nSem > 0 ? ' · +' + r.nSem + ' sem.' : ''),
+          rang: rangLib(i, false) + ' sur ' + rang.length, nSem: r.nSem,
           n: r.n, eu: r.eu, obj: obj, pct: obj > 0 ? Math.max(0, Math.min(100, r.n / obj * 100)) : 0, repere: info && obj > 0 ? Math.min(100, att / obj * 100) : null,
           classe: cc, container: nomC, fk: famCle + ':' + r.nSem + ':' + i, fam: fam, txt: phraseStable('k' + d._id + r.co.id, sigC, fam) });
       });
@@ -503,7 +515,7 @@
     var av = (window.photosProfil && window.photosProfil.avatar) ? window.photosProfil.avatar(m.id, 28) : '';
     var md = m.medaille ? '<span class="cl-md">' + ['🥇', '🥈', '🥉'][m.i] + '</span>' : '<span class="cl-md num">' + (m.i + 1) + '</span>';
     var petit = '🎯 Objectif ' + m.n + ' / ' + m.obj;
-    return '<div class="ob-m ' + m.classe + (k === 0 ? ' on' : '') + '"><div class="ob-l1">' + md + av + '<span class="cl-nom">' + esc(m.nom) + '</span><span class="cl-rk">' + esc(m.rang + (tous.multi ? ' · ' + m.container : '')) + '</span>'
+    return '<div class="ob-m ' + m.classe + (k === 0 ? ' on' : '') + '"><div class="ob-l1">' + md + av + '<span class="cl-nom">' + esc(m.nom) + '</span><span class="cl-rk">' + (tous.multi ? esc(m.container) : '') + '</span>' + (m.nSem > 0 ? '<span class="cl-wk">+' + m.nSem + ' cette semaine</span>' : '')
       + '<span class="cl-n"><b>' + eurosFr(m.eu) + '</b></span></div>'
       + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i>' + (m.repere !== null && m.n < m.obj ? '<u style="left:calc(' + m.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
       + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(m.txt) + '</i></span><small>' + esc(petit) + '</small></div></div>';
