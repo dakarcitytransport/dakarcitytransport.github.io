@@ -130,3 +130,17 @@ répondent plus sont oubliés.
 **Ce qui n'a pas pu être testé ici** : l'envoi réel, qui exige de joindre
 les serveurs de Google — bloqués depuis l'environnement de développement.
 C'est l'étape 6 qui le dira.
+
+---
+
+## Mise à jour v1.11.0 (08/11/2026) — notifications du classement
+
+Le fichier `cloudflare-worker.js` a changé : il envoie maintenant aussi
+- **chaque dimanche à 20h (heure de Paris)** : « Ton point de la semaine » (place, compteur « 12 / 30 », évolution, phrase) à chaque collaborateur, et le récapitulatif de l'équipe à Eric ;
+- **le lendemain du chargement d'un container, à 19h** : « Bilan du container » (place finale, clients, euros, objectif atteint à X %). Le jour du chargement lui-même, rien n'est envoyé.
+
+**À faire (une seule fois)** : dans Cloudflare, ouvrir le Worker → **Edit code** → tout sélectionner → coller le nouveau contenu de `cloudflare-worker.js` → **Deploy**. Rien d'autre à régler (même déclencheur Cron toutes les minutes, mêmes variables).
+
+**Pour vérifier** : dans l'appli, Réglages > OBJECTIFS > « Notification du classement » : choisir une personne puis « Point de la semaine » ou « Bilan du container » → l'exemple arrive sur votre téléphone dans la minute. L'adresse du Worker affiche aussi désormais un bloc `classement` (`hebdo`, `finals`, `demandes`).
+
+Les notifications doivent être autorisées sur le téléphone de chaque collaborateur (Notification > « Activer »), sinon il ne reçoit rien.

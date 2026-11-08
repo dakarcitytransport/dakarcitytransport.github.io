@@ -1,12 +1,13 @@
 /* ═══════════════════════════════════════════════════════════
    DCT — L'ENVOYEUR DE NOTIFICATIONS
-   v1.10.0 · 03/11/2026
+   v1.11.0 · 08/11/2026
 
    Ce fichier ne fait PAS partie du site. Il se colle chez Cloudflare, et
    il y tourne tout seul, une fois par minute. C'est lui qui envoie
    réellement les notifications sur les téléphones.
 
    Ce qu'il fait, à chaque réveil :
+     0. (v1.11.0) il envoie le classement des collaborateurs : point de la semaine le dimanche 20h, bilan du container le lendemain du chargement 19h (voir « Le classement des collaborateurs » plus bas) ;
      1. il gère le planning du dimanche (voir plus bas) — et note dans
         dct_annonces (visible dans l'appli, case Notification) chaque
         rappel automatique envoyé et à qui (v1.5.0) ;
@@ -546,6 +547,193 @@ async function traitePlanning(env){
   return bilan;
 }
 
+/* ─── Le classement des collaborateurs (v1.11.0 · 08/11/2026) ───
+
+   Cobey : « on envoie un message, une notification personnelle à chaque collaborateur pour lui indiquer sa place dans le classement,
+   ses objectifs, et un message personnalisé selon sa situation, un panel de messages » ; « le dimanche soir » ; « les jours de
+   chargement, c'est fini, il n'y a pas besoin de recevoir : il faut juste recevoir un bilan, le lendemain du chargement (lundi soir) ».
+
+   · Chaque DIMANCHE à 20h (heure de Paris) : « ton point de la semaine » à chaque collaborateur (place, compteur, évolution, phrase),
+     pour chaque container encore « en préparation » — sauf si ce dimanche est son jour de chargement (dateDepart) : rien n'est envoyé.
+   · Le LENDEMAIN du chargement, à 19h (Paris) : « bilan du container » (place finale, clients, euros, objectif atteint à X %).
+   · Eric (AD) reçoit à chaque fois le récapitulatif de toute l'équipe (il n'est pas dans le classement).
+   Les chiffres viennent du mémo `dct_classement_memo/<container>` que l'application met à jour à chaque affichage de l'accueil
+   (objectifs.js) : le container disparaît de l'accueil une fois parti, mais son mémo reste, ce qui permet le bilan final.
+   L'état (déjà envoyé / photo de la semaine d'avant, pour « +4 clients cette semaine ») vit dans dct_classement_etat et dct_classement_snap.
+   Le bouton « Envoyer un exemple » de Réglages > OBJECTIFS dépose une demande dans dct_classement_demande, traitée ici à la minute. */
+
+const CL_PHRASES = {
+  atteint: ['🎯 Objectif atteint, bravo, tu peux être fier !', '🏆 Objectif rempli : une belle semaine !', '🔥 Tu as tenu ton objectif, félicitations', '🥳 Objectif en poche, quelle performance !', '💪 Bravo, objectif atteint : on vise plus haut ?', '🌟 Du très beau travail, objectif réussi', '👏 Tu as rempli ton objectif, continue !', '✅ Objectif validé, merci pour ton travail'],
+  monte: ['🚀 Tu montes au classement, continue comme ça !', '🔥 Belle remontée, la semaine était bonne', '📈 Tu grimpes : ça paie, ne lâche rien !', '💪 Tu gagnes des places, bravo !', '👏 Très bonne semaine, ça se voit au classement', '⚡ Ça avance vite pour toi, bravo', '🌟 Tu passes devant d’autres, bel effort !', '🎯 La progression est là, garde le rythme'],
+  progres: ['👍 Tu progresses, encore {reste} pour ton objectif', '💪 Belle semaine, continue sur ta lancée', '🙂 Ça avance : encore {reste} à trouver', '📞 Tes contacts répondent, relance-les encore', '🔥 Bon rythme, encore {reste} pour l’objectif', '👏 Bravo pour ces nouveaux clients', '🎯 Encore {reste} et ton objectif est atteint', '🚀 Ça monte, ne t’arrête pas'],
+  stable: ['🙂 Semaine calme : un petit effort cette semaine ?', '📞 Relance tes contacts, il reste {reste} à trouver', '⏳ Pas de nouveau client cette semaine, on repart !', '💬 Pense à reparler de DCT autour de toi', '🔔 Il reste {reste} pour ton objectif : à toi de jouer', '🎯 Cette semaine, vise un nouveau client', '🤝 Un coup de fil, un client : tu peux le faire', '🌱 Ça peut repartir vite, essaie cette semaine'],
+  recul: ['📉 Tu perds une place : cette semaine, on répond !', '⚡ Les autres avancent, à toi de repartir', '💪 Tu peux vite remonter, un client suffit parfois', '🔔 Le classement bouge : relance tes contacts', '🎯 Reprends ta place, il reste {reste} pour l’objectif', '📞 Un petit effort et tu remontes', '🔥 Cette semaine, on reprend le dessus !', '🤝 Appelle tes contacts, ça peut vite changer'],
+  zero: ['📣 Aucun client pour l’instant : cette semaine, lance-toi !', '☎️ Zéro client : appelle tes contacts cette semaine', '🌱 Le premier client est le plus dur, essaie !', '💬 Parle de DCT autour de toi cette semaine', '🔔 Il reste {reste} à trouver : on commence ?', '🚀 Cette semaine, vise ton premier client', '🎯 Tout reste possible, il suffit de commencer', '📞 Un appel suffit pour démarrer'],
+  debZero: ['📒 Ton carnet d’adresses est ton meilleur atout : ouvre-le !', '👨‍👩‍👧 Pense à ta famille et à tes voisins cette semaine', '☎️ Appelle tes contacts : un premier client suffit', '🌱 Un premier client et tu es lancé !', '🤝 Chaque contact peut devenir un client', '📲 Partage les numéros DCT à tes proches', '🎯 Ton objectif est petit : commence par un seul', '💬 Demande autour de toi, ça marche'],
+  debProgres: ['👏 Bravo, ton carnet commence à servir !', '🔥 Tu es lancé : encore {reste} pour ton objectif', '🌱 Beau début, continue d’enrichir ton carnet', '💪 Tes contacts répondent, bravo', '🎯 Encore {reste} et ton objectif est atteint', '🚀 Bon début, ne t’arrête pas', '📒 Ton réseau grandit, continue', '😊 Tu progresses, c’est très bien'],
+  debStable: ['🙂 Pas de nouveau client cette semaine : un petit effort ?', '📞 Relance tes contacts, il reste {reste} pour ton objectif', '📒 Pense à ton carnet d’adresses cette semaine', '🌱 Un contact de plus, un client de plus', '🤝 Reparle de DCT à tes proches', '🎯 Encore {reste} pour atteindre ton objectif', '💬 Demande autour de toi, ça marche', '🔔 Cette semaine, essaie un nouveau contact'],
+  debAtteint: ['🎉 Objectif atteint, ton carnet d’adresses a porté ses fruits !', '🏆 Bravo : tu as rempli ton objectif', '🥳 Premier objectif réussi, félicitations', '🌟 Beau travail, tu peux viser plus haut', '🔥 Objectif atteint, on monte la barre ?', '💪 Ton réseau fonctionne, bravo', '✅ Objectif validé, continue !', '🙌 Excellent, tu as bien lancé ton réseau'],
+  finAtteint: ['🎉 Objectif atteint, bravo pour ce container !', '🏆 Container réussi : tu as rempli ton objectif', '🔥 Belle performance, objectif tenu', '🥳 Bravo, tu as fait le travail !', '💪 Objectif atteint : on remet ça au prochain ?', '🌟 Très beau container, merci à toi', '👏 Objectif réussi, félicitations', '✅ Mission accomplie sur ce container'],
+  finPodium: ['🏅 Tu finis sur le podium, bravo !', '🔥 Très belle place, il manquait peu pour l’objectif', '👏 Bon container, tu peux viser plus haut', '💪 Belle performance, on fait encore mieux au prochain', '🚀 Tu étais dans les meilleurs, bravo', '🌟 Beau travail, continue comme ça', '🎯 Presque l’objectif : au prochain, on y est', '🙂 Bien joué, rendez-vous au prochain container'],
+  finMilieu: ['💪 Bon container, au prochain on vise plus haut', '🙂 Un travail correct, tu peux faire mieux', '📈 Tu as de la marge, relance tes contacts', '🎯 Au prochain container, fixe-toi un but précis', '🔔 Prépare ton carnet pour le prochain container', '🤝 Merci pour ton travail, on continue', '📞 Garde le contact avec tes clients, ils reviendront', '🚀 Le prochain container est une nouvelle chance'],
+  finDeb: ['👏 Bravo pour ce premier pas, ton carnet démarre', '🌱 Un beau début, continue d’enrichir ton carnet', '📒 Ton carnet d’adresses grandit, bravo', '🔥 C’est lancé : au prochain, on fait plus', '💪 Tu as commencé, c’est le plus dur', '🎯 Au prochain container, vise un client de plus', '🤝 Merci, ton réseau commence à marcher', '😊 Belle progression, continue'],
+  finZero: ['🌱 Pas de client sur ce container : au prochain, on essaie ?', '📒 Prépare ton carnet d’adresses pour le prochain', '☎️ Appelle tes contacts, un seul client suffit pour commencer', '🤝 Parle de DCT autour de toi dès maintenant', '🎯 Le prochain container, c’est ta chance', '💬 Demande à tes proches, ça marche', '🚀 On repart à zéro : à toi de jouer', '🔔 Un premier client change tout, essaie !']
+};
+
+function clHash(t){ let h = 0; for(let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0; return h; }
+function clChoisir(liste, graine){ return liste[clHash(graine) % liste.length]; }
+function clPlace(i){ return i === 1 ? '1er' : i + 'e'; }
+function clEuros(n){
+  const r = Math.round((n || 0) * 100) / 100, t = String(r).split('.');
+  t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return t.join(',') + ' €';
+}
+
+// Le message d'UNE personne. p = { id, nom, n, eu, obj, place } ; total = nombre de classés ; prev = sa photo de la semaine d'avant (ou null).
+function clMessagePerso(p, total, prev, nomContainer, final, graine){
+  const reste = Math.max(0, p.obj - p.n), debutant = p.obj <= 10;
+  const delta = prev ? p.n - prev.n : null, mouv = prev ? prev.place - p.place : 0;   // mouv > 0 : on a gagné des places
+  let famille;
+  if(final){
+    if(p.n >= p.obj) famille = 'finAtteint';
+    else if(p.n === 0) famille = 'finZero';
+    else if(debutant) famille = 'finDeb';
+    else if(p.place <= 3) famille = 'finPodium';
+    else famille = 'finMilieu';
+  } else if(p.n >= p.obj) famille = debutant ? 'debAtteint' : 'atteint';
+  else if(debutant) famille = p.n === 0 ? 'debZero' : ((delta === null || delta > 0) ? 'debProgres' : 'debStable');
+  else if(p.n === 0) famille = 'zero';
+  else if(delta === null) famille = 'progres';
+  else if(mouv > 0) famille = 'monte';
+  else if(delta > 0) famille = 'progres';
+  else if(mouv < 0) famille = 'recul';
+  else famille = 'stable';
+  const phrase = clChoisir(CL_PHRASES[famille], graine + p.id + famille + p.n).replace(/\{reste\}/g, reste).replace(/\{n\}/g, p.n).replace(/\{obj\}/g, p.obj);
+  if(final){
+    const pct = p.obj > 0 ? Math.round(p.n / p.obj * 100) : 0;
+    return { titre: '🏁 Bilan du container ' + nomContainer,
+      corps: 'Tu finis ' + clPlace(p.place) + ' sur ' + total + ' : ' + p.n + ' client' + (p.n > 1 ? 's' : '') + ' · ' + clEuros(p.eu)
+           + '. Objectif ' + p.obj + ' : ' + pct + ' %.\n' + phrase };
+  }
+  let evo = '';
+  if(delta !== null){
+    evo = delta > 0 ? '+' + delta + ' client' + (delta > 1 ? 's' : '') + ' cette semaine' : 'Aucun nouveau client cette semaine';
+    if(mouv > 0) evo += ' · tu gagnes ' + mouv + ' place' + (mouv > 1 ? 's' : '');
+    else if(mouv < 0) evo += ' · tu perds ' + (-mouv) + ' place' + (mouv < -1 ? 's' : '');
+    evo += '\n';
+  }
+  return { titre: '🏆 Ton point de la semaine',
+    corps: 'Tu es ' + clPlace(p.place) + ' sur ' + total + ' · 🎯 ' + p.n + ' / ' + p.obj + ' clients · ' + clEuros(p.eu) + '\n' + evo + phrase };
+}
+
+// Le récapitulatif de toute l'équipe (pour Eric).
+function clMessageRecap(rang, final, nomContainer){
+  const lignes = rang.map(p => clPlace(p.place) + ' ' + p.nom + ' · ' + p.n + ' / ' + p.obj + ' · ' + clEuros(p.eu));
+  return { titre: final ? '🏁 Bilan final · ' + nomContainer : '🏆 Classement de la semaine', corps: lignes.join('\n') };
+}
+
+// Date et heure à Paris (le Worker, lui, vit en UTC).
+function parisMaintenant(date){
+  const f = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', weekday: 'short', hourCycle: 'h23' });
+  const g = {};
+  f.formatToParts(date || new Date()).forEach(x => { g[x.type] = x.value; });
+  const jours = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { iso: g.year + '-' + g.month + '-' + g.day, h: parseInt(g.hour, 10) % 24, m: parseInt(g.minute, 10), dow: jours[g.weekday] };
+}
+
+function clNomContainer(memo, dep){
+  const n = String((memo && memo.nom) || (dep && dep.nom) || 'Container').replace(/^Chargement\s+/i, '');
+  const d = (memo && memo.dateDepart) || (dep && dep.dateDepart) || '';
+  return n + (d ? ' · ' + d.slice(8, 10) + '/' + d.slice(5, 7) : '');
+}
+
+async function clEnvoyer(env, io, cibles, m, sujet){
+  await io.ecrire('dct_file_push/' + plCleUnique(), {
+    titre: m.titre, corps: m.corps, sujet: sujet, url: './dct-app.html',
+    cibles: cibles, par: 'systeme', creeLe: Date.now(), envoye: false
+  }, env);
+}
+
+// Envoie à chaque classé son message, et le récapitulatif à Eric. Renvoie le nombre de personnes prévenues.
+async function clEnvoyerContainer(env, io, cid, memo, dep, final, prevSnap, graine){
+  const rang = (memo.rang || []).filter(p => p && p.id).sort((a, b) => a.place - b.place);
+  if(!rang.length) return 0;
+  const nom = clNomContainer(memo, dep);
+  for(const p of rang){
+    const prev = prevSnap && prevSnap.par ? prevSnap.par[p.id] : null;
+    await clEnvoyer(env, io, [p.id], clMessagePerso(p, rang.length, prev, nom, final, graine), 'classement-' + (final ? 'final-' : '') + graine);
+  }
+  await clEnvoyer(env, io, [ID_OBSERVATEUR], clMessageRecap(rang, final, nom), 'classement-recap-' + graine);
+  try{
+    await plJournaliser((final ? 'Bilan final du container ' + nom + ' envoyé' : 'Point de la semaine du classement envoyé (' + nom + ')') + ' à ' + rang.length + ' collaborateurs.',
+      rang.map(p => p.nom || p.id), env);
+  }catch(e){}
+  return rang.length;
+}
+
+const CL_IO = { lire: (c, env) => lire(c, env), ecrire: (c, v, env) => ecrire(c, v, env) };
+
+async function traiteClassement(env, io, maintenant){
+  io = io || CL_IO;
+  const bilan = { hebdo: 0, finals: 0, demandes: 0 };
+  const now = parisMaintenant(maintenant);
+  const memos = (await io.lire('dct_classement_memo', env)) || {};
+  const cids = Object.keys(memos).filter(k => memos[k] && memos[k].rang);
+
+  // 1. Les demandes d'exemple (bouton de Réglages) : « montre-moi ce que recevrait X »
+  const demandes = (await io.lire('dct_classement_demande', env)) || {};
+  for(const k of Object.keys(demandes)){
+    const dm = demandes[k];
+    if(!dm || dm.traite || !dm.versId) continue;
+    const prefere = cids.slice().sort((a, b) => (memos[b].majLe || 0) - (memos[a].majLe || 0))[0];
+    if(prefere){
+      const memo = memos[prefere], rang = (memo.rang || []).slice().sort((a, b) => a.place - b.place);
+      const snap = (await io.lire('dct_classement_snap/' + prefere, env)) || {};
+      const nom = clNomContainer(memo, null);
+      const final = dm.final === true;
+      let m;
+      if(dm.pourId === 'RECAP') m = clMessageRecap(rang, final, nom);
+      else { const p = rang.filter(x => x.id === dm.pourId)[0]; if(p) m = clMessagePerso(p, rang.length, snap && snap.par ? snap.par[p.id] : null, nom, final, 'exemple' + k); }
+      if(m) { await clEnvoyer(env, io, [dm.versId], { titre: '(exemple) ' + m.titre, corps: m.corps }, 'classement-exemple-' + k); bilan.demandes++; }
+    }
+    await io.ecrire('dct_classement_demande/' + k, { traite: true, traiteLe: Date.now() }, env);
+  }
+  if(!cids.length) return bilan;
+  const etat = (await io.lire('dct_classement_etat', env)) || {};
+
+  // 2. Le point de la semaine : dimanche, 20h passées (Paris), une fois par dimanche.
+  if(now.dow === 0 && now.h >= 20 && !etat['hebdo_' + now.iso]){
+    for(const cid of cids){
+      const dep = (await io.lire('departs/' + cid, env)) || {};
+      if(dep.statut !== 'preparation') continue;
+      if(dep.dateDepart === now.iso) continue;                      // jour de chargement : rien (le bilan viendra demain)
+      const prevSnap = (await io.lire('dct_classement_snap/' + cid, env)) || null;
+      const n = await clEnvoyerContainer(env, io, cid, memos[cid], dep, false, prevSnap && prevSnap.par ? prevSnap : null, now.iso + cid);
+      bilan.hebdo += n;
+      const par = {}; (memos[cid].rang || []).forEach(p => { if(p && p.id) par[p.id] = { n: p.n, eu: p.eu, place: p.place }; });
+      await io.ecrire('dct_classement_snap/' + cid, { iso: now.iso, par: par }, env);
+    }
+    await io.ecrire('dct_classement_etat', { ['hebdo_' + now.iso]: true }, env);
+  }
+
+  // 3. Le bilan final : le lendemain du chargement (ou après), 19h passées (Paris), une seule fois par container.
+  for(const cid of cids){
+    if(etat['final_' + cid]) continue;
+    const dep = (await io.lire('departs/' + cid, env)) || {};
+    const depart = dep.dateDepart || memos[cid].dateDepart;
+    if(!depart || now.iso <= depart) continue;                      // pas encore chargé, ou jour même
+    const ecart = (Date.parse(now.iso + 'T00:00:00Z') - Date.parse(depart + 'T00:00:00Z')) / 86400000;
+    if(ecart === 1 && now.h < 19) continue;                         // lendemain, mais avant 19h
+    if(ecart <= 3){
+      const n = await clEnvoyerContainer(env, io, cid, memos[cid], dep, true, (await io.lire('dct_classement_snap/' + cid, env)) || null, 'final' + cid);
+      bilan.finals += n;
+    }
+    await io.ecrire('dct_classement_etat', { ['final_' + cid]: true }, env);   // trop ancien : on le marque sans envoyer
+  }
+  return bilan;
+}
+
 /* ─── Le travail, une fois par minute ─── */
 
 async function vider(env){
@@ -876,6 +1064,7 @@ export default {
   async scheduled(event, env, ctx){
     ctx.waitUntil((async () => {
       try{ await traitePlanning(env); }catch(e){ console.error('DCT planning :', e); }
+      try{ await traiteClassement(env); }catch(e){ console.error('DCT classement :', e); }
       try{ await vider(env); }catch(e){ console.error('DCT push :', e); }
     })());
   },
@@ -890,11 +1079,13 @@ export default {
       catch(e){ console.error('DCT auth :', e); return repJson({ erreur:'serveur' }, 500, request); }
     }
     try{
-      let planning = {};
+      let planning = {}, classement = {};
       try{ planning = await traitePlanning(env); }
       catch(e){ planning = { erreur: e.message }; }
+      try{ classement = await traiteClassement(env); }
+      catch(e){ classement = { erreur: e.message }; }
       const envoi = await vider(env);
-      return new Response(JSON.stringify({ planning, envoi }, null, 1),
+      return new Response(JSON.stringify({ planning, classement, envoi }, null, 1),
         { headers: { 'Content-Type':'application/json; charset=utf-8' } });
     }catch(e){
       return new Response('Erreur : ' + e.message, { status:500 });
@@ -906,4 +1097,5 @@ export default {
    lit que l'export par défaut ci-dessus. */
 export { chiffrer, jeton, b64urlVersOctets, octetsVersB64url, vider,
          plProchainsDimanches, plDatesCles, traitePlanning, jetonAuth,
-         jetonPersonnalise, verifierIdentite, traiterAuth };
+         jetonPersonnalise, verifierIdentite, traiterAuth,
+         clMessagePerso, clMessageRecap, parisMaintenant, traiteClassement, CL_PHRASES };

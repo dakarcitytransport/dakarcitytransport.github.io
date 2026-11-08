@@ -333,7 +333,7 @@
   function slidesClassement(){
     var out = [], liste = collabsClassement();
     if(!liste.length || typeof window._depToutesLesFiches !== 'function') return out;
-    var fiches = window._depToutesLesFiches(), conts = containers(), multi = false, nbAvecClients = 0;
+    var fiches = window._depToutesLesFiches(), conts = containers(), multi = false, nbAvecClients = 0, memos = {};
     conts.forEach(function(d){
       var tot = {}; liste.forEach(function(co){ tot[co.id] = { co: co, n: 0, eu: 0 }; });
       var nb = 0;
@@ -349,6 +349,7 @@
       var rang = liste.map(function(co){ return tot[co.id]; }).sort(function(a, b){ return (b.eu - a.eu) || (b.n - a.n) || a.co.name.localeCompare(b.co.name); });
       var chef = rang[0].eu, second = rang.length > 1 ? rang[1].eu : 0;
       var nomC = String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
+      memos[d._id] = { nom: d.nom || 'Container', dateDepart: d.dateDepart || '', rang: [] };
       rang.forEach(function(r, i){
         var obj = objPerso(r.co), debut = obj <= 10, ratio = chef > 0 ? r.eu / chef : 0, famille, cc;
         var medaille = r.eu > 0 && i < 3;
@@ -366,12 +367,14 @@
         var ecart = i === 0 ? r.eu - second : Math.max(0, chef - r.eu);
         var fam = candidats(PANEL_CL[famille], { ecart: eurosFr(ecart), n: r.n, obj: obj, reste: Math.max(0, obj - r.n), eu: eurosFr(r.eu) });
         var sigC = [r.n, Math.round(r.eu), i, famille].join(':');
+        memos[d._id].rang.push({ id: r.co.id, nom: r.co.name, n: r.n, eu: Math.round(r.eu * 100) / 100, obj: obj, place: i + 1 });
         out.push({ cle: 'k' + d._id + r.co.id, id: r.co.id, nom: r.co.name, i: i, medaille: medaille, rang: rangLib(i, false) + ' sur ' + rang.length,
           n: r.n, eu: r.eu, obj: obj, pct: obj > 0 ? Math.max(0, Math.min(100, r.n / obj * 100)) : 0, classe: cc, container: nomC,
           fk: sigC, fam: fam, txt: phraseStable('k' + d._id + r.co.id, sigC, fam) });
       });
     });
     out.multi = nbAvecClients > 1;
+    out.memos = memos;
     return out;
   }
   function htmlCl(m, k, tous){
@@ -382,6 +385,21 @@
       + '<span class="cl-n"><b>' + eurosFr(m.eu) + '</b></span></div>'
       + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i></div>'
       + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(m.txt) + '</i></span><small>' + esc(petit) + '</small></div></div>';
+  }
+  // Mémo du classement, lu par l'envoyeur de notifications (cloudflare-worker.js) : point de la semaine le dimanche 20h, bilan du container le lendemain du
+  // chargement. Écrit à chaque changement des chiffres ; il reste après le départ du container (qui disparaît alors de l'accueil) pour le bilan final.
+  var memoSig = {}, memoLe = 0;
+  function ecrireMemos(memos){
+    try{
+      if(!memos || !window.db || !window.firebaseReady) return;
+      Object.keys(memos).forEach(function(cid){
+        var sg = JSON.stringify(memos[cid]);
+        if(memoSig[cid] === sg || Date.now() - memoLe < 15000) return;
+        memoSig[cid] = sg; memoLe = Date.now();
+        var fiche = JSON.parse(sg); fiche.majLe = Date.now();
+        db.ref('dct_classement_memo/' + cid).set(fiche).catch(function(e){ console.error('classement : mémo', e); });
+      });
+    }catch(e){ console.error('classement : mémo', e); }
   }
   var listeCl = [], idxCl = 0, minuteurCl = null, sigCl = '';
   function suivantCl(){
@@ -406,6 +424,7 @@
   function dessinerCl(){
     var contenu = document.querySelector('#s-espaces .content'); if(!contenu) return;
     listeCl = slidesClassement();
+    ecrireMemos(listeCl.memos);
     var el = document.getElementById('cl-accueil');
     if(!listeCl.length){ if(el) el.remove(); var p0 = document.getElementById('cl-pt'); if(p0) p0.remove(); sigCl = ''; if(minuteurCl){ clearTimeout(minuteurCl); minuteurCl = null; } return; }
     var s2 = listeCl.map(function(m){ return [m.cle, m.n, Math.round(m.eu), m.obj, m.classe, m.fk, m.rang].join(':'); }).join('|') + (listeCl.multi ? '#m' : '');
@@ -464,6 +483,13 @@
           return '<label for="ob-champ-p-' + esc(co.id) + '">' + esc(co.name) + '</label><input type="number" inputmode="numeric" min="1" class="ob-perso" data-id="' + esc(co.id) + '" id="ob-champ-p-' + esc(co.id) + '" value="' + objPerso(co) + '">';
         }).join('')
       + '<div id="ob-total" style="margin-top:12px;font-size:13px;font-weight:800"></div>'
+      + '<h3 style="margin-top:22px">Notification du classement</h3>'
+      + '<p>Chaque <b>dimanche à 20h</b> (heure de Paris), chaque collaborateur reçoit sa place, son compteur et un message selon sa semaine ; toi, tu reçois le récapitulatif de l’équipe. '
+      + 'Le jour du chargement, rien n’est envoyé : le <b>lendemain à 19h</b>, chacun reçoit le <b>bilan du container</b>.</p>'
+      + '<label for="ob-ex-pour">Voir l’exemple de</label><select id="ob-ex-pour" style="width:100%;box-sizing:border-box;padding:13px;border-radius:14px;border:1.5px solid var(--border,#ddd);font:700 16px var(--font,inherit);background:var(--white,#fff);color:inherit">'
+      + collabsClassement().map(function(co){ return '<option value="' + esc(co.id) + '">' + esc(co.name) + '</option>'; }).join('') + '<option value="RECAP">Récapitulatif de l’équipe</option></select>'
+      + '<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="ob-ok ob-ex" data-final="0" style="margin:0;background:#26338f">Point de la semaine</button><button type="button" class="ob-ok ob-ex" data-final="1" style="margin:0;background:#8a5a00">Bilan du container</button></div>'
+      + '<p style="margin-top:8px">L’exemple arrive sur ton téléphone dans la minute (notifications à autoriser). Il porte les vrais chiffres du moment.</p>'
       + '<button type="button" class="ob-ok" id="ob-enregistrer">Enregistrer</button></div>';
     totalPerso();
   };
@@ -478,6 +504,16 @@
   }
   document.addEventListener('input', function(e){ var t = e.target; if(t && t.classList && (t.classList.contains('ob-perso') || t.id === 'ob-champ-c')) totalPerso(); });
   document.addEventListener('click', function(e){
+    var ex = e.target.closest ? e.target.closest('.ob-ex') : null;
+    if(ex){
+      var pour = (document.getElementById('ob-ex-pour') || {}).value, moi = (window.currentUser || {}).id;
+      if(!pour || !moi){ try{ showToastNew('⚠️ Choisis une personne.'); }catch(x){} return; }
+      if(!window.db || !window.firebaseReady){ try{ showToastNew('❌ Connexion indisponible.'); }catch(x){} return; }
+      Promise.resolve(db.ref('dct_classement_demande').push({ pourId: pour, versId: moi, final: ex.getAttribute('data-final') === '1', creeLe: Date.now() })).then(function(){
+        try{ showToastNew('📨 Exemple demandé : il arrive sur ton téléphone dans la minute'); }catch(x){}
+      }).catch(function(err){ try{ showToastNew('❌ Échec : ' + ((err && err.message) || 'écriture refusée')); }catch(x){} });
+      return;
+    }
     var t = e.target.closest ? e.target.closest('#ob-enregistrer') : null; if(!t) return;
     var c = Math.max(1, parseInt((document.getElementById('ob-champ-c') || {}).value, 10) || 0);
     var d = Math.max(1, parseInt((document.getElementById('ob-champ-d') || {}).value, 10) || 0);
