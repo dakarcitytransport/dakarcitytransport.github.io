@@ -6795,3 +6795,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 ### 08/11/2026 — Liste des containers : le « reste » des colis revient (v3.99.319, departs.js v2.22.66)
 > Cobey : « tu as retiré la ligne des colis où on voyait le montant restant des colis à payer ».
 - Sur la ligne « Encaissé » de chaque carte : « · reste 7 835 € » en orange, ou « · ✓ soldé » en vert (V2 seulement). Testé (faux Firebase).
+
+### 08/11/2026 — Liste des containers : « Colis » remis en haut, sur sa ligne (v3.99.320, departs.js v2.22.67)
+> Cobey : « Colis, il était mieux placé avant : en haut, à une ligne à part, avec en dessous Livraison ».
+- V2 : on remet la ligne « 📦 Colis … sur … reste … » (avec sa barre) puis « 🚚 Livraison … » en haut de chaque carte, puis Facturé / Encaissé / Dépensé / Bénéfice. Le « reste » ajouté sur la ligne Encaissé (v3.99.319) est retiré. Testé (faux Firebase).

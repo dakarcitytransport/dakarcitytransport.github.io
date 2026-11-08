@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.66';
+var DEP_VERSION = 'v2.22.67';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -23127,7 +23127,7 @@ function _depRapfinLigneResultat(departId, cp){
   var dep2 = depArrondi2((cp.colisPaye || 0) - resultat);
   var v2 = '<div class="rf-res2">'
     + '<div class="rf-q"><span>Factur&eacute; (colis)</span><b class="c-fa">' + _depEuros(cp.colisTotal || 0) + ' &euro;</b></div>'
-    + '<div class="rf-q"><span>Encaiss&eacute;' + ((cp.colisTotal || 0) > 0 ? ((cp.colisDu || 0) > 0 ? ' <em class="rf-du">&middot; reste ' + _depEuros(cp.colisDu) + ' &euro;</em>' : ' <em class="rf-so">&middot; &#10003; sold&eacute;</em>') : '') + '</span><b class="rf-g">' + _depEuros(cp.colisPaye || 0) + ' &euro;</b></div>'
+    + '<div class="rf-q"><span>Encaiss&eacute;</span><b class="rf-g">' + _depEuros(cp.colisPaye || 0) + ' &euro;</b></div>'
     + '<div class="rf-q"><span>' + (_depEstContainerMali(departId) ? 'Taxe prestataire' : 'D&eacute;pens&eacute;') + '</span><b>' + (dep2 > 0 ? '&minus; ' : '') + _depEuros(dep2) + ' &euro;</b></div>'
     + '<div class="rf-b"><span>&#128176; B&eacute;n&eacute;fice r&eacute;el</span><b style="color:' + (resultat < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(resultat) + ' &euro;</b></div></div>';
   return v2 + '<div class="rf-res" style="display:flex;justify-content:space-between;align-items:baseline;'
