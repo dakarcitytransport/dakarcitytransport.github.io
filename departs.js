@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.63';
+var DEP_VERSION = 'v2.22.64';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -23122,7 +23122,15 @@ function _depRapfinLigneResultat(departId, cp){
   // Mali — ce n'est pas "dépenses" qui est retiré (DCT n'en a aucune
   // là-dessus) mais la taxe du partenaire.
   var sousTitre = _depEstContainerMali(departId) ? 'encaiss&eacute; &minus; taxe prestataire' : 'encaiss&eacute; &minus; d&eacute;penses';
-  return '<div class="rf-res" style="display:flex;justify-content:space-between;align-items:baseline;'
+  // Nouveau look — Cobey, 08/11 : « avant le bénéfice, le détail : combien on a facturé, combien on a dépensé, et le bénéfice ».
+  // Le bénéfice part de l'ENCAISSÉ (colis seulement) : on affiche donc Facturé, Encaissé, Dépensé (ou taxe), puis le bénéfice.
+  var dep2 = depArrondi2((cp.colisPaye || 0) - resultat);
+  var v2 = '<div class="rf-res2">'
+    + '<div class="rf-q"><span>Factur&eacute; (colis)</span><b class="c-fa">' + _depEuros(cp.colisTotal || 0) + ' &euro;</b></div>'
+    + '<div class="rf-q"><span>Encaiss&eacute;</span><b class="rf-g">' + _depEuros(cp.colisPaye || 0) + ' &euro;</b></div>'
+    + '<div class="rf-q"><span>' + (_depEstContainerMali(departId) ? 'Taxe prestataire' : 'D&eacute;pens&eacute;') + '</span><b>' + (dep2 > 0 ? '&minus; ' : '') + _depEuros(dep2) + ' &euro;</b></div>'
+    + '<div class="rf-b"><span>&#128176; B&eacute;n&eacute;fice r&eacute;el</span><b style="color:' + (resultat < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(resultat) + ' &euro;</b></div></div>';
+  return v2 + '<div class="rf-res" style="display:flex;justify-content:space-between;align-items:baseline;'
     + 'margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
     + '<span style="font-size:11.5px;color:var(--text3);font-weight:700;">&#128176; B&eacute;n&eacute;fice r&eacute;el'
     +   '<span style="font-weight:500;color:#999;"> (' + sousTitre + ')</span></span>'

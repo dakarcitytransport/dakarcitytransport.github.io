@@ -6782,3 +6782,8 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Détail, encart Caisse : par caisse (Colis, Livraison) une barre, « Payé » (point vert), « Reste dû » (point orange) et un bouton « 👇 Voir qui doit › » (même action qu'avant : `depVoirRestants`). Markup V2 `.cs2` à côté de l'ancien `.cs-v1` (l'un caché selon le look, V1 inchangé).
 - Détail, encart Dépenses : lignes sobres, Résultat colis en gros, bouton « Gérer les dépenses » blanc.
 - Testé (faux Firebase) : liste, détail d'un container à 79 clients et à 0 client. Balayage des 74 écrans non relancé (script introuvable). Non fait : containers du Mali (taxes par client), même carte.
+
+### 08/11/2026 — Liste des containers : détail Facturé / Encaissé / Dépensé avant le bénéfice (v3.99.317, departs.js v2.22.64)
+> Cobey : « avant le bénéfice, je pense qu'il devrait y avoir le détail : combien on a facturé, combien on a dépensé, et le bénéfice ». Vas-y code.
+- Chaque carte de container (Rapport financier > Containers, V2 seulement) : Livraison (sa propre caisse) puis Facturé (colis) / Encaissé / Dépensé (ou « Taxe prestataire » pour le Mali) puis Bénéfice réel. Le bénéfice part de l'encaissé, colis seulement : Encaissé − Dépensé = Bénéfice. La ligne « Colis … sur … » est cachée en V2 (elle répétait Facturé / Encaissé). V1 inchangée.
+- Dépensé = encaissé colis − résultat (même chiffre que `_depResultatColis`). Testé (faux Firebase) : containers Sénégal et Mali. Balayage des 74 écrans non relancé (script introuvable).
