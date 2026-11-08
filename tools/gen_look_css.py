@@ -840,7 +840,7 @@ html.look-v2 .rf-res{display:none !important}
 html.look-v2 .rf-ct .rf-l:first-child,html.look-v2 .rf-ct .rf-l:first-child + .rf-bar{display:none !important}
 html.look-v2 .rf-res2{display:block;border-top:1px solid rgba(0,0,0,.08);margin-top:2px;padding-top:6px}
 html.look-v2 .rf-q{display:flex;justify-content:space-between;align-items:baseline;padding:2px 0;font-size:13.5px;font-weight:600;color:var(--text2)}html.look-v2 .rf-q b{font-size:14.5px;color:var(--text);white-space:nowrap}
-html.look-v2 .rf-q b.rf-g{color:#0a6b3d}
+html.look-v2 .rf-q b.rf-g{color:#0a6b3d}html.look-v2 .rf-q em{font-style:normal;font-weight:800;font-size:12.5px}html.look-v2 .rf-q em.rf-du{color:#b45a00}html.look-v2 .rf-q em.rf-so{color:#0a6b3d}
 html.look-v2 .rf-b{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:7px;border-top:1px solid rgba(0,0,0,.12);font-size:14px;font-weight:800;color:var(--text)}html.look-v2 .rf-b b{font-size:20px;white-space:nowrap}
 html.look-v2 .cs-card,html.look-v2 .dp-card{background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:22px !important;padding:12px 16px !important;box-shadow:0 4px 14px rgba(30,60,45,.1)}
 html.look-v2 .cs-t,html.look-v2 .dp-t{font-size:10.5px !important;letter-spacing:.09em !important;text-transform:uppercase;color:var(--text3) !important}

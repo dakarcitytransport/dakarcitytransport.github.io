@@ -6791,3 +6791,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 ### 08/11/2026 — Liste des containers : cartes colorées selon l'état (v3.99.318, departs.js v2.22.65)
 > Cobey : « les cartes sont toutes blanches, il devrait y avoir un code couleur aussi, comme les cartes de l'accueil ».
 - Classe `rf-s-<statut>` sur chaque carte (Rapport financier > Containers, V2 seulement) : fond orange clair = en préparation, bleu = parti / en route, vert = arrivé, gris = clôturé (mêmes couleurs que l'accueil). Testé (faux Firebase) ; balayage des 74 écrans non relancé.
+
+### 08/11/2026 — Liste des containers : le « reste » des colis revient (v3.99.319, departs.js v2.22.66)
+> Cobey : « tu as retiré la ligne des colis où on voyait le montant restant des colis à payer ».
+- Sur la ligne « Encaissé » de chaque carte : « · reste 7 835 € » en orange, ou « · ✓ soldé » en vert (V2 seulement). Testé (faux Firebase).
