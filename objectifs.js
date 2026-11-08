@@ -106,7 +106,7 @@
       + '#obj-page .pg-duo{display:flex;align-items:flex-end;justify-content:center;gap:5px}#obj-page .pg-b{position:relative;width:22px;border-radius:6px 6px 0 0}'
       + '#obj-page .pg-b b{position:absolute;left:-6px;right:-6px;top:-17px;text-align:center;font-size:12px;font-weight:800;color:#10241a}'
       + '#obj-page .pg-b.t{background:linear-gradient(180deg,#6b79de,#3a4bb8)}#obj-page .pg-b.p{background:linear-gradient(180deg,#3fc58e,#1a8a5c)}'
-      + '#obj-page .pg-lab{display:grid;margin-top:6px;text-align:center;font-weight:800;font-size:12.5px}#obj-page .pg-lab .cur{color:#0a6b3d}#obj-page .pg-lab .fut{opacity:.35}'
+      + '#obj-page .pg-lab small{display:block;font-size:9.5px;font-weight:700;color:#778;margin-top:1px}#obj-page .pg-lab{display:grid;margin-top:6px;text-align:center;font-weight:800;font-size:12.5px}#obj-page .pg-lab .cur{color:#0a6b3d}#obj-page .pg-lab .fut{opacity:.35}'
       + '#obj-page .pg-sum{display:grid;gap:6px;margin-top:12px}#obj-page .pg-sum > div{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.62);border-radius:12px;padding:8px 10px;font-size:13px;font-weight:700;line-height:1.35;color:#16241e}#obj-page .pg-sum i{font-style:normal;flex:none}'
       + '#obj-page .pg-seg{display:flex;background:rgba(255,255,255,.7);border-radius:14px;padding:3px;margin:0 0 10px}#obj-page .pg-seg button{flex:1;border:0;background:transparent;padding:9px 0;border-radius:11px;font:800 13.5px var(--font,inherit);color:#556;cursor:pointer}#obj-page .pg-seg button.on{background:#0E9F5B;color:#fff;box-shadow:0 2px 8px rgba(14,159,91,.4)}'
       + '#obj-page .ob-m.ld{background:linear-gradient(135deg,#e0820f,#a8500a) !important;color:#fff;border:0;padding:12px 14px 13px}#obj-page .ld-j{float:right;text-align:right}#obj-page .ld-j b{display:block;font-size:30px;line-height:1;letter-spacing:-.02em}#obj-page .ld-j small{font-size:11.5px;font-weight:700;opacity:.9}'
@@ -193,7 +193,7 @@
     var a = jours(auj());
     var sem = Math.max(1, Math.min(N, Math.floor((a - dj) / 7) + 1));
     var p = Math.max(0, Math.min(1, (a - dj + 1) / (f - dj + 1)));
-    return { incertain: !prec, debut: isoDe(dj), fin: fin, N: N, sem: sem, p: p, bucket: sem >= N ? 'D' : String(Math.min(sem, 4)), dimanche: isoDe(dj + 7 * (sem - 1)) };
+    return { incertain: !prec && !debut, sansPrec: !prec, debut: isoDe(dj), fin: fin, N: N, sem: sem, p: p, bucket: sem >= N ? 'D' : String(Math.min(sem, 4)), dimanche: isoDe(dj + 7 * (sem - 1)) };
   }
   // Situation par rapport au rythme : en avance / dans les temps / en retard (jamais de reproche en semaine 1 : « début »).
   function situation(n, obj, info){
@@ -773,14 +773,14 @@
     return { d: d, info: info, N: N, cnt: cnt, tot: tot, rang: rang, nT: nT, euT: euT };
   }
   // Barres verticales alignées : toute la ramasse (bleu) et, à côté, la personne (vert).
-  function barresHtml(cnt, cntP, N, sem, avecP){
+  function barresHtml(cnt, cntP, N, sem, avecP, dj0){
     var mx = Math.max(Math.max.apply(null, cnt), avecP ? Math.max.apply(null, cntP) : 0, 1), bars = '', labs = '';
     var hh = function(v){ return v > 0 ? Math.max(4, Math.round(v / mx * 88)) : 2; };
     for(var w = 0; w < N; w++){
       var fut = w + 1 > sem;
       bars += '<div class="pg-c' + (fut ? ' fut' : '') + '"><div class="pg-duo">'
         + (fut ? '' : '<div class="pg-b t" style="height:' + hh(cnt[w]) + 'px"><b>' + cnt[w] + '</b></div>' + (avecP ? '<div class="pg-b p" style="height:' + hh(cntP[w]) + 'px"><b>' + cntP[w] + '</b></div>' : '')) + '</div></div>';
-      labs += '<span class="' + (w + 1 === sem ? 'cur' : (fut ? 'fut' : '')) + '">S' + (w + 1) + '</span>';
+      labs += '<span class="' + (w + 1 === sem ? 'cur' : (fut ? 'fut' : '')) + '">S' + (w + 1) + (dj0 ? '<small>' + dateCourte(isoDe(dj0 + 7 * w)) + '</small>' : '') + '</span>';
     }
     return { bars: bars, labs: labs };
   }
@@ -802,7 +802,7 @@
   };
   var BILAN_R2 = {
     zero: ['Aucune semaine à retenir cette fois : rendez-vous au prochain container.', 'Le compteur est resté à zéro : le prochain container est une nouvelle chance.'],
-    best: ['{sa} meilleure semaine : la semaine {bw}, avec {bn} client{bs}.', 'Le plus gros dimanche : semaine {bw}, {bn} client{bs} ramené{bs}.', 'C’est en semaine {bw} que {S} {a} le plus apporté : {bn} client{bs}.']
+    best: ['{sa} meilleure semaine : la semaine {bw}, avec {bn} client{bs}.', 'Le plus gros dimanche : semaine {bw}, {bn} client{bs} ramené{bs}.', 'Point fort : la semaine {bw}, avec {bn} client{bs}.']
   };
   var BILAN_R3 = {
     premier: ['Premier du classement final : bravo !', 'Première place au classement final, félicitations !', 'Le meilleur du container, tout simplement !'],
@@ -847,7 +847,7 @@
     o = Object.assign({}, o, { _id: cid });
     var st = statsContainer(o), nomC = String(o.nom || 'Container').replace(/^Chargement\s+/i, '') + ' · ' + dateCourte(o.dateDepart || '');
     var h = '<div class="hs-back" data-retour="1">← Historique</div><div class="hs-titre">' + esc(nomC) + '</div>'
-      + '<div style="text-align:center;margin-bottom:6px"><span class="hs-chip">Chargé le ' + esc(jourLong(o.dateDepart).replace(/^./, function(c){ return c.toLowerCase(); })) + (st.info && !st.info.incertain ? ' · ' + st.N + ' semaines' : '') + '</span></div>';
+      + '<div style="text-align:center;margin-bottom:6px"><span class="hs-chip">Chargé le ' + esc(jourLong(o.dateDepart).replace(/^./, function(c){ return c.toLowerCase(); })) + (st.info && !st.info.incertain ? (st.info.sansPrec ? ' · ramasse depuis le ' + dateCourte(st.info.debut) : '') + ' · ' + st.N + ' semaines' : '') + '</span></div>';
     var me = q.moi ? st.tot[q.moi] : null, pl = me ? st.rang.indexOf(me) + 1 : 0;
     if(me){
       var pc = st.nT > 0 ? Math.round(me.n / st.nT * 100) : 0, bw = 0, bn = 0;
@@ -866,8 +866,8 @@
     } else {
       h += '<div class="pg-t"><b>📦 LE CONTAINER</b></div><div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="hs-tl"><div>CLIENTS<b>' + st.nT + '</b></div><div>EUROS<b>' + eurosFr(st.euT) + '</b></div><div>' + (st.info && !st.info.incertain ? 'SEMAINES<b>' + st.N : 'ÉTAT<b>' + esc(etatLib(o))) + '</b></div></div></div></div>';
     }
-    var gb = barresHtml(st.cnt, me ? me.cnt : [], st.N, st.N, !!me);
-    if(st.info && st.info.incertain) h += '<div class="pg-pied" style="margin:8px 4px">📅 Pas de détail par semaine pour ce container : c’est le plus ancien enregistré, on ne sait pas quand sa ramasse a commencé.</div>';
+    var gb = barresHtml(st.cnt, me ? me.cnt : [], st.N, st.N, !!me, st.info ? jours(st.info.debut) : 0);
+    if(st.info && st.info.incertain) h += '<div class="pg-pied" style="margin:8px 4px">📅 Pas de détail par semaine pour ce container : aucune ramasse enregistrée avec une date.</div>';
     else h += '<div class="pg-t"><b>📅 PAR DIMANCHE</b><span>' + (me ? (q.tu ? 'ta ramasse' : 'vue de ' + esc(q.nom)) : 'toute la ramasse') + '</span></div>'
       + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="pg-leg"><span><i class="lt"></i>Toute la ramasse</span>' + (me ? '<span><i class="lp"></i>' + (q.tu ? 'Toi' : esc(q.nom)) + '</span>' : '') + '</div>'
       + '<div class="pg-gr2" style="grid-template-columns:repeat(' + st.N + ',1fr)">' + gb.bars + '</div><div class="pg-lab" style="grid-template-columns:repeat(' + st.N + ',1fr)">' + gb.labs + '</div></div></div>';
@@ -934,7 +934,7 @@
           var w = Math.max(0, Math.min(info.N - 1, Math.floor((jours(di) - dj) / 7))); cnt[w]++;
           if(moi){ var co = auteurDe(x.c, liste0); if(co && co.id === moi) cntP[w]++; }
         });
-        var od = objDimanche(), gb = barresHtml(cnt, cntP, info.N, info.sem, !!moi), bars = gb.bars, labs = gb.labs;
+        var od = objDimanche(), gb = barresHtml(cnt, cntP, info.N, info.sem, !!moi, dj), bars = gb.bars, labs = gb.labs;
         var tu = !admin && moi === reel, wk = info.sem - 1, nT = cnt[wk], nP = cntP[wk], pcw = nT > 0 ? Math.round(nP / nT * 100) : 0, sT = 0, sP = 0;
         cnt.forEach(function(v){ sT += v; }); cntP.forEach(function(v){ sP += v; });
         var resume = '';
