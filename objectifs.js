@@ -11,10 +11,13 @@
    ═══════════════════════════════════════════════════════════ */
 (function(){
   'use strict';
-  var DUREE = 5000;
+  var DUREE = 7000, DUREE_CL = 9000;   // temps d'affichage d'une case (objectifs / classement)
   var DEFAUT = { container: 100, dimanche: 20 };
-  var cfg = { container: DEFAUT.container, dimanche: DEFAUT.dimanche };
-  try{ var c0 = JSON.parse(localStorage.getItem('dct_objectifs_cache') || 'null'); if(c0 && c0.container) cfg = c0; }catch(e){}
+  // Objectif de chaque collaborateur (clients par container), réglable dans Réglages > OBJECTIFS. Issyaka et Abdoulaye : numéros dans les
+  // publicités depuis le début ; Aminata : arrivée en octobre 2026 ; les autres : petit objectif de départ pour se faire un carnet d'adresses.
+  var PERSO_DEFAUT = { IS: 30, AB: 30, AM: 25, SA: 5, IB: 5, BO: 5 };
+  var cfg = { container: DEFAUT.container, dimanche: DEFAUT.dimanche, perso: {} };
+  try{ var c0 = JSON.parse(localStorage.getItem('dct_objectifs_cache') || 'null'); if(c0 && c0.container){ cfg = c0; if(!cfg.perso) cfg.perso = {}; } }catch(e){}
   var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   function esc(t){ return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function auj(){ try{ return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' }); }catch(e){ return new Date().toISOString().slice(0, 10); } }
@@ -61,7 +64,17 @@
       + '#cl-accueil .cl-l2{display:flex;justify-content:space-between;align-items:baseline;gap:8px}'
       + '#cl-accueil .cl-l2 span{min-width:0;overflow:hidden;text-overflow:ellipsis}#cl-accueil .cl-l2 small{flex:none;font-size:10.5px;color:#667;font-weight:700}'
       + '#cl-accueil .ob-l1 .ph-mini{border:2px solid #fff;box-sizing:border-box}'
-      + '#cl-pt{margin-top:-8px}';
+      + '#cl-pt{margin-top:-8px}'
+      + '#cl-accueil .ob-l1{min-height:30px}'
+      + '#cl-accueil .cl-md{flex:none;width:30px;text-align:center;font-size:27px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}'
+      + '#cl-accueil .cl-md.num{width:26px;height:26px;margin:0 2px;border-radius:50%;background:rgba(0,0,0,.12);font-size:13px;font-weight:800;line-height:26px;color:#445;filter:none}'
+      + '#cl-accueil .cl-rk{font-size:12px !important;font-weight:800 !important;color:#334 !important}'
+      + '#cl-accueil .ob-m.cg{background:linear-gradient(135deg,rgba(245,197,66,.5),rgba(245,197,66,.16))}#cl-accueil .ob-m.cg .ob-bar i{background:linear-gradient(90deg,#f5c542,#e0a010)}#cl-accueil .ob-m.cg .ob-l2{color:#8a5a00}'
+      + '#cl-accueil .ob-m.cs{background:linear-gradient(135deg,rgba(120,135,155,.34),rgba(120,135,155,.1))}#cl-accueil .ob-m.cs .ob-bar i{background:linear-gradient(90deg,#9aabc0,#5d6f86)}#cl-accueil .ob-m.cs .ob-l2{color:#3f4d60}'
+      + '#cl-accueil .ob-m.cz{background:linear-gradient(135deg,rgba(176,112,64,.36),rgba(176,112,64,.1))}#cl-accueil .ob-m.cz .ob-bar i{background:linear-gradient(90deg,#d08f5a,#8f5424)}#cl-accueil .ob-m.cz .ob-l2{color:#7a431a}'
+      + '#cl-accueil .ob-m.cm{background:linear-gradient(135deg,rgba(122,92,240,.28),rgba(122,92,240,.08))}#cl-accueil .ob-m.cm .ob-bar i{background:linear-gradient(90deg,#8b6cf0,#5a3fc4)}#cl-accueil .ob-m.cm .ob-l2{color:#4b2fa8}'
+      + '#cl-accueil .ob-m.cr{background:linear-gradient(135deg,rgba(232,90,140,.3),rgba(232,90,140,.09))}#cl-accueil .ob-m.cr .ob-bar i{background:linear-gradient(90deg,#ee6a9b,#c93a72)}#cl-accueil .ob-m.cr .ob-l2{color:#a3235a}'
+      + '#cl-accueil .ob-m.cn{background:linear-gradient(135deg,rgba(100,110,120,.24),rgba(100,110,120,.07))}#cl-accueil .ob-m.cn .ob-bar i{background:linear-gradient(90deg,#8a949e,#5c6670)}#cl-accueil .ob-m.cn .ob-l2{color:#44505a}';
     st.textContent += '.ob-l2 .ob-t{display:inline-block;white-space:nowrap;font-style:normal}'
       + '.ob-l2.ob-mq,.cl-l2 span.ob-mq{text-overflow:clip !important}'
       + '.ob-mq .ob-t{animation:obMq var(--dur,6s) ease-in-out infinite alternate}'
@@ -102,6 +115,17 @@
     var c = fam.length > 1 ? fam.filter(function(t){ return t !== exclure; }) : fam;
     return c[Math.floor(Math.random() * c.length)];
   }
+  // Cobey : « je veux pas que ça change à chaque passage ; je veux que ça change quand les chiffres évoluent ». La phrase est choisie à
+  // partir des chiffres (même phrase pour tout le monde tant que rien ne bouge) ; quand ils changent, on en prend une autre que la précédente.
+  function phraseStable(cle, sigChiffres, fam){
+    var cleLs = 'dct_phr_' + cle, st = null;
+    try{ st = JSON.parse(localStorage.getItem(cleLs) || 'null'); }catch(e){}
+    if(st && st.sig === sigChiffres && fam.indexOf(st.txt) >= 0) return st.txt;
+    var i = hash(cle + '|' + sigChiffres) % fam.length, t = fam[i];
+    if(st && st.txt === t && fam.length > 1) t = fam[(i + 1) % fam.length];
+    try{ localStorage.setItem(cleLs, JSON.stringify({ sig: sigChiffres, txt: t })); }catch(e){}
+    return t;
+  }
   var PANEL = {
     cAtteint: ['🎉 {obj} clients, bravo l’équipe !', '🏆 Container plein, on peut être fiers', '🎉 Objectif rempli, le reste est du bonus', '💪 {obj} clients : mission accomplie !', '🥳 Le container est complet, bravo !', '👏 Objectif atteint, quelle équipe !', '🔥 On l’a fait : {obj} clients !', '🚛 Plein de clients, le camion est content', '✅ Objectif validé, merci à tous', '🌟 Du grand travail, l’équipe !', '🎯 En plein dans le mille : {obj} !', '🙌 Bravo à tous, c’est rempli', '🏅 Container bouclé, félicitations', '😎 Objectif atteint, on souffle un peu', '💥 Cent pour cent, bien joué !', '🍾 On fête ça : container complet !'],
     cAvance: ['🔥 En avance — il reste {pl}', '🚀 Beau rythme : {n} déjà !', '🔥 L’équipe assure, encore {pl}', '😎 On prend de l’avance, continuez', '🏃 On court plus vite que prévu !', '💪 Super rythme, plus que {pl}', '👏 Devant le planning, bravo !', '⚡ Ça file : {n} clients déjà', '🌟 Belle avance, ne ralentissez pas', '🚀 Cap sur le container plein !', '😄 Mieux que prévu, continuez ainsi', '📈 Courbe au-dessus de l’objectif', '🔝 On est devant, gardons ça', '🎯 Presque là : encore {pl}', '🙌 Excellente cadence, l’équipe', '💥 {n} clients, et ça continue !'],
@@ -136,7 +160,7 @@
     else if(n >= att + obj * 0.08){ classe = 'v'; liste = PANEL.cAvance; }
     else if(n >= att - obj * 0.05){ classe = 'b'; liste = PANEL.cTemps; }
     else { classe = 'o'; liste = PANEL.cRetard; }
-    var fam = candidats(liste, { obj: obj, n: n, pl: pl(reste, 'client'), date: dateCourte(d.dateDepart) }), txt = tirer(fam);
+    var fam = candidats(liste, { obj: obj, n: n, pl: pl(reste, 'client'), date: dateCourte(d.dateDepart) }), txt = phraseStable('c' + d._id, n + ':' + classe, fam);
     return { cle: 'c' + d._id, fk: 'c' + classe + (att === null ? 'x' : ''), fam: fam, icone: '🚛', nom: nom, n: n, obj: obj, pct: pct, repere: att === null ? null : (att / obj * 100), classe: classe, txt: txt };
   }
   function messageDimanche(){
@@ -181,7 +205,7 @@
     else if(n >= obj * 0.7){ classe = 'v'; liste = PANEL.dProche; }
     else if(n >= obj * 0.4){ classe = 'b'; liste = PANEL.dMoyen; }
     else { classe = 'o'; liste = PANEL.dBas; }
-    var fam = candidats(liste, { n: n, obj: obj, reste: reste, plus: n - obj }), txt = tirer(fam);
+    var fam = candidats(liste, { n: n, obj: obj, reste: reste, plus: n - obj }), txt = phraseStable('d' + refIso, n + ':' + classe + (bilan ? 'b' : ''), fam);
     return { cle: 'd' + refIso, fk: (bilan ? 'b' : 'd') + classe + (n > obj ? '+' : ''), fam: fam, icone: '📅', nom: libelle, n: n, obj: obj, pct: pct, repere: null, classe: classe, txt: txt };
   }
   function messages(){
@@ -203,10 +227,7 @@
     var a = document.querySelector('.screen.active');
     if(document.hidden || !a || a.id !== 's-espaces'){ minuteur = setTimeout(suivant, 1000); return; }
     idx = (idx + 1) % liste.length;
-    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){
-      n.classList.toggle('on', k === idx);
-      if(k === idx && liste[k] && liste[k].fam){ var l2 = n.querySelector('.ob-l2 .ob-t'); if(l2){ var t = tirer(liste[k].fam, l2.textContent); if(t) l2.textContent = t; } if(k === idx) defiler(n); }
-    });
+    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){ n.classList.toggle('on', k === idx); if(k === idx) defiler(n); });
     [].forEach.call(document.querySelectorAll('#ob-pt i'), function(n, k){ n.classList.toggle('on', k === idx); });
     el.classList.toggle('fin', liste[idx].classe === 'd');
     minuteur = setTimeout(suivant, DUREE);
@@ -287,6 +308,11 @@
     faible: ['📣 Il faut en ramener plus', '⏳ Pas assez pour l’instant, on s’y met', '🎯 Tu peux faire bien mieux, allez !', '💬 Appelle tes contacts, ça peut décoller', '☎️ Un coup de fil, un client : go !', '🔔 Il est temps de relancer tes contacts', '💪 Tu as de la marge, on s’y met', '🌱 Un début, il faut en faire plus', '🏃 Accélère, le classement t’attend', '🧩 Il manque des clients, cherche autour de toi', '📈 Tu peux remonter vite, motive-toi', '🚨 En bas du classement, mais ça se rattrape', '😤 C’est le moment de s’y mettre !', '🤝 Demande à tes proches, ça marche', '🔥 Un bon dimanche et tout change', '⚡ Ne lâche rien, un client à la fois'],
     zero: ['📣 Aucun client : à toi de jouer !', '🚀 C’est le moment de commencer !', '☎️ Zéro pour l’instant, on y va !', '🌱 Premier client à trouver !', '🎯 Le compteur est à zéro, lance-toi', '🔔 Il est temps d’appeler tes contacts', '💪 Tout est à faire, tu peux le faire', '🏁 Le départ est donné, à toi !', '😊 Pas encore de client, ça va venir', '📞 Un appel et le compteur démarre', '🤝 Parle de DCT autour de toi', '🧭 Cherche ton premier client aujourd’hui', '⏳ Il est encore temps de démarrer', '🔥 Premier client, premier pas', '🌟 Le classement t’attend, lance-toi', '⚡ Zéro, mais ça se corrige vite']
   };
+
+  PANEL_CL.objAtteint = ['🎯 Objectif perso atteint : {n} clients !', '🏆 {n} sur {obj} : objectif rempli, bravo !', '🔥 Objectif tenu, tu peux être fier', '👏 Mission accomplie : {n} clients', '🥳 Objectif atteint, quelle performance !', '💪 Tu as rempli ton objectif, bravo', '🌟 {obj} atteints, du beau travail', '✅ Objectif validé, félicitations', '🍾 Objectif atteint, on lève son verre', '😎 Objectif en poche, bravo', '🎉 Ton objectif est atteint !', '🏅 {n} clients : objectif réussi', '🙌 Bravo, objectif rempli'];
+  PANEL_CL.debZero = ['📒 Ton carnet d’adresses est ton meilleur atout', '👨‍👩‍👧 Pense à ta famille et à tes voisins', '☎️ Appelle tes contacts : un client suffit', '🌱 Un premier client et tu es lancé !', '📞 Parle de DCT à dix personnes aujourd’hui', '🤝 Chaque contact peut devenir un client', '🗒️ Note ceux qui envoient des colis au pays', '💬 Demande autour de toi, ça marche', '🎯 Objectif {obj} : commence par un seul', '🚀 Lance-toi, le premier est le plus dur', '📲 Partage les numéros DCT à tes proches', '🌟 Construis ton carnet, un contact à la fois', '🏁 Le départ est donné, à toi de jouer', '👋 Pense à ceux qui ont de la famille au pays'];
+  PANEL_CL.debEnCours = ['🔥 {n} sur {obj} : bien parti, continue !', '🌱 Ton carnet commence à servir, bravo', '👏 Déjà {n} : encore {reste} pour l’objectif', '💪 Beau début, ça se remplit', '📒 Continue d’enrichir ton carnet d’adresses', '🚀 {n} clients, tu es lancé !', '🎯 Encore {reste} et ton objectif est atteint', '🙂 Bravo pour ce début, ne t’arrête pas', '📞 Un coup de fil de plus et ça monte', '🤝 Tes contacts commencent à répondre', '😊 {n} sur {obj}, tu progresses', '🔝 Bon début, vise {obj} !'];
+  PANEL_CL.debAtteint = ['🎉 Objectif atteint : {n} clients, bravo !', '🏆 Ton carnet d’adresses a porté ses fruits', '👏 Tu as réussi : {n} sur {obj} !', '🥳 Premier objectif rempli, félicitations', '🌟 Beau travail, tu peux viser plus haut', '🔥 Objectif atteint, on monte la barre ?', '💪 {n} clients : ça marche pour toi', '🚀 Bravo, ton réseau fonctionne', '✅ Objectif validé, continue !', '🙌 Excellent, tu as lancé ton réseau', '😎 Objectif en poche, bien joué', '🍾 Bravo pour ce bel objectif'];
   function eurosFr(n){ var r = Math.round(n * 100) / 100, t = String(r).split('.'); t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return t.join(',') + ' €'; }
   function rangLib(i, medaille){ var m = medaille ? ['🥇 ', '🥈 ', '🥉 '][i] || '' : ''; return m + (i === 0 ? '1er' : (i + 1) + 'e'); }
   function collabsClassement(){
@@ -298,11 +324,17 @@
     for(var i = 0; i < liste.length; i++){ if(liste[i].id === v || liste[i].name === v) return liste[i]; }
     return null;
   }
+  function objPerso(co){
+    var v = parseInt(cfg.perso && cfg.perso[co.id], 10);
+    if(v > 0) return v;
+    if(PERSO_DEFAUT[co.id] > 0) return PERSO_DEFAUT[co.id];
+    return Math.max(1, Math.round(cfg.container / Math.max(1, collabsClassement().length)));
+  }
   function slidesClassement(){
     var out = [], liste = collabsClassement();
     if(!liste.length || typeof window._depToutesLesFiches !== 'function') return out;
-    var fiches = window._depToutesLesFiches();
-    containers().forEach(function(d){
+    var fiches = window._depToutesLesFiches(), conts = containers(), multi = false, nbAvecClients = 0;
+    conts.forEach(function(d){
       var tot = {}; liste.forEach(function(co){ tot[co.id] = { co: co, n: 0, eu: 0 }; });
       var nb = 0;
       fiches.forEach(function(x){
@@ -313,30 +345,43 @@
         tot[co.id].n++; tot[co.id].eu += parseFloat(c.prix) || 0;
       });
       if(!nb) return;
+      nbAvecClients++;
       var rang = liste.map(function(co){ return tot[co.id]; }).sort(function(a, b){ return (b.eu - a.eu) || (b.n - a.n) || a.co.name.localeCompare(b.co.name); });
-      var chef = rang[0].eu, nomC = String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
+      var chef = rang[0].eu, second = rang.length > 1 ? rang[1].eu : 0;
+      var nomC = String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
       rang.forEach(function(r, i){
-        var ratio = chef > 0 ? r.eu / chef : 0, classe, famille, ecart = Math.max(0, chef - r.eu);
-        var second = rang.length > 1 ? rang[1].eu : 0;
-        if(r.eu <= 0 && r.n === 0){ classe = 'o'; famille = 'zero'; }
-        else if(i === 0 || r.eu >= chef){ classe = 'd'; famille = (r.eu - second >= r.eu * 0.3) ? 'teteLarge' : 'teteJuste'; }
-        else if(i <= 2){ classe = 'v'; famille = ratio >= 0.75 ? 'belleProche' : 'belleLoin'; }
-        else if(ratio >= 0.4){ classe = 'b'; famille = 'moyen'; }
-        else { classe = 'o'; famille = 'faible'; }
-        var fam = candidats(PANEL_CL[famille], { ecart: eurosFr(i === 0 ? r.eu - second : ecart), n: r.n, eu: eurosFr(r.eu) });
-        out.push({ cle: 'k' + d._id + r.co.id, id: r.co.id, nom: r.co.name, rang: rangLib(i, r.eu > 0) + ' sur ' + rang.length, n: r.n, eu: r.eu,
-          pct: chef > 0 ? Math.max(0, Math.min(100, r.eu / chef * 100)) : 0, classe: classe, container: nomC,
-          fk: famille, fam: fam, txt: tirer(fam) });
+        var obj = objPerso(r.co), debut = obj <= 10, ratio = chef > 0 ? r.eu / chef : 0, famille, cc;
+        var medaille = r.eu > 0 && i < 3;
+        // couleur de la case : propre au classement (podium), différente de celles des objectifs
+        if(r.n === 0 && r.eu <= 0) cc = 'cn';
+        else if(i === 0) cc = 'cg'; else if(i === 1) cc = 'cs'; else if(i === 2) cc = 'cz';
+        else cc = ratio >= 0.4 ? 'cm' : 'cr';
+        // famille de phrases
+        if(r.n >= obj) famille = debut ? 'debAtteint' : 'objAtteint';
+        else if(debut) famille = r.n === 0 ? 'debZero' : 'debEnCours';
+        else if(r.eu <= 0 && r.n === 0) famille = 'zero';
+        else if(i === 0 || r.eu >= chef) famille = (r.eu - second >= r.eu * 0.3) ? 'teteLarge' : 'teteJuste';
+        else if(i <= 2) famille = ratio >= 0.75 ? 'belleProche' : 'belleLoin';
+        else famille = ratio >= 0.4 ? 'moyen' : 'faible';
+        var ecart = i === 0 ? r.eu - second : Math.max(0, chef - r.eu);
+        var fam = candidats(PANEL_CL[famille], { ecart: eurosFr(ecart), n: r.n, obj: obj, reste: Math.max(0, obj - r.n), eu: eurosFr(r.eu) });
+        var sigC = [r.n, Math.round(r.eu), i, famille].join(':');
+        out.push({ cle: 'k' + d._id + r.co.id, id: r.co.id, nom: r.co.name, i: i, medaille: medaille, rang: rangLib(i, false) + ' sur ' + rang.length,
+          n: r.n, eu: r.eu, obj: obj, pct: obj > 0 ? Math.max(0, Math.min(100, r.n / obj * 100)) : 0, classe: cc, container: nomC,
+          fk: sigC, fam: fam, txt: phraseStable('k' + d._id + r.co.id, sigC, fam) });
       });
     });
+    out.multi = nbAvecClients > 1;
     return out;
   }
-  function htmlCl(m, i){
+  function htmlCl(m, k, tous){
     var av = (window.photosProfil && window.photosProfil.avatar) ? window.photosProfil.avatar(m.id, 28) : '';
-    return '<div class="ob-m ' + m.classe + (i === 0 ? ' on' : '') + '"><div class="ob-l1">' + av + '<span class="cl-nom">' + esc(m.nom) + '</span><span class="cl-rk">' + esc(m.rang) + '</span>'
-      + '<span class="cl-n">' + m.n + ' client' + (m.n > 1 ? 's' : '') + ' · <b>' + eurosFr(m.eu) + '</b></span></div>'
+    var md = m.medaille ? '<span class="cl-md">' + ['🥇', '🥈', '🥉'][m.i] + '</span>' : '<span class="cl-md num">' + (m.i + 1) + '</span>';
+    var petit = (tous.multi ? m.container + ' · ' : '') + m.n + ' / ' + m.obj + ' client' + (m.obj > 1 ? 's' : '');
+    return '<div class="ob-m ' + m.classe + (k === 0 ? ' on' : '') + '"><div class="ob-l1">' + md + av + '<span class="cl-nom">' + esc(m.nom) + '</span><span class="cl-rk">' + esc(m.rang) + '</span>'
+      + '<span class="cl-n"><b>' + eurosFr(m.eu) + '</b></span></div>'
       + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i></div>'
-      + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(m.txt) + '</i></span><small>' + esc(m.container) + '</small></div></div>';
+      + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(m.txt) + '</i></span><small>' + esc(petit) + '</small></div></div>';
   }
   var listeCl = [], idxCl = 0, minuteurCl = null, sigCl = '';
   function suivantCl(){
@@ -344,10 +389,7 @@
     var a = document.querySelector('.screen.active');
     if(document.hidden || !a || a.id !== 's-espaces'){ minuteurCl = setTimeout(suivantCl, 1000); return; }
     idxCl = (idxCl + 1) % listeCl.length;
-    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){
-      n.classList.toggle('on', k === idxCl);
-      if(k === idxCl && listeCl[k] && listeCl[k].fam){ var sp = n.querySelector('.cl-l2 span .ob-t'); if(sp){ var t = tirer(listeCl[k].fam, sp.textContent); if(t) sp.textContent = t; } defiler(n); }
-    });
+    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){ n.classList.toggle('on', k === idxCl); if(k === idxCl) defiler(n); });
     [].forEach.call(document.querySelectorAll('#cl-pt i'), function(n, k){ n.classList.toggle('on', k === idxCl); });
     minuteurCl = setTimeout(suivantCl, DUREE);
   }
@@ -366,12 +408,12 @@
     listeCl = slidesClassement();
     var el = document.getElementById('cl-accueil');
     if(!listeCl.length){ if(el) el.remove(); var p0 = document.getElementById('cl-pt'); if(p0) p0.remove(); sigCl = ''; if(minuteurCl){ clearTimeout(minuteurCl); minuteurCl = null; } return; }
-    var s2 = listeCl.map(function(m){ return [m.cle, m.n, Math.round(m.eu), m.classe, m.fk, m.rang].join(':'); }).join('|');
+    var s2 = listeCl.map(function(m){ return [m.cle, m.n, Math.round(m.eu), m.obj, m.classe, m.fk, m.rang].join(':'); }).join('|') + (listeCl.multi ? '#m' : '');
     if(el && s2 === sigCl){ placerCl(); return; }
     sigCl = s2;
     if(!el){ el = document.createElement('div'); el.id = 'cl-accueil'; el.setAttribute('role', 'status'); }
     if(idxCl >= listeCl.length) idxCl = 0;
-    el.innerHTML = listeCl.map(htmlCl).join('');
+    el.innerHTML = listeCl.map(function(m, k){ return htmlCl(m, k, listeCl); }).join('');
     [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){ n.classList.toggle('on', k === idxCl); });
     var pt = document.getElementById('cl-pt');
     if(listeCl.length > 1){
@@ -381,7 +423,7 @@
     if(!el.parentNode) contenu.insertBefore(el, contenu.firstChild);
     placerCl();
     if(minuteurCl){ clearTimeout(minuteurCl); minuteurCl = null; }
-    minuteurCl = setTimeout(suivantCl, DUREE + 1500);
+    minuteurCl = setTimeout(suivantCl, DUREE_CL);
     setTimeout(function(){ defiler(el.querySelector('.ob-m.on')); }, 120);
   }
 
@@ -394,7 +436,7 @@
       db.ref('dct_config/objectifs').on('value', function(snap){
         var v = snap.val();
         if(v && typeof v === 'object'){
-          cfg = { container: Math.max(1, parseInt(v.container, 10) || DEFAUT.container), dimanche: Math.max(1, parseInt(v.dimanche, 10) || DEFAUT.dimanche) };
+          cfg = { container: Math.max(1, parseInt(v.container, 10) || DEFAUT.container), dimanche: Math.max(1, parseInt(v.dimanche, 10) || DEFAUT.dimanche), perso: (v.perso && typeof v.perso === 'object') ? v.perso : {} };
           try{ localStorage.setItem('dct_objectifs_cache', JSON.stringify(cfg)); }catch(e){}
         }
         maj();
@@ -416,17 +458,36 @@
       + '<p>La bannière « Objectif » sous les messages, à l’accueil de toute l’équipe, compare le nombre de clients à ces deux objectifs. Le container suivi est celui qui est « en préparation » ; il compte tous ses clients (collecte, dépôt direct, France).</p>'
       + '<label for="ob-champ-c">Clients par container</label><input type="number" inputmode="numeric" min="1" id="ob-champ-c" value="' + cfg.container + '">'
       + '<label for="ob-champ-d">Clients par dimanche</label><input type="number" inputmode="numeric" min="1" id="ob-champ-d" value="' + cfg.dimanche + '">'
+      + '<h3 style="margin-top:22px">Objectif de chaque collaborateur</h3>'
+      + '<p>Clients à ramener par container. Le classement de l’accueil montre le compteur de chacun (« 16 / 30 »). Laisse vide pour garder le chiffre de départ.</p>'
+      + collabsClassement().map(function(co){
+          return '<label for="ob-champ-p-' + esc(co.id) + '">' + esc(co.name) + '</label><input type="number" inputmode="numeric" min="1" class="ob-perso" data-id="' + esc(co.id) + '" id="ob-champ-p-' + esc(co.id) + '" value="' + objPerso(co) + '">';
+        }).join('')
+      + '<div id="ob-total" style="margin-top:12px;font-size:13px;font-weight:800"></div>'
       + '<button type="button" class="ob-ok" id="ob-enregistrer">Enregistrer</button></div>';
+    totalPerso();
   };
+  // Total des objectifs de chacun comparé à celui du container.
+  function totalPerso(){
+    var z = document.getElementById('ob-total'); if(!z) return;
+    var c = Math.max(1, parseInt((document.getElementById('ob-champ-c') || {}).value, 10) || cfg.container), t = 0;
+    [].forEach.call(document.querySelectorAll('.ob-perso'), function(i){ t += Math.max(0, parseInt(i.value, 10) || 0); });
+    var diff = c - t, bon = Math.abs(diff) <= Math.round(c * 0.1);
+    z.style.color = bon ? '#0a6b3d' : '#b45a00';
+    z.textContent = 'Total des objectifs de chacun : ' + t + ' / ' + c + (diff === 0 ? ' ✓' : (diff > 0 ? ' — il manque ' + diff : ' — il y en a ' + (-diff) + ' de trop'));
+  }
+  document.addEventListener('input', function(e){ var t = e.target; if(t && t.classList && (t.classList.contains('ob-perso') || t.id === 'ob-champ-c')) totalPerso(); });
   document.addEventListener('click', function(e){
     var t = e.target.closest ? e.target.closest('#ob-enregistrer') : null; if(!t) return;
     var c = Math.max(1, parseInt((document.getElementById('ob-champ-c') || {}).value, 10) || 0);
     var d = Math.max(1, parseInt((document.getElementById('ob-champ-d') || {}).value, 10) || 0);
     if(!c || !d){ try{ showToastNew('⚠️ Écris deux nombres.'); }catch(x){} return; }
     if(!window.db || !window.firebaseReady){ try{ showToastNew('❌ Connexion indisponible.'); }catch(x){} return; }
-    Promise.resolve(db.ref('dct_config/objectifs').set({ container: c, dimanche: d, ts: Date.now() })).then(function(){
-      cfg = { container: c, dimanche: d };
-      try{ if(typeof _tracerReglage === 'function') _tracerReglage('🎯', 'a réglé les objectifs : <strong>' + c + '</strong> clients par container, <strong>' + d + '</strong> par dimanche'); }catch(x){}
+    var perso = {};
+    [].forEach.call(document.querySelectorAll('.ob-perso'), function(i){ var v = parseInt(i.value, 10); if(v > 0) perso[i.getAttribute('data-id')] = v; });
+    Promise.resolve(db.ref('dct_config/objectifs').set({ container: c, dimanche: d, perso: perso, ts: Date.now() })).then(function(){
+      cfg = { container: c, dimanche: d, perso: perso };
+      try{ if(typeof _tracerReglage === 'function') _tracerReglage('🎯', 'a réglé les objectifs : <strong>' + c + '</strong> clients par container, <strong>' + d + '</strong> par dimanche, et ceux de chaque collaborateur'); }catch(x){}
       try{ showToastNew('✅ Objectifs enregistrés'); }catch(x){}
       maj();
     }).catch(function(err){ try{ showToastNew('❌ Échec : ' + ((err && err.message) || 'écriture refusée')); }catch(x){} });
