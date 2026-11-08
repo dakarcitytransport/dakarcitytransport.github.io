@@ -102,6 +102,12 @@
       + '#obj-page .pg-leg{display:flex;gap:14px;font-size:11px;font-weight:800;color:#334;margin-bottom:2px}#obj-page .pg-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}#obj-page .pg-leg .lt{background:#4a55c8}#obj-page .pg-leg .lp{background:#1a8a5c}'
       + '#obj-page .pg-objp{border-top-color:rgba(26,138,92,.85)}#obj-page .pg-objp span{left:0;right:auto;color:#0a6b3d}'
       + '#obj-page .pg-vue{display:flex;align-items:center;gap:10px;margin:2px 4px 10px;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.95)}#obj-page .pg-vue label{font-size:12px;font-weight:800;white-space:nowrap}#obj-page .pg-vue select{flex:1;min-width:0;padding:8px;border-radius:10px;border:1.5px solid var(--border,#ddd);font:700 15px var(--font,inherit);background:var(--white,#fff);color:inherit}'
+      + '#obj-page .pg-gr2{display:grid;height:116px;align-items:end;border-bottom:2px solid rgba(0,0,0,.15);padding-top:18px;margin-top:2px}#obj-page .pg-c{height:100%;display:flex;align-items:flex-end;justify-content:center}'
+      + '#obj-page .pg-duo{display:flex;align-items:flex-end;justify-content:center;gap:5px}#obj-page .pg-b{position:relative;width:22px;border-radius:6px 6px 0 0}'
+      + '#obj-page .pg-b b{position:absolute;left:-6px;right:-6px;top:-17px;text-align:center;font-size:12px;font-weight:800;color:#10241a}'
+      + '#obj-page .pg-b.t{background:linear-gradient(180deg,#6b79de,#3a4bb8)}#obj-page .pg-b.p{background:linear-gradient(180deg,#3fc58e,#1a8a5c)}'
+      + '#obj-page .pg-lab{display:grid;margin-top:6px;text-align:center;font-weight:800;font-size:12.5px}#obj-page .pg-lab .cur{color:#0a6b3d}#obj-page .pg-lab .fut{opacity:.35}'
+      + '#obj-page .pg-sum{display:grid;gap:6px;margin-top:12px}#obj-page .pg-sum > div{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.62);border-radius:12px;padding:8px 10px;font-size:13px;font-weight:700;line-height:1.35;color:#16241e}#obj-page .pg-sum i{font-style:normal;flex:none}'
       + '#obj-page .pg-pied{font-size:11.5px;color:var(--text3,#667);font-weight:600;line-height:1.45;margin:10px 4px 20px}';
     document.head.appendChild(st);
   })();
@@ -633,6 +639,102 @@
     try{ localStorage.setItem('dct_obj_voir', t.value || ''); }catch(x){}
     pageSig = ''; rendrePage(true);
   });
+  // Résumé écrit sous le graphique « Par dimanche » : trois courtes lignes (la ramasse de la semaine, l'objectif de la semaine, depuis le début du container),
+  // choisies selon la semaine (1, 2, 3, 4, dernière) et le résultat de la personne (Cobey : « le texte doit changer pour chaque cas de figure »).
+  var RS_R1 = {
+    'aucune': ['Aucun client n’a encore été ramassé en semaine {sem}.', 'Semaine {sem} : la ramasse n’a pas encore commencé.', 'La ramasse de la semaine {sem} est encore vide.', 'Rien à comparer pour l’instant : la semaine {sem} démarre.'],
+    'zero': ['Semaine {sem} : la ramasse compte {t} clients, mais {S} n’en {a} pas encore ramené.', '{S} {a} 0 client sur les {t} de la semaine {sem}.', 'La ramasse avance ({t} clients en semaine {sem}), mais {S} n’{a} pas encore participé.', 'Sur les {t} clients de la semaine {sem}, {S} n’en {a} encore aucun.'],
+    'petit': ['{S} {a} ramené {n} client{s} sur les {t} de la semaine {sem}, soit {pc} %.', 'Semaine {sem} : {n} client{s} pour {S} sur {t} au total ({pc} %).', 'Sur la ramasse de la semaine {sem} ({t} clients), {S} {a} apporté {n} client{s} : {pc} %.', 'Une petite part de la ramasse cette semaine : {n} sur {t}, soit {pc} %.', '{S} {a} contribué à hauteur de {pc} % en semaine {sem} ({n} sur {t}).'],
+    'moyen': ['{S} {a} ramené {n} clients sur les {t} de la semaine {sem} : {pc} % de la ramasse.', 'Belle participation en semaine {sem} : {n} clients sur {t}, soit {pc} %.', 'Sur {t} clients ramassés en semaine {sem}, {S} en {a} apporté {n} ({pc} %).', '{S} {a} apporté {pc} % de la ramasse de la semaine {sem} ({n} clients sur {t}).', 'Une vraie contribution en semaine {sem} : {n} clients sur {t}, soit {pc} %.'],
+    'gros': ['{S} {a} porté la ramasse de la semaine {sem} : {n} clients sur {t}, soit {pc} %.', 'Semaine {sem} : {S} {a} ramené {n} clients sur {t}, soit {pc} % de la ramasse !', 'Énorme contribution en semaine {sem} : {n} clients sur {t} ({pc} %).', '{S} {a} fait le gros de la ramasse en semaine {sem} : {n} sur {t} ({pc} %).', '{S} {a} fait un gros travail en semaine {sem} : {n} clients sur {t} ({pc} %).']
+  };
+  var RS_R2 = {
+    '1': {
+      'atteint': ['{son} objectif de la semaine ({objS}) est atteint dès le départ, bravo !', 'Départ réussi : {son} objectif de la semaine ({objS}) est rempli.'],
+      'proche': ['Presque : encore {reste} pour {son} objectif de la semaine ({objS}).', 'Très bon départ, il manque seulement {reste} pour l’objectif de la semaine ({objS}).'],
+      'moyen': ['Bon début : {n} sur {objS} pour l’objectif de la semaine, il reste du temps.', 'La semaine {sem} est lancée : encore {reste} pour atteindre l’objectif de {objS}.'],
+      'faible': ['Début tranquille : {n} sur {objS}, rien d’inquiétant en première semaine.', 'Le container démarre : l’objectif de la semaine ({objS}) est encore loin, mais tout reste possible.'],
+      'zero': ['Pas de pression en première semaine : l’objectif est de {objS}, le premier client lance tout.', 'Le container démarre à peine : appelle tes contacts, l’objectif de la semaine est de {objS}.']
+    },
+    '2': {
+      'atteint': ['{son} objectif de la semaine ({objS}) est atteint, belle régularité !', 'Objectif de la semaine rempli ({objS}) : {S} {es} dans les temps.'],
+      'proche': ['Presque : il manque {reste} pour l’objectif de la semaine ({objS}).', 'Encore {reste} client{r} et l’objectif de la semaine ({objS}) est atteint.'],
+      'moyen': ['À mi-chemin de l’objectif de la semaine : {n} sur {objS}, il reste {reste} à trouver.', 'Il faut encore {reste} client{r} pour atteindre l’objectif de la semaine ({objS}).'],
+      'faible': ['L’objectif de la semaine ({objS}) est encore loin : {n} pour l’instant, relance tes contacts.', 'Semaine {sem} difficile : {n} sur {objS}, il faut accélérer.'],
+      'zero': ['Aucun client en semaine {sem} : l’objectif de {objS} demande de relancer les contacts.', 'Il faut démarrer : {objS} client{os} à ramener pour atteindre l’objectif de la semaine.']
+    },
+    '3': {
+      'atteint': ['Objectif de la semaine atteint ({objS}) : {S} {es} dans le rythme à mi-container.', '{son} objectif de la semaine ({objS}) est rempli, on garde le cap.'],
+      'proche': ['À mi-container, il manque {reste} pour l’objectif de la semaine ({objS}).', 'Encore {reste} client{r} pour boucler l’objectif de la semaine ({objS}).'],
+      'moyen': ['{n} sur {objS} cette semaine : il en manque {reste} pour rester dans le rythme.', 'Semaine {sem} : l’objectif de {objS} n’est qu’à moitié atteint, encore {reste} à trouver.'],
+      'faible': ['Attention, l’objectif de la semaine ({objS}) s’éloigne : {n} seulement pour l’instant.', 'Semaine {sem} en retrait : {n} sur {objS}, il faut remonter.'],
+      'zero': ['Rien cette semaine alors que le container avance : l’objectif est de {objS}, il faut s’y mettre.', 'Aucun client en semaine {sem} : {objS} à ramener pour rester dans le rythme.']
+    },
+    '4': {
+      'atteint': ['{son} objectif de la semaine ({objS}) est atteint, la fin approche bien.', 'Objectif rempli ({objS}) : plus que quelques jours avant le chargement.'],
+      'proche': ['La fin approche : il manque {reste} pour l’objectif de la semaine ({objS}).', 'Un dernier petit effort : encore {reste} client{r} cette semaine.'],
+      'moyen': ['{n} sur {objS} : il reste {reste} à trouver avant la fin du container.', 'Le chargement se rapproche, encore {reste} pour l’objectif de la semaine ({objS}).'],
+      'faible': ['Le chargement approche : {n} sur {objS}, il faut accélérer maintenant.', 'Peu de temps restant : l’objectif de la semaine ({objS}) est encore loin ({n}).'],
+      'zero': ['Aucun client alors que la fin approche : appelle tous tes contacts, l’objectif est de {objS}.', 'Le chargement approche et le compteur de la semaine est à 0 : il faut s’y mettre.']
+    },
+    'D': {
+      'atteint': ['Dernière semaine : {son} objectif ({objS}) est atteint, quel final !', 'Objectif rempli ({objS}) pour la dernière semaine, bravo !'],
+      'proche': ['Dernière ligne droite : encore {reste} pour l’objectif de la semaine ({objS}).', 'Dernière semaine : il manque {reste} client{r} pour finir sur l’objectif.'],
+      'moyen': ['Dernière semaine : {n} sur {objS}, il faut {reste} de plus avant le chargement.', 'Le chargement est proche : encore {reste} pour atteindre l’objectif de {objS}.'],
+      'faible': ['Dernière semaine : {n} seulement sur {objS}, c’est le moment de tout donner.', 'Avant le chargement, il manque encore {reste} pour l’objectif de la semaine.'],
+      'zero': ['Dernière semaine et aucun client : dernière chance de ramener {objS} client{os}.', 'Le chargement arrive : un seul client compte encore, appelle tes contacts maintenant.']
+    }
+  };
+  var RS_R3 = {
+    '1': {
+      'atteint': ['Depuis le début : {cn} sur {objC}, {son} objectif pour le container est déjà atteint !', '{cn} client{cr} depuis le départ : l’objectif du container ({objC}) est rempli.'],
+      'avance': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} en avance sur {son} rythme.', 'Bon départ au niveau du container : {cn} sur {objC}, déjà en avance.'],
+      'temps': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} dans les temps.', 'Début de container : {cn} sur {objC}, {son} rythme est bon.'],
+      'retard': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %) — il faut lancer {son} container.', '{cn} sur {objC} pour le container : le départ est lent, il reste toutes les semaines à venir.']
+    },
+    '2': {
+      'atteint': ['Depuis le début : {cn} sur {objC}, {son} objectif pour le container est atteint !', '{cn} clients : {S} {a} rempli {son} objectif pour le container avant la fin.'],
+      'avance': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} en avance de {avance}.', 'Sur le container, {S} {es} en avance : {cn} sur {objC}.'],
+      'temps': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} dans les temps pour {objC}.', 'Sur le container : {cn} sur {objC}, le rythme est tenu.'],
+      'retard': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), il manque {manque} pour être dans les temps.', 'Sur le container : {cn} sur {objC}, {manque} de retard à rattraper.']
+    },
+    '3': {
+      'atteint': ['Depuis le début : {cn} sur {objC}, objectif container atteint à mi-parcours !', '{cn} clients : {S} {a} déjà rempli {son} objectif pour le container.'],
+      'avance': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} en avance de {avance} à mi-container.', 'À mi-container : {cn} sur {objC}, bien devant le rythme.'],
+      'temps': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} dans les temps à mi-container.', 'À mi-container : {cn} sur {objC}, le rythme est tenu.'],
+      'retard': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), {manque} de retard à mi-container.', 'À mi-container : {cn} sur {objC}, il faut rattraper {manque}.']
+    },
+    '4': {
+      'atteint': ['Depuis le début : {cn} sur {objC}, objectif container atteint avant la fin !', '{cn} clients : {son} objectif pour le container est rempli, bravo.'],
+      'avance': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} en avance de {avance}.', 'La fin approche : {cn} sur {objC}, {S} {es} devant le rythme.'],
+      'temps': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} dans les temps pour finir.', 'La fin approche : {cn} sur {objC}, le rythme est tenu.'],
+      'retard': ['Depuis le début : {cn} client{cr} sur {ct} ({cpc} %), il manque {manque} avant le chargement.', 'La fin approche : {cn} sur {objC}, {manque} de retard à rattraper vite.']
+    },
+    'D': {
+      'atteint': ['Bilan du container : {cn} sur {objC}, objectif atteint, bravo !', '{cn} clients ramenés sur {ct} : {son} objectif pour le container est rempli.'],
+      'avance': ['Bilan du container : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} en avance sur {son} rythme.', 'Dernière semaine : {cn} sur {objC}, {S} finit devant le rythme.'],
+      'temps': ['Bilan du container : {cn} client{cr} sur {ct} ({cpc} %), {S} {es} dans les temps.', 'Dernière semaine : {cn} sur {objC}, le rythme est tenu jusqu’au bout.'],
+      'retard': ['Bilan du container : {cn} client{cr} sur {ct} ({cpc} %), il manque {manque} pour {son} objectif.', 'Dernière semaine : {cn} sur {objC}, {manque} de retard à la clôture.']
+    }
+  };
+  var RS_EQ1 = {
+    'aucune': ['Aucun client n’a encore été ramassé en semaine {sem}.', 'Semaine {sem} : la ramasse n’a pas encore commencé.', 'La ramasse de la semaine {sem} est encore vide.'],
+    'faible': ['Semaine {sem} : {t} clients ramassés pour {od} attendus, il faut accélérer.', 'La ramasse de la semaine {sem} compte {t} clients sur les {od} visés.', '{t} clients cette semaine pour un objectif de {od} : le rythme est lent.'],
+    'moyen': ['Semaine {sem} : {t} clients ramassés sur {od} attendus, ça avance.', 'La ramasse de la semaine {sem} est à {t} sur {od} : plus de la moitié du chemin.', '{t} clients sur {od} en semaine {sem}, encore un effort.'],
+    'atteint': ['Semaine {sem} : objectif atteint avec {t} clients ramassés sur {od} attendus !', 'Bravo : la ramasse de la semaine {sem} atteint {t} clients (objectif {od}).', '{t} clients en semaine {sem} : l’objectif de {od} est rempli.']
+  };
+  var RS_EQ2 = {
+    'tous': ['Depuis le début du container : {ct} clients ramassés sur {objC}.', 'Au total, le container compte {ct} clients sur {objC} visés.', 'Cumul depuis la semaine 1 : {ct} clients sur les {objC} du container.']
+  };
+  function rediger(liste, v, tu, nom, cle, sig){
+    var jet = { S: tu ? 'tu' : nom, a: tu ? 'as' : 'a', es: tu ? 'es' : 'est', son: tu ? 'ton' : 'son', sa: tu ? 'ta' : 'sa', ses: tu ? 'tes' : 'ses',
+      s: v.n > 1 ? 's' : '', r: v.reste > 1 ? 's' : '', cr: v.cn > 1 ? 's' : '', os: v.objS > 1 ? 's' : '' };
+    var fam = liste.map(function(t){
+      var x = t.replace(/\{(\w+)\}/g, function(m, k){ return jet[k] != null ? jet[k] : (v[k] != null ? v[k] : m); });
+      return x.charAt(0).toUpperCase() + x.slice(1);
+    });
+    return phraseStable(cle, sig, fam);
+  }
   function htmlPage(){
     var h = '', cs = containers(), classement = slidesClassement(), reel = (window.currentUser || {}).id;
     // Cobey : « un sous-menu pour avoir accès à chaque fenêtre de chacun, pour me éviter de me connecter dans leur profil : uniquement pour moi ».
@@ -673,7 +775,7 @@
         + '<div class="pg-big">' + m.n + ' <i>/ ' + obj + ' clients ramassés</i></div>'
         + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i>' + (m.repere !== null && m.classe !== 'd' ? '<u style="left:calc(' + m.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
         + '<div class="ob-l2">' + esc(m.txt) + '</div>' + note + '</div></div>';
-      // 2. par dimanche : la ramasse de toute l'équipe, et à côté ce que CETTE personne a ramené (statistique personnelle)
+      // 2. par dimanche : barres verticales (toute la ramasse, et ce que la personne a ramené) + résumé écrit
       if(info){
         var dj = jours(info.debut), cnt = [], cntP = [], liste0 = collabsClassement(); for(var k = 0; k < info.N; k++){ cnt.push(0); cntP.push(0); }
         fichesRamassees(d._id).forEach(function(x){
@@ -681,25 +783,38 @@
           var w = Math.max(0, Math.min(info.N - 1, Math.floor((jours(di) - dj) / 7))); cnt[w]++;
           if(moi){ var co = auteurDe(x.c, liste0); if(co && co.id === moi) cntP[w]++; }
         });
-        var od = objDimanche(), objP = perso ? Math.max(1, Math.ceil(perso.obj / info.N)) : 0, mx = Math.max(od, Math.max.apply(null, cnt), 1), col = '';
+        var od = objDimanche(), mx = Math.max(Math.max.apply(null, cnt), Math.max.apply(null, cntP), 1), bars = '', labs = '';
         for(var w = 0; w < info.N; w++){
-          var fut = w + 1 > info.sem, cl = (fut ? 'fut' : (cnt[w] >= od ? 'ok' : '')) + (w + 1 === info.sem ? ' cur' : '');
-          var hT = fut ? 3 : Math.max(3, Math.round(cnt[w] / mx * 70)), hP = fut ? 3 : Math.max(3, Math.round(cntP[w] / mx * 70));
-          col += '<div class="pg-col ' + cl + '"><div class="pg-duo"><div class="pg-b t"><b>' + (fut ? '' : cnt[w]) + '</b><div class="pg-bar" style="height:' + hT + 'px"></div></div>'
-            + (moi ? '<div class="pg-b p"><b>' + (fut ? '' : cntP[w]) + '</b><div class="pg-bar" style="height:' + hP + 'px"></div></div>' : '') + '</div><small>S' + (w + 1) + '</small></div>';
+          var fut = w + 1 > info.sem, hh = function(v){ return v > 0 ? Math.max(4, Math.round(v / mx * 88)) : 2; };
+          bars += '<div class="pg-c' + (fut ? ' fut' : '') + '"><div class="pg-duo">'
+            + (fut ? '' : '<div class="pg-b t" style="height:' + hh(cnt[w]) + 'px"><b>' + cnt[w] + '</b></div>' + (moi ? '<div class="pg-b p" style="height:' + hh(cntP[w]) + 'px"><b>' + cntP[w] + '</b></div>' : '')) + '</div></div>';
+          labs += '<span class="' + (w + 1 === info.sem ? 'cur' : (fut ? 'fut' : '')) + '">S' + (w + 1) + '</span>';
         }
-        h += '<div class="pg-t"><b>📅 PAR DIMANCHE</b><span>objectif ' + od + ' clients</span></div>'
-          + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.16),rgba(74,85,200,.05))">'
-          + (moi ? '<div class="pg-leg"><span><i class="lt"></i>Toute la ramasse</span><span><i class="lp"></i>' + (admin ? esc(cibleNom) : 'Toi') + '</span></div>' : '')
-          + '<div class="pg-gr"><div class="pg-obj" style="bottom:' + Math.round(od / mx * 70 + 23) + 'px"><span>' + od + '</span></div>'
-          + (objP ? '<div class="pg-obj pg-objp" style="bottom:' + Math.round(objP / mx * 70 + 23) + 'px"><span>' + objP + '</span></div>' : '') + col + '</div>';
-        if(moi){
-          var sT = 0, sP = 0; cnt.forEach(function(v){ sT += v; }); cntP.forEach(function(v){ sP += v; });
-          var wk = info.sem - 1, pc = cnt[wk] > 0 ? Math.round(cntP[wk] / cnt[wk] * 100) : 0, sujet = admin ? esc(cibleNom) : 'Tu';
-          h += '<div class="pg-note" style="margin-top:8px">' + sujet + (admin ? ' a apporté ' : ' as apporté ') + '<b>' + cntP[wk] + ' client' + (cntP[wk] > 1 ? 's' : '') + ' sur ' + cnt[wk] + '</b> cette semaine' + (cnt[wk] > 0 ? ' (' + pc + ' % de la ramasse)' : '')
-            + '. Sur tout le container : <b>' + sP + ' sur ' + sT + '</b>' + (sT > 0 ? ' (' + Math.round(sP / sT * 100) + ' %)' : '') + '.</div>';
+        var tu = !admin && moi === reel, wk = info.sem - 1, nT = cnt[wk], nP = cntP[wk], pcw = nT > 0 ? Math.round(nP / nT * 100) : 0, sT = 0, sP = 0;
+        cnt.forEach(function(v){ sT += v; }); cntP.forEach(function(v){ sP += v; });
+        var resume = '';
+        if(moi && perso){
+          var objS = Math.max(1, Math.ceil(perso.obj / info.N)), ratioS = nP / objS, att2 = perso.obj * info.p;
+          var c1 = nT === 0 ? 'aucune' : (nP === 0 ? 'zero' : (pcw < 25 ? 'petit' : (pcw < 50 ? 'moyen' : 'gros')));
+          var c2 = ratioS >= 1 ? 'atteint' : (ratioS >= 0.7 ? 'proche' : (ratioS >= 0.4 ? 'moyen' : (nP > 0 ? 'faible' : 'zero')));
+          var c3 = sP >= perso.obj ? 'atteint' : (sP >= att2 + perso.obj * 0.08 ? 'avance' : (sP >= att2 - perso.obj * 0.06 ? 'temps' : 'retard'));
+          var v = { n: nP, t: nT, pc: pcw, sem: info.sem, N: info.N, objS: objS, reste: Math.max(0, objS - nP), cn: sP, ct: sT, cpc: sT > 0 ? Math.round(sP / sT * 100) : 0, objC: perso.obj,
+            manque: Math.max(1, Math.round(att2 - sP)), avance: Math.max(1, Math.round(sP - att2)) };
+          var bk = info.bucket, base = 'rs' + moi + d._id;
+          var l1 = rediger(RS_R1[c1], v, tu, cibleNom, base + 'a', nP + ':' + nT + ':' + c1);
+          var l2 = rediger((RS_R2[bk] || RS_R2['2'])[c2], v, tu, cibleNom, base + 'b', nP + ':' + objS + ':' + c2 + bk);
+          var l3 = rediger((RS_R3[bk] || RS_R3['2'])[c3], v, tu, cibleNom, base + 'c', sP + ':' + sT + ':' + c3 + bk);
+          resume = '<div class="pg-sum"><div><i>📅</i><span>' + esc(l1) + '</span></div><div><i>🎯</i><span>' + esc(l2) + '</span></div><div><i>📦</i><span>' + esc(l3) + '</span></div></div>';
+        } else {
+          var ce = nT === 0 ? 'aucune' : (nT / od < 0.5 ? 'faible' : (nT < od ? 'moyen' : 'atteint')), ve = { t: nT, od: od, sem: info.sem, ct: sT, objC: cfg.container, n: 0, reste: 0, cn: 0 };
+          resume = '<div class="pg-sum"><div><i>📅</i><span>' + esc(rediger(RS_EQ1[ce], ve, false, '', 'rse' + d._id + 'a', nT + ':' + ce)) + '</span></div>'
+            + '<div><i>📦</i><span>' + esc(rediger(RS_EQ2.tous, ve, false, '', 'rse' + d._id + 'b', String(sT))) + '</span></div></div>';
         }
-        h += '</div></div>';
+        h += '<div class="pg-t"><b>📅 PAR DIMANCHE</b><span>' + (moi ? (tu ? 'ta ramasse' : 'vue de ' + esc(cibleNom)) : 'objectif ' + od + ' / dimanche') + '</span></div>'
+          + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))">'
+          + '<div class="pg-leg"><span><i class="lt"></i>Toute la ramasse</span>' + (moi ? '<span><i class="lp"></i>' + (tu ? 'Toi' : esc(cibleNom)) + '</span>' : '') + '</div>'
+          + '<div class="pg-gr2" style="grid-template-columns:repeat(' + info.N + ',1fr)">' + bars + '</div>'
+          + '<div class="pg-lab" style="grid-template-columns:repeat(' + info.N + ',1fr)">' + labs + '</div>' + resume + '</div></div>';
       }
       // 3. le classement, tout le monde en même temps
       var lignes = classement.filter(function(x){ return x.container === String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : ''); });
