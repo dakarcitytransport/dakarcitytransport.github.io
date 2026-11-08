@@ -564,10 +564,26 @@ html.look-v2 .pb{display:block;margin-bottom:10px}
 html.look-v2 .pb-t{display:flex;justify-content:space-between;align-items:center;border-radius:16px;padding:10px 14px;background:linear-gradient(145deg,#3b4a45,#1c2a25);color:#fff;box-shadow:0 6px 14px rgba(0,0,0,.2)}
 html.look-v2 .pb-t span{font-size:11.5px;font-weight:800;letter-spacing:.1em;opacity:.8}
 html.look-v2 .pb-t b{font-size:26px;letter-spacing:-.02em;line-height:1.1}
-html.look-v2 .pb-g{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin-top:6px}
+html.look-v2 .pb-g{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin-top:7px}
 html.look-v2 .pb-g > div{border-radius:12px;padding:6px 10px;min-width:0}
+html.look-v2 .pb-h{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
 html.look-v2 .pb-g small{display:block;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-html.look-v2 .pb-g b{font-size:14px}
+html.look-v2 .pb-g b{font-size:15px;white-space:nowrap}
+html.look-v2 .pb-g em{display:block;font-style:normal;font-size:11.5px;font-weight:800;margin-top:1px;white-space:nowrap}
+html.look-v2 .pb-c em{color:#a04800}html.look-v2 .pb-d em{color:#a04800}html.look-v2 .pb-l em{color:#a82020}html.look-v2 .pb-g em.pb-s{color:#0a6b3d}
+html.look-v2 .pb-t.pb-3{display:block;padding:9px 14px 10px}
+html.look-v2 .pb-r{display:flex}
+html.look-v2 .pb-k{flex:1;min-width:0;padding:0 10px;border-left:1px solid rgba(255,255,255,.18)}
+html.look-v2 .pb-k:first-child{border:0;padding-left:0}
+html.look-v2 .pb-k small{display:block;font-size:9.5px;font-weight:800;letter-spacing:.1em;opacity:.65;margin-bottom:1px}
+html.look-v2 .pb-k b{display:block;font-size:18px;white-space:nowrap;line-height:1.15}
+html.look-v2 .pb-kp b{color:#6fe0a5}
+html.look-v2 .pb-kr{flex:1.3}html.look-v2 .pb-kr small{opacity:1;color:#ffc46b}html.look-v2 .pb-kr b{font-size:23px;color:#ffb347}
+html.look-v2 .pb-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.16);margin-top:8px;overflow:hidden}
+html.look-v2 .pb-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#4ddc98,#2fb27c)}
+html.look-v2 .pb-t.pb-ok{padding:10px 16px}html.look-v2 .pb-t.pb-ok b{font-size:24px}
+/* les pastilles « reste » sont maintenant DANS le bloc des prix */
+html.look-v2 .pb ~ .cr-b1 .pp-ln,html.look-v2 .pb ~ .fr-pay,html.look-v2 .pb + .cli-b1 .pp-ln{display:none !important}
 html.look-v2 .pb-c{background:rgba(60,70,200,.12);color:#26338f}.pb-c small{color:#7d8e85}
 html.look-v2 .pb-d{background:rgba(0,140,150,.14);color:#00636b}.pb-d small{color:#6a8f93}
 html.look-v2 .pb-l{background:rgba(122,92,240,.14);color:#6b3fa0}.pb-l small{color:#8a7fb0}
