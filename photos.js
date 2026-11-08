@@ -28,7 +28,7 @@
       + '.ph-mini{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none;font-weight:800;vertical-align:middle;overflow:hidden;line-height:1;}'
       + '.ph-badge{color:#222;position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 1px 4px rgba(0,0,0,.3);}'
       + '.ph-ov{position:fixed;left:0;right:0;top:0;bottom:0;z-index:9500;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;}'
-      + '.ph-sh{width:100%;max-width:430px;box-sizing:border-box;background:var(--white,#fff);color:var(--text,#111);border-radius:26px 26px 0 0;padding:18px 16px max(22px,env(safe-area-inset-bottom));}'
+      + '.ph-sh{width:100%;max-width:430px;box-sizing:border-box;background:var(--white,#fff);color:var(--text,#111);border-radius:26px 26px 0 0;padding:18px 16px max(22px,env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto;}'
       + '.ph-tete{display:flex;align-items:center;gap:14px;margin-bottom:14px;}'
       + '.ph-grand{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;background-size:cover;background-position:center;flex:none;}'
       + '.ph-tete b{font-size:18px;display:block;}.ph-tete span{font-size:13px;color:var(--text3,#666);}'
@@ -354,22 +354,28 @@
           + '</div>';
       },
       action: { texte: 'J’ai compris', faire: function(){} } },
-    // Cobey, 08/11/2026 : « tu codes et tu mets un pop-up pour expliquer cette nouveauté » (le bouton Objectifs de la barre du bas, à la place d'Activité).
-    { id: 'page_objectifs',
+    // Cobey, 08/11/2026 : « un message pop-up pour expliquer toutes les nouveautés de l'onglet objectif à tout le monde, et à moi aussi ».
+    // Remplace l'ancienne annonce « page_objectifs » (moins complète) : ceux qui l'avaient déjà vue reçoivent celle-ci, les autres ne voient que celle-ci.
+    { id: 'objectifs_tout',
       deja: function(){ try{ return !(window.lookEffectif && window.lookEffectif() === 'v2'); }catch(e){ return true; } },   // la barre du bas n'existe qu'en nouveau look
       html: function(){
-        var carte = function(ic, t, d){ return '<div style="display:flex;gap:12px;align-items:center;background:rgba(14,159,91,.1);border-radius:18px;padding:11px 14px"><div style="flex:none;width:34px;height:34px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 1px 4px rgba(0,0,0,.12)">' + ic + '</div><div><div style="font-weight:800;font-size:14.5px">' + t + '</div><div style="font-size:12.5px;color:var(--text3,#55675E);line-height:1.35;margin-top:1px">' + d + '</div></div></div>'; };
-        return '<div style="display:flex;justify-content:center;margin:6px 0 10px"><div style="width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,#BDEBD3,#FFE9A8);display:flex;align-items:center;justify-content:center;font-size:46px">🏆</div></div>'
-          + '<div style="text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;color:#0A7A45;margin-bottom:4px">NOUVEAUTÉ</div>'
-          + '<div style="text-align:center;font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px">La page Objectifs</div>'
-          + '<div style="text-align:center;font-size:14px;color:var(--text3,#55675E);margin-bottom:16px;line-height:1.4">En bas de l’écran, le bouton <b>🏆 Objectifs</b> remplace Activité.</div>'
-          + '<div style="display:grid;gap:10px;margin-bottom:18px">'
-          + carte('🎯', 'Ton objectif', 'En haut : ta place, tes clients, tes euros, et ce qu’il te faut cette semaine pour être dans les temps.')
-          + carte('🏆', 'Le classement', 'Toute l’équipe d’un coup d’œil, mis à jour chaque dimanche après la ramasse.')
-          + carte('🕑', 'Et Activité ?', 'Elle est toujours là : touche l’horloge, en haut à droite de l’accueil.')
-          + '</div>';
+        var adm = false; try{ adm = !!(window.objectifs && window.objectifs.admin && window.objectifs.admin()); }catch(e){}
+        var carte = function(ic, t, d){ return '<div style="display:flex;gap:12px;align-items:center;background:rgba(14,159,91,.1);border-radius:18px;padding:10px 14px"><div style="flex:none;width:34px;height:34px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 1px 4px rgba(0,0,0,.12)">' + ic + '</div><div><div style="font-weight:800;font-size:14px">' + t + '</div><div style="font-size:12.5px;color:var(--text3,#55675E);line-height:1.35;margin-top:1px">' + d + '</div></div></div>'; };
+        return '<div style="display:flex;justify-content:center;margin:2px 0 8px"><div style="width:78px;height:78px;border-radius:50%;background:linear-gradient(135deg,#BDEBD3,#FFE9A8);display:flex;align-items:center;justify-content:center;font-size:40px">🏆</div></div>'
+          + '<div style="text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;color:#0A7A45;margin-bottom:3px">NOUVEAUTÉ</div>'
+          + '<div style="text-align:center;font-size:21px;font-weight:800;letter-spacing:-.02em;margin-bottom:5px">L’onglet Objectifs</div>'
+          + '<div style="text-align:center;font-size:13.5px;color:var(--text3,#55675E);margin-bottom:12px;line-height:1.4">Le bouton 🏆 en bas de l’écran remplace Activité (elle reste sous l’horloge de l’accueil). Tout y est, sans défilement :</div>'
+          + '<div style="display:grid;gap:8px;margin-bottom:12px">'
+          + carte('🚛', 'En cours', 'Le chargement en grand avec son compte à rebours, et les semaines du container (4 ou 5).')
+          + carte('🎯', 'Ton objectif', 'Ta place, tes clients, tes euros, et ce qu’il te faut cette semaine pour être dans les temps.')
+          + carte('📅', 'Par dimanche', 'La ramasse de chaque semaine et ta part, avec un petit résumé écrit.')
+          + carte('🏆', 'Le classement', 'Toute l’équipe, refait chaque dimanche après la ramasse.')
+          + carte('🗂️', 'Historique', 'Les containers terminés sont rangés ici, avec ton bilan de chacun.')
+          + (adm ? carte('👁️', 'Voir comme', 'Réservé à toi : choisis un collaborateur pour voir son écran, sans te connecter.') : '')
+          + '</div>'
+          + '<div style="text-align:center;font-size:12px;color:var(--text3,#55675E);line-height:1.4;margin-bottom:14px">Seuls les clients <b>ramassés</b> (validés) comptent, sur les containers du Sénégal.</div>';
       },
-      action: { texte: '🏆 Voir la page Objectifs', faire: function(){ try{ if(window.objectifs && window.objectifs.page) window.objectifs.page(); }catch(e){} } } }
+      action: { texte: '🏆 Voir l’onglet Objectifs', faire: function(){ try{ if(window.objectifs && window.objectifs.page) window.objectifs.page(); }catch(e){} } } }
   ];
   var nvEnCours = false, nvVerifiePour = '';
   function nvVu(id, nv){ try{ return localStorage.getItem('dct_nv_' + id + '_' + nv) === '1'; }catch(e){ return false; } }

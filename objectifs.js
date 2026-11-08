@@ -1088,5 +1088,5 @@
       maj();
     }).catch(function(err){ try{ showToastNew('❌ Échec : ' + ((err && err.message) || 'écriture refusée')); }catch(x){} });
   });
-  window.objectifs = { page: ouvrirPage, html: htmlPage, afficher: maj, messages: messages, classement: slidesClassement, defiler: defiler, config: function(){ return cfg; } };
+  window.objectifs = { admin: estAdminVue, page: ouvrirPage, html: htmlPage, afficher: maj, messages: messages, classement: slidesClassement, defiler: defiler, config: function(){ return cfg; } };
 })();
