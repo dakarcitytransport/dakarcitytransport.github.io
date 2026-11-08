@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.322">
+<link rel="stylesheet" href="look-v2.css?v=3.99.323">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -1321,7 +1321,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 <div class="modal-overlay" id="modal-affect"><div class="modal-sheet"><div class="modal-title" id="affect-title">Affecter à…</div><div id="affect-options"></div><button id="affect-retirer" class="btn btn-red" style="display:none;margin-top:8px;" onclick="retirerClient()">✕ Retirer du camion</button><button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal('modal-affect')">✕ Annuler</button></div></div>
 <div class="modal-overlay" id="modal-valider"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">📦</div><div class="modal-confirm-title">Confirmer la collecte ?</div><div class="modal-confirm-sub" id="valider-sub"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-valider')">Annuler</button><button class="btn-sm btn-green-sm" onclick="confirmValider()">✅ Confirmer</button></div></div></div></div>
 <div class="modal-overlay" id="modal-refus"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">❌</div><div class="modal-confirm-title">Ramasse non effectuée ?</div><div class="modal-confirm-sub" id="refus-sub"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-refus')">Annuler</button><button class="btn-sm btn-red-sm" onclick="confirmRefus()">❌ Confirmer</button></div></div></div></div>
-<div class="modal-overlay" id="modal-delete"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">🗑️</div><div class="modal-confirm-title">Supprimer ce client ?</div><div class="modal-confirm-sub" id="delete-sub"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-delete')">Annuler</button><button class="btn-sm btn-red-sm" onclick="confirmDelete()">🗑️ Supprimer</button></div></div></div></div>
+<div class="modal-overlay" id="modal-delete"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">🗑️</div><div class="modal-confirm-title">Supprimer ce client de cette collecte ?</div><div class="modal-confirm-sub" id="delete-sub"></div><div style="font-size:12.5px;color:var(--text3);font-weight:600;line-height:1.4;margin:-4px 0 12px;text-align:center;">Sa fiche, son prix et ses paiements sont retirés de cette collecte (copie gardée 30 jours dans la corbeille). Ses coordonnées restent dans le carnet, et les autres collectes ne changent pas.</div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-delete')">Annuler</button><button class="btn-sm btn-red-sm" onclick="confirmDelete()">🗑️ Supprimer</button></div></div></div></div>
 <div class="modal-overlay" id="modal-del-collecte"><div class="modal-sheet"><div class="modal-confirm"><div class="modal-emoji">📅</div><div class="modal-confirm-title">Supprimer cette collecte ?</div><div class="modal-confirm-sub" id="del-collecte-sub"></div><div class="modal-confirm-btns"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-del-collecte')">Annuler</button><button class="btn-sm btn-red-sm" onclick="confirmerSupprimerCollecte()">🗑️ Supprimer</button></div></div></div></div>
 <div class="modal-overlay" id="modal-statut"><div class="modal-sheet"><div class="modal-title">Changer le statut</div><div id="statut-options"></div><button class="btn btn-gray" style="margin-top:6px;" onclick="closeModal('modal-statut')">✕ Annuler</button></div></div>
 <div class="modal-overlay" id="modal-heure"><div class="modal-sheet"><div class="modal-title" id="modal-heure-title">Heure de passage</div><div style="margin-bottom:16px;"><input type="time" id="modal-heure-input" style="width:100%;padding:14px;border:2.5px solid #009A44;border-radius:10px;font-size:22px;font-family:var(--font);color:#111;text-align:center;background:#f0fff8;"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><button class="btn-sm btn-gray-sm" onclick="closeModal('modal-heure')">Annuler</button><button class="btn-sm btn-green-sm" onclick="validerHeure()">Confirmer</button></div></div></div>
@@ -2289,7 +2289,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.322';
+var APP_VERSION = 'v3.99.323';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -11187,7 +11187,7 @@ function openClientFiche(id,retour){
   });
   _civDct.e = clientData.civilite || '';
   _renderCivDct('e');
-  var ds=document.getElementById('delete-sub');if(ds)ds.textContent='Supprimer '+c.name+' ?';
+  var ds=document.getElementById('delete-sub');if(ds)ds.textContent=c.name;
   var locked=isLockedClient();
   var lb=document.getElementById('client-locked-banner');if(lb)lb.style.display=locked?'flex':'none';
   var ca=document.getElementById('client-actions');if(ca)ca.style.display=locked?'none':'block';
