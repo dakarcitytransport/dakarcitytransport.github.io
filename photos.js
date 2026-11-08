@@ -353,7 +353,23 @@
           + carte('📒', 'Ton objectif perso', 'Chacun a le sien. Pense à ton carnet d’adresses : chaque client que tu ramènes compte !')
           + '</div>';
       },
-      action: { texte: 'J’ai compris', faire: function(){} } }
+      action: { texte: 'J’ai compris', faire: function(){} } },
+    // Cobey, 08/11/2026 : « tu codes et tu mets un pop-up pour expliquer cette nouveauté » (le bouton Objectifs de la barre du bas, à la place d'Activité).
+    { id: 'page_objectifs',
+      deja: function(){ try{ return !(window.lookEffectif && window.lookEffectif() === 'v2'); }catch(e){ return true; } },   // la barre du bas n'existe qu'en nouveau look
+      html: function(){
+        var carte = function(ic, t, d){ return '<div style="display:flex;gap:12px;align-items:center;background:rgba(14,159,91,.1);border-radius:18px;padding:11px 14px"><div style="flex:none;width:34px;height:34px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 1px 4px rgba(0,0,0,.12)">' + ic + '</div><div><div style="font-weight:800;font-size:14.5px">' + t + '</div><div style="font-size:12.5px;color:var(--text3,#55675E);line-height:1.35;margin-top:1px">' + d + '</div></div></div>'; };
+        return '<div style="display:flex;justify-content:center;margin:6px 0 10px"><div style="width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,#BDEBD3,#FFE9A8);display:flex;align-items:center;justify-content:center;font-size:46px">🏆</div></div>'
+          + '<div style="text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;color:#0A7A45;margin-bottom:4px">NOUVEAUTÉ</div>'
+          + '<div style="text-align:center;font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px">La page Objectifs</div>'
+          + '<div style="text-align:center;font-size:14px;color:var(--text3,#55675E);margin-bottom:16px;line-height:1.4">En bas de l’écran, le bouton <b>🏆 Objectifs</b> remplace Activité.</div>'
+          + '<div style="display:grid;gap:10px;margin-bottom:18px">'
+          + carte('🎯', 'Ton objectif', 'En haut : ta place, tes clients, tes euros, et ce qu’il te faut cette semaine pour être dans les temps.')
+          + carte('🏆', 'Le classement', 'Toute l’équipe d’un coup d’œil, mis à jour chaque dimanche après la ramasse.')
+          + carte('🕑', 'Et Activité ?', 'Elle est toujours là : touche l’horloge, en haut à droite de l’accueil.')
+          + '</div>';
+      },
+      action: { texte: '🏆 Voir la page Objectifs', faire: function(){ try{ if(window.objectifs && window.objectifs.page) window.objectifs.page(); }catch(e){} } } }
   ];
   var nvEnCours = false, nvVerifiePour = '';
   function nvVu(id, nv){ try{ return localStorage.getItem('dct_nv_' + id + '_' + nv) === '1'; }catch(e){ return false; } }
