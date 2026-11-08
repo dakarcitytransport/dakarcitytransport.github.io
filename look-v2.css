@@ -710,7 +710,7 @@ html.look-v2 :is(#s-camion,#s-fr-camion) .finance-row .finance-label::after{font
 html.look-v2 :is(#s-camion,#s-fr-camion) .finance-row .finance-val{font-size:15.5px}
 html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > .finance-row:not([id]){order:1}
 html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > .finance-row:not([id]) .finance-label::after{content:"Facturé";font-weight:800;color:var(--text);font-size:15px}
-html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > .finance-row:not([id]) .finance-val{font-size:19px;color:var(--text) !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct) > .finance-row:not([id]) .finance-val{font-size:19px;color:#26338f !important}
 html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-encaisse"]{order:2 !important}
 html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-adu"]{order:3 !important;border-bottom:0 !important}
 html.look-v2 :is(#s-camion,#s-fr-camion) :is([id$="finance-encaisse"],[id$="finance-adu"]) .finance-label::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:1px}
@@ -725,9 +725,10 @@ html.look-v2 :is(#s-camion,#s-fr-camion) .finance-pct{order:5;text-align:left !i
 html.look-v2 :is(#s-camion,#s-fr-camion) div:has(> .finance-pct):has([id$="finance-especes"])::after{content:"ENCAISSÉ PAR MODE";order:7;width:100%;font-size:10.5px;font-weight:800;letter-spacing:.09em;color:var(--text3);padding:8px 0 4px;border-top:1px solid rgba(0,0,0,.08)}
 html.look-v2 :is(#s-camion,#s-fr-camion) :is([id$="finance-especes"],[id$="finance-virement"]){order:8 !important;width:50% !important;flex-direction:column;align-items:flex-start !important;border:0 !important;padding:2px 0 !important}
 html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-virement"]{border-left:1px solid rgba(0,0,0,.08) !important;padding-left:14px !important}
-html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-especes"] .finance-label::after{content:"💵 Espèces";font-size:11.5px;font-weight:700}
-html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-virement"] .finance-label::after{content:"🏦 Virement";font-size:11.5px;font-weight:700}
-html.look-v2 :is(#s-camion,#s-fr-camion) :is([id$="finance-especes"],[id$="finance-virement"]) .finance-val{font-size:16px;color:var(--text) !important}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-especes"] .finance-label::after{content:"💵 Espèces";font-size:11.5px;font-weight:700;color:#00796b}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-virement"] .finance-label::after{content:"🏦 Virement";font-size:11.5px;font-weight:700;color:#6b3fa0}
+html.look-v2 :is(#s-camion,#s-fr-camion) :is([id$="finance-especes"],[id$="finance-virement"]) .finance-val{font-size:16px}
+html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-especes"] .finance-val{color:#00796b !important}html.look-v2 :is(#s-camion,#s-fr-camion) [id$="finance-virement"] .finance-val{color:#6b3fa0 !important}
 html.look-v2 :is(#s-camion,#s-fr-camion) .content > div:has(> button[id$="km-btn"]){background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:22px !important;padding:10px 16px !important;display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 10px;box-shadow:0 4px 14px rgba(30,60,45,.1)}
 html.look-v2 :is(#s-camion,#s-fr-camion) .content > div:has(> button[id$="km-btn"]) > div:first-child{grid-column:1 / 3;margin:0 !important}
 html.look-v2 :is(#s-camion,#s-fr-camion) [id$="km-btn"]{grid-row:2;grid-column:2;width:auto !important;height:34px !important;min-height:0 !important;line-height:1;white-space:nowrap;align-self:center;padding:0 14px !important;font-size:12.5px !important;border-radius:12px !important;background:transparent !important;color:#1a8a5c !important;border:1.5px solid #1a8a5c !important}
@@ -735,6 +736,36 @@ html.look-v2 :is(#s-camion,#s-fr-camion) [id$="km-note"]{grid-row:2;grid-column:
 html.look-v2 :is(#dep-btn-etq-camion,#dep-btn-depenses,#dep-btn-carte-camion){display:flex !important;align-items:center;gap:10px;height:42px;padding:0 16px !important;margin-bottom:7px !important;border-radius:14px !important;text-align:left;font-size:14px !important;background:var(--lk-glass) !important;color:var(--text) !important;border:1.5px solid var(--lk-edge) !important}
 html.look-v2 #dep-btn-etq-camion{background:#1d2b26 !important;color:#fff !important;border:0 !important}
 html.look-v2 :is(#dep-btn-etq-camion,#dep-btn-depenses,#dep-btn-carte-camion)::after{content:"›";margin-left:auto;font-size:20px;opacity:.5}
+/* code couleur : Facturé = indigo, Espèces = turquoise, Virement = violet (Encaissé = vert, Reste = orange) */
+html.look-v2 .c-fa{color:#26338f !important}html.look-v2 .c-es{color:#00796b !important}html.look-v2 .c-vi{color:#6b3fa0 !important}html.look-v2 .c-du{color:#b45a00 !important}
+/* Dispatch : suivi financier global, tous les camions */
+html.look-v2 #collecte-content .finance-global{background:var(--lk-glass) !important;border:1px solid var(--lk-edge) !important;border-radius:22px !important;padding:4px 16px 12px !important;box-shadow:0 4px 14px rgba(30,60,45,.1)}
+html.look-v2 .finance-global > .finance-title,html.look-v2 .finance-global > .finance-row,html.look-v2 .finance-global > .finance-bar-bg,html.look-v2 .finance-global > .finance-pct{display:none !important}
+html.look-v2 .fg2{display:block}
+html.look-v2 .fg2-h,html.look-v2 .fg2-mh{font-size:10.5px;font-weight:800;letter-spacing:.09em;color:var(--text3);padding:12px 0 4px}
+html.look-v2 .fg2-mh{border-top:1px solid rgba(0,0,0,.08);margin-top:10px;padding-top:10px}
+html.look-v2 .fg2-r{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.07);font-size:14px}
+html.look-v2 .fg2-r span{color:var(--text2);font-weight:600;display:flex;align-items:center}html.look-v2 .fg2-r b{font-size:15.5px}
+html.look-v2 .fg2-big span{color:var(--text);font-weight:800;font-size:15px}html.look-v2 .fg2-big b{font-size:19px}
+html.look-v2 .fg2-last{border-bottom:0}
+html.look-v2 .fg2-d{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}html.look-v2 .d-g{background:#1a8a5c}html.look-v2 .d-o{background:#e08a1e}
+html.look-v2 .fg2-r b.c-en{color:#0a6b3d}
+html.look-v2 .fg2-bar{height:8px;border-radius:99px;background:#f2d9b8;overflow:hidden;margin-top:3px}html.look-v2 .fg2-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2fb27c,#1a8a5c)}
+html.look-v2 .fg2-cap{display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:var(--text3);padding-top:4px}
+html.look-v2 .fg2-md{display:flex}html.look-v2 .fg2-md > div{flex:1;min-width:0}html.look-v2 .fg2-md > div + div{border-left:1px solid rgba(0,0,0,.08);padding-left:14px}
+html.look-v2 .fg2-md small{display:block;font-size:11.5px;font-weight:700}html.look-v2 .fg2-md b{font-size:16px}
+html.look-v2 .fg2-tg{display:flex;width:100%;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 12px;border-radius:12px;border:0;background:rgba(0,0,0,.05);font:800 13.5px var(--font,inherit);color:var(--text);cursor:pointer}
+html.look-v2 .fg2-ch{font-size:18px;color:#1a8a5c;line-height:1;transition:transform .2s}html.look-v2 .fg2.open .fg2-ch{transform:rotate(180deg)}
+html.look-v2 .fg2-tb{display:none}html.look-v2 .fg2.open .fg2-tb{display:block}
+html.look-v2 .fg2-tb table{width:100%;border-collapse:collapse;margin-top:4px;font-variant-numeric:tabular-nums}
+html.look-v2 .fg2-tb th{font-size:9px;font-weight:800;text-align:right;padding:4px 0 6px;width:15%}html.look-v2 .fg2-tb th:first-child{text-align:left;width:auto;color:var(--text3)}
+html.look-v2 .fg2-tb td{font-size:13.5px;font-weight:700;text-align:right;padding:9px 0;border-top:1px solid rgba(0,0,0,.07)}
+html.look-v2 .fg2-tb td:first-child{text-align:left;font-weight:800;font-size:13px;line-height:1.2}
+html.look-v2 .fg2-tb td:first-child i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px}
+html.look-v2 .fg2-tb .fg2-tot td{font-weight:800;font-size:14.5px;border-top:2px solid rgba(0,0,0,.18);background:rgba(0,0,0,.03)}html.look-v2 .fg2-tb .fg2-tot td:first-child{padding-left:6px}
+html.look-v2 .fg-aff{border-top:1px solid rgba(0,0,0,.08) !important;margin-top:12px !important;padding-top:10px !important}
+html.look-v2 .fg-aff-t{font-size:10.5px !important;letter-spacing:.09em;color:var(--text3)}html.look-v2 .fg-aff-t span:first-child{text-transform:uppercase}
+html.look-v2 .fg-aff .progress-bg{height:8px !important;border-radius:99px !important;border:0 !important}html.look-v2 .fg-aff .progress-bar{border-radius:99px !important;background:linear-gradient(90deg,#2fb27c,#1a8a5c) !important}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

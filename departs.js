@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.61';
+var DEP_VERSION = 'v2.22.62';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20990,6 +20990,50 @@ function _depInjecterEncaisseGlobalDispatch(){
   row.innerHTML = '<span class="finance-label">&#9989; Collect&eacute;</span>'
     + '<span class="finance-val" style="color:#006b2d;">' + _depEncaisseGlobalCollecte() + ' &euro;</span>';
   bar.parentNode.insertBefore(row, bar);
+  try{ _depBlocFinanceGlobalV2(box); }catch(e){ console.error('departs: bloc finance V2', e); }
+}
+
+// Nouveau look (04/11/2026) — Cobey, 08/11 : « le total reçu en espèces et virement (ici c'est le total de tous les camions) » ;
+// « d'abord le total de tout, et un menu qui apparaît en appuyant sur une flèche : le détail de chaque camion ».
+// Caché en V1 (.fg2{display:none} dans dct-app.html) ; en V2 il remplace titre / lignes / barre de l'ancien bandeau.
+// Facturé = colis des clients ramassés, Encaissé = versements de ces clients (voir _depEncaisseDuCamion), espèces / virement
+// = leurs méthodes (un versement sans méthode n'est compté dans aucun des deux).
+window._fg2Ouvert = window._fg2Ouvert || false;
+function _depBlocFinanceGlobalV2(box){
+  if(!box || box.querySelector('.fg2')) return;
+  var trks = getTrucks(), cls = getClients(), lignes = [], T = { f:0, e:0, v:0, enc:0 };
+  Object.keys(trks).forEach(function(k){
+    var tk = trks[k]; if(!tk) return;
+    var f = depArrondi2(getTruckCollected(k, trks, cls)), enc = _depEncaisseDuCamion(tk), pm = _depEncaisseParMethodeCamion(tk);
+    var tc = getTc(k);
+    lignes.push({ nom: tk.name || ('Camion ' + k), coul: (tc && tc.bar) || '#999', f: f, e: pm.especes, v: pm.virement, r: depArrondi2(Math.max(0, f - enc)) });
+    T.f += f; T.e += pm.especes; T.v += pm.virement; T.enc += enc;
+  });
+  T.f = depArrondi2(T.f); T.e = depArrondi2(T.e); T.v = depArrondi2(T.v); T.enc = depArrondi2(T.enc);
+  var du = depArrondi2(Math.max(0, T.f - T.enc)), pct = T.f > 0 ? Math.max(0, Math.min(100, T.enc / T.f * 100)) : 0;
+  var eu = function(n){ return _depEuros(n) + ' &euro;'; };
+  var h = '<div class="fg2' + (window._fg2Ouvert ? ' open' : '') + '">'
+    + '<div class="fg2-h">SUIVI FINANCIER GLOBAL &middot; TOUS LES CAMIONS</div>'
+    + '<div class="fg2-r fg2-big"><span>Factur&eacute;</span><b class="c-fa">' + eu(T.f) + '</b></div>'
+    + '<div class="fg2-r"><span><i class="fg2-d d-g"></i>Encaiss&eacute;</span><b class="c-en">' + eu(T.enc) + '</b></div>'
+    + '<div class="fg2-r fg2-last"><span><i class="fg2-d d-o"></i>Encore d&ucirc;</span><b class="c-du">' + eu(du) + '</b></div>'
+    + '<div class="fg2-bar"><i style="width:' + pct.toFixed(1) + '%"></i></div>'
+    + '<div class="fg2-cap"><span>' + Math.round(pct) + ' % encaiss&eacute;</span><span>sur ' + eu(T.f) + ' factur&eacute;s</span></div>'
+    + '<div class="fg2-mh">ENCAISS&Eacute; PAR MODE</div>'
+    + '<div class="fg2-md"><div><small class="c-es">&#128181; Esp&egrave;ces</small><b class="c-es">' + eu(T.e) + '</b></div>'
+    + '<div><small class="c-vi">&#127974; Virement</small><b class="c-vi">' + eu(T.v) + '</b></div></div>';
+  if(lignes.length){
+    h += '<button type="button" class="fg2-tg" onclick="var z=this.parentNode;z.classList.toggle(\'open\');window._fg2Ouvert=z.classList.contains(\'open\');">'
+      + '<span>D&eacute;tail par camion (' + lignes.length + ')</span><span class="fg2-ch">&#8964;</span></button>'
+      + '<div class="fg2-tb"><table><tr><th>CAMION</th><th class="c-fa">FACTUR&Eacute;</th><th class="c-es">ESP&Egrave;CES</th><th class="c-vi">VIREMENT</th><th class="c-du">RESTE</th></tr>';
+    lignes.forEach(function(l){
+      h += '<tr><td><i style="background:' + l.coul + '"></i>' + (typeof esc === 'function' ? esc(l.nom) : l.nom) + '</td><td class="c-fa">' + _depEuros(l.f) + '</td><td class="c-es">' + _depEuros(l.e) + '</td><td class="c-vi">' + _depEuros(l.v) + '</td><td class="c-du">' + _depEuros(l.r) + '</td></tr>';
+    });
+    h += '<tr class="fg2-tot"><td>Total</td><td class="c-fa">' + _depEuros(T.f) + '</td><td class="c-es">' + _depEuros(T.e) + '</td><td class="c-vi">' + _depEuros(T.v) + '</td><td class="c-du">' + _depEuros(du) + '</td></tr></table></div>';
+  }
+  h += '</div>';
+  var tmp = document.createElement('div'); tmp.innerHTML = h;
+  box.insertBefore(tmp.firstChild, box.firstChild);
 }
 
 // Même somme, côté France (tous les camions de la collecte ouverte).
