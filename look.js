@@ -320,18 +320,19 @@
   /* ---------- barre du bas : Accueil · Clients · Suivi · Activité (V2 seulement) ----------
      Cobey : « dans la maquette il y avait des lignes en dessous avec client, accueil ». Visible sur
      les écrans de liste, pas sur les formulaires ni les documents (clavier, impression). */
-  var DOCK_ECRANS = { 's-espaces':'accueil', 's-clients':'clients', 's-suivi':'suivi', 's-activite':'activite' };   // écrans principaux seulement
+  var DOCK_ECRANS = { 's-espaces':'accueil', 's-clients':'clients', 's-suivi':'suivi', 's-objectifs':'objectifs' };   // écrans principaux seulement
   var DOCK_SVG = {
     accueil:'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
     clients:'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
     suivi:'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
-    activite:'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0'
+    objectifs:'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3'
   };
-  var DOCK_LIB = { accueil:'Accueil', clients:'Clients', suivi:'Suivi', activite:'Activité' };
+  var DOCK_LIB = { accueil:'Accueil', clients:'Clients', suivi:'Suivi', objectifs:'Objectifs' };
   function dockAller(t){
     try{
       if(t === 'accueil'){ goTo('s-espaces'); if(typeof depRenderEspaces === 'function') depRenderEspaces(); }
       else if(t === 'clients'){ if(typeof depOuvrirEspaceClient === 'function') depOuvrirEspaceClient(); else setNav('clients'); }
+      else if(t === 'objectifs'){ if(window.objectifs && window.objectifs.page) window.objectifs.page(); else setNav('home'); }
       else setNav(t);
     }catch(e){ console.error('look : barre du bas', e); }
   }
@@ -346,7 +347,7 @@
     if(!dock){
       dock = document.createElement('nav');
       dock.id = 'lk-dock'; dock.setAttribute('aria-label', 'Navigation principale');
-      dock.innerHTML = ['accueil','clients','suivi','activite'].map(function(t){
+      dock.innerHTML = ['accueil','clients','suivi','objectifs'].map(function(t){
         return '<button type="button" data-t="' + t + '"><svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + DOCK_SVG[t] + '"/></svg><span>' + DOCK_LIB[t] + '</span></button>';
       }).join('');
       dock.addEventListener('click', function(ev){ var b = ev.target.closest('button[data-t]'); if(b) dockAller(b.getAttribute('data-t')); });
@@ -358,7 +359,7 @@
     [].forEach.call(dock.querySelectorAll('button'), function(b){
       var t = b.getAttribute('data-t');
       b.classList.toggle('on', t === cle);
-      b.style.display = (t === 'activite' && sans) ? 'none' : '';
+      b.style.display = '';
     });
   }
   if(typeof window.goTo === 'function'){

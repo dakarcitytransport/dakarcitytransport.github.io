@@ -83,6 +83,21 @@
       + '.ob-l2.ob-mq,.cl-l2 span.ob-mq{text-overflow:clip !important}'
       + '.ob-mq .ob-t{animation:obMq var(--dur,6s) ease-in-out infinite alternate}'
       + '@keyframes obMq{0%,20%{transform:translateX(0)}80%,100%{transform:translateX(var(--dx,0px))}}';
+    // Page « Objectifs » (bouton de la barre du bas) : mêmes cartes que les bannières, toutes visibles en même temps.
+    st.textContent += st.textContent.replace(/#ob-pt/g, '#opg-pt-inutile').replace(/#cl-pt/g, '#opg-pt-inutile2').replace(/#ob-accueil|#cl-accueil/g, '#obj-page .opg')
+      + '#obj-page .ob-m.cp{padding:7px 12px 8px}#obj-page .ob-m.cp .ob-bar{margin:5px 0 3px;height:7px}'
+      + '#obj-page .ob-m.moi{outline:2.5px solid rgba(14,159,91,.75);outline-offset:-1px}'
+      + '#obj-page .opg{margin:0 0 9px}'
+      + '#obj-page .pg-t{font-size:10.5px;font-weight:800;letter-spacing:.09em;color:var(--text3,#667);margin:14px 4px 7px;display:flex;justify-content:space-between;gap:8px}#obj-page .pg-t span{font-weight:700;letter-spacing:0;white-space:nowrap}'
+      + '#obj-page .pg-big{font-size:26px;font-weight:800;letter-spacing:-.02em}#obj-page .pg-big i{font-style:normal;font-size:13px;font-weight:700;opacity:.65}'
+      + '#obj-page .pg-note{font-size:12px;font-weight:700;margin-top:3px}'
+      + '#obj-page .pg-gr{display:flex;align-items:flex-end;gap:8px;height:92px;position:relative;margin-top:6px}'
+      + '#obj-page .pg-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}'
+      + '#obj-page .pg-col b{font-size:11.5px;margin-bottom:2px}#obj-page .pg-bar{width:100%;max-width:38px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,#6b79de,#3a4bb8);min-height:3px}'
+      + '#obj-page .pg-col.ok .pg-bar{background:linear-gradient(180deg,#3fc58e,#1a8a5c)}#obj-page .pg-col.fut .pg-bar{background:rgba(0,0,0,.1)}#obj-page .pg-col.cur .pg-bar{box-shadow:0 0 0 2px rgba(14,159,91,.8)}'
+      + '#obj-page .pg-col small{font-size:10.5px;font-weight:800;color:#556;margin-top:3px}'
+      + '#obj-page .pg-obj{position:absolute;left:0;right:0;border-top:2px dashed rgba(224,138,30,.85)}#obj-page .pg-obj span{position:absolute;right:0;top:-15px;font-size:10px;font-weight:800;color:#a04800}'
+      + '#obj-page .pg-pied{font-size:11.5px;color:var(--text3,#667);font-weight:600;line-height:1.45;margin:10px 4px 20px}';
     document.head.appendChild(st);
   })();
 
@@ -589,6 +604,100 @@
     setTimeout(function(){ defiler(el.querySelector('.ob-m.on')); }, 120);
   }
 
+  /* ---------- Page « Objectifs » (bouton de la barre du bas, à la place d'« Activité ») ----------
+     Cobey : « à la place d'Activité, un bouton pour le classement ou les objectifs qui récapitule tout ce qu'on vient de mettre en place : l'objectif du
+     conteneur, le classement… on aura comme ça la vision d'un coup, sans le défilement. » (Activité reste accessible par l'horloge de l'accueil.) */
+  function ecranPage(){
+    var e = document.getElementById('s-objectifs'); if(e) return e;
+    e = document.createElement('div'); e.className = 'screen'; e.id = 's-objectifs';
+    e.innerHTML = '<div class="header"><button class="btn-back" onclick="goTo(\'s-espaces\');try{depRenderEspaces()}catch(e){}">&larr; Accueil</button>'
+      + '<div style="text-align:center;flex:1"><div class="h-title">Objectifs</div><div class="h-sub" id="obj-sous">Container, dimanche et classement</div></div><span style="width:70px"></span></div>'
+      + '<div class="content"><div id="obj-page"></div></div>';
+    var frere = document.getElementById('s-activite') || document.getElementById('s-suivi') || document.getElementById('s-espaces');
+    (frere && frere.parentNode ? frere.parentNode : document.body).appendChild(e);
+    return e;
+  }
+  function htmlPage(){
+    var h = '', cs = containers(), classement = slidesClassement(), moi = (window.currentUser || {}).id;
+    if(!cs.length) return '<div class="pg-pied" style="text-align:center;margin-top:40px">Aucun container en préparation pour le moment.</div>';
+    // « Pour chaque profil, en haut de la page, son objectif à lui » (Cobey) : la carte personnelle de la personne connectée.
+    var perso = classement.filter(function(x){ return x.id === moi; })[0], inf1 = infoContainer(cs[0]);
+    if(perso){
+      var fs1 = inf1 ? Math.min(1, (7 * inf1.sem) / ((jours(inf1.fin) - jours(inf1.debut)) + 1)) : null, cible = fs1 === null ? null : Math.round(perso.obj * fs1);
+      var noteP = cible === null ? '' : (perso.n >= perso.obj ? '✅ Ton objectif est atteint, bravo !' : (perso.n >= cible ? '✅ Tu es dans les temps pour la semaine ' + inf1.sem + ' (' + cible + ' clients)' : '⏱️ Pour être dans les temps à la fin de la semaine ' + inf1.sem + ' : ' + cible + ' clients (il t’en manque ' + (cible - perso.n) + ')'));
+      var avP = (window.photosProfil && window.photosProfil.avatar) ? window.photosProfil.avatar(perso.id, 28) : '';
+      var mdP = perso.medaille ? '<span class="cl-md">' + ['🥇', '🥈', '🥉'][perso.i] + '</span>' : '<span class="cl-md num">' + (perso.i + 1) + '</span>';
+      h += '<div class="pg-t"><b>🎯 TON OBJECTIF</b><span>' + esc(perso.rang) + '</span></div>'
+        + '<div class="opg"><div class="ob-m ' + perso.classe + ' on moi"><div class="ob-l1">' + mdP + avP + '<span class="cl-nom">' + esc(perso.nom) + '</span><span class="cl-rk"></span><span class="cl-n"><b>' + eurosFr(perso.eu) + '</b></span></div>'
+        + '<div class="pg-big">' + perso.n + ' <i>/ ' + perso.obj + ' clients ramassés</i></div>'
+        + '<div class="ob-bar"><i style="width:' + perso.pct.toFixed(1) + '%"></i>' + (perso.repere !== null && perso.n < perso.obj ? '<u style="left:calc(' + perso.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
+        + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(perso.txt) + '</i></span>' + (perso.nSem > 0 ? '<span class="cl-wk">+' + perso.nSem + ' cette semaine</span>' : '') + '</div>'
+        + (noteP ? '<div class="pg-note">' + noteP + '</div>' : '') + '</div></div>';
+    } else if(moi && collabsClassement().every(function(c){ return c.id !== moi; })){
+      h += '<div class="pg-pied" style="margin:0 4px 4px">Tu suis l’équipe depuis un profil administrateur : tu n’apparais pas dans le classement.</div>';
+    }
+    cs.forEach(function(d){
+      var nomC = String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
+      var info = infoContainer(d), m = messageContainer(d), obj = cfg.container;
+      // 1. le container
+      var note = '';
+      if(info && m.n < obj){
+        var finSem = Math.min(1, (7 * info.sem) / ((jours(info.fin) - jours(info.debut)) + 1)), cible = Math.round(obj * finSem);
+        note = '<div class="pg-note">' + (m.n >= cible ? '✅ Objectif de la semaine ' + info.sem + ' (' + cible + ') atteint' : '⏱️ Pour être dans les temps à la fin de la semaine ' + info.sem + ' : ' + cible + ' clients (il en manque ' + (cible - m.n) + ')') + '</div>';
+      }
+      h += '<div class="pg-t"><b>🚛 ' + esc(nomC) + '</b><span>' + (info ? 'Semaine ' + info.sem + ' sur ' + info.N : '') + '</span></div>'
+        + '<div class="opg"><div class="ob-m ' + m.classe + ' on"><div class="ob-l1"><span class="ob-tag">OBJECTIF</span><span class="ob-nom">container</span></div>'
+        + '<div class="pg-big">' + m.n + ' <i>/ ' + obj + ' clients ramassés</i></div>'
+        + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i>' + (m.repere !== null && m.classe !== 'd' ? '<u style="left:calc(' + m.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
+        + '<div class="ob-l2">' + esc(m.txt) + '</div>' + note + '</div></div>';
+      // 2. par dimanche
+      if(info){
+        var dj = jours(info.debut), cnt = []; for(var k = 0; k < info.N; k++) cnt.push(0);
+        fichesRamassees(d._id).forEach(function(x){ var di = dateRamasse(x); if(!di) return; var w = Math.max(0, Math.min(info.N - 1, Math.floor((jours(di) - dj) / 7))); cnt[w]++; });
+        var od = objDimanche(), mx = Math.max(od, Math.max.apply(null, cnt), 1), col = '';
+        for(var w = 0; w < info.N; w++){
+          var cl = (w + 1 > info.sem ? 'fut' : (cnt[w] >= od ? 'ok' : '')) + (w + 1 === info.sem ? ' cur' : '');
+          col += '<div class="pg-col ' + cl + '"><b>' + (w + 1 > info.sem ? '' : cnt[w]) + '</b><div class="pg-bar" style="height:' + (w + 1 > info.sem ? 3 : Math.max(3, Math.round(cnt[w] / mx * 70))) + 'px"></div><small>S' + (w + 1) + '</small></div>';
+        }
+        h += '<div class="pg-t"><b>📅 PAR DIMANCHE</b><span>objectif ' + od + ' clients</span></div>'
+          + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.16),rgba(74,85,200,.05))"><div class="pg-gr"><div class="pg-obj" style="bottom:' + Math.round(od / mx * 70 + 23) + 'px"><span>' + od + '</span></div>' + col + '</div></div></div>';
+      }
+      // 3. le classement, tout le monde en même temps
+      var lignes = classement.filter(function(x){ return x.container === String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : ''); });
+      if(lignes.length){
+        h += '<div class="pg-t"><b>🏆 CLASSEMENT' + (info ? ' · SEMAINE ' + info.sem + '/' + info.N : '') + '</b><span>' + (info ? 'mis à jour dimanche ' + esc(dateJour(info.dimanche)) : '') + '</span></div>';
+        lignes.forEach(function(x){
+          var av = (window.photosProfil && window.photosProfil.avatar) ? window.photosProfil.avatar(x.id, 28) : '';
+          var md = x.medaille ? '<span class="cl-md">' + ['🥇', '🥈', '🥉'][x.i] + '</span>' : '<span class="cl-md num">' + (x.i + 1) + '</span>';
+          h += '<div class="opg"><div class="ob-m ' + x.classe + ' on cp' + (x.id === moi ? ' moi' : '') + '"><div class="ob-l1">' + md + av + '<span class="cl-nom">' + esc(x.nom) + (x.id === moi ? ' (toi)' : '') + '</span><span class="cl-rk"></span>'
+            + '<span class="cl-n"><b>' + eurosFr(x.eu) + '</b></span></div>'
+            + '<div class="ob-bar"><i style="width:' + x.pct.toFixed(1) + '%"></i>' + (x.repere !== null && x.n < x.obj ? '<u style="left:calc(' + x.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
+            + '<div class="ob-l2 cl-l2"><span style="font-weight:800">🎯 Objectif ' + x.n + ' / ' + x.obj + '</span>' + (x.nSem > 0 ? '<span class="cl-wk">+' + x.nSem + ' cette semaine</span>' : '') + '</div></div></div>';
+        });
+      }
+    });
+    h += '<div class="pg-pied">Seuls les clients <b>ramassés</b> (validés) comptent : collecte validée dans un camion, France ramassée par notre chauffeur ou le chauffeur externe, dépôt direct. Le trait sur chaque barre montre où l’on devrait en être aujourd’hui. Le classement est refait chaque dimanche, après la ramasse.</div>';
+    return h;
+  }
+  var pageSig = '';
+  function rendrePage(force){
+    try{
+      var z = document.getElementById('obj-page'); if(!z) return;
+      var h = htmlPage();
+      if(!force && h === pageSig) return;
+      pageSig = h; z.innerHTML = h;
+      var cs = containers()[0], inf = cs && infoContainer(cs), sous = document.getElementById('obj-sous');
+      if(sous) sous.textContent = inf ? 'Semaine ' + inf.sem + ' sur ' + inf.N : 'Container et classement';
+    }catch(e){ console.error('objectifs : page', e); }
+  }
+  function ouvrirPage(){
+    ecranPage();
+    try{ goTo('s-objectifs'); }catch(e){ console.error(e); }
+    rendrePage(true);
+  }
+  // La page se remet à jour toute seule tant qu'elle est ouverte (une validation de ramasse, un client France…).
+  setInterval(function(){ var a = document.querySelector('.screen.active'); if(a && a.id === 's-objectifs' && !document.hidden) rendrePage(false); }, 3000);
+
   /* ---------- lecture des chiffres dans Firebase ---------- */
   var ecoute = false;
   function ecouter(){
@@ -672,5 +781,5 @@
       maj();
     }).catch(function(err){ try{ showToastNew('❌ Échec : ' + ((err && err.message) || 'écriture refusée')); }catch(x){} });
   });
-  window.objectifs = { afficher: maj, messages: messages, classement: slidesClassement, defiler: defiler, config: function(){ return cfg; } };
+  window.objectifs = { page: ouvrirPage, html: htmlPage, afficher: maj, messages: messages, classement: slidesClassement, defiler: defiler, config: function(){ return cfg; } };
 })();
