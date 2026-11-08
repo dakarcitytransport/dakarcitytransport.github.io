@@ -332,7 +332,7 @@
     try{
       if(t === 'accueil'){ goTo('s-espaces'); if(typeof depRenderEspaces === 'function') depRenderEspaces(); }
       else if(t === 'clients'){ if(typeof depOuvrirEspaceClient === 'function') depOuvrirEspaceClient(); else setNav('clients'); }
-      else if(t === 'objectifs'){ if(window.objectifs && window.objectifs.page) window.objectifs.page(); else setNav('home'); }
+      else if(t === 'objectifs'){ if(window.objectifs && window.objectifs.page) window.objectifs.page(); else { goTo('s-espaces'); try{ showToastNew('⚠️ La page Objectifs n’est pas chargée : ferme puis rouvre l’application.'); }catch(e){} } }
       else setNav(t);
     }catch(e){ console.error('look : barre du bas', e); }
   }

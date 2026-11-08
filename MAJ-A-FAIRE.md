@@ -6897,3 +6897,8 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Bilan d'un container (toucher une carte) : « ← Historique », chargé le …, « Ton bilan » (place avec médaille, clients, euros, part du container, 3 phrases variées : part / meilleure semaine / classement final), graphique de toutes les semaines (ramasse + la personne), classement final avec photos. Menu « 👁️ Voir comme » (Eric) actif partout : onglets, historique et bilan de n'importe quel collaborateur.
 - Testé (faux Firebase) : onglets, historique, bilan vu par Issyaka (Eric), retour. Balayage 74 écrans non relancé.
 - INCIDENT : le premier envoi de la v3.99.336 contenait une faute de guillemet dans objectifs.js (ddb4305, page Objectifs et bannières de l'accueil sans effet pendant quelques minutes) ; corrigé dans le commit suivant. Leçon : vérifier la syntaxe AVANT de committer, dans la même commande.
+
+### 08/11/2026 — Correctif : bouton Objectifs qui menait à la page des collectes (v3.99.337, look.js)
+> Cobey : « quand je clique sur Objectif, je tombe sur la page des collectes ».
+- Cause : le premier envoi de la v3.99.336 (objectifs.js cassé) est resté en cache sur le téléphone sous le même `?v=` que le correctif ; `window.objectifs` n'existait pas et le bouton retombait sur `setNav('home')` (= la page des collectes).
+- Corrigé : numéro de version monté (v3.99.337, donc nouveau fichier téléchargé) ; si la page Objectifs n'est pas chargée, le bouton ramène à l'accueil et affiche « ferme puis rouvre l'application » au lieu d'ouvrir les collectes. Règle à retenir : si un fichier chargé par `?v=` a été publié cassé, TOUJOURS monter la version dans le correctif.
