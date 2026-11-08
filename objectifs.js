@@ -62,6 +62,10 @@
       + '#cl-accueil .cl-l2 span{min-width:0;overflow:hidden;text-overflow:ellipsis}#cl-accueil .cl-l2 small{flex:none;font-size:10.5px;color:#667;font-weight:700}'
       + '#cl-accueil .ob-l1 .ph-mini{border:2px solid #fff;box-sizing:border-box}'
       + '#cl-pt{margin-top:-8px}';
+    st.textContent += '.ob-l2 .ob-t{display:inline-block;white-space:nowrap;font-style:normal}'
+      + '.ob-l2.ob-mq,.cl-l2 span.ob-mq{text-overflow:clip !important}'
+      + '.ob-mq .ob-t{animation:obMq var(--dur,6s) ease-in-out infinite alternate}'
+      + '@keyframes obMq{0%,20%{transform:translateX(0)}80%,100%{transform:translateX(var(--dx,0px))}}';
     document.head.appendChild(st);
   })();
 
@@ -91,25 +95,38 @@
   // Panel de messages : plusieurs phrases par situation, une différente chaque jour (stable dans la journée, pas de clignotement).
   function hash(t){ var h = 0; for(var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0; return h; }
   function pl(n, mot){ return n + ' ' + mot + (n > 1 ? 's' : ''); }
-  function choisir(liste, cle, vars){
-    var t = liste[hash(auj() + '|' + cle) % liste.length];
-    return t.replace(/\{(\w+)\}/g, function(m, k){ return vars[k] != null ? vars[k] : m; });
+  // Les phrases : plusieurs dizaines par situation ; à chaque passage de la case, on tire une phrase différente de celle d'avant (jamais deux fois la même d'affilée).
+  function formater(t, vars){ return t.replace(/\{(\w+)\}/g, function(m, k){ return vars[k] != null ? vars[k] : m; }); }
+  function candidats(liste, vars){ return liste.map(function(t){ return formater(t, vars); }); }
+  function tirer(fam, exclure){
+    var c = fam.length > 1 ? fam.filter(function(t){ return t !== exclure; }) : fam;
+    return c[Math.floor(Math.random() * c.length)];
   }
   var PANEL = {
-    cAtteint: ['🎉 {obj} clients, bravo l’équipe !', '🏆 Container plein, on peut être fiers', '🎉 Objectif rempli, le reste est du bonus', '💪 {obj} clients : mission accomplie !'],
-    cAvance: ['🔥 En avance — il reste {pl}', '🚀 Beau rythme : {n} déjà !', '🔥 L’équipe assure, encore {pl}', '😎 On prend de l’avance, continuez'],
-    cTemps: ['👍 Bon rythme — il reste {pl}', '✅ Dans les temps, ne lâchez rien', '👍 Ça avance bien, encore {pl}', '🙂 On garde ce cap : {pl} à trouver'],
-    cRetard: ['⏳ Il faut accélérer — {pl} avant le {date}', '📣 Un coup de collier : {pl} à trouver', '⏳ Un peu de retard, on s’y met !', '💥 Allez, {pl} avant le {date}'],
-    cSans: ['Il reste {pl} à trouver', 'Encore {pl} pour remplir le container', '{pl} à trouver, on y va'],
-    dAtteint: ['🎯 Objectif atteint, bravo !', '🎉 Objectif rempli, bien joué', '💪 On y est : objectif atteint !'],
-    dDepasse: ['🎯 Objectif dépassé de {plus} !', '🔥 +{plus} au-dessus de l’objectif', '🏆 Dépassé de {plus}, bravo !'],
-    dProche: ['Encore {reste} pour atteindre l’objectif', 'Presque ! Plus que {reste}', '👀 Il manque seulement {reste}'],
-    dMoyen: ['Courage, {reste} de plus pour l’objectif', 'On avance : encore {reste} à trouver', '💬 {reste} de plus et c’est bon'],
-    dBas: ['Il en manque {reste} : on s’y met !', '📞 Il faut en trouver {reste}, allez !', '⏳ Encore {reste} à chercher, on s’y met'],
-    bBien: ['🎯 Dépassé de {plus}, belle journée !', '🎉 {n} clients aujourd’hui, bravo !', '🏆 Objectif atteint, super dimanche !'],
-    bPresque: ['👍 {n} clients, presque ! Dimanche prochain', '🙂 Pas loin de l’objectif, bon travail', '💪 Presque, on vise l’objectif la prochaine fois'],
-    bPas: ['{n} clients seulement : on fera mieux la semaine prochaine', 'Dimanche calme, on vise plus haut', '📈 Objectif manqué, on se rattrape dimanche prochain']
+    cAtteint: ['🎉 {obj} clients, bravo l’équipe !', '🏆 Container plein, on peut être fiers', '🎉 Objectif rempli, le reste est du bonus', '💪 {obj} clients : mission accomplie !', '🥳 Le container est complet, bravo !', '👏 Objectif atteint, quelle équipe !', '🔥 On l’a fait : {obj} clients !', '🚛 Plein de clients, le camion est content', '✅ Objectif validé, merci à tous', '🌟 Du grand travail, l’équipe !', '🎯 En plein dans le mille : {obj} !', '🙌 Bravo à tous, c’est rempli', '🏅 Container bouclé, félicitations', '😎 Objectif atteint, on souffle un peu', '💥 Cent pour cent, bien joué !', '🍾 On fête ça : container complet !'],
+    cAvance: ['🔥 En avance — il reste {pl}', '🚀 Beau rythme : {n} déjà !', '🔥 L’équipe assure, encore {pl}', '😎 On prend de l’avance, continuez', '🏃 On court plus vite que prévu !', '💪 Super rythme, plus que {pl}', '👏 Devant le planning, bravo !', '⚡ Ça file : {n} clients déjà', '🌟 Belle avance, ne ralentissez pas', '🚀 Cap sur le container plein !', '😄 Mieux que prévu, continuez ainsi', '📈 Courbe au-dessus de l’objectif', '🔝 On est devant, gardons ça', '🎯 Presque là : encore {pl}', '🙌 Excellente cadence, l’équipe', '💥 {n} clients, et ça continue !'],
+    cTemps: ['👍 Bon rythme — il reste {pl}', '✅ Dans les temps, ne lâchez rien', '👍 Ça avance bien, encore {pl}', '🙂 On garde ce cap : {pl} à trouver', '🧭 Pile dans le planning, continuez', '👌 Rythme régulier, c’est parfait', '💬 Encore {pl}, on est dans la course', '🚛 Le container se remplit bien', '📅 On suit le planning, bravo', '🙂 Tout va bien, encore un effort', '🔄 Cadence tenue, ne relâchez pas', '⏱️ À l’heure, il reste {pl}', '🤝 Bon travail d’équipe, on continue', '👏 Ça se passe comme prévu', '🎯 {pl} et c’est complet', '🌿 Sans stress, on avance bien'],
+    cRetard: ['⏳ Il faut accélérer — {pl} avant le {date}', '📣 Un coup de collier : {pl} à trouver', '⏳ Un peu de retard, on s’y met !', '💥 Allez, {pl} avant le {date}', '📞 Appelez vos contacts, il en manque', '🚨 On est en retard, on accélère', '⏰ Le {date} approche : {pl} à trouver', '💪 On peut rattraper, il suffit de s’y mettre', '🔔 Il faut relancer les contacts !', '🏃 On accélère : {pl} avant le {date}', '📈 Un effort collectif et c’est rattrapé', '🧩 Il manque {pl}, cherchons ensemble', '🔥 Tous ensemble pour rattraper le retard', '📣 Pensez à vos proches : {pl} à trouver', '⚠️ Retard à rattraper avant le {date}', '☎️ Un coup de fil, un client de plus !'],
+    cSans: ['Il reste {pl} à trouver', 'Encore {pl} pour remplir le container', '{pl} à trouver, on y va', 'Objectif : {pl} de plus', '📣 Il manque {pl} pour le container', '🎯 {pl} et c’est complet', '🚛 Remplissons le container : {pl} à trouver', '💪 {pl} à aller chercher'],
+    dAtteint: ['🎯 Objectif atteint, bravo !', '🎉 Objectif rempli, bien joué', '💪 On y est : objectif atteint !', '🏆 Dimanche réussi : objectif atteint', '👏 Pile à l’objectif, félicitations', '✅ Objectif validé pour ce dimanche', '🙌 L’équipe a tenu son objectif !', '🔥 Objectif en poche, bravo'],
+    dDepasse: ['🎯 Objectif dépassé de {plus} !', '🔥 +{plus} au-dessus de l’objectif', '🏆 Dépassé de {plus}, bravo !', '🚀 {plus} de plus que l’objectif !', '👏 Au-delà de l’objectif : +{plus}', '💥 L’objectif explosé de {plus} !', '🌟 Dépassement de {plus}, quelle équipe', '🎉 +{plus} : on voit grand !', '💪 Mieux que prévu de {plus}', '🥳 Objectif battu de {plus} !'],
+    dProche: ['Encore {reste} pour atteindre l’objectif', 'Presque ! Plus que {reste}', '👀 Il manque seulement {reste}', '🔥 Plus que {reste}, on y est presque', '🏁 Ligne d’arrivée en vue : {reste}', '💪 {reste} et l’objectif est tenu', '😮 Si près du but : encore {reste}', '⚡ Un dernier effort : {reste}', '🎯 À {reste} de l’objectif', '👏 Belle avance, plus que {reste}', '📞 Encore {reste} et c’est gagné', '🚀 On touche au but, {reste} !'],
+    dMoyen: ['Courage, {reste} de plus pour l’objectif', 'On avance : encore {reste} à trouver', '💬 {reste} de plus et c’est bon', '💪 La moitié est faite, encore {reste}', '📈 Ça monte, il reste {reste}', '🙂 Bon début, {reste} à aller chercher', '☎️ Encore {reste} à trouver, appelez !', '🧭 À mi-chemin : encore {reste}', '🤝 Ensemble, encore {reste}', '⏳ Il reste du temps, {reste} à trouver', '🔔 Relancez vos contacts : {reste}', '🌱 Ça pousse, encore {reste}'],
+    dBas: ['Il en manque {reste} : on s’y met !', '📞 Il faut en trouver {reste}, allez !', '⏳ Encore {reste} à chercher, on s’y met', '🚨 {reste} à trouver pour cet objectif', '📣 Il manque {reste} : tous au téléphone', '💪 On peut y arriver : {reste} à trouver', '🏃 On accélère : {reste} à aller chercher', '☎️ Un appel, un client : {reste} à trouver', '🔔 Le dimanche approche : encore {reste}', '🧩 {reste} à compléter, cherchons', '🔥 Mobilisation : {reste} à trouver', '📅 Il reste {reste} à ajouter, on s’y met'],
+    bBien: ['🎯 Dépassé de {plus}, belle journée !', '🎉 {n} clients aujourd’hui, bravo !', '🏆 Objectif atteint, super dimanche !', '👏 Très belle journée : {n} clients', '🔥 Objectif tenu, bravo à tous', '🥳 Dimanche réussi, {n} clients !', '💪 Du solide aujourd’hui : {n} clients', '🌟 Belle journée, l’équipe a assuré', '✅ Objectif atteint, merci à tous', '🚀 {n} clients : un très bon dimanche', '🙌 Bravo, dimanche au top', '🍾 Journée gagnée, félicitations'],
+    bPresque: ['👍 {n} clients, presque ! Dimanche prochain', '🙂 Pas loin de l’objectif, bon travail', '💪 Presque, on vise l’objectif la prochaine fois', '👏 Bonne journée, très proche du but', '😮 Il s’en est fallu de peu, bravo', '📈 {n} clients : encore un peu et c’était bon', '🎯 Si près de l’objectif, bien joué', '🔥 Beau dimanche, on fera encore mieux', '🤝 Belle équipe, presque au but', '🙂 Un petit effort de plus dimanche prochain', '💬 Presque réussi, on y retourne', '👌 Bon dimanche, l’objectif est proche'],
+    bPas: ['{n} clients : on fera mieux dimanche prochain', 'Dimanche calme, on vise plus haut', '📈 Objectif manqué, on se rattrape dimanche prochain', '🙂 Pas cette fois, la semaine prochaine sera la bonne', '💪 On se relève : dimanche prochain, on y va', '📣 Dimanche difficile, on remobilise tout le monde', '☎️ Relançons les contacts pour dimanche prochain', '🌱 Un dimanche calme, on repart de plus belle', '🔔 Objectif non atteint : on s’organise pour la suite', '🤝 On fera mieux ensemble dimanche prochain', '🧭 Ce n’est pas grave, on ajuste et on repart', '⏭️ Page tournée, cap sur dimanche prochain']
   };
+  // Phrase plus longue que la case : elle défile doucement de gauche à droite (aller-retour), comme ailleurs dans l'appli.
+  function defiler(slide){
+    try{
+      var l2 = slide && (slide.querySelector('.cl-l2 span') || slide.querySelector('.ob-l2')); if(!l2) return;
+      var t = l2.querySelector('.ob-t'); if(!t) return;
+      l2.classList.remove('ob-mq');
+      var diff = t.offsetWidth - l2.clientWidth;
+      if(diff > 2){ l2.style.setProperty('--dx', (-diff - 6) + 'px'); l2.style.setProperty('--dur', Math.max(4, diff / 22 + 3) + 's'); l2.classList.add('ob-mq'); }
+    }catch(e){}
+  }
   function messageContainer(d){
     var obj = cfg.container, n = nbContainer(d._id), pct = Math.max(0, Math.min(100, obj ? n / obj * 100 : 0));
     var att = attendu(d, obj), reste = Math.max(0, obj - n), classe, liste;
@@ -119,8 +136,8 @@
     else if(n >= att + obj * 0.08){ classe = 'v'; liste = PANEL.cAvance; }
     else if(n >= att - obj * 0.05){ classe = 'b'; liste = PANEL.cTemps; }
     else { classe = 'o'; liste = PANEL.cRetard; }
-    var txt = choisir(liste, 'c' + d._id + classe, { obj: obj, n: n, pl: pl(reste, 'client'), date: dateCourte(d.dateDepart) });
-    return { cle: 'c' + d._id, icone: '🚛', nom: nom, n: n, obj: obj, pct: pct, repere: att === null ? null : (att / obj * 100), classe: classe, txt: txt };
+    var fam = candidats(liste, { obj: obj, n: n, pl: pl(reste, 'client'), date: dateCourte(d.dateDepart) }), txt = tirer(fam);
+    return { cle: 'c' + d._id, fk: 'c' + classe + (att === null ? 'x' : ''), fam: fam, icone: '🚛', nom: nom, n: n, obj: obj, pct: pct, repere: att === null ? null : (att / obj * 100), classe: classe, txt: txt };
   }
   function messageDimanche(){
     var obj = cfg.dimanche, aujIso = auj(), ref = null, refIso = '';
@@ -164,8 +181,8 @@
     else if(n >= obj * 0.7){ classe = 'v'; liste = PANEL.dProche; }
     else if(n >= obj * 0.4){ classe = 'b'; liste = PANEL.dMoyen; }
     else { classe = 'o'; liste = PANEL.dBas; }
-    var txt = choisir(liste, 'd' + refIso + classe, { n: n, obj: obj, reste: reste, plus: n - obj });
-    return { cle: 'd' + refIso, icone: '📅', nom: libelle, n: n, obj: obj, pct: pct, repere: null, classe: classe, txt: txt };
+    var fam = candidats(liste, { n: n, obj: obj, reste: reste, plus: n - obj }), txt = tirer(fam);
+    return { cle: 'd' + refIso, fk: (bilan ? 'b' : 'd') + classe + (n > obj ? '+' : ''), fam: fam, icone: '📅', nom: libelle, n: n, obj: obj, pct: pct, repere: null, classe: classe, txt: txt };
   }
   function messages(){
     var l = containers().map(messageContainer), d = messageDimanche();
@@ -179,14 +196,17 @@
     return '<div class="ob-m ' + m.classe + (i === 0 ? ' on' : '') + '"><div class="ob-l1"><span class="ob-tag">OBJECTIF</span><span class="ob-nom">' + m.icone + ' ' + esc(m.nom) + '</span>'
       + '<span class="ob-n">' + m.n + ' <i>/ ' + m.obj + '</i></span></div>'
       + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i>' + (m.repere !== null && m.classe !== 'd' ? '<u style="left:calc(' + m.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
-      + '<div class="ob-l2">' + esc(m.txt) + '</div></div>';
+      + '<div class="ob-l2"><i class="ob-t">' + esc(m.txt) + '</i></div></div>';
   }
   function suivant(){
-    var el = document.getElementById('ob-accueil'); if(!el || liste.length < 2) return;
+    var el = document.getElementById('ob-accueil'); if(!el || liste.length < 1) return;
     var a = document.querySelector('.screen.active');
     if(document.hidden || !a || a.id !== 's-espaces'){ minuteur = setTimeout(suivant, 1000); return; }
     idx = (idx + 1) % liste.length;
-    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){ n.classList.toggle('on', k === idx); });
+    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){
+      n.classList.toggle('on', k === idx);
+      if(k === idx && liste[k] && liste[k].fam){ var l2 = n.querySelector('.ob-l2 .ob-t'); if(l2){ var t = tirer(liste[k].fam, l2.textContent); if(t) l2.textContent = t; } if(k === idx) defiler(n); }
+    });
     [].forEach.call(document.querySelectorAll('#ob-pt i'), function(n, k){ n.classList.toggle('on', k === idx); });
     el.classList.toggle('fin', liste[idx].classe === 'd');
     minuteur = setTimeout(suivant, DUREE);
@@ -205,7 +225,7 @@
   function dessiner(){
     var contenu = document.querySelector('#s-espaces .content'); if(!contenu) return;
     liste = messages();
-    var s = liste.map(function(m){ return [m.cle, m.n, m.obj, m.classe, m.txt, m.repere === null ? '' : Math.round(m.repere)].join(':'); }).join('|') + '#' + cfg.container + '/' + cfg.dimanche;
+    var s = liste.map(function(m){ return [m.cle, m.n, m.obj, m.classe, m.fk, m.repere === null ? '' : Math.round(m.repere)].join(':'); }).join('|') + '#' + cfg.container + '/' + cfg.dimanche;
     var el = document.getElementById('ob-accueil');
     if(!liste.length){ if(el) el.remove(); var p0 = document.getElementById('ob-pt'); if(p0) p0.remove(); sig = ''; if(minuteur){ clearTimeout(minuteur); minuteur = null; } return; }
     if(el && s === sig){ placer(); return; }
@@ -224,7 +244,8 @@
     if(!el.parentNode) contenu.insertBefore(el, contenu.firstChild);
     placer();
     if(minuteur){ clearTimeout(minuteur); minuteur = null; }
-    if(liste.length > 1) minuteur = setTimeout(suivant, DUREE);
+    minuteur = setTimeout(suivant, DUREE);
+    setTimeout(function(){ defiler(el.querySelector('.ob-m.on')); }, 120);
   }
   function maj(){ try{ dessiner(); }catch(e){ console.error('objectifs', e); } try{ dessinerCl(); }catch(e){ console.error('classement', e); } }
 
@@ -258,11 +279,13 @@
      Ramené par = auteur de la fiche (c.by, ou c.creePar côté France). Euros = prix du colis des fiches du container
      (collecte + dépôt direct + France, sans les fiches fusionnées). Les profils administrateurs ne figurent pas au classement. */
   var PANEL_CL = {
-    tete: ['👑 En tête du container, bravo !', '🥇 La première place, bien joué !', '🔥 Le meilleur du container, continue !', '🏆 Au sommet du classement !'],
-    belle: ['🔥 Belle place, continue comme ça', '👏 Très bon travail, accroche-toi', '💪 Dans le trio de tête, bravo !', '🚀 Bonne dynamique, ça tient !'],
-    moyen: ['💪 Bien parti, on peut faire mieux', '🙂 Bon début, il faut en ramener plus', '📈 Continue, tu peux monter', '👍 Pas mal, un petit effort !'],
-    faible: ['📣 Il faut en ramener plus', '⏳ Pas assez pour l’instant, on s’y met', '🎯 Tu peux faire bien mieux, allez !', '💬 Appelle tes contacts, ça peut décoller'],
-    zero: ['📣 Aucun client : à toi de jouer !', '🚀 C’est le moment de commencer !', '☎️ Zéro pour l’instant, on y va !', '🌱 Premier client à trouver !']
+    teteLarge: ['👑 En tête, personne ne te rattrape !', '🥇 Première place, avec une belle avance', '🔥 Tu domines le classement, bravo !', '🏆 Au sommet, très loin devant', '🚀 Cap sur le haut du podium, bravo', '💪 Avance confortable : +{ecart}', '👏 Du très grand travail, chef de file', '⭐ Le meilleur du container, tout simplement', '🎯 Tu as de l’avance, garde le rythme', '🥳 Première place, félicitations', '😎 En tête et bien devant', '🌟 Un modèle pour l’équipe, bravo', '🔝 Numéro un, et avec la manière', '🏅 Tu mènes la danse, continue', '🦁 Le roi du container !', '✨ Dominant, bravo à toi'],
+    teteJuste: ['👑 En tête, mais ça se joue de près !', '🥇 Première place de peu, ne lâche rien', '⚔️ Tu es premier d’un souffle, accroche-toi', '🔥 Ça se joue à {ecart}, reste devant', '😮 Les autres sont tout près, attention', '🏆 En tête, mais la course est serrée', '💪 Garde ta place, ça tient à peu', '🎯 Premier de justesse, bravo', '⏱️ Le podium se joue à rien, continue', '🥇 Devant, mais ne ralentis pas !', '👀 Derrière toi, ça pousse fort', '🚀 Premier, mais il faut tenir', '🔔 Course serrée en tête, ne lâche pas', '🌶️ Ça chauffe en haut du classement', '🧗 Tiens bon, la première place est à toi', '⚡ Premier à un cheveu, bravo'],
+    belleProche: ['🔥 Belle place, le premier est tout proche', '🥈 Tu talonnes la tête, allez !', '💪 Un petit effort et tu passes devant', '🚀 À {ecart} du premier, fonce !', '👏 Très bon travail, la tête est proche', '🎯 Tu es au contact de la tête', '😮 Si près du sommet, ne lâche rien', '⚡ Un client de plus et ça se joue !', '🏃 Tu reviens sur le premier, continue', '🔝 Dans le trio de tête et proche du but', '🤩 Belle remontée, le podium est à toi', '🧗 Tu grimpes, la tête est à portée', '🔥 Ça va vite pour toi, bravo', '💬 À {ecart} de la première place', '🥉 Bien placé, tu peux encore monter', '🌟 Très belle dynamique, continue'],
+    belleLoin: ['👏 Belle place, continue comme ça', '🔥 Dans le trio de tête, bravo !', '💪 Très bon travail, on vise plus haut', '🚀 Bonne dynamique, ça tient !', '🙂 Bien placé, il reste de la marge', '🎯 Tu es sur le podium, bravo', '📈 Beau score, tu peux encore monter', '👍 Solide, à {ecart} de la tête', '🌟 Bravo, ta place est méritée', '🧭 Sur le podium, garde le cap', '💬 Bonne place, le premier est à {ecart}', '😊 Du bon travail, continue', '🏅 Dans les meilleurs, félicitations', '🔥 Beau parcours, ne relâche pas', '🥈 Une belle place, on vise le haut', '⭐ Du très bon, encore un effort'],
+    moyen: ['💪 Bien parti, on peut faire mieux', '🙂 Bon début, il faut en ramener plus', '📈 Continue, tu peux monter', '👍 Pas mal, un petit effort !', '🧭 Milieu de classement, vise plus haut', '🎯 Tu peux monter, il suffit de continuer', '🔥 Ça avance, encore quelques clients', '☎️ Un coup de fil de plus, ça change tout', '🌱 Ça pousse, continue', '💬 À {ecart} du premier, c’est jouable', '🏃 Tu es dans la course, accélère', '🤝 Bonne base, il faut ajouter des clients', '🔔 Relance tes contacts, ça va monter', '😊 Du travail correct, on peut viser plus', '🚀 Encore un effort et tu passes devant', '📣 Tu progresses, continue ainsi'],
+    faible: ['📣 Il faut en ramener plus', '⏳ Pas assez pour l’instant, on s’y met', '🎯 Tu peux faire bien mieux, allez !', '💬 Appelle tes contacts, ça peut décoller', '☎️ Un coup de fil, un client : go !', '🔔 Il est temps de relancer tes contacts', '💪 Tu as de la marge, on s’y met', '🌱 Un début, il faut en faire plus', '🏃 Accélère, le classement t’attend', '🧩 Il manque des clients, cherche autour de toi', '📈 Tu peux remonter vite, motive-toi', '🚨 En bas du classement, mais ça se rattrape', '😤 C’est le moment de s’y mettre !', '🤝 Demande à tes proches, ça marche', '🔥 Un bon dimanche et tout change', '⚡ Ne lâche rien, un client à la fois'],
+    zero: ['📣 Aucun client : à toi de jouer !', '🚀 C’est le moment de commencer !', '☎️ Zéro pour l’instant, on y va !', '🌱 Premier client à trouver !', '🎯 Le compteur est à zéro, lance-toi', '🔔 Il est temps d’appeler tes contacts', '💪 Tout est à faire, tu peux le faire', '🏁 Le départ est donné, à toi !', '😊 Pas encore de client, ça va venir', '📞 Un appel et le compteur démarre', '🤝 Parle de DCT autour de toi', '🧭 Cherche ton premier client aujourd’hui', '⏳ Il est encore temps de démarrer', '🔥 Premier client, premier pas', '🌟 Le classement t’attend, lance-toi', '⚡ Zéro, mais ça se corrige vite']
   };
   function eurosFr(n){ var r = Math.round(n * 100) / 100, t = String(r).split('.'); t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return t.join(',') + ' €'; }
   function rangLib(i, medaille){ var m = medaille ? ['🥇 ', '🥈 ', '🥉 '][i] || '' : ''; return m + (i === 0 ? '1er' : (i + 1) + 'e'); }
@@ -293,15 +316,17 @@
       var rang = liste.map(function(co){ return tot[co.id]; }).sort(function(a, b){ return (b.eu - a.eu) || (b.n - a.n) || a.co.name.localeCompare(b.co.name); });
       var chef = rang[0].eu, nomC = String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
       rang.forEach(function(r, i){
-        var ratio = chef > 0 ? r.eu / chef : 0, classe, famille;
+        var ratio = chef > 0 ? r.eu / chef : 0, classe, famille, ecart = Math.max(0, chef - r.eu);
+        var second = rang.length > 1 ? rang[1].eu : 0;
         if(r.eu <= 0 && r.n === 0){ classe = 'o'; famille = 'zero'; }
-        else if(i === 0 || r.eu >= chef){ classe = 'd'; famille = 'tete'; }
-        else if(i <= 2){ classe = 'v'; famille = 'belle'; }
+        else if(i === 0 || r.eu >= chef){ classe = 'd'; famille = (r.eu - second >= r.eu * 0.3) ? 'teteLarge' : 'teteJuste'; }
+        else if(i <= 2){ classe = 'v'; famille = ratio >= 0.75 ? 'belleProche' : 'belleLoin'; }
         else if(ratio >= 0.4){ classe = 'b'; famille = 'moyen'; }
         else { classe = 'o'; famille = 'faible'; }
+        var fam = candidats(PANEL_CL[famille], { ecart: eurosFr(i === 0 ? r.eu - second : ecart), n: r.n, eu: eurosFr(r.eu) });
         out.push({ cle: 'k' + d._id + r.co.id, id: r.co.id, nom: r.co.name, rang: rangLib(i, r.eu > 0) + ' sur ' + rang.length, n: r.n, eu: r.eu,
           pct: chef > 0 ? Math.max(0, Math.min(100, r.eu / chef * 100)) : 0, classe: classe, container: nomC,
-          txt: choisir(PANEL_CL[famille], 'k' + d._id + r.co.id + famille, {}) });
+          fk: famille, fam: fam, txt: tirer(fam) });
       });
     });
     return out;
@@ -311,15 +336,18 @@
     return '<div class="ob-m ' + m.classe + (i === 0 ? ' on' : '') + '"><div class="ob-l1">' + av + '<span class="cl-nom">' + esc(m.nom) + '</span><span class="cl-rk">' + esc(m.rang) + '</span>'
       + '<span class="cl-n">' + m.n + ' client' + (m.n > 1 ? 's' : '') + ' · <b>' + eurosFr(m.eu) + '</b></span></div>'
       + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i></div>'
-      + '<div class="ob-l2 cl-l2"><span>' + esc(m.txt) + '</span><small>' + esc(m.container) + '</small></div></div>';
+      + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(m.txt) + '</i></span><small>' + esc(m.container) + '</small></div></div>';
   }
   var listeCl = [], idxCl = 0, minuteurCl = null, sigCl = '';
   function suivantCl(){
-    var el = document.getElementById('cl-accueil'); if(!el || listeCl.length < 2) return;
+    var el = document.getElementById('cl-accueil'); if(!el || listeCl.length < 1) return;
     var a = document.querySelector('.screen.active');
     if(document.hidden || !a || a.id !== 's-espaces'){ minuteurCl = setTimeout(suivantCl, 1000); return; }
     idxCl = (idxCl + 1) % listeCl.length;
-    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){ n.classList.toggle('on', k === idxCl); });
+    [].forEach.call(el.querySelectorAll('.ob-m'), function(n, k){
+      n.classList.toggle('on', k === idxCl);
+      if(k === idxCl && listeCl[k] && listeCl[k].fam){ var sp = n.querySelector('.cl-l2 span .ob-t'); if(sp){ var t = tirer(listeCl[k].fam, sp.textContent); if(t) sp.textContent = t; } defiler(n); }
+    });
     [].forEach.call(document.querySelectorAll('#cl-pt i'), function(n, k){ n.classList.toggle('on', k === idxCl); });
     minuteurCl = setTimeout(suivantCl, DUREE);
   }
@@ -338,7 +366,7 @@
     listeCl = slidesClassement();
     var el = document.getElementById('cl-accueil');
     if(!listeCl.length){ if(el) el.remove(); var p0 = document.getElementById('cl-pt'); if(p0) p0.remove(); sigCl = ''; if(minuteurCl){ clearTimeout(minuteurCl); minuteurCl = null; } return; }
-    var s2 = listeCl.map(function(m){ return [m.cle, m.n, Math.round(m.eu), m.classe, m.txt, m.rang].join(':'); }).join('|');
+    var s2 = listeCl.map(function(m){ return [m.cle, m.n, Math.round(m.eu), m.classe, m.fk, m.rang].join(':'); }).join('|');
     if(el && s2 === sigCl){ placerCl(); return; }
     sigCl = s2;
     if(!el){ el = document.createElement('div'); el.id = 'cl-accueil'; el.setAttribute('role', 'status'); }
@@ -353,7 +381,8 @@
     if(!el.parentNode) contenu.insertBefore(el, contenu.firstChild);
     placerCl();
     if(minuteurCl){ clearTimeout(minuteurCl); minuteurCl = null; }
-    if(listeCl.length > 1) minuteurCl = setTimeout(suivantCl, DUREE + 1500);
+    minuteurCl = setTimeout(suivantCl, DUREE + 1500);
+    setTimeout(function(){ defiler(el.querySelector('.ob-m.on')); }, 120);
   }
 
   /* ---------- lecture des chiffres dans Firebase ---------- */
@@ -402,5 +431,5 @@
       maj();
     }).catch(function(err){ try{ showToastNew('❌ Échec : ' + ((err && err.message) || 'écriture refusée')); }catch(x){} });
   });
-  window.objectifs = { afficher: maj, messages: messages, classement: slidesClassement, config: function(){ return cfg; } };
+  window.objectifs = { afficher: maj, messages: messages, classement: slidesClassement, defiler: defiler, config: function(){ return cfg; } };
 })();
