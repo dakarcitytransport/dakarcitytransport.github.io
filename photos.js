@@ -336,7 +336,24 @@
           + etape('3', 'Cadre et valide', 'déplace avec le doigt, pince pour zoomer')
           + '</div>';
       },
-      action: { texte: '📷 Ajouter ma photo maintenant', faire: function(){ choisir(); } } }
+      action: { texte: '📷 Ajouter ma photo maintenant', faire: function(){ choisir(); } } },
+    // Cobey, 08/11/2026 : « à leur prochaine connexion, un pop-up d'explication de cette nouveauté (objectifs et classement) ; moi aussi je veux le voir ».
+    { id: 'objectifs_classement', seul: true,
+      deja: function(){ return false; },
+      html: function(){
+        var cfgOb = { container: 100, dimanche: 20 }; try{ var cf = window.objectifs && window.objectifs.config(); if(cf){ cfgOb.container = cf.container || 100; cfgOb.dimanche = cf.dimanche || 20; } }catch(e){}
+        var carte = function(ic, t, d){ return '<div style="display:flex;gap:12px;align-items:center;background:rgba(14,159,91,.1);border-radius:18px;padding:11px 14px"><div style="flex:none;width:34px;height:34px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 1px 4px rgba(0,0,0,.12)">' + ic + '</div><div><div style="font-weight:800;font-size:14.5px">' + t + '</div><div style="font-size:12.5px;color:var(--text3,#55675E);line-height:1.35;margin-top:1px">' + d + '</div></div></div>'; };
+        return '<div style="display:flex;justify-content:center;margin:6px 0 10px"><div style="width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,#FFE9A8,#DCD3FF);display:flex;align-items:center;justify-content:center;font-size:46px">🏆</div></div>'
+          + '<div style="text-align:center;font-size:12px;font-weight:800;letter-spacing:.08em;color:#0A7A45;margin-bottom:4px">NOUVEAUTÉ</div>'
+          + '<div style="text-align:center;font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px">Objectifs et classement</div>'
+          + '<div style="text-align:center;font-size:14px;color:var(--text3,#55675E);margin-bottom:16px;line-height:1.4">À l’accueil, deux bandes suivent la progression de toute l’équipe.</div>'
+          + '<div style="display:grid;gap:10px;margin-bottom:18px">'
+          + carte('🎯', 'Les objectifs', cfgOb.container + ' clients par container et ' + cfgOb.dimanche + ' par dimanche : la barre avance à chaque client.')
+          + carte('🥇', 'Le classement', 'Ta case montre ta photo, ta place, tes clients et tes euros.')
+          + carte('📒', 'Ton objectif perso', 'Chacun a le sien. Pense à ton carnet d’adresses : chaque client que tu ramènes compte !')
+          + '</div>';
+      },
+      action: { texte: 'J’ai compris', faire: function(){} } }
   ];
   var nvEnCours = false, nvVerifiePour = '';
   function nvVu(id, nv){ try{ return localStorage.getItem('dct_nv_' + id + '_' + nv) === '1'; }catch(e){ return false; } }
@@ -352,7 +369,7 @@
     o.innerHTML = '<div class="ph-sh" role="dialog" aria-label="Nouveauté"><div style="width:42px;height:5px;border-radius:99px;background:rgba(127,127,127,.3);margin:0 auto 12px"></div>'
       + nv.html()
       + '<button type="button" class="ph-b" data-a="ok" style="justify-content:center;background:#0E9F5B;color:#fff;height:52px;font-size:16px;font-weight:800;margin-top:0">' + nv.action.texte + '</button>'
-      + '<button type="button" class="ph-b fin" data-a="plus">Plus tard</button></div>';
+      + (nv.seul ? '' : '<button type="button" class="ph-b fin" data-a="plus">Plus tard</button>') + '</div>';
     o.addEventListener('click', function(ev){
       var b = ev.target.closest('button[data-a]');
       if(!b && ev.target !== o) return;
@@ -361,6 +378,7 @@
       nvEnCours = false;
       nvMarquer(u.id, nv.id);
       if(a === 'ok') nv.action.faire();
+      if(!(a === 'ok' && !nv.seul)) setTimeout(function(){ nvVerifiePour = ''; try{ nouveautes(); }catch(e){} }, 700);
     });
     document.body.appendChild(o);
   }

@@ -6837,3 +6837,8 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 ### 08/11/2026 — Classement : le compteur dit « Objectif » (v3.99.327)
 > Cobey : « c'est assez petit, les objectifs : on voit 0 sur 30, 0 sur 50. Il faudrait un mot à côté, genre objectif, pour qu'ils comprennent que c'est leur objectif. »
 - Le compteur de chaque case est maintenant une pastille blanche plus grande : « 🎯 Objectif 16 / 30 ». S'il y a plusieurs containers, le nom du container passe à côté de la place. Testé (faux Firebase).
+
+### 08/11/2026 — Pop-up « Nouveauté » : objectifs et classement (v3.99.328, photos.js)
+> Cobey : « à leur prochaine connexion, un pop-up d'explication de cette nouveauté ; moi aussi je veux le pop-up des nouveautés pour voir le rendu ». Aperçu validé, ok code.
+- photos.js : nouvelle entrée `objectifs_classement` dans NOUVEAUTES (même fenêtre que celle de la photo de profil) : 🏆 « Objectifs et classement », 3 cartes (objectifs : chiffres lus dans les réglages ; classement ; objectif perso / carnet d'adresses), bouton unique « J'ai compris ». Affiché sur l'accueil à la prochaine connexion de chaque personne, UNE seule fois (mémorisé dans `dct_nouveautes_vues/<ID>/objectifs_classement`), Eric compris. Si une autre nouveauté est à voir (photo de profil), la suivante s'enchaîne 0,7 s après la fermeture de la première.
+- Pour le revoir : supprimer `dct_nouveautes_vues/<ID>/objectifs_classement` dans Firebase (et `dct_nv_<ID>_objectifs_classement` dans le localStorage du téléphone). Testé (faux Firebase) : enchaînement photo → objectifs → plus rien.
