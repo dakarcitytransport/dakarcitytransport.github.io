@@ -22,6 +22,7 @@
   function esc(t){ return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function auj(){ try{ return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' }); }catch(e){ return new Date().toISOString().slice(0, 10); } }
   function jours(iso){ var p = String(iso || '').split('-'); if(p.length !== 3) return NaN; return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000; }
+  function dateJour(iso){ var p = String(iso || '').split('-'); return p.length === 3 ? (+p[2]) + ' ' + ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'][+p[1] - 1] : ''; }
   function dateCourte(iso){ var p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] : ''; }
   // « Dimanche 8 novembre 2026 » → '2026-11-08'
   function isoDeLibelle(t){
@@ -65,6 +66,7 @@
       + '#cl-accueil .cl-l2 span{min-width:0;overflow:hidden;text-overflow:ellipsis}#cl-accueil .cl-l2 small{flex:none;font-size:11.5px;color:#10241a;font-weight:800;background:rgba(255,255,255,.7);border-radius:99px;padding:2px 9px;white-space:nowrap}'
       + '#cl-accueil .ob-l1 .ph-mini{border:2px solid #fff;box-sizing:border-box}'
       + '#cl-pt{margin-top:-8px}'
+      + '#cl-semaine{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 4px 6px;font-size:10.5px;color:var(--text3,#667);font-weight:700}#cl-semaine b{font-size:11px;letter-spacing:.06em;color:var(--text,#10241a);font-weight:800}#cl-semaine span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}'
       + '#cl-accueil .ob-l1{min-height:30px}'
       + '#cl-accueil .cl-md{flex:none;width:30px;text-align:center;font-size:27px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}'
       + '#cl-accueil .cl-md.num{width:26px;height:26px;margin:0 2px;border-radius:50%;background:rgba(0,0,0,.12);font-size:13px;font-weight:800;line-height:26px;color:#445;filter:none}'
@@ -83,9 +85,44 @@
   })();
 
   /* ---------- calcul ---------- */
-  function nbContainer(id){
-    try{ if(typeof window.compteursDepart === 'function') return (window.compteursDepart(id) || {}).clients || 0; }catch(e){}
-    return 0;
+  // Cobey (08/11/2026) : « il ne faut compter que les clients dont on a fait le ramassage, car c'est ceux-là qui sont validés » ; France : « seulement quand
+  // on a validé (chauffeur externe, ou notre propre chauffeur) ». Collecte classique = validé dans un camion ; France = statut « ramassé » (ou « parti ») ;
+  // dépôt direct = le client apporte son colis, il compte dès que la fiche existe.
+  function valides(colId){
+    var out = {};
+    try{
+      var t = ((window.dispatchParCollecte || {})[colId] || {}).trucks || {};
+      Object.keys(t).forEach(function(k){
+        var v = t[k] && t[k].validated; if(!v) return;
+        (Array.isArray(v) ? v : Object.keys(v).map(function(i){ return v[i]; })).forEach(function(id){ out[id] = 1; });
+      });
+    }catch(e){}
+    return out;
+  }
+  function fichesRamassees(departId){
+    var out = [], vc = {};
+    var fiches = typeof window._depToutesLesFiches === 'function' ? window._depToutesLesFiches() : [];
+    fiches.forEach(function(x){
+      var c = x.c; if(!c || c.departId !== departId) return;
+      try{ if(typeof window._depEstFusionnee === 'function' && window._depEstFusionnee(c)) return; }catch(e){}
+      var ok;
+      if(x.src === 'depot') ok = true;
+      else if(x.src === 'france') ok = (c.statut === 'ramasse' || c.statut === 'parti');
+      else { if(!vc[x.collecteId]) vc[x.collecteId] = valides(x.collecteId); ok = !!vc[x.collecteId][x.clientId]; }
+      if(ok) out.push(x);
+    });
+    return out;
+  }
+  function nbContainer(id){ return fichesRamassees(id).length; }
+  function isoDe(j){ return new Date(j * 86400000).toISOString().slice(0, 10); }
+  function isoTs(ts){ try{ return new Date(ts).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' }); }catch(e){ return ''; } }
+  // Date de ramasse d'une fiche (pour repérer le premier dimanche du container et les clients de la semaine).
+  function dateRamasse(x){
+    if(x.src === 'france') return x.c.ramasseTs ? isoTs(x.c.ramasseTs) : '';
+    if(x.src === 'depot') return x.c.creeLe ? isoTs(x.c.creeLe) : '';
+    var cols = (typeof collectes !== 'undefined' && Array.isArray(collectes)) ? collectes : [];
+    for(var i = 0; i < cols.length; i++){ if(cols[i] && cols[i].id === x.collecteId) return isoDeLibelle(cols[i].date); }
+    return '';
   }
   function containers(){
     var d = window.departsData || {};
@@ -93,17 +130,32 @@
       .filter(function(o){ return o && o.statut === 'preparation' && o.special !== 'depot'; })
       .sort(function(a, b){ return String(a.dateDepart || '').localeCompare(String(b.dateDepart || '')); });
   }
-  // Là où on devrait en être aujourd'hui (0..objectif), en rythme régulier entre l'ouverture et le départ.
-  function attendu(d, objectif){
-    var dep = jours(d.dateDepart); if(isNaN(dep)) return null;
-    var fin = dep;
-    var debut = NaN;
-    var ts = d.creeLe || d.creeTs || d.ts;
-    if(ts){ try{ debut = jours(new Date(ts).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })); }catch(e){} }
-    if(isNaN(debut) || debut >= fin) debut = fin - 28;
+  // Un container se remplit en 4 semaines de ramasse (parfois 5) : du premier dimanche de ramasse jusqu'au jour de chargement.
+  // Renvoie la semaine en cours (1..N), le rythme attendu (p = part du chemin faite aujourd'hui) et le « moment » des phrases (1, 2, 3, 4, D = dernière).
+  function infoContainer(d){
+    var fin = d.dateDepart; if(!fin || isNaN(jours(fin))) return null;
+    var debut = null;
+    fichesRamassees(d._id).forEach(function(x){ if(x.src === 'depot') return; var i = dateRamasse(x); if(i && (!debut || i < debut)) debut = i; });
+    var f = jours(fin), dj = debut ? jours(debut) : f - 21;
+    if(dj > f) dj = f - 21;
+    var N = Math.max(3, Math.min(6, Math.floor((f - dj) / 7) + 1));
     var a = jours(auj());
-    var p = (a - debut) / (fin - debut);
-    return Math.max(0, Math.min(1, p)) * objectif;
+    var sem = Math.max(1, Math.min(N, Math.floor((a - dj) / 7) + 1));
+    var p = Math.max(0, Math.min(1, (a - dj + 1) / (f - dj + 1)));
+    return { debut: isoDe(dj), fin: fin, N: N, sem: sem, p: p, bucket: sem >= N ? 'D' : String(Math.min(sem, 4)), dimanche: isoDe(dj + 7 * (sem - 1)) };
+  }
+  // Situation par rapport au rythme : en avance / dans les temps / en retard (jamais de reproche en semaine 1 : « début »).
+  function situation(n, obj, info){
+    if(n >= obj) return 'atteint';
+    var att = obj * info.p;
+    if(n >= att + obj * 0.08) return 'avance';
+    if(n >= att - obj * 0.06) return 'temps';
+    return info.sem === 1 ? 'debut' : 'retard';
+  }
+  // Objectif du dimanche = objectif du container ÷ nombre de semaines (25 sur 4 semaines, 20 sur 5) ; à défaut, la valeur des réglages.
+  function objDimanche(){
+    try{ var ct = containers()[0], inf = ct && infoContainer(ct); if(inf) return Math.max(1, Math.ceil(cfg.container / inf.N)); }catch(e){}
+    return cfg.dimanche;
   }
   // Panel de messages : plusieurs phrases par situation, une différente chaque jour (stable dans la journée, pas de clignotement).
   function hash(t){ var h = 0; for(var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0; return h; }
@@ -141,6 +193,87 @@
     bPresque: ['👍 {n} clients, presque ! Dimanche prochain', '🙂 Pas loin de l’objectif, bon travail', '💪 Presque, on vise l’objectif la prochaine fois', '👏 Bonne journée, très proche du but', '😮 Il s’en est fallu de peu, bravo', '📈 {n} clients : encore un peu et c’était bon', '🎯 Si près de l’objectif, bien joué', '🔥 Beau dimanche, on fera encore mieux', '🤝 Belle équipe, presque au but', '🙂 Un petit effort de plus dimanche prochain', '💬 Presque réussi, on y retourne', '👌 Bon dimanche, l’objectif est proche'],
     bPas: ['{n} clients : on fera mieux dimanche prochain', 'Dimanche calme, on vise plus haut', '📈 Objectif manqué, on se rattrape dimanche prochain', '🙂 Pas cette fois, la semaine prochaine sera la bonne', '💪 On se relève : dimanche prochain, on y va', '📣 Dimanche difficile, on remobilise tout le monde', '☎️ Relançons les contacts pour dimanche prochain', '🌱 Un dimanche calme, on repart de plus belle', '🔔 Objectif non atteint : on s’organise pour la suite', '🤝 On fera mieux ensemble dimanche prochain', '🧭 Ce n’est pas grave, on ajuste et on repart', '⏭️ Page tournée, cap sur dimanche prochain']
   };
+  var MX_EQUIPE = {
+    '1': {
+      'debut': ['🌱 Semaine {sem} : le container démarre, c’est parti !', '🚛 Début de container : chaque client compte', '🎬 On lance la ramasse : {obj} clients à viser', '☀️ Nouveau container : tout est à construire', '🚀 Premier dimanche : on pose les bases', '📒 Semaine {sem} : sortez les carnets d’adresses'],
+      'temps': ['👍 Bon début de container, {n} déjà !', '🙂 Semaine {sem} bien lancée, on continue', '✅ On démarre dans le bon rythme', '💪 Début régulier, gardons ça', '🚛 {n} clients dès la première semaine', '🌿 Départ tranquille et efficace'],
+      'avance': ['🔥 Départ en trombe : {n} clients déjà !', '🚀 Super début, on prend de l’avance', '😎 Semaine {sem} : on démarre fort', '⚡ Beau lancement : +{avance} d’avance', '🏃 Premier sprint réussi, bravo', '🌟 Un container qui démarre très fort'],
+      'atteint': ['🎉 Déjà {obj} dès la semaine {sem} : incroyable !', '🏆 Container plein en une semaine, bravo !', '🥳 Objectif atteint, quel départ !', '💥 {obj} clients : record de rapidité', '🔥 Plein dès le début, du jamais vu', '👏 Déjà complet, merci à tous']
+    },
+    '2': {
+      'avance': ['🔥 Semaine {sem}/{N} : en avance, bravo !', '🚀 On a de l’avance, ne ralentissez pas', '😎 Déjà {n} : on est devant le rythme', '💪 Beau rythme à ce stade, continuez', '⚡ +{avance} d’avance, quelle équipe', '🏃 Semaine {sem} : on court devant'],
+      'temps': ['👍 Semaine {sem}/{N} : dans les temps', '✅ Le rythme est bon, on continue', '🙂 {n} clients, comme prévu à ce stade', '🧭 Pile dans le planning, gardez le cap', '💬 Encore {reste} : le planning est tenu', '🌿 Ça avance régulièrement, bravo'],
+      'retard': ['⏳ Semaine {sem}/{N} : un peu de retard', '📣 Il manque {manque} pour être dans les temps', '📞 Relancez vos contacts : {manque} à rattraper', '🔔 On peut rattraper, il reste du temps', '🚨 Retard à combler : {manque} clients', '💪 Cette semaine, on remonte le rythme'],
+      'atteint': ['🎉 {obj} clients en semaine {sem} : bravo !', '🏆 Objectif atteint avec de l’avance !', '🥳 Container plein, bien avant la fin', '💥 Déjà complet, quelle équipe', '🔥 Mission accomplie plus tôt que prévu', '👏 Objectif rempli, bravo à tous']
+    },
+    '3': {
+      'avance': ['🔥 Semaine {sem}/{N} : en avance, on tient !', '🚀 Belle avance, plus que {reste} clients', '😎 On est devant : ça se joue bien', '💪 Encore {reste}, avec de l’avance', '⚡ +{avance} d’avance à ce stade', '🏃 Cap sur le container plein !'],
+      'temps': ['👍 Semaine {sem}/{N} : toujours dans les temps', '✅ On suit le rythme, encore {reste}', '🙂 Milieu de parcours bien tenu', '🧭 {n} clients, comme prévu', '💬 Ça avance, ne relâchez pas', '🌿 Régulier : continuez ainsi'],
+      'retard': ['⏳ Semaine {sem}/{N} : le retard se creuse', '📣 Il manque {manque} pour tenir le rythme', '🚨 Attention : {manque} à rattraper vite', '📞 Tous au téléphone : {manque} de retard', '🔔 Il reste du temps, mais il faut accélérer', '💪 Un effort collectif et on rattrape'],
+      'atteint': ['🎉 Container plein en semaine {sem} : bravo !', '🏆 Objectif atteint, il reste du temps !', '🥳 Complet avant la fin, quelle équipe', '💥 {obj} clients : mission accomplie', '🔥 Objectif tenu, bravo à tous', '👏 Plein avant la dernière ligne droite']
+    },
+    '4': {
+      'avance': ['🔥 Semaine {sem}/{N} : en avance avant la fin !', '🚀 Presque au bout, encore {reste}', '😎 La fin approche, on est devant', '💪 Plus que {reste}, avec de l’avance', '⚡ +{avance} d’avance, on finit fort', '🏃 L’avant-dernière ligne droite est bonne'],
+      'temps': ['👍 Semaine {sem}/{N} : toujours dans les temps', '✅ On approche de la fin : encore {reste}', '🙂 Le container se remplit comme prévu', '🧭 Plus que {reste}, gardez le cap', '💬 La fin est proche, ne relâchez pas', '🌿 Un dernier élan et c’est plein'],
+      'retard': ['⏳ Semaine {sem}/{N} : il faut accélérer', '🚨 Il manque {manque} pour tenir le rythme', '📣 La fin approche : {manque} à rattraper', '📞 Tous au téléphone, il reste peu de temps', '🔔 Le chargement approche : encore {reste}', '💪 Une grosse semaine pour rattraper'],
+      'atteint': ['🎉 Container plein avant la fin, bravo !', '🏆 Objectif atteint en semaine {sem}', '🥳 Plein à craquer, quelle équipe', '💥 {obj} clients, et il reste du temps', '🔥 Mission accomplie, merci à tous', '👏 Bravo, on peut finir tranquille']
+    },
+    'D': {
+      'avance': ['🏁 Dernière semaine : en avance, on finit fort !', '🚀 Ligne droite : encore {reste}, avec de l’avance', '😎 Dernière semaine, on est devant', '💪 Plus que {reste} avant le chargement', '⚡ +{avance} d’avance pour la dernière ligne', '🔥 On boucle ce container en beauté'],
+      'temps': ['🏁 Dernière semaine : encore {reste}', '✅ Ligne droite, le rythme est tenu', '🙂 Plus que {reste} avant le chargement', '🧭 Dernier effort : le planning est tenu', '💬 Dernière semaine, tout le monde s’y met', '🚛 Le chargement approche, encore {reste}'],
+      'retard': ['🚨 Dernière semaine : il manque {reste} !', '📣 Dernier effort : {reste} avant le chargement', '📞 Tous au téléphone, c’est la dernière semaine', '⏳ Le chargement approche : {reste} à trouver', '🔔 Dernière chance de remplir le container', '💪 Une grosse dernière semaine, on y croit'],
+      'atteint': ['🎉 Container plein pour le chargement, bravo !', '🏆 Objectif atteint à la dernière semaine', '🥳 {obj} clients : tout est prêt', '💥 Mission accomplie, quel container', '🔥 Plein pour le chargement, merci à tous', '👏 Bravo, on charge un container complet']
+    }
+  };
+  var MX_PERSO = {
+    '1': {
+      'debut': ['🌱 Semaine {sem} : lance-toi, ton objectif est {obj}', '🚛 Début de container : chaque contact compte', '📞 Premier dimanche : appelle tes contacts', '☀️ Rien d’urgent, mais commence cette semaine', '🎬 Le container démarre : à toi de jouer', '📒 Ouvre ton carnet d’adresses cette semaine'],
+      'temps': ['👍 Bon début : {n} clients dès la semaine {sem}', '🙂 Tu démarres bien, continue', '✅ Début régulier, bravo', '💪 Premier pas réussi : {n} clients', '🌿 Beau départ, garde ce rythme', '🚛 Tu es dans les temps dès le début'],
+      'avance': ['🔥 Départ en trombe : {n} clients déjà !', '🚀 Super début, tu prends de l’avance', '😎 Tu démarres très fort, bravo', '⚡ +{avance} d’avance dès la semaine {sem}', '🏃 Premier sprint réussi', '🌟 Un début remarquable'],
+      'atteint': ['🎉 Objectif atteint dès la semaine {sem} !', '🏆 {obj} clients en une semaine : bravo !', '🥳 Déjà ton objectif, quel départ', '💥 Objectif rempli, incroyable', '🔥 Tu as déjà fini ton objectif !', '👏 Bravo, tu peux viser plus haut']
+    },
+    '2': {
+      'avance': ['🔥 Semaine {sem}/{N} : tu as de l’avance !', '🚀 En avance sur ton rythme, continue', '😎 {n} clients : tu es devant', '💪 Beau rythme, ne ralentis pas', '⚡ +{avance} d’avance, bravo', '🏃 Tu cours devant le planning'],
+      'temps': ['👍 Semaine {sem}/{N} : tu es dans les temps', '✅ Ton rythme est bon, continue', '🙂 {n} clients, comme prévu à ce stade', '🧭 Pile dans ton planning', '💬 Encore {reste} pour ton objectif', '🌿 Tu avances régulièrement'],
+      'retard': ['⏳ Semaine {sem}/{N} : un peu de retard', '📣 Il te manque {manque} pour être dans les temps', '📞 Relance tes contacts : {manque} à rattraper', '🔔 Tu peux rattraper, il reste du temps', '🚨 {manque} clients de retard : cette semaine on y va', '💪 Remonte ton rythme cette semaine'],
+      'atteint': ['🎉 Objectif atteint en semaine {sem} !', '🏆 {obj} clients : tu es en avance, bravo', '🥳 Ton objectif est rempli bien avant la fin', '💥 Déjà au bout de ton objectif', '🔥 Mission accomplie, bravo', '👏 Excellent, tu peux viser plus']
+    },
+    '3': {
+      'avance': ['🔥 Semaine {sem}/{N} : en avance, tu tiens !', '🚀 Belle avance, encore {reste} clients', '😎 Tu es devant ton rythme', '💪 Plus que {reste}, avec de l’avance', '⚡ +{avance} d’avance à ce stade', '🏃 Cap sur ton objectif !'],
+      'temps': ['👍 Semaine {sem}/{N} : toujours dans les temps', '✅ Tu suis ton rythme, encore {reste}', '🙂 Milieu de parcours bien tenu', '🧭 {n} clients, comme prévu', '💬 Ça avance, ne relâche pas', '🌿 Régulier : continue ainsi'],
+      'retard': ['⏳ Semaine {sem}/{N} : le retard se creuse', '📣 Il te manque {manque} pour tenir ton rythme', '🚨 Attention : {manque} à rattraper vite', '📞 Appelle tes contacts : {manque} de retard', '🔔 Il reste du temps, mais il faut accélérer', '💪 Un effort cette semaine et tu rattrapes'],
+      'atteint': ['🎉 Objectif atteint en semaine {sem} : bravo !', '🏆 Ton objectif est rempli, il reste du temps', '🥳 Terminé avant la fin, quelle performance', '💥 {obj} clients : mission accomplie', '🔥 Objectif tenu, félicitations', '👏 Tu as de l’avance, tu peux aider les autres']
+    },
+    '4': {
+      'avance': ['🔥 Semaine {sem}/{N} : en avance avant la fin !', '🚀 Presque au bout, encore {reste}', '😎 La fin approche, tu es devant', '💪 Plus que {reste}, avec de l’avance', '⚡ +{avance} d’avance, finis fort', '🏃 Belle ligne droite pour toi'],
+      'temps': ['👍 Semaine {sem}/{N} : toujours dans les temps', '✅ La fin approche : encore {reste}', '🙂 Ton objectif se remplit comme prévu', '🧭 Plus que {reste}, garde le cap', '💬 La fin est proche, ne relâche pas', '🌿 Un dernier élan et c’est bon'],
+      'retard': ['⏳ Semaine {sem}/{N} : il faut accélérer', '🚨 Il te manque {manque} pour tenir ton rythme', '📣 La fin approche : {manque} à rattraper', '📞 Appelle tes contacts, il reste peu de temps', '🔔 Le chargement approche : encore {reste}', '💪 Une grosse semaine pour rattraper'],
+      'atteint': ['🎉 Objectif atteint avant la fin, bravo !', '🏆 Ton objectif est rempli en semaine {sem}', '🥳 Plein pour toi, quelle performance', '💥 {obj} clients, et il reste du temps', '🔥 Mission accomplie, merci', '👏 Bravo, tu peux finir tranquille']
+    },
+    'D': {
+      'avance': ['🏁 Dernière semaine : en avance, finis fort !', '🚀 Ligne droite : encore {reste}, avec de l’avance', '😎 Dernière semaine, tu es devant', '💪 Plus que {reste} avant le chargement', '⚡ +{avance} d’avance pour la dernière ligne', '🔥 Tu boucles ce container en beauté'],
+      'temps': ['🏁 Dernière semaine : encore {reste}', '✅ Ligne droite, ton rythme est tenu', '🙂 Plus que {reste} avant le chargement', '🧭 Dernier effort, tu y es presque', '💬 Dernière semaine, appelle tes contacts', '🚛 Le chargement approche, encore {reste}'],
+      'retard': ['🚨 Dernière semaine : il te manque {reste} !', '📣 Dernier effort : {reste} avant le chargement', '📞 Appelle tous tes contacts cette semaine', '⏳ Le chargement approche : {reste} à trouver', '🔔 Dernière chance pour ton objectif', '💪 Une grosse dernière semaine, tu peux le faire'],
+      'atteint': ['🎉 Objectif atteint pour le chargement, bravo !', '🏆 Ton objectif est rempli à la dernière semaine', '🥳 {obj} clients : tu as réussi', '💥 Mission accomplie sur ce container', '🔥 Objectif tenu, merci pour ton travail', '👏 Bravo, tu finis ce container en beauté']
+    }
+  };
+  var MX_DEB = {
+    'tot': {
+      'zero': ['📒 Semaine {sem} : ouvre ton carnet d’adresses', '👨‍👩‍👧 Pense à ta famille et à tes voisins', '☎️ Appelle tes contacts : un premier client suffit', '🌱 Un premier client et tu es lancé !', '🤝 Chaque contact peut devenir un client', '📲 Partage les numéros DCT à tes proches'],
+      'encours': ['👏 Bravo, ton carnet commence à servir !', '🔥 Tu es lancé : encore {reste} pour ton objectif', '🌱 Beau début, continue d’enrichir ton carnet', '💪 Tes contacts répondent, bravo', '🎯 Encore {reste} et ton objectif est atteint', '😊 {n} sur {obj}, tu progresses'],
+      'atteint': ['🎉 Objectif atteint, ton carnet a porté ses fruits !', '🏆 Bravo : tu as rempli ton objectif', '🥳 Premier objectif réussi, félicitations', '🌟 Beau travail, tu peux viser plus haut', '🔥 Objectif atteint, on monte la barre ?', '💪 Ton réseau fonctionne, bravo']
+    },
+    'tard': {
+      'zero': ['📣 Semaine {sem}/{N} : il est temps d’ouvrir ton carnet', '☎️ Aucun client encore : appelle un contact aujourd’hui', '🔔 Le container avance : un seul client te lance', '📞 Il reste peu de temps, appelle tes proches', '🌱 Même un seul client change tout, essaie !', '🤝 Demande autour de toi avant le chargement'],
+      'encours': ['👍 Semaine {sem}/{N} : {n} sur {obj}, continue !', '🔥 Encore {reste} avant le chargement', '📒 Ton carnet travaille, ne t’arrête pas', '💪 Bien parti, il reste {reste} à trouver', '🎯 Encore {reste} et ton objectif est atteint', '🚀 Le chargement approche, un dernier effort'],
+      'atteint': ['🎉 Objectif atteint avant le chargement, bravo !', '🏆 Ton carnet a donné ses fruits', '🥳 Objectif rempli : félicitations', '🌟 Super, tu peux viser plus haut au prochain', '🔥 Objectif tenu, merci pour ton travail', '💪 Ton réseau fonctionne, continue']
+    }
+  };
+  PANEL.dAvant = ['📅 Dimanche dans {jr} : objectif {obj} clients ramassés', '🎯 Bientôt dimanche : {obj} clients à ramasser', '🚛 Préparez la collecte : visons {obj} clients', '📞 Confirmez vos clients avant dimanche', '🔔 Dimanche approche, objectif {obj}', '📒 Dimanche : on vise {obj} clients ramassés'];
+  function cellule(mx, info, sit){
+    var b = mx[info.bucket] || mx['2'], c = b[sit] || b[sit === 'debut' ? 'temps' : 'retard'] || b['temps'];
+    return c;
+  }
   // Phrase plus longue que la case : elle défile doucement de gauche à droite (aller-retour), comme ailleurs dans l'appli.
   function defiler(slide){
     try{
@@ -153,18 +286,22 @@
   }
   function messageContainer(d){
     var obj = cfg.container, n = nbContainer(d._id), pct = Math.max(0, Math.min(100, obj ? n / obj * 100 : 0));
-    var att = attendu(d, obj), reste = Math.max(0, obj - n), classe, liste;
-    var nom = (d.nom || 'Container') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
-    if(n >= obj){ classe = 'd'; liste = PANEL.cAtteint; }
-    else if(att === null){ classe = 'b'; liste = PANEL.cSans; }
-    else if(n >= att + obj * 0.08){ classe = 'v'; liste = PANEL.cAvance; }
-    else if(n >= att - obj * 0.05){ classe = 'b'; liste = PANEL.cTemps; }
-    else { classe = 'o'; liste = PANEL.cRetard; }
-    var fam = candidats(liste, { obj: obj, n: n, pl: pl(reste, 'client'), date: dateCourte(d.dateDepart) }), txt = phraseStable('c' + d._id, n + ':' + classe, fam);
-    return { cle: 'c' + d._id, fk: 'c' + classe + (att === null ? 'x' : ''), fam: fam, icone: '🚛', nom: nom, n: n, obj: obj, pct: pct, repere: att === null ? null : (att / obj * 100), classe: classe, txt: txt };
+    var info = infoContainer(d), reste = Math.max(0, obj - n), classe, liste, att = null, fk;
+    var nom = (d.nom || 'Container') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '') + (info ? ' · sem. ' + info.sem + '/' + info.N : '');
+    if(!info){ classe = 'b'; liste = PANEL.cSans; fk = 'cx'; }
+    else {
+      att = obj * info.p;
+      var sit = situation(n, obj, info);
+      classe = { atteint: 'd', avance: 'v', temps: 'b', retard: 'o', debut: 'b' }[sit];
+      liste = cellule(MX_EQUIPE, info, sit); fk = 'c' + info.bucket + sit;
+    }
+    var vars = { obj: obj, n: n, pl: pl(reste, 'client'), reste: reste, date: dateCourte(d.dateDepart), sem: info ? info.sem : '', N: info ? info.N : '',
+      manque: Math.max(1, Math.round((att || 0) - n)), avance: Math.max(1, Math.round(n - (att || 0))) };
+    var fam = candidats(liste, vars), txt = phraseStable('c' + d._id, n + ':' + fk, fam);
+    return { cle: 'c' + d._id, fk: fk, fam: fam, icone: '🚛', nom: nom, n: n, obj: obj, pct: pct, repere: att === null ? null : (att / obj * 100), classe: classe, txt: txt };
   }
   function messageDimanche(){
-    var obj = cfg.dimanche, aujIso = auj(), ref = null, refIso = '';
+    var obj = objDimanche(), aujIso = auj(), ref = null, refIso = '';
     var cols = (typeof collectes !== 'undefined' && Array.isArray(collectes)) ? collectes.filter(function(c){ return c && c.date; }) : [];
     // Le dimanche même : bilan de la collecte du jour (quel que soit son statut). Sinon : le prochain dimanche.
     var duJour = cols.filter(function(c){ return isoDeLibelle(c.date) === aujIso; })[0];
@@ -176,7 +313,7 @@
       ref = avenir || enCours || null; refIso = ref ? isoDeLibelle(ref.date) : '';
     }
     var n = 0;
-    if(ref){ try{ n += Object.keys((typeof clientsParCollecte !== 'undefined' && clientsParCollecte[ref.id]) || {}).length; }catch(e){} }
+    if(ref){ try{ var vd = valides(ref.id); n += Object.keys((typeof clientsParCollecte !== 'undefined' && clientsParCollecte[ref.id]) || {}).filter(function(id){ return vd[id]; }).length; }catch(e){} }
     // Collecte France du même dimanche (ou, à défaut de collecte classique, la France en cours / la prochaine)
     try{
       var fr = (window.franceData || {}), rs = fr.collectes || {}, cl = fr.clients || {}, rf = null;
@@ -187,8 +324,8 @@
       });
       if(rf){
         if(!refIso) refIso = rf.dateIso || '';
-        if(typeof _frClientsDeCollecte === 'function') n += _frClientsDeCollecte(rf).length;
-        else n += Object.keys(cl).filter(function(id){ return cl[id] && cl[id].collecteId === rf._id; }).length;
+        var idsFr = (typeof _frClientsDeCollecte === 'function') ? _frClientsDeCollecte(rf) : Object.keys(cl).filter(function(id){ return cl[id] && cl[id].collecteId === rf._id; });
+        n += idsFr.filter(function(id){ var f = cl[id]; return f && (f.statut === 'ramasse' || f.statut === 'parti'); }).length;
       }
     }catch(e){}
     if(!ref && !refIso) return null;
@@ -197,7 +334,8 @@
     var jr = jours(refIso) - jours(aujIso), bilan = (jr === 0);
     libelle += bilan ? ' · bilan' : (jr > 0 ? ' · ' + (jr === 1 ? 'demain' : 'dans ' + jr + ' jours') : '');
     var reste = Math.max(0, obj - n), pct = Math.max(0, Math.min(100, obj ? n / obj * 100 : 0)), classe, liste;
-    if(bilan){
+    if(jr > 0){ classe = 'b'; liste = PANEL.dAvant; }
+    else if(bilan){
       if(n >= obj){ classe = 'd'; liste = PANEL.bBien; }
       else if(n >= obj * 0.75){ classe = 'b'; liste = PANEL.bPresque; }
       else { classe = 'o'; liste = PANEL.bPas; }
@@ -205,8 +343,8 @@
     else if(n >= obj * 0.7){ classe = 'v'; liste = PANEL.dProche; }
     else if(n >= obj * 0.4){ classe = 'b'; liste = PANEL.dMoyen; }
     else { classe = 'o'; liste = PANEL.dBas; }
-    var fam = candidats(liste, { n: n, obj: obj, reste: reste, plus: n - obj }), txt = phraseStable('d' + refIso, n + ':' + classe + (bilan ? 'b' : ''), fam);
-    return { cle: 'd' + refIso, fk: (bilan ? 'b' : 'd') + classe + (n > obj ? '+' : ''), fam: fam, icone: '📅', nom: libelle, n: n, obj: obj, pct: pct, repere: null, classe: classe, txt: txt };
+    var fam = candidats(liste, { n: n, obj: obj, reste: reste, plus: n - obj, jr: (jr === 1 ? '1 jour' : jr + ' jours') }), txt = phraseStable('d' + refIso, n + ':' + classe + (bilan ? 'b' : '') + (jr > 0 ? 'a' : ''), fam);
+    return { cle: 'd' + refIso, fk: (jr > 0 ? 'a' : (bilan ? 'b' : 'd')) + classe + (n > obj ? '+' : ''), fam: fam, icone: '📅', nom: libelle, n: n, obj: obj, pct: pct, repere: null, classe: classe, txt: txt };
   }
   function messages(){
     var l = containers().map(messageContainer), d = messageDimanche();
@@ -299,20 +437,6 @@
      « le prix facturé : au final ce sera le prix encaissé ».
      Ramené par = auteur de la fiche (c.by, ou c.creePar côté France). Euros = prix du colis des fiches du container
      (collecte + dépôt direct + France, sans les fiches fusionnées). Les profils administrateurs ne figurent pas au classement. */
-  var PANEL_CL = {
-    teteLarge: ['👑 En tête, personne ne te rattrape !', '🥇 Première place, avec une belle avance', '🔥 Tu domines le classement, bravo !', '🏆 Au sommet, très loin devant', '🚀 Cap sur le haut du podium, bravo', '💪 Avance confortable : +{ecart}', '👏 Du très grand travail, chef de file', '⭐ Le meilleur du container, tout simplement', '🎯 Tu as de l’avance, garde le rythme', '🥳 Première place, félicitations', '😎 En tête et bien devant', '🌟 Un modèle pour l’équipe, bravo', '🔝 Numéro un, et avec la manière', '🏅 Tu mènes la danse, continue', '🦁 Le roi du container !', '✨ Dominant, bravo à toi'],
-    teteJuste: ['👑 En tête, mais ça se joue de près !', '🥇 Première place de peu, ne lâche rien', '⚔️ Tu es premier d’un souffle, accroche-toi', '🔥 Ça se joue à {ecart}, reste devant', '😮 Les autres sont tout près, attention', '🏆 En tête, mais la course est serrée', '💪 Garde ta place, ça tient à peu', '🎯 Premier de justesse, bravo', '⏱️ Le podium se joue à rien, continue', '🥇 Devant, mais ne ralentis pas !', '👀 Derrière toi, ça pousse fort', '🚀 Premier, mais il faut tenir', '🔔 Course serrée en tête, ne lâche pas', '🌶️ Ça chauffe en haut du classement', '🧗 Tiens bon, la première place est à toi', '⚡ Premier à un cheveu, bravo'],
-    belleProche: ['🔥 Belle place, le premier est tout proche', '🥈 Tu talonnes la tête, allez !', '💪 Un petit effort et tu passes devant', '🚀 À {ecart} du premier, fonce !', '👏 Très bon travail, la tête est proche', '🎯 Tu es au contact de la tête', '😮 Si près du sommet, ne lâche rien', '⚡ Un client de plus et ça se joue !', '🏃 Tu reviens sur le premier, continue', '🔝 Dans le trio de tête et proche du but', '🤩 Belle remontée, le podium est à toi', '🧗 Tu grimpes, la tête est à portée', '🔥 Ça va vite pour toi, bravo', '💬 À {ecart} de la première place', '🥉 Bien placé, tu peux encore monter', '🌟 Très belle dynamique, continue'],
-    belleLoin: ['👏 Belle place, continue comme ça', '🔥 Dans le trio de tête, bravo !', '💪 Très bon travail, on vise plus haut', '🚀 Bonne dynamique, ça tient !', '🙂 Bien placé, il reste de la marge', '🎯 Tu es sur le podium, bravo', '📈 Beau score, tu peux encore monter', '👍 Solide, à {ecart} de la tête', '🌟 Bravo, ta place est méritée', '🧭 Sur le podium, garde le cap', '💬 Bonne place, le premier est à {ecart}', '😊 Du bon travail, continue', '🏅 Dans les meilleurs, félicitations', '🔥 Beau parcours, ne relâche pas', '🥈 Une belle place, on vise le haut', '⭐ Du très bon, encore un effort'],
-    moyen: ['💪 Bien parti, on peut faire mieux', '🙂 Bon début, il faut en ramener plus', '📈 Continue, tu peux monter', '👍 Pas mal, un petit effort !', '🧭 Milieu de classement, vise plus haut', '🎯 Tu peux monter, il suffit de continuer', '🔥 Ça avance, encore quelques clients', '☎️ Un coup de fil de plus, ça change tout', '🌱 Ça pousse, continue', '💬 À {ecart} du premier, c’est jouable', '🏃 Tu es dans la course, accélère', '🤝 Bonne base, il faut ajouter des clients', '🔔 Relance tes contacts, ça va monter', '😊 Du travail correct, on peut viser plus', '🚀 Encore un effort et tu passes devant', '📣 Tu progresses, continue ainsi'],
-    faible: ['📣 Il faut en ramener plus', '⏳ Pas assez pour l’instant, on s’y met', '🎯 Tu peux faire bien mieux, allez !', '💬 Appelle tes contacts, ça peut décoller', '☎️ Un coup de fil, un client : go !', '🔔 Il est temps de relancer tes contacts', '💪 Tu as de la marge, on s’y met', '🌱 Un début, il faut en faire plus', '🏃 Accélère, le classement t’attend', '🧩 Il manque des clients, cherche autour de toi', '📈 Tu peux remonter vite, motive-toi', '🚨 En bas du classement, mais ça se rattrape', '😤 C’est le moment de s’y mettre !', '🤝 Demande à tes proches, ça marche', '🔥 Un bon dimanche et tout change', '⚡ Ne lâche rien, un client à la fois'],
-    zero: ['📣 Aucun client : à toi de jouer !', '🚀 C’est le moment de commencer !', '☎️ Zéro pour l’instant, on y va !', '🌱 Premier client à trouver !', '🎯 Le compteur est à zéro, lance-toi', '🔔 Il est temps d’appeler tes contacts', '💪 Tout est à faire, tu peux le faire', '🏁 Le départ est donné, à toi !', '😊 Pas encore de client, ça va venir', '📞 Un appel et le compteur démarre', '🤝 Parle de DCT autour de toi', '🧭 Cherche ton premier client aujourd’hui', '⏳ Il est encore temps de démarrer', '🔥 Premier client, premier pas', '🌟 Le classement t’attend, lance-toi', '⚡ Zéro, mais ça se corrige vite']
-  };
-
-  PANEL_CL.objAtteint = ['🎯 Objectif perso atteint : {n} clients !', '🏆 {n} sur {obj} : objectif rempli, bravo !', '🔥 Objectif tenu, tu peux être fier', '👏 Mission accomplie : {n} clients', '🥳 Objectif atteint, quelle performance !', '💪 Tu as rempli ton objectif, bravo', '🌟 {obj} atteints, du beau travail', '✅ Objectif validé, félicitations', '🍾 Objectif atteint, on lève son verre', '😎 Objectif en poche, bravo', '🎉 Ton objectif est atteint !', '🏅 {n} clients : objectif réussi', '🙌 Bravo, objectif rempli'];
-  PANEL_CL.debZero = ['📒 Ton carnet d’adresses est ton meilleur atout', '👨‍👩‍👧 Pense à ta famille et à tes voisins', '☎️ Appelle tes contacts : un client suffit', '🌱 Un premier client et tu es lancé !', '📞 Parle de DCT à dix personnes aujourd’hui', '🤝 Chaque contact peut devenir un client', '🗒️ Note ceux qui envoient des colis au pays', '💬 Demande autour de toi, ça marche', '🎯 Objectif {obj} : commence par un seul', '🚀 Lance-toi, le premier est le plus dur', '📲 Partage les numéros DCT à tes proches', '🌟 Construis ton carnet, un contact à la fois', '🏁 Le départ est donné, à toi de jouer', '👋 Pense à ceux qui ont de la famille au pays'];
-  PANEL_CL.debEnCours = ['🔥 {n} sur {obj} : bien parti, continue !', '🌱 Ton carnet commence à servir, bravo', '👏 Déjà {n} : encore {reste} pour l’objectif', '💪 Beau début, ça se remplit', '📒 Continue d’enrichir ton carnet d’adresses', '🚀 {n} clients, tu es lancé !', '🎯 Encore {reste} et ton objectif est atteint', '🙂 Bravo pour ce début, ne t’arrête pas', '📞 Un coup de fil de plus et ça monte', '🤝 Tes contacts commencent à répondre', '😊 {n} sur {obj}, tu progresses', '🔝 Bon début, vise {obj} !'];
-  PANEL_CL.debAtteint = ['🎉 Objectif atteint : {n} clients, bravo !', '🏆 Ton carnet d’adresses a porté ses fruits', '👏 Tu as réussi : {n} sur {obj} !', '🥳 Premier objectif rempli, félicitations', '🌟 Beau travail, tu peux viser plus haut', '🔥 Objectif atteint, on monte la barre ?', '💪 {n} clients : ça marche pour toi', '🚀 Bravo, ton réseau fonctionne', '✅ Objectif validé, continue !', '🙌 Excellent, tu as lancé ton réseau', '😎 Objectif en poche, bien joué', '🍾 Bravo pour ce bel objectif'];
   function eurosFr(n){ var r = Math.round(n * 100) / 100, t = String(r).split('.'); t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return t.join(',') + ' €'; }
   function rangLib(i, medaille){ var m = medaille ? ['🥇 ', '🥈 ', '🥉 '][i] || '' : ''; return m + (i === 0 ? '1er' : (i + 1) + 'e'); }
   function collabsClassement(){
@@ -333,44 +457,42 @@
   function slidesClassement(){
     var out = [], liste = collabsClassement();
     if(!liste.length || typeof window._depToutesLesFiches !== 'function') return out;
-    var fiches = window._depToutesLesFiches(), conts = containers(), multi = false, nbAvecClients = 0, memos = {};
+    var conts = containers(), nbAvecClients = 0, memos = {};
     conts.forEach(function(d){
-      var tot = {}; liste.forEach(function(co){ tot[co.id] = { co: co, n: 0, eu: 0 }; });
-      var nb = 0;
-      fiches.forEach(function(x){
-        var c = x.c; if(!c || c.departId !== d._id) return;
-        try{ if(typeof window._depEstFusionnee === 'function' && window._depEstFusionnee(c)) return; }catch(e){}
-        nb++;
-        var co = auteurDe(c, liste); if(!co) return;
-        tot[co.id].n++; tot[co.id].eu += parseFloat(c.prix) || 0;
+      var tot = {}; liste.forEach(function(co){ tot[co.id] = { co: co, n: 0, nSem: 0, eu: 0 }; });
+      var info = infoContainer(d), xs = fichesRamassees(d._id), debutSem = info ? isoDe(jours(info.debut) + 7 * (info.sem - 1)) : '';
+      xs.forEach(function(x){
+        var co = auteurDe(x.c, liste); if(!co) return;
+        tot[co.id].n++; tot[co.id].eu += parseFloat(x.c.prix) || 0;
+        if(debutSem){ var di = dateRamasse(x); if(di && di >= debutSem) tot[co.id].nSem++; }
       });
-      if(!nb) return;
+      if(!xs.length) return;
       nbAvecClients++;
       var rang = liste.map(function(co){ return tot[co.id]; }).sort(function(a, b){ return (b.eu - a.eu) || (b.n - a.n) || a.co.name.localeCompare(b.co.name); });
-      var chef = rang[0].eu, second = rang.length > 1 ? rang[1].eu : 0;
+      var chef = rang[0].eu;
       var nomC = String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : '');
-      memos[d._id] = { nom: d.nom || 'Container', dateDepart: d.dateDepart || '', rang: [] };
+      memos[d._id] = { nom: d.nom || 'Container', dateDepart: d.dateDepart || '', debut: info ? info.debut : '', nbSem: info ? info.N : 0, rang: [] };
+      if(nbAvecClients === 1 && info) out.info = { sem: info.sem, N: info.N, dimanche: info.dimanche };
       rang.forEach(function(r, i){
-        var obj = objPerso(r.co), debut = obj <= 10, ratio = chef > 0 ? r.eu / chef : 0, famille, cc;
-        var medaille = r.eu > 0 && i < 3;
+        var obj = objPerso(r.co), debut = obj <= 10, ratio = chef > 0 ? r.eu / chef : 0, cc, liste2;
+        var inf = info || { p: 0.5, sem: 2, N: 4, bucket: '2' };
+        var sit = situation(r.n, obj, inf), att = obj * inf.p;
         // couleur de la case : propre au classement (podium), différente de celles des objectifs
         if(r.n === 0 && r.eu <= 0) cc = 'cn';
         else if(i === 0) cc = 'cg'; else if(i === 1) cc = 'cs'; else if(i === 2) cc = 'cz';
         else cc = ratio >= 0.4 ? 'cm' : 'cr';
-        // famille de phrases
-        if(r.n >= obj) famille = debut ? 'debAtteint' : 'objAtteint';
-        else if(debut) famille = r.n === 0 ? 'debZero' : 'debEnCours';
-        else if(r.eu <= 0 && r.n === 0) famille = 'zero';
-        else if(i === 0 || r.eu >= chef) famille = (r.eu - second >= r.eu * 0.3) ? 'teteLarge' : 'teteJuste';
-        else if(i <= 2) famille = ratio >= 0.75 ? 'belleProche' : 'belleLoin';
-        else famille = ratio >= 0.4 ? 'moyen' : 'faible';
-        var ecart = i === 0 ? r.eu - second : Math.max(0, chef - r.eu);
-        var fam = candidats(PANEL_CL[famille], { ecart: eurosFr(ecart), n: r.n, obj: obj, reste: Math.max(0, obj - r.n), eu: eurosFr(r.eu) });
-        var sigC = [r.n, Math.round(r.eu), i, famille].join(':');
-        memos[d._id].rang.push({ id: r.co.id, nom: r.co.name, n: r.n, eu: Math.round(r.eu * 100) / 100, obj: obj, place: i + 1 });
-        out.push({ cle: 'k' + d._id + r.co.id, id: r.co.id, nom: r.co.name, i: i, medaille: medaille, rang: rangLib(i, false) + ' sur ' + rang.length,
-          n: r.n, eu: r.eu, obj: obj, pct: obj > 0 ? Math.max(0, Math.min(100, r.n / obj * 100)) : 0, classe: cc, container: nomC,
-          fk: sigC, fam: fam, txt: phraseStable('k' + d._id + r.co.id, sigC, fam) });
+        // phrases : petit objectif (carnet d'adresses) ou rythme × semaine
+        var famCle;
+        if(debut){ var zone = inf.sem >= 3 ? 'tard' : 'tot', etat = r.n >= obj ? 'atteint' : (r.n === 0 ? 'zero' : 'encours'); liste2 = MX_DEB[zone][etat]; famCle = 'd' + zone + etat; }
+        else { liste2 = cellule(MX_PERSO, inf, sit); famCle = 'p' + inf.bucket + sit; }
+        var fam = candidats(liste2, { n: r.n, obj: obj, reste: Math.max(0, obj - r.n), sem: inf.sem, N: inf.N,
+          manque: Math.max(1, Math.round(att - r.n)), avance: Math.max(1, Math.round(r.n - att)) });
+        var sigC = [r.n, Math.round(r.eu), famCle].join(':');
+        memos[d._id].rang.push({ id: r.co.id, nom: r.co.name, n: r.n, nSem: r.nSem, eu: Math.round(r.eu * 100) / 100, obj: obj, place: i + 1 });
+        out.push({ cle: 'k' + d._id + r.co.id, id: r.co.id, nom: r.co.name, i: i, medaille: r.eu > 0 && i < 3,
+          rang: rangLib(i, false) + ' sur ' + rang.length + (r.nSem > 0 ? ' · +' + r.nSem + ' sem.' : ''),
+          n: r.n, eu: r.eu, obj: obj, pct: obj > 0 ? Math.max(0, Math.min(100, r.n / obj * 100)) : 0, repere: info && obj > 0 ? Math.min(100, att / obj * 100) : null,
+          classe: cc, container: nomC, fk: famCle + ':' + r.nSem + ':' + i, fam: fam, txt: phraseStable('k' + d._id + r.co.id, sigC, fam) });
       });
     });
     out.multi = nbAvecClients > 1;
@@ -383,7 +505,7 @@
     var petit = '🎯 Objectif ' + m.n + ' / ' + m.obj;
     return '<div class="ob-m ' + m.classe + (k === 0 ? ' on' : '') + '"><div class="ob-l1">' + md + av + '<span class="cl-nom">' + esc(m.nom) + '</span><span class="cl-rk">' + esc(m.rang + (tous.multi ? ' · ' + m.container : '')) + '</span>'
       + '<span class="cl-n"><b>' + eurosFr(m.eu) + '</b></span></div>'
-      + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i></div>'
+      + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i>' + (m.repere !== null && m.n < m.obj ? '<u style="left:calc(' + m.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
       + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(m.txt) + '</i></span><small>' + esc(petit) + '</small></div></div>';
   }
   // Mémo du classement, lu par l'envoyeur de notifications (cloudflare-worker.js) : point de la semaine le dimanche 20h, bilan du container le lendemain du
@@ -413,23 +535,32 @@
   }
   function placerCl(){
     var contenu = document.querySelector('#s-espaces .content'); if(!contenu) return;
-    var el = document.getElementById('cl-accueil'), pt = document.getElementById('cl-pt');
-    if(!listeCl.length){ if(el) el.remove(); if(pt) pt.remove(); return; }
+    var el = document.getElementById('cl-accueil'), pt = document.getElementById('cl-pt'), lab = document.getElementById('cl-semaine');
+    if(!listeCl.length){ if(el) el.remove(); if(pt) pt.remove(); if(lab) lab.remove(); return; }
     if(!el) return;
     var ancre = document.getElementById('ob-pt') || document.getElementById('ob-accueil') || document.getElementById('bd-accueil');
-    if(ancre){ if(ancre.nextElementSibling !== el) ancre.insertAdjacentElement('afterend', el); }
-    else if(el.parentNode !== contenu) contenu.insertBefore(el, contenu.firstChild);
+    var premier = lab || el;
+    if(ancre){ if(ancre.nextElementSibling !== premier) ancre.insertAdjacentElement('afterend', premier); }
+    else if(premier.parentNode !== contenu) contenu.insertBefore(premier, contenu.firstChild);
+    if(lab && lab.nextElementSibling !== el) lab.insertAdjacentElement('afterend', el);
     if(pt && el.nextElementSibling !== pt) el.insertAdjacentElement('afterend', pt);
   }
   function dessinerCl(){
     var contenu = document.querySelector('#s-espaces .content'); if(!contenu) return;
     listeCl = slidesClassement();
     ecrireMemos(listeCl.memos);
-    var el = document.getElementById('cl-accueil');
-    if(!listeCl.length){ if(el) el.remove(); var p0 = document.getElementById('cl-pt'); if(p0) p0.remove(); sigCl = ''; if(minuteurCl){ clearTimeout(minuteurCl); minuteurCl = null; } return; }
-    var s2 = listeCl.map(function(m){ return [m.cle, m.n, Math.round(m.eu), m.obj, m.classe, m.fk, m.rang].join(':'); }).join('|') + (listeCl.multi ? '#m' : '');
+    var el = document.getElementById('cl-accueil'), lab = document.getElementById('cl-semaine');
+    if(!listeCl.length){ if(el) el.remove(); if(lab) lab.remove(); var p0 = document.getElementById('cl-pt'); if(p0) p0.remove(); sigCl = ''; if(minuteurCl){ clearTimeout(minuteurCl); minuteurCl = null; } return; }
+    var inf = listeCl.info;
+    var s2 = listeCl.map(function(m){ return [m.cle, m.n, Math.round(m.eu), m.obj, m.classe, m.fk, m.rang].join(':'); }).join('|') + (listeCl.multi ? '#m' : '') + (inf ? '#' + inf.sem + '/' + inf.N : '');
     if(el && s2 === sigCl){ placerCl(); return; }
     sigCl = s2;
+    // Le classement est refait chaque semaine, après la ramasse du dimanche (Cobey : « classement semaine 1, classement semaine 2… »).
+    if(inf){
+      if(!lab){ lab = document.createElement('div'); lab.id = 'cl-semaine'; }
+      lab.innerHTML = '<b>🏆 CLASSEMENT · SEMAINE ' + inf.sem + '/' + inf.N + '</b><span>mis à jour dimanche ' + esc(dateJour(inf.dimanche)) + '</span>';
+    } else if(lab){ lab.remove(); lab = null; }
+    if(lab && !lab.parentNode) contenu.insertBefore(lab, contenu.firstChild);
     if(!el){ el = document.createElement('div'); el.id = 'cl-accueil'; el.setAttribute('role', 'status'); }
     if(idxCl >= listeCl.length) idxCl = 0;
     el.innerHTML = listeCl.map(function(m, k){ return htmlCl(m, k, listeCl); }).join('');
@@ -475,8 +606,9 @@
     var sec = document.getElementById('admin-section-objectifs'); if(!sec) return;
     sec.innerHTML = '<div class="ob-reg"><h3>Objectifs de l’accueil</h3>'
       + '<p>La bannière « Objectif » sous les messages, à l’accueil de toute l’équipe, compare le nombre de clients à ces deux objectifs. Le container suivi est celui qui est « en préparation » ; il compte tous ses clients (collecte, dépôt direct, France).</p>'
+      + '<p>L’objectif du dimanche se calcule tout seul : objectif du container ÷ nombre de semaines de ramasse (25 sur 4 semaines, 20 sur 5). Seuls les clients <b>ramassés</b> (validés) comptent ; un container se remplit en 4 semaines, parfois 5.</p>'
       + '<label for="ob-champ-c">Clients par container</label><input type="number" inputmode="numeric" min="1" id="ob-champ-c" value="' + cfg.container + '">'
-      + '<label for="ob-champ-d">Clients par dimanche</label><input type="number" inputmode="numeric" min="1" id="ob-champ-d" value="' + cfg.dimanche + '">'
+      + '<label for="ob-champ-d">Clients par dimanche (valeur de secours)</label><input type="number" inputmode="numeric" min="1" id="ob-champ-d" value="' + cfg.dimanche + '">'
       + '<h3 style="margin-top:22px">Objectif de chaque collaborateur</h3>'
       + '<p>Clients à ramener par container. Le classement de l’accueil montre le compteur de chacun (« 16 / 30 »). Laisse vide pour garder le chiffre de départ.</p>'
       + collabsClassement().map(function(co){
