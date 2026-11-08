@@ -827,7 +827,7 @@
         var me = st.tot[q.moi], pl = st.rang.indexOf(me) + 1;
         bil = '<b>' + (q.tu ? 'Ton bilan' : 'Bilan de ' + esc(q.nom)) + ' :</b> ' + pl + (pl === 1 ? 'er' : 'e') + ' sur ' + st.rang.length + ' · ' + me.n + ' client' + (me.n > 1 ? 's' : '') + ' · ' + eurosFr(me.eu);
       } else bil = '<b>Container :</b> ' + st.nT + ' client' + (st.nT > 1 ? 's' : '') + ' · ' + eurosFr(st.euT);
-      cartes += '<div class="opg"><div class="hs-card" data-bilan="' + esc(o._id) + '"><div class="hs-ic">🚛</div><div class="hs-x"><b>' + esc(nomC) + '</b><small>' + st.N + ' semaines · ' + st.nT + ' client' + (st.nT > 1 ? 's' : '') + '</small>'<span class="hs-chip">' + esc(etatLib(o)) + '</span></div><div class="hs-ch">›</div><div class="hs-bil">' + bil + '</div></div></div>';
+      cartes += '<div class="opg"><div class="hs-card" data-bilan="' + esc(o._id) + '"><div class="hs-ic">🚛</div><div class="hs-x"><b>' + esc(nomC) + '</b><small>' + st.N + ' semaines · ' + st.nT + ' client' + (st.nT > 1 ? 's' : '') + '</small><span class="hs-chip">' + esc(etatLib(o)) + '</span></div><div class="hs-ch">›</div><div class="hs-bil">' + bil + '</div></div></div>';
     });
     h += '<div class="pg-t"><b>CONTAINERS TERMINÉS</b><span>' + nb + '</span></div>' + (cartes || '<div class="pg-pied" style="text-align:center">Aucun container terminé pour le moment.</div>');
     var cs = containers();
