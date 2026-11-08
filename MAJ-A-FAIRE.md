@@ -6799,3 +6799,6 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 ### 08/11/2026 — Liste des containers : « Colis » remis en haut, sur sa ligne (v3.99.320, departs.js v2.22.67)
 > Cobey : « Colis, il était mieux placé avant : en haut, à une ligne à part, avec en dessous Livraison ».
 - V2 : on remet la ligne « 📦 Colis … sur … reste … » (avec sa barre) puis « 🚚 Livraison … » en haut de chaque carte, puis Facturé / Encaissé / Dépensé / Bénéfice. Le « reste » ajouté sur la ligne Encaissé (v3.99.319) est retiré. Testé (faux Firebase).
+
+### 08/11/2026 — Liste des containers : Dépensé en rouge (v3.99.321)
+> Cobey : « le dépensé devrait pas être rouge plutôt ? » (= en rouge). CSS seulement (V2) : montant « Dépensé » / « Taxe prestataire » en rouge.
