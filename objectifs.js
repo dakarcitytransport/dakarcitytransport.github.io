@@ -320,6 +320,32 @@
       'atteint': ['🎉 Objectif atteint avant le chargement, bravo !', '🏆 Ton carnet a donné ses fruits', '🥳 Objectif rempli : félicitations', '🌟 Super, tu peux viser plus haut au prochain', '🔥 Objectif tenu, merci pour ton travail', '💪 Ton réseau fonctionne, continue']
     }
   };
+  PANEL.dSem = {
+    'debut': {
+      'zero': ['🌱 Nouvelle semaine : on remplit la collecte de dimanche, {obj} clients à viser', '📒 Lundi, on ouvre les carnets : {obj} clients à inscrire pour dimanche', '🚀 La collecte de dimanche est ouverte : premiers clients à inscrire !'],
+      'retard': ['⏳ Début de semaine calme : {n} inscrits, on s’y met', '📞 Il faut relancer les contacts : {n} inscrits pour {obj} visés', '🌿 Pas de panique, la semaine commence : encore {reste} à inscrire'],
+      'temps': ['👍 Bon début de semaine : {n} inscrits déjà', '🙂 Semaine bien lancée : {n} sur {obj} pour dimanche', '✅ On démarre dans le bon rythme : {n} inscrits'],
+      'avance': ['🔥 Départ en trombe : {n} inscrits dès le début de semaine !', '🚀 Super début : {n} inscrits, on prend de l’avance', '😎 Semaine lancée fort : {n} sur {obj} déjà'],
+      'atteint': ['🎉 Objectif atteint dès le début de semaine : {obj} inscrits !', '🏆 Déjà {n} inscrits : la collecte de dimanche est pleine', '🥳 {obj} clients inscrits : quel début de semaine !'],
+      'depasse': ['💥 Déjà {n} inscrits : {plus} de plus que l’objectif !', '🔥 Objectif dépassé de {plus} dès le début de semaine', '🚀 {n} inscrits : on dépasse déjà l’objectif !']
+    },
+    'milieu': {
+      'zero': ['⚠️ Milieu de semaine et aucun inscrit : il faut s’y mettre !', '📣 Toujours aucun client inscrit pour dimanche : appelez vos contacts', '☎️ Zéro inscrit à mi-semaine : un coup de fil et ça démarre'],
+      'retard': ['⏳ Mi-semaine : {n} inscrits, il en manque {manque} pour être dans les temps', '📞 {n} inscrits : relancez vos contacts, il reste {jr}', '🚨 On est en retard : {manque} inscrits à rattraper avant dimanche'],
+      'temps': ['👍 Mi-semaine : {n} inscrits, on est dans les temps', '✅ {n} sur {obj} : le rythme est bon, encore {reste}', '🙂 La semaine avance bien : {n} inscrits pour dimanche'],
+      'avance': ['🔥 Mi-semaine : {n} inscrits, on est en avance !', '🚀 Belle avance : {n} sur {obj} avant la fin de semaine', '😎 {n} inscrits : +{avance} d’avance sur le rythme'],
+      'atteint': ['🎉 Objectif atteint à mi-semaine : {n} inscrits !', '🏆 La collecte est déjà pleine : {obj} inscrits', '🥳 {n} inscrits : objectif rempli avant la fin de semaine'],
+      'depasse': ['💥 {n} inscrits à mi-semaine : {plus} de plus que prévu !', '🔥 Objectif dépassé : {n} inscrits pour dimanche', '🚀 On dépasse l’objectif de {plus}, quelle semaine !']
+    },
+    'fin': {
+      'zero': ['🚨 Il reste {jr} et aucun inscrit : dernier appel pour dimanche !', '📞 Aucun inscrit à deux pas de dimanche : appelez tout le monde', '⏰ Dimanche approche et la collecte est vide : il faut agir'],
+      'retard': ['⏳ Plus que {jr} : il manque {reste} inscrits pour l’objectif', '📞 Dernier coup de collier : encore {reste} clients à inscrire', '🚨 {n} inscrits pour {obj} visés : on accélère avant dimanche'],
+      'temps': ['👍 Dimanche approche : {n} inscrits, encore {reste} pour l’objectif', '✅ Dans les temps : {n} sur {obj} avant la collecte', '🙂 Dernière ligne droite : plus que {reste} à inscrire'],
+      'avance': ['🔥 Dimanche approche et on est en avance : {n} inscrits !', '🚀 {n} inscrits : une belle collecte se prépare', '😎 Presque plein : {n} sur {obj} avant dimanche'],
+      'atteint': ['🎉 Objectif atteint : {n} inscrits pour dimanche, bravo !', '🏆 La collecte de dimanche est pleine : {obj} inscrits', '🥳 {n} clients inscrits : prêts pour dimanche !'],
+      'depasse': ['💥 {n} inscrits : {plus} de plus que l’objectif pour dimanche !', '🔥 Objectif dépassé de {plus} : grosse collecte demain', '🚀 {n} inscrits, record en vue pour dimanche !']
+    }
+  };
   PANEL.dAvant = ['📅 Dimanche dans {jr} : objectif {obj} clients ramassés', '🎯 Bientôt dimanche : {obj} clients à ramasser', '🚛 Préparez la collecte : visons {obj} clients', '📞 Confirmez vos clients avant dimanche', '🔔 Dimanche approche, objectif {obj}', '📒 Dimanche : on vise {obj} clients ramassés'];
   function cellule(mx, info, sit){
     var b = mx[info.bucket] || mx['2'], c = b[sit] || b[sit === 'debut' ? 'temps' : 'retard'] || b['temps'];
@@ -363,7 +389,8 @@
       var enCours = cols.filter(function(c){ return c.statut === 'en_cours'; })[0];
       ref = avenir || enCours || null; refIso = ref ? isoDeLibelle(ref.date) : '';
     }
-    var n = 0;
+    var n = 0, nIns = 0, nAuj = 0;
+    if(ref){ try{ var tousC = (typeof clientsParCollecte !== 'undefined' && clientsParCollecte[ref.id]) || {}; Object.keys(tousC).forEach(function(id){ nIns++; var f = tousC[id]; if(f && f.creeLe && isoTs(f.creeLe) === aujIso) nAuj++; }); }catch(e){} }
     if(ref){ try{ var vd = valides(ref.id); n += Object.keys((typeof clientsParCollecte !== 'undefined' && clientsParCollecte[ref.id]) || {}).filter(function(id){ return vd[id]; }).length; }catch(e){} }
     // Collecte France du même dimanche (ou, à défaut de collecte classique, la France en cours / la prochaine)
     try{
@@ -377,24 +404,40 @@
         if(!refIso) refIso = rf.dateIso || '';
         var idsFr = (typeof _frClientsDeCollecte === 'function') ? _frClientsDeCollecte(rf) : Object.keys(cl).filter(function(id){ return cl[id] && cl[id].collecteId === rf._id; });
         n += idsFr.filter(function(id){ var f = cl[id]; return f && (f.statut === 'ramasse' || f.statut === 'parti'); }).length;
+        nIns += idsFr.length; idsFr.forEach(function(id){ var f = cl[id]; if(f && f.creeTs && isoTs(f.creeTs) === aujIso) nAuj++; });
       }
     }catch(e){}
     if(!ref && !refIso) return null;
-    var libelle = refIso ? 'Dimanche ' + dateJour(refIso) : (ref ? String(ref.date).replace(/\s+\d{4}\s*$/, '') : '');
-    var jr = jours(refIso) - jours(aujIso), bilan = (jr === 0);
-    libelle += bilan ? ' · bilan' : (jr > 0 ? ' · ' + (jr === 1 ? 'demain' : 'dans ' + jr + ' jours') : '');
-    var reste = Math.max(0, obj - n), pct = Math.max(0, Math.min(100, obj ? n / obj * 100 : 0)), classe, liste;
-    if(jr > 0){ classe = 'b'; liste = PANEL.dAvant; }
-    else if(bilan){
-      if(n >= obj){ classe = 'd'; liste = PANEL.bBien; }
-      else if(n >= obj * 0.75){ classe = 'b'; liste = PANEL.bPresque; }
-      else { classe = 'o'; liste = PANEL.bPas; }
-    } else if(n >= obj){ classe = 'd'; liste = n > obj ? PANEL.dDepasse : PANEL.dAtteint; }
-    else if(n >= obj * 0.7){ classe = 'v'; liste = PANEL.dProche; }
-    else if(n >= obj * 0.4){ classe = 'b'; liste = PANEL.dMoyen; }
-    else { classe = 'o'; liste = PANEL.dBas; }
-    var fam = candidats(liste, { n: n, obj: obj, reste: reste, plus: n - obj, jr: (jr === 1 ? '1 jour' : jr + ' jours') }), txt = phraseStable('d' + refIso, n + ':' + classe + (bilan ? 'b' : '') + (jr > 0 ? 'a' : ''), fam);
-    return { cle: 'd' + refIso, fk: (jr > 0 ? 'a' : (bilan ? 'b' : 'd')) + classe + (n > obj ? '+' : ''), fam: fam, icone: '📅', nom: libelle, n: n, obj: obj, pct: pct, repere: null, classe: classe, txt: txt };
+    var jr = jours(refIso) - jours(aujIso), bilan = (jr === 0), avant = jr > 0;
+    // Titre court qui tient en entier ; le compte à rebours passe dans la pastille (Cobey : « le titre, on ne sait même pas de quoi ça parle »).
+    var nom = 'Collecte du ' + dateCourte(refIso), petit = avant ? (jr === 1 ? 'demain' : 'dans ' + jr + ' jours') : (bilan ? 'aujourd’hui' : '');
+    var nn = avant ? nIns : n, unite = avant ? 'inscrits' : 'ramassés';
+    var reste = Math.max(0, obj - nn), pct = Math.max(0, Math.min(100, obj ? nn / obj * 100 : 0)), classe, liste, repere = null, fk, vars;
+    var jrTxt = jr === 1 ? '1 jour' : jr + ' jours';
+    if(avant){
+      // Du lundi au samedi : on suit le remplissage de la collecte (clients inscrits, même pas encore validés), au rythme de la semaine.
+      var frac = Math.min(1, Math.max(1, 7 - jr) / 6), att = obj * frac, phase = jr >= 5 ? 'debut' : (jr >= 3 ? 'milieu' : 'fin'), sit;
+      if(nn > obj) sit = 'depasse'; else if(nn >= obj) sit = 'atteint'; else if(nn === 0) sit = 'zero';
+      else if(nn >= att + obj * 0.08) sit = 'avance'; else if(nn >= att - obj * 0.06) sit = 'temps'; else sit = 'retard';
+      classe = { depasse: 'd', atteint: 'd', avance: 'v', temps: 'b', retard: 'o', zero: phase === 'debut' ? 'b' : 'o' }[sit];
+      liste = PANEL.dSem[phase][sit]; repere = frac * 100; fk = 'a' + phase + sit;
+      vars = { n: nn, obj: obj, reste: reste, plus: nn - obj, jr: jrTxt, manque: Math.max(1, Math.round(att - nn)), avance: Math.max(1, Math.round(nn - att)) };
+    } else {
+      if(bilan){
+        if(n >= obj){ classe = 'd'; liste = PANEL.bBien; }
+        else if(n >= obj * 0.75){ classe = 'b'; liste = PANEL.bPresque; }
+        else { classe = 'o'; liste = PANEL.bPas; }
+      } else if(n >= obj){ classe = 'd'; liste = n > obj ? PANEL.dDepasse : PANEL.dAtteint; }
+      else if(n >= obj * 0.7){ classe = 'v'; liste = PANEL.dProche; }
+      else if(n >= obj * 0.4){ classe = 'b'; liste = PANEL.dMoyen; }
+      else { classe = 'o'; liste = PANEL.dBas; }
+      fk = (bilan ? 'b' : 'd') + classe + (n > obj ? '+' : '');
+      vars = { n: n, obj: obj, reste: reste, plus: n - obj, jr: jrTxt };
+    }
+    var fam = candidats(liste, vars);
+    if(avant && nAuj > 0) fam = fam.map(function(t){ return t + ' · +' + nAuj + ' aujourd’hui'; });   // « combien ils en mettent au fur et à mesure de la semaine »
+    var txt = phraseStable('d' + refIso, nn + ':' + fk + ':' + nAuj, fam);
+    return { cle: 'd' + refIso, fk: fk + ':' + nAuj, fam: fam, icone: '📅', petit: petit, unite: unite, nom: nom, n: nn, obj: obj, pct: pct, repere: repere, classe: classe, txt: txt };
   }
   function messages(){
     var l = containers().map(messageContainer), d = messageDimanche();
@@ -406,7 +449,7 @@
   var liste = [], idx = 0, minuteur = null, sig = '';
   function html(m, i){
     return '<div class="ob-m ' + m.classe + (i === 0 ? ' on' : '') + '"><div class="ob-l1"><span class="ob-tag">OBJECTIF</span><span class="ob-nom">' + m.icone + ' ' + esc(m.nom) + '</span>'
-      + '<span class="ob-n">' + m.n + ' <i>/ ' + m.obj + ' clients</i></span></div>'
+      + '<span class="ob-n">' + m.n + ' <i>/ ' + m.obj + ' ' + (m.unite || 'clients') + '</i></span></div>'
       + '<div class="ob-bar"><i style="width:' + m.pct.toFixed(1) + '%"></i>' + (m.repere !== null && m.classe !== 'd' ? '<u style="left:calc(' + m.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
       + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(m.txt) + '</i></span>' + (m.petit ? '<small>' + esc(m.petit) + '</small>' : '') + '</div></div>';
   }
