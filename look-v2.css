@@ -802,6 +802,19 @@ html.look-v2 .dp-r b{color:var(--text) !important}
 html.look-v2 .dp-res{border-top:1px solid rgba(0,0,0,.08) !important}
 html.look-v2 .dp-res b{font-size:22px !important;white-space:nowrap}html.look-v2 .dp-res > span{min-width:0}html.look-v2 .dp-res > span > span{display:block;font-size:11px;margin-top:1px}
 html.look-v2 .dp-btn{height:42px;border-radius:14px !important;background:rgba(255,255,255,.85) !important;border:1.5px solid #cfd8d3 !important;color:var(--text) !important;font-weight:800 !important;font-size:14px !important}
+/* Rapport financier > Bilan : cartes colorées (vert = bilan, bleu = livraison, rouge = dépenses de la caisse) */
+html.look-v2 .bl-c{border:1px solid var(--lk-edge) !important;border-radius:24px !important;padding:16px 18px !important;box-shadow:0 6px 18px rgba(30,60,45,.12)}
+html.look-v2 .bl-hero{background:linear-gradient(150deg,rgba(26,138,92,.28),rgba(26,138,92,.07)) !important;border-color:rgba(26,138,92,.35) !important}
+html.look-v2 .bl-liv{background:linear-gradient(150deg,rgba(61,99,227,.24),rgba(61,99,227,.06)) !important;border-color:rgba(61,99,227,.33) !important}
+html.look-v2 .bl-cs{background:linear-gradient(150deg,rgba(192,57,43,.2),rgba(192,57,43,.05)) !important;border-color:rgba(192,57,43,.3) !important}
+html.look-v2 .bl-t{font-size:10.5px !important;letter-spacing:.09em !important;color:var(--text3) !important}
+html.look-v2 .bl-ben{border-top:1px solid rgba(0,0,0,.1) !important;background:rgba(255,255,255,.6);border-radius:16px;padding:10px 14px !important;margin-top:10px !important}
+html.look-v2 .bl-ben b{font-size:30px !important;white-space:nowrap}
+html.look-v2 .bl-reel{border-top:1px dashed rgba(0,0,0,.15) !important}
+html.look-v2 .bl-al{border-radius:14px !important}
+html.look-v2 .bl-l{border-top:1px solid rgba(0,0,0,.08) !important}
+html.look-v2 .bl-f{border-top:1px solid rgba(0,0,0,.1) !important}
+html.look-v2 .bl-in{border-radius:14px !important;background:var(--lk-field) !important;border:1.5px solid #cfd8d3 !important;color:var(--text)}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}
