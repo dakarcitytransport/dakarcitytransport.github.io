@@ -932,6 +932,20 @@
     h += '<div class="pg-seg"><button type="button" data-otab="cours" class="' + (pageOnglet === 'cours' ? 'on' : '') + '">🚛 En cours</button><button type="button" data-otab="histo" class="' + (pageOnglet === 'histo' ? 'on' : '') + '">🗂️ Historique</button></div>';
     return h + (pageOnglet === 'histo' ? histoHtml() : htmlEnCours());
   }
+  // Clients que cette personne a INSCRITS depuis lundi (collecte classique + France), même pas encore ramassés.
+  // Cobey, 11/11/2026 : « ce ne sont pas des clients ramassés, mais c'est l'évolution de leurs clients de la semaine ».
+  function inscritsSemaine(idPers){
+    var liste = collabsClassement(), aujIso = auj(), dt = new Date(aujIso + 'T12:00:00'), dec = (dt.getDay() + 6) % 7;
+    dt.setDate(dt.getDate() - dec);
+    var lundi = dt.toLocaleDateString('en-CA'), n = 0, nAuj = 0;
+    function voir(f, ts){
+      if(!f || !ts) return; var co = auteurDe(f, liste); if(!co || co.id !== idPers) return;
+      var i = isoTs(ts); if(i && i >= lundi && i <= aujIso){ n++; if(i === aujIso) nAuj++; }
+    }
+    try{ var pc = (typeof clientsParCollecte !== 'undefined' && clientsParCollecte) || {}; Object.keys(pc).forEach(function(col){ var m = pc[col] || {}; Object.keys(m).forEach(function(id){ voir(m[id], m[id] && m[id].creeLe); }); }); }catch(e){}
+    try{ var cl = (window.franceData || {}).clients || {}; Object.keys(cl).forEach(function(id){ voir(cl[id], cl[id] && cl[id].creeTs); }); }catch(e){}
+    return { n: n, auj: nAuj };
+  }
   function htmlEnCours(){
     var h = '', cs = containers(), classement = slidesClassement(), reel = (window.currentUser || {}).id;
     // Cobey : « un sous-menu pour avoir accès à chaque fenêtre de chacun, pour me éviter de me connecter dans leur profil : uniquement pour moi ».
@@ -952,6 +966,14 @@
         + '<div class="ob-bar"><i style="width:' + perso.pct.toFixed(1) + '%"></i>' + (perso.repere !== null && perso.n < perso.obj ? '<u style="left:calc(' + perso.repere.toFixed(1) + '% - 1px)"></u>' : '') + '</div>'
         + '<div class="ob-l2 cl-l2"><span><i class="ob-t">' + esc(perso.txt) + '</i></span>' + (perso.nSem > 0 ? '<span class="cl-wk">+' + perso.nSem + ' cette semaine</span>' : '') + '</div>'
         + (noteP ? '<div class="pg-note">' + noteP + '</div>' : '') + '</div></div>';
+      // Sa progression de la semaine en cours : clients inscrits depuis lundi (pas encore ramassés).
+      var ins = inscritsSemaine(perso.id), objS = inf1 ? Math.max(1, Math.ceil(perso.obj / inf1.N)) : Math.max(1, Math.ceil(perso.obj / 4));
+      var pcS = Math.max(0, Math.min(100, ins.n / objS * 100));
+      h += '<div class="pg-t"><b>📒 CETTE SEMAINE</b><span>clients inscrits depuis lundi</span></div>'
+        + '<div class="opg"><div class="ob-m b on"><div class="pg-big">' + ins.n + ' <i>/ ' + objS + ' inscrits</i></div>'
+        + '<div class="ob-bar"><i style="width:' + pcS.toFixed(1) + '%"></i></div>'
+        + '<div class="pg-note">' + (ins.auj > 0 ? '+' + ins.auj + ' aujourd’hui. ' : '') + (ins.n >= objS ? '✅ Ton rythme de la semaine est atteint, bravo !' : 'Encore ' + (objS - ins.n) + ' pour ton rythme de la semaine.')
+        + ' Ces clients comptent comme « ramassés » après la collecte de dimanche.</div></div></div>';
     } else if(admin && !moi){
       h += '<div class="pg-pied" style="margin:0 4px 4px">Tu suis l’équipe depuis un profil administrateur : tu n’apparais pas dans le classement. Choisis une personne dans « Voir comme » pour voir sa page.</div>';
     }

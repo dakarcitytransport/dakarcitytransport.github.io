@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.68';
+var DEP_VERSION = 'v2.22.69';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -22999,7 +22999,7 @@ function _depRapfinTousLesContainers(){
   return liste;
 }
 
-function _depRapfinTotaux(){
+function _depRapfinTotaux(mois){
   var g = { nb:0, clients:0, sansPrix:0,
             colisTotal:0, colisPaye:0, colisDu:0,
             livTotal:0,   livPaye:0,   livDu:0,
@@ -23007,6 +23007,8 @@ function _depRapfinTotaux(){
             // tous containers du Mali confondus — voir _depBilanFinancier.
             taxePrestataire:0 };
   _depRapfinTousLesContainers().forEach(function(d){
+    // Bilan d'un mois : seuls les containers partis ce mois-là (sans date : seulement dans « Tout »).
+    if(mois && mois !== 'tout' && String(d.dateDepart || '').slice(0, 7) !== mois) return;
     var cp = compteursDepart(d._id);
     if(!cp.clients) return;          // un container vide n'a rien à dire ici
     g.nb++;
@@ -24187,9 +24189,47 @@ function _depColIdValide(colId){
   return !!(((window.franceData || {}).collectes || {})[colId]);
 }
 
+// « 2026-11 » : le mois d'un horodatage, pour ranger le bilan par mois.
+function _depMoisTs(ts){
+  ts = parseInt(ts, 10) || 0; if(!ts) return '';
+  var d = new Date(ts); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+}
+var DEP_MOIS_NOMS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function _depLibMois(m){
+  if(!m || m === 'tout') return 'Tout (depuis le début)';
+  var p = String(m).split('-'), nom = DEP_MOIS_NOMS[(parseInt(p[1], 10) || 1) - 1] || '';
+  return nom.charAt(0).toUpperCase() + nom.slice(1) + ' ' + p[0];
+}
+
+/* Dépenses de la CAISSE PRINCIPALE : elles ne dépendent d'aucun container (loyer, salaires…).
+   Cobey, 11/11/2026 : « il y a des dépenses qui se font uniquement via la caisse principale […]
+   pour l'objet de la dépense […] il faudra pouvoir choisir ». Rangées dans dct_finance/caisse/<clé>. */
+var DEP_OBJETS_CAISSE = ['loyer', 'salaires', 'location', 'telephonie', 'carburant', 'autre'];
+function _depCaisseLignes(){
+  var n = (window.financeData || {}).caisse || {};
+  return Object.keys(n).map(function(k){ var o = Object.assign({}, n[k]); o._id = k; return o; })
+    .filter(function(o){ return o && o.montant !== undefined; })
+    .sort(function(a, b){ return String(b.date || '').localeCompare(String(a.date || '')) || (b.ts || 0) - (a.ts || 0); });
+}
+function _depLibObjetCaisse(o){
+  if(o.poste === 'autre' && o.objet) return '&#128176; ' + esc(o.objet);
+  return _depLibellePosteFixe(o.poste);
+}
+
+// Mois pour lesquels il y a quelque chose à voir (le mois en cours toujours en tête).
+function _depMoisBilan(){
+  var set = {}; set[_depMoisTs(Date.now())] = 1;
+  _depRapfinTousLesContainers().forEach(function(d){ var m = String(d.dateDepart || '').slice(0, 7); if(m) set[m] = 1; });
+  _depToutesLesFixes().forEach(function(o){ var m = _depMoisTs(o.ts); if(m) set[m] = 1; });
+  _depCaisseLignes().forEach(function(o){ var m = String(o.date || '').slice(0, 7) || _depMoisTs(o.ts); if(m) set[m] = 1; });
+  var src = window.depensesData || {};
+  Object.keys(src).forEach(function(c){ Object.keys(src[c] || {}).forEach(function(cam){ Object.keys(src[c][cam] || {}).forEach(function(k){ var m = _depMoisTs(((src[c][cam] || {})[k] || {}).ts); if(m) set[m] = 1; }); }); });
+  return Object.keys(set).sort().reverse();
+}
+
 // Toutes les dépenses de tournée, toutes collectes et tous camions
 // (Collecte ET France & Europe — voir _depColIdValide).
-function _depTotalDepensesCamions(){
+function _depTotalDepensesCamions(mois){
   var t = 0, src = window.depensesData || {};
   Object.keys(src).forEach(function(colId){
     if(!_depColIdValide(colId)) return;
@@ -24197,6 +24237,7 @@ function _depTotalDepensesCamions(){
     Object.keys(parCamion).forEach(function(cam){
       var lignes = parCamion[cam] || {};
       Object.keys(lignes).forEach(function(k){
+        if(mois && mois !== 'tout' && _depMoisTs((lignes[k]||{}).ts) !== mois) return;
         t += (parseFloat((lignes[k]||{}).montant) || 0);
       });
     });
@@ -24205,11 +24246,14 @@ function _depTotalDepensesCamions(){
 }
 
 // Le bilan complet, en un seul objet.
-function _depBilanFinancier(){
-  var g = _depRapfinTotaux();
-  var fixes = _depToutesLesFixes();
+function _depBilanFinancier(mois){
+  var tout = !mois || mois === 'tout';
+  var g = _depRapfinTotaux(mois);
+  var fixes = _depToutesLesFixes().filter(function(o){ return tout || _depMoisTs(o.ts) === mois; });
   var totFixes = depArrondi2(fixes.reduce(function(s,o){ return s + (parseFloat(o.montant)||0); }, 0));
-  var camions = _depTotalDepensesCamions();
+  var camions = _depTotalDepensesCamions(mois);
+  var caisse = _depCaisseLignes().filter(function(o){ return tout || (String(o.date || '').slice(0, 7) || _depMoisTs(o.ts)) === mois; });
+  var totCaisse = depArrondi2(caisse.reduce(function(s,o){ return s + (parseFloat(o.montant)||0); }, 0));
 
   /* v1.71.0 — La livraison ne rejoint jamais les recettes.
      C'est une caisse à part depuis toujours (voir
@@ -24220,7 +24264,7 @@ function _depBilanFinancier(){
      toujours séparée »). Elle a donc son propre bloc, hors bénéfice. */
   var recettes = g.colisPaye;
   var aEncaisser = g.colisDu;
-  var depenses = depArrondi2(camions + totFixes);
+  var depenses = depArrondi2(camions + totFixes + totCaisse);
 
   // v1.73.0 : plus aucun report de l'ancienne application 360 — les
   // comptes de DCT ne comptent que ce qui passe par ici (décision de
@@ -24234,7 +24278,7 @@ function _depBilanFinancier(){
   var recettesReelles = depArrondi2(recettes - g.taxePrestataire);
   var beneficeReel = depArrondi2(recettesReelles - depenses);
   return {
-    g: g, fixes: fixes, totFixes: totFixes, camions: camions,
+    g: g, fixes: fixes, totFixes: totFixes, camions: camions, caisse: caisse, totCaisse: totCaisse,
     aEncaisser: aEncaisser,
     recettes: recettes, depenses: depenses,
     livPaye: g.livPaye, livDu: g.livDu, livTotal: g.livTotal,
@@ -24278,6 +24322,7 @@ function _depDernierMouvement(){
     });
   });
   _depToutesLesFixes().forEach(function(o){ voir(o.ts); });
+  _depCaisseLignes().forEach(function(o){ voir(o.ts); });
 
   return ts;
 }
@@ -24288,166 +24333,161 @@ window.depOuvrirRapfinBilan = function(){
   depRenderRapfinBilan();
 };
 
+var _depBilanMois = '';
+
+window.depChoisirMoisBilan = function(v){ _depBilanMois = v || 'tout'; depRenderRapfinBilan(); };
+
 window.depRenderRapfinBilan = function(){
   var box = $('dep-rf-bilan');
   if(!box) return;
-  var b = _depBilanFinancier();
+  if(!_depBilanMois) _depBilanMois = _depMoisTs(Date.now());
+  var mois = _depBilanMois, tout = (mois === 'tout');
+  var b = _depBilanFinancier(mois);
+  var cumul = _depBilanFinancier('tout');
+  var rouge = '#B3261E', vert = '#006b2d';
 
-  function ligne(libelle, montant, couleur, sousTitre){
-    return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0;">'
-      + '<span style="font-size:12.5px;color:var(--text3);font-weight:600;">' + libelle
-      +   (sousTitre ? '<br><span style="font-size:11px;color:#aaa;">' + sousTitre + '</span>' : '') + '</span>'
-      + '<b style="font-size:13.5px;white-space:nowrap;color:' + couleur + ';">' + _depEuros(montant) + ' &euro;</b>'
+  function ligne(libelle, montant, couleur, sousTitre, gros){
+    return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:' + (gros ? '6px' : '4px') + ' 0;">'
+      + '<span style="font-size:' + (gros ? '13px' : '12.5px') + ';color:var(--text3);font-weight:' + (gros ? '700' : '600') + ';">' + libelle
+      +   (sousTitre ? '<br><span style="font-size:11px;font-weight:600;color:#aaa;">' + sousTitre + '</span>' : '') + '</span>'
+      + '<b style="font-size:' + (gros ? '19px' : '13.5px') + ';white-space:nowrap;color:' + couleur + ';">' + montant + '</b>'
       + '</div>';
   }
-
+  var carte = 'background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;';
+  var titre = 'font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;margin-bottom:6px;';
   var h = '';
 
-  // ── Le bilan, en tête ──
-  // Daté : ces chiffres valent pour l'instant où on les regarde.
+  // ── 1. Le cumul de la caisse principale : toujours là, quel que soit le mois regardé ──
   var dern = _depDernierMouvement();
-  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
-    +   'padding:12px 14px;margin-bottom:12px;">'
-    + '<div style="font-size:12.5px;font-weight:800;color:var(--text);">'
-    +   '&#128197; Arr&ecirc;t&eacute; au ' + esc(dateHeureFr(Date.now())) + '</div>'
-    + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:3px;line-height:1.4;">'
-    +   (dern
-      ? 'Dernier mouvement enregistr&eacute; le ' + esc(dateHeureFr(dern)) + '.'
-      : 'Aucun mouvement enregistr&eacute; pour l\'instant.')
-    +   '</div>'
+  h += '<div style="' + carte + '">'
+    + '<div style="' + titre + '">&#127974; CAISSE PRINCIPALE &mdash; CUMUL DEPUIS LE D&Eacute;BUT</div>'
+    + ligne('Ce qui est rentr&eacute;', _depEuros(cumul.recettes) + ' &euro;', vert, '', false)
+    + ligne('Ce qui est sorti', '&minus; ' + _depEuros(cumul.depenses) + ' &euro;', rouge, '', false)
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 2px;margin-top:6px;border-top:2px solid var(--border);">'
+    +   '<span style="font-size:14px;font-weight:800;color:var(--text);">Dans la caisse</span>'
+    +   '<b style="font-size:24px;color:' + (cumul.benefice < 0 ? rouge : vert) + ';">' + _depEuros(cumul.benefice) + ' &euro;</b></div>'
+    + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:6px;line-height:1.4;">&#128197; Arr&ecirc;t&eacute; au ' + esc(dateHeureFr(Date.now())) + '. '
+    +   (dern ? 'Dernier mouvement le ' + esc(dateHeureFr(dern)) + '.' : 'Aucun mouvement enregistr&eacute;.') + '</div>'
     + '</div>';
 
-  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;">'
-    + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
-    +   'margin-bottom:6px;">&#128230; TRANSPORT DES COLIS</div>'
-    /* v1.79.0 : le total facturé, avant les recettes. Il additionne
-       toutes les factures colis du parc, payées ou non — c'est le
-       chiffre d'affaires ; les recettes juste en dessous ne comptent
-       que ce qui est réellement rentré (demande de Cobey du
-       24/09/2026). */
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
-    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Total factur&eacute;'
-    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">pay&eacute; et non pay&eacute;</span></span>'
-    +   '<b style="font-size:19px;color:var(--text);">' + _depEuros(b.g.colisTotal) + ' &euro;</b>'
+  // ── 2. Le choix de la période ──
+  var liste = _depMoisBilan();
+  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+    + '<label for="dep-bl-mois" style="font-size:12.5px;font-weight:800;white-space:nowrap;">&#128197; P&eacute;riode</label>'
+    + '<select id="dep-bl-mois" onchange="depChoisirMoisBilan(this.value)" style="flex:1;min-width:0;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;">'
+    + liste.map(function(m){ return '<option value="' + m + '"' + (m === mois ? ' selected' : '') + '>' + esc(_depLibMois(m)) + '</option>'; }).join('')
+    + '<option value="tout"' + (tout ? ' selected' : '') + '>Tout (depuis le d&eacute;but)</option>'
+    + '</select></div>';
+
+  // ── 3. Le bilan de la période : facturé, recettes, dépenses (avec leur détail), bénéfice ──
+  h += '<div style="' + carte + 'padding:16px;">'
+    + '<div style="' + titre + '">&#128230; TRANSPORT DES COLIS &middot; ' + esc(_depLibMois(mois)).toUpperCase() + '</div>'
+    + ligne('Total factur&eacute;', _depEuros(b.g.colisTotal) + ' &euro;', 'var(--text)', 'pay&eacute; et non pay&eacute;', true)
+    + ligne('Recettes', _depEuros(b.recettes) + ' &euro;', vert,
+        'r&eacute;ellement encaiss&eacute; &middot; hors livraison &middot; ' + b.g.nb + ' container' + (b.g.nb>1?'s':''), true)
+    + ligne('D&eacute;penses', '&minus; ' + _depEuros(b.depenses) + ' &euro;', rouge, '', true)
+    + '<div style="padding-left:12px;border-left:3px solid var(--border);margin:2px 0 6px 2px;">'
+    +   ligne('&#128666; Camions', _depEuros(b.camions) + ' &euro;', rouge, 'carburant, d&eacute;jeuner, autres', false)
+    +   ligne('&#127968; Containers', _depEuros(b.totFixes) + ' &euro;', rouge, b.fixes.length + ' ligne' + (b.fixes.length>1?'s':'') + ' &middot; se g&egrave;rent dans chaque container', false)
+    +   ligne('&#127974; Caisse principale', _depEuros(b.totCaisse) + ' &euro;', rouge, b.caisse.length + ' ligne' + (b.caisse.length>1?'s':'') + ' &middot; voir plus bas', false)
     + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
-    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Recettes'
-    /* v1.83.0 : « réellement encaissé » gagne la provenance, reprise du
-       bloc « Recettes des colis » supprimé plus bas — il répétait mot
-       pour mot ce chiffre-ci (repéré par Cobey le 24/09/2026 : « la
-       ligne recette des colis n'est pas en doublon avec la recette plus
-       haut ? »). Elle l'était : même variable, affichée deux fois. */
-    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">r&eacute;ellement encaiss&eacute;'
-    +       ' &middot; hors livraison &middot; ' + b.g.nb + ' container' + (b.g.nb>1?'s':'') + '</span></span>'
-    +   '<b style="font-size:19px;color:#006b2d;">' + _depEuros(b.recettes) + ' &euro;</b>'
-    + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
-    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">D&eacute;penses</span>'
-    +   '<b style="font-size:19px;color:#B3261E;">&minus; ' + _depEuros(b.depenses) + ' &euro;</b>'
-    + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;'
-    +   'margin-top:6px;border-top:2px solid var(--border);">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;margin-top:6px;border-top:2px solid var(--border);">'
     +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice</span>'
-    +   '<b style="font-size:24px;color:' + (b.benefice < 0 ? '#B3261E' : '#006b2d') + ';">'
-    +     _depEuros(b.benefice) + ' &euro;</b>'
-    + '</div>'
-    // v2.14.0 — Conteneurs du Mali : le partenaire qui les gère prélève sa
-    // part sur chaque client facturé (voir depOuvrirTaxePrestataire, sur
-    // la fiche du client). Le bénéfice ci-dessus reste le brut/facturé ;
-    // ce bloc montre le chiffre réel une fois cette part retirée — Cobey
-    // a demandé explicitement à voir les deux, pas l'un à la place de
-    // l'autre. N'apparaît que si une taxe a été renseignée.
+    +   '<b style="font-size:24px;color:' + (b.benefice < 0 ? rouge : vert) + ';">' + _depEuros(b.benefice) + ' &euro;</b></div>'
     + (b.taxePrestataire > 0
-      ? ('<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;margin-top:8px;">'
-          +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">&#129309; Taxes prestataire'
-          +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">pr&eacute;lev&eacute;es par les partenaires Mali</span></span>'
-          +   '<b style="font-size:19px;color:#B3261E;">&minus; ' + _depEuros(b.taxePrestataire) + ' &euro;</b>'
-          + '</div>'
-          + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;'
-          +   'margin-top:6px;border-top:2px dashed var(--border);">'
-          +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice r&eacute;el'
-          +     '<br><span style="font-size:11px;font-weight:600;color:#999;">apr&egrave;s taxes des partenaires</span></span>'
-          +   '<b style="font-size:24px;color:' + (b.beneficeReel < 0 ? '#B3261E' : '#006b2d') + ';">'
-          +     _depEuros(b.beneficeReel) + ' &euro;</b>'
-          + '</div>')
+      ? ligne('&#129309; Taxes prestataire', '&minus; ' + _depEuros(b.taxePrestataire) + ' &euro;', rouge, 'pr&eacute;lev&eacute;es par les partenaires Mali', true)
+        + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;margin-top:6px;border-top:2px dashed var(--border);">'
+        +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice r&eacute;el<br><span style="font-size:11px;font-weight:600;color:#999;">apr&egrave;s taxes des partenaires</span></span>'
+        +   '<b style="font-size:24px;color:' + (b.beneficeReel < 0 ? rouge : vert) + ';">' + _depEuros(b.beneficeReel) + ' &euro;</b></div>'
       : '')
     + (b.aEncaisser > 0
-      ? '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border-radius:8px;'
-        + 'padding:8px 10px;margin-top:12px;font-weight:600;line-height:1.4;">'
-        + '&#8987; <b>' + _depEuros(b.aEncaisser) + ' &euro;</b> de colis restent &agrave; encaisser. '
-        + 'Ils ne comptent pas dans les recettes tant qu\'ils ne sont pas vers&eacute;s.</div>'
+      ? '<div style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border-radius:8px;padding:8px 10px;margin-top:12px;font-weight:600;line-height:1.4;">'
+        + '&#8987; <b>' + _depEuros(b.aEncaisser) + ' &euro;</b> de colis restent &agrave; encaisser. Ils ne comptent pas dans les recettes tant qu\'ils ne sont pas vers&eacute;s.</div>'
       : '')
-    /* v1.89.0 : les fiches sans prix. Elles ne sont dans aucun des deux
-       chiffres ci-dessus — ni facturé, ni à encaisser — puisqu'on ignore
-       leur montant. Le Bilan le dit, sinon cet argent n'existe nulle
-       part (repéré par Cobey le 25/09/2026). */
     + (b.g.sansPrix > 0
-      ? '<div style="font-size:11.5px;color:#1a237e;background:#EEF0FA;border-radius:8px;'
-        + 'padding:8px 10px;margin-top:8px;font-weight:600;line-height:1.4;">'
-        + '&#10067; <b>' + b.g.sansPrix + ' fiche' + (b.g.sansPrix>1?'s':'') + '</b> sans prix fix&eacute;, '
-        + 'donc compt&eacute;'+(b.g.sansPrix>1?'es':'e')+' nulle part ci-dessus. '
-        + 'Ouvrez le container concern&eacute; pour voir qui.</div>'
+      ? '<div style="font-size:11.5px;color:#1a237e;background:#EEF0FA;border-radius:8px;padding:8px 10px;margin-top:8px;font-weight:600;line-height:1.4;">'
+        + '&#10067; <b>' + b.g.sansPrix + ' fiche' + (b.g.sansPrix>1?'s':'') + '</b> sans prix fix&eacute;, donc compt&eacute;' + (b.g.sansPrix>1?'es':'e')
+        + ' nulle part ci-dessus. Ouvrez le container concern&eacute; pour voir qui.</div>'
       : '')
     + '</div>';
 
-  /* La livraison, à part — jamais mêlée au bénéfice ci-dessus. */
-  h += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);'
-    +   'padding:16px;margin-bottom:14px;">'
-    + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;'
-    +   'margin-bottom:6px;">&#128666; LIVRAISON &mdash; CAISSE S&Eacute;PAR&Eacute;E</div>'
-    /* v1.80.0 : le total facturé manquait de ce côté-ci — la livraison
-       a droit à la même lecture que les colis (retour de Cobey du
-       24/09/2026). */
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
-    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Total factur&eacute;'
-    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">pay&eacute; et non pay&eacute;</span></span>'
-    +   '<b style="font-size:19px;color:var(--text);">' + _depEuros(b.livTotal) + ' &euro;</b>'
-    + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
-    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">Encaiss&eacute;'
-    +     '<br><span style="font-size:11px;font-weight:600;color:#aaa;">r&eacute;ellement rentr&eacute;</span></span>'
-    +   '<b style="font-size:19px;color:#0b5d78;">' + _depEuros(b.livPaye) + ' &euro;</b>'
-    + '</div>'
-    + (b.livDu > 0
-      ? '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;">'
-        + '<span style="font-size:13px;font-weight:700;color:var(--text3);">Reste d&ucirc;</span>'
-        + '<b style="font-size:16px;color:#B3261E;">' + _depEuros(b.livDu) + ' &euro;</b>'
-        + '</div>'
-      : '')
-    + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.45;">'
-    +   'Cet argent n\'entre pas dans le b&eacute;n&eacute;fice ci-dessus : il se partage avec le livreur, '
-    +   'et son d&eacute;compte se fera dans son propre espace.</div>'
+  // ── 4. La livraison, à part — jamais mêlée au bénéfice ──
+  h += '<div style="' + carte + 'padding:16px;">'
+    + '<div style="' + titre + '">&#128666; LIVRAISON &mdash; CAISSE S&Eacute;PAR&Eacute;E</div>'
+    + ligne('Total factur&eacute;', _depEuros(b.livTotal) + ' &euro;', 'var(--text)', 'pay&eacute; et non pay&eacute;', true)
+    + ligne('Encaiss&eacute;', _depEuros(b.livPaye) + ' &euro;', '#0b5d78', 'r&eacute;ellement rentr&eacute;', true)
+    + (b.livDu > 0 ? ligne('Reste d&ucirc;', _depEuros(b.livDu) + ' &euro;', rouge, '', true) : '')
+    + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.45;">Cet argent n\'entre pas dans le b&eacute;n&eacute;fice : il se partage avec le livreur, et son d&eacute;compte se fera dans son propre espace.</div>'
     + '</div>';
 
-  /* v1.83.0 — Plus de bloc « Recettes des colis ».
-     Il n'avait qu'une ligne, et cette ligne affichait le même chiffre
-     que « Recettes » en tête d'écran. Un détail qui répète son total
-     n'explique rien : sa seule information utile (hors livraison, et le
-     nombre de containers) est remontée sous la ligne Recettes.
+  // ── 5. Les dépenses de la caisse principale (période choisie) ──
+  h += '<div style="' + carte + '">'
+    + '<div style="' + titre + '">&#127974; D&Eacute;PENSES DE LA CAISSE PRINCIPALE &middot; ' + esc(_depLibMois(mois)).toUpperCase() + '</div>'
+    + (b.caisse.length
+      ? b.caisse.map(function(o){
+          return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eee;">'
+            + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:800;color:var(--text);">' + _depLibObjetCaisse(o) + '</div>'
+            + '<div style="font-size:11.5px;color:#888;margin-top:1px;">' + esc(o.date ? dateFr(o.date) : '') + (o.note ? ' &middot; ' + esc(o.note) : '') + (o.par ? ' &middot; ' + esc(o.par) : '') + '</div></div>'
+            + '<b style="color:' + rouge + ';white-space:nowrap;">&minus; ' + _depEuros(o.montant) + ' &euro;</b>'
+            + '<span onclick="depSupprimerDepenseCaisse(\'' + o._id + '\')" style="cursor:pointer;color:#992020;font-weight:800;font-size:11.5px;white-space:nowrap;">&#128465;</span></div>';
+        }).join('')
+      : '<div style="font-size:12.5px;color:var(--text3);font-weight:600;padding:4px 0 8px;">Aucune d&eacute;pense de caisse sur cette p&eacute;riode.</div>')
+    + '<div style="border-top:1.5px solid var(--border);margin-top:8px;padding-top:10px;">'
+    +   '<div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">+ Nouvelle d&eacute;pense de caisse</div>'
+    +   '<label for="dep-cs-objet" style="font-size:12px;font-weight:800;color:var(--text3);">Objet de la d&eacute;pense</label>'
+    +   '<select id="dep-cs-objet" onchange="depObjetCaisseChange()" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;margin:3px 0 8px;">'
+    +     DEP_OBJETS_CAISSE.map(function(c){ var t = DEP_POSTES_FIXES.filter(function(x){ return x.cle === c; })[0]; return '<option value="' + c + '">' + (t ? t.label : c) + '</option>'; }).join('')
+    +   '</select>'
+    +   '<input id="dep-cs-libre" type="text" placeholder="Pr&eacute;cisez l\'objet" style="display:none;width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);margin-bottom:8px;">'
+    +   '<div style="display:flex;gap:8px;">'
+    +     '<input id="dep-cs-montant" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Montant (&euro;)" style="flex:1;min-width:0;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);">'
+    +     '<input id="dep-cs-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="flex:1;min-width:0;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);">'
+    +   '</div>'
+    +   '<input id="dep-cs-note" type="text" placeholder="Note (facultatif)" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);margin:8px 0;">'
+    +   '<button class="btn btn-green" onclick="depAjouterDepenseCaisse()">Enregistrer la d&eacute;pense</button>'
+    + '</div></div>';
 
-     Le bloc « Dépenses » ci-dessous, lui, reste : il a bien deux
-     sources à détailler, camions et dépenses fixes, dont la somme fait
-     le total affiché plus haut. */
-
-  // ── D'où viennent les dépenses ──
-  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">D&eacute;penses</div>'
-    + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
-    + ligne('&#128666; D&eacute;penses des camions', b.camions, '#B3261E',
-            'carburant, d&eacute;jeuner, autres')
-    + ligne('&#127968; D&eacute;penses fixes des containers', b.totFixes, '#B3261E',
-            b.fixes.length + ' ligne' + (b.fixes.length>1?'s':'') + ' saisie' + (b.fixes.length>1?'s':'')
-            + ' &middot; se g&egrave;rent dans chaque container')
-    + '</div>';
-
-  h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;'
-    +   'margin-bottom:12px;">Les recettes et les d&eacute;penses ne comptent que ce qui passe par '
-    +   'cette application, depuis septembre 2026, et seulement le transport des colis.</div>'
-    // v1.94.18 : depuis le Bilan, sans case Sénégal/Mali pour se
-    // souvenir d'un pays — 'tous', explicitement.
-    + '<button class="btn btn-gray" onclick="depOuvrirRapfinContainers(\'tous\')">'
-    + '&#128230; Voir les containers</button>';
+  h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">Les recettes et les d&eacute;penses ne comptent que ce qui passe par '
+    +   'cette application, depuis septembre 2026, et seulement le transport des colis. Un container compte dans le mois de son d&eacute;part ; une d&eacute;pense, dans le mois o&ugrave; elle est not&eacute;e.</div>'
+    + '<button class="btn btn-gray" onclick="depOuvrirRapfinContainers(\'tous\')">&#128230; Voir les containers</button>';
 
   box.innerHTML = h;
+};
+
+window.depObjetCaisseChange = function(){
+  var s = $('dep-cs-objet'), l = $('dep-cs-libre');
+  if(s && l) l.style.display = (s.value === 'autre') ? 'block' : 'none';
+};
+
+window.depAjouterDepenseCaisse = function(){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  var poste = ($('dep-cs-objet') || {}).value || 'autre';
+  var montant = parseFloat(($('dep-cs-montant') || {}).value);
+  if(!montant || montant <= 0){ toast('⚠️ Indiquez un montant.'); return; }
+  var libre = (($('dep-cs-libre') || {}).value || '').trim();
+  if(poste === 'autre' && !libre){ toast('⚠️ Précisez l\'objet de la dépense.'); return; }
+  var date = ($('dep-cs-date') || {}).value || new Date().toISOString().slice(0, 10);
+  if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
+  var u = window.currentUser || {};
+  var obj = { poste: poste, montant: depArrondi2(montant), date: date, note: (($('dep-cs-note') || {}).value || '').trim(), ts: Date.now(), par: u.name || u.id || '', parId: u.id || '' };
+  if(poste === 'autre') obj.objet = libre;
+  db.ref('dct_finance/caisse').push(obj).then(function(){
+    toast('✅ Dépense de caisse enregistrée — ' + _depEuros(obj.montant) + ' €');
+    try{ depActivite('&#127974;', 'a ajouté une dépense de caisse de <strong>' + _depEuros(obj.montant) + ' &euro;</strong> &middot; ' + esc(_depTexteBrut(_depLibObjetCaisse(obj)))); }catch(e){}
+    if(_depMoisTs(new Date(date + 'T12:00:00').getTime()) !== _depBilanMois && _depBilanMois !== 'tout') _depBilanMois = _depMoisTs(new Date(date + 'T12:00:00').getTime());
+  }).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé')); });
+};
+
+window.depSupprimerDepenseCaisse = function(idLigne){
+  if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
+  if(!idLigne || !window.db || !window.firebaseReady) return;
+  var lf = ((window.financeData || {}).caisse || {})[idLigne];
+  if(lf) window._depCorbeille('depense', 'caisse_' + idLigne, { titre: _depTexteBrut(_depLibObjetCaisse(lf)) + ' · ' + lf.montant + ' €',
+    sous: 'Dépense de la caisse principale', departId: '', ecritures: [{ p: 'dct_finance/caisse/' + idLigne, v: lf }] });
+  db.ref('dct_finance/caisse/' + idLigne).remove().then(function(){
+    toast('🗑 Dépense retirée');
+    try{ if(lf) depActivite('&#128465;&#65039;', 'a retiré une dépense de caisse de <strong>' + _depEuros(lf.montant) + ' &euro;</strong> &middot; ' + esc(_depTexteBrut(_depLibObjetCaisse(lf)))); }catch(e){}
+  }).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'suppression refusée')); });
 };
 
 /* ─── Les dépenses fixes ─── */
