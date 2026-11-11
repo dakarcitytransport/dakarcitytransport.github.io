@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.70';
+var DEP_VERSION = 'v2.22.71';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -22961,7 +22961,7 @@ window.depOuvrirEspaceRapportFinancier = function(){
   if(sb){
     var b = _depBilanFinancier();
     sb.innerHTML = 'B&eacute;n&eacute;fice<br><b style="color:'
-      + (b.benefice < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(b.benefice) + ' &euro;</b>';
+      + (b.beneficeReel < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(b.beneficeReel) + ' &euro;</b>';
   }
   // v1.87.0 : aperçu de la case COMPARER — combien de périodes il y a à
   // mettre en regard. Tant qu'il n'y en a qu'une, il n'y a rien à
@@ -24356,15 +24356,10 @@ window.depRenderRapfinBilan = function(){
     + ligne('Total factur&eacute;', _depEuros(b.g.colisTotal) + ' &euro;', 'var(--text)', 'pay&eacute; et non pay&eacute;')
     + ligne('Recettes', _depEuros(b.recettes) + ' &euro;', vert, 'r&eacute;ellement encaiss&eacute; &middot; hors livraison &middot; ' + b.g.nb + ' container' + (b.g.nb>1?'s':''))
     + ligne('D&eacute;penses', '&minus; ' + _depEuros(b.depenses) + ' &euro;', rouge, 'camions, containers et caisse principale')
+    + (b.taxePrestataire > 0 ? ligne('&#129309; Taxes prestataire', '&minus; ' + _depEuros(b.taxePrestataire) + ' &euro;', rouge, 'pr&eacute;lev&eacute;es par les partenaires Mali') : '')
     + '<div class="bl-ben" style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;margin-top:6px;border-top:2px solid var(--border);">'
-    +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice</span>'
-    +   '<b style="font-size:26px;color:' + (b.benefice < 0 ? rouge : vert) + ';">' + _depEuros(b.benefice) + ' &euro;</b></div>'
-    + (b.taxePrestataire > 0
-      ? ligne('&#129309; Taxes prestataire', '&minus; ' + _depEuros(b.taxePrestataire) + ' &euro;', rouge, 'pr&eacute;lev&eacute;es par les partenaires Mali')
-        + '<div class="bl-ben bl-reel" style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;margin-top:6px;border-top:2px dashed var(--border);">'
-        +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice r&eacute;el<br><span style="font-size:11px;font-weight:600;color:#999;">apr&egrave;s taxes des partenaires</span></span>'
-        +   '<b style="font-size:26px;color:' + (b.beneficeReel < 0 ? rouge : vert) + ';">' + _depEuros(b.beneficeReel) + ' &euro;</b></div>'
-      : '')
+    +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice' + (b.taxePrestataire > 0 ? '<br><span style="font-size:11px;font-weight:600;color:#999;">apr&egrave;s les taxes</span>' : '') + '</span>'
+    +   '<b style="font-size:26px;color:' + (b.beneficeReel < 0 ? rouge : vert) + ';">' + _depEuros(b.beneficeReel) + ' &euro;</b></div>'
     + (b.aEncaisser > 0
       ? '<div class="bl-al bl-al-o" style="font-size:11.5px;color:#8A5200;background:#FFF3E0;border-radius:8px;padding:8px 10px;margin-top:12px;font-weight:600;line-height:1.4;">'
         + '&#8987; <b>' + _depEuros(b.aEncaisser) + ' &euro;</b> de colis restent &agrave; encaisser. Ils ne comptent pas dans les recettes tant qu\'ils ne sont pas vers&eacute;s.</div>'

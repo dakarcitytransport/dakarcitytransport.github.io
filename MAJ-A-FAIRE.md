@@ -6942,3 +6942,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - **Objet libre** : plus de liste Salaires / Loyer / Carburant. Champ « Objet de la dépense » en texte libre (ex. « Achat camion ») avec suggestions des objets déjà utilisés (`<datalist>`) ; `dct_finance/caisse/<clé>` = {objet, montant, date, note, ts, par}. Objet obligatoire. Plus tard on pourra en faire un vrai menu.
 - **Look V2** : cartes à dégradé (vert = bilan, bleu = livraison, rouge = dépenses de la caisse), coins arrondis, bénéfice en grosse tuile, champs arrondis (classes `bl-*` dans `tools/gen_look_css.py`, look-v2.css régénéré). V1 inchangé en dehors de la structure simplifiée.
 - Le formulaire garde ce qu'on tape si le bilan se redessine. Testé (faux Firebase) : refus sans objet, 2 dépenses « Achat camion » (suggestion unique), totaux dépenses/bénéfice, suppression. Le reste des ~70 écrans en V2 : à faire par groupes (Clients, fiche client, Suivi, Rapport financier d'abord).
+
+### 11/11/2026 — Un seul bénéfice, taxes comprises (v3.99.344, departs.js v2.22.71)
+> Cobey : « mets un seul bénéfice, qui inclut les taxes, ça sert à rien de mettre deux fois ».
+- Bilan global : la ligne « Taxes prestataire » (si elle existe) puis UN « Bénéfice · après les taxes » (= ancien bénéfice réel). Plus de « Bénéfice réel » séparé. La case « Bilan » du Rapport financier affiche aussi ce bénéfice après taxes. Testé (faux Firebase) : 9 266,36 → 8 766,36 € avec 500 € de taxes.
