@@ -6959,3 +6959,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Fil d'activité : « a vendu N fûts à … » visible de ceux qui ont la case Fûts.
 - **Reste à faire (étape 2)** : « Basculer » la fiche dans une collecte pour la ramasse (aujourd'hui la fiche reste au Dépôt d'attente et peut être déplacée vers un container) ; ligne « fût » à confirmer sur la facture imprimée ; fiche client : indication « Fût 270 L » à part du transport.
 - Testé (faux Firebase) : achat 40 fûts / 1 200 € ; vente 2 × 35 € avec 30 € versés → fiche 70 €, reste 40 €, stock 40 → 38 ; facture ouverte ; compteurs de l'accueil et du Stockage.
+
+### 12/11/2026 — Fût : prix fixe de 35 €, choix de 1 à 3 fûts (v3.99.347, departs.js v2.22.73)
+> Cobey : « le fût de 270 litres sera toujours facturé à 35 € […] quand on crée un client via l'espace fût, on pourra sélectionner un fût, deux fûts ou trois fûts qui seront de 35 € et qui s'afficheront sur la [facture] » (message coupé).
+- Plus de champ prix : `DEP_PRIX_FUT = 35`. Menu « 1 fût / 2 fûts / 3 fûts », total calculé (35 / 70 / 105 €), ligne « Achat d'un fût 270 L » × N sur la facture. Testé : 2 fûts → 70 €, 30 € versés, reste 40 €.

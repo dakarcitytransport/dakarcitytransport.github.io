@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.72';
+var DEP_VERSION = 'v2.22.73';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3359,10 +3359,8 @@ function injecterEcrans(){
   +     '<div class="fg"><label class="fl">Pr&eacute;nom</label><input class="fi" id="ft-prenom" autocomplete="off"></div>'
   +     '<div class="fg"><label class="fl">Nom</label><input class="fi" id="ft-nom" autocomplete="off"></div>'
   +     '<div class="fg"><label class="fl">T&eacute;l&eacute;phone</label><input class="fi" id="ft-tel" type="tel" autocomplete="off"></div>'
-  +     '<div style="display:flex;gap:10px;">'
-  +       '<div class="fg" style="flex:1;"><label class="fl">Nombre de f&ucirc;ts</label><input class="fi" id="ft-nb" type="number" min="1" value="1" oninput="depFutVenteCalc()" style="font-size:18px;font-weight:700;text-align:center;"></div>'
-  +       '<div class="fg" style="flex:1;"><label class="fl">Prix d\'un f&ucirc;t (&euro;)</label><input class="fi" id="ft-pu" type="number" min="0" step="0.01" placeholder="ex. 35" oninput="depFutVenteCalc()" style="font-size:18px;font-weight:700;text-align:center;"></div>'
-  +     '</div>'
+  +     '<div class="fg"><label class="fl">Nombre de f&ucirc;ts (35 &euro; le f&ucirc;t)</label>'
+  +       '<select class="fi" id="ft-nb" onchange="depFutVenteCalc()" style="font-size:18px;font-weight:700;"><option value="1">1 f&ucirc;t</option><option value="2">2 f&ucirc;ts</option><option value="3">3 f&ucirc;ts</option></select></div>'
   +     '<div id="ft-total" style="font-size:14px;font-weight:800;margin:-4px 0 14px;color:var(--text);">Total : 0 &euro;</div>'
   +     '<div class="fg"><label class="fl">Pay&eacute; maintenant (&euro;) &mdash; facultatif</label><input class="fi" id="ft-verse" type="number" min="0" step="0.01" placeholder="0" style="font-size:18px;font-weight:700;text-align:center;"></div>'
   +     '<div style="display:flex;gap:8px;margin:-4px 0 14px;">'
@@ -24280,6 +24278,7 @@ function _depLibObjetCaisse(o){
    Stock = fûts achetés (lignes de dct_finance/caisse portant `futs`) − fûts vendus (lignes « fût 270 » des fiches clients).
    Une vente = une vraie fiche client au Dépôt d'attente : le fût s'ajoute au prix du transport sur sa facture ; les paiements
    sont ses versements habituels. Le prix d'achat au commerçant n'apparaît jamais sur la facture du client. */
+var DEP_PRIX_FUT = 35;   // prix de vente d'un fût 270 L : toujours 35 € (Cobey, 12/11/2026)
 var DEP_NOM_FUT = 'Achat d\'un fût 270 L';
 var DEP_RE_FUT = /^achat d['’]un f[uû]t 270/i;   // nom exact de la ligne : les fûts que des clients EXPÉDIENT comme colis ne sont pas des fûts vendus par DCT
 function _depFutsAchetes(){
@@ -24359,11 +24358,11 @@ window.depFutMethode = function(m){
   if(v) v.classList.toggle('on', m === 'virement');
 };
 window.depFutVenteCalc = function(){
-  var nb = parseInt(($('ft-nb') || {}).value, 10) || 0, pu = parseFloat(($('ft-pu') || {}).value) || 0;
+  var nb = parseInt(($('ft-nb') || {}).value, 10) || 0, pu = DEP_PRIX_FUT;
   var t = $('ft-total'); if(t) t.innerHTML = 'Total : ' + _depEuros(depArrondi2(nb * pu)) + ' &euro;';
 };
 window.depOuvrirVenteFut = function(){
-  ['ft-prenom', 'ft-nom', 'ft-tel', 'ft-pu', 'ft-verse', 'ft-note'].forEach(function(i){ var e = $(i); if(e) e.value = ''; });
+  ['ft-prenom', 'ft-nom', 'ft-tel', 'ft-verse', 'ft-note'].forEach(function(i){ var e = $(i); if(e) e.value = ''; });
   var nb = $('ft-nb'); if(nb) nb.value = '1';
   _depFutMeth = ''; depFutMethode('');
   depFutVenteCalc();
@@ -24375,8 +24374,7 @@ window.depEnregistrerVenteFut = function(){
   if(!prenom && !nom){ toast('⚠️ Indiquez au moins le nom ou le prénom.'); return; }
   var nb = parseInt(($('ft-nb') || {}).value, 10) || 0;
   if(nb < 1){ toast('⚠️ Indiquez le nombre de fûts.'); return; }
-  var pu = parseFloat(($('ft-pu') || {}).value);
-  if(isNaN(pu) || pu < 0){ toast('⚠️ Indiquez le prix d\'un fût.'); return; }
+  var pu = DEP_PRIX_FUT;
   var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * pu);
   if(verse < 0){ toast('⚠️ Montant versé invalide.'); return; }
   if(verse > 0 && !_depFutMeth){ toast('⚠️ Choisissez le mode de paiement (espèces ou virement).'); return; }
