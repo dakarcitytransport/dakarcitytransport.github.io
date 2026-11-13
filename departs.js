@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.101';
+var DEP_VERSION = 'v2.22.102';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18144,6 +18144,7 @@ function greffer(){
     window.renderCollecteContent = function(){
       origRCC.apply(this, arguments);
       _depBanniereFut();
+      window.depBlocBeneficeLivraison();
     };
     window.renderCollecteContent._depFut = true;
   }
@@ -24454,6 +24455,10 @@ function _depFichesFuts(){
 // Un client fût dont la fiche attend encore (au Dépôt d'attente) : le fût est CHEZ LE CLIENT, pas au dépôt.
 // Cobey, 13/11/2026 : « le fût est chez le client, le temps qu'il le remplisse […] une fois qu'il dit qu'il est prêt, on bascule dans une collecte ».
 // Ces fiches ne comptent donc pas parmi les clients « en attente à Mitry » (leur argent reste dans le bilan).
+window._depColFuts = function(id){ return _depColFuts(id); };
+window._depNbFutsFiche = function(c){
+  var n = 0; try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')) n += (l.qte || 0); }); }catch(e){} return n;
+};
 function _depEstFutFiche(c){
   if(!c) return false;
   try{ return _depLignesColis(c).some(function(l){ return DEP_RE_FUT.test(l.nom || ''); }); }catch(e){ return false; }
@@ -24598,13 +24603,15 @@ function _depDeplacerFutsVersContainer(liste, versId){
 
 // Fûts d'un container, pour le Rapport financier : à titre d'INFORMATION seulement (l'achat est déjà une dépense de la caisse principale,
 // la vente est déjà dans les recettes du container : rien ne s'ajoute deux fois).
-function _depFutsDeContainer(depId){
+function _depFutsDeContainer(depId){ return _depFutsStats(function(o){ return o.c.departId === depId; }); }
+// Nombre, ventes (35 € l'un), prix d'achat (lot de chaque fût) et écart des fûts des fiches retenues par `garde`.
+function _depFutsStats(garde){
   var lots = _depLotsFuts(), pu = {}, moy = 0, nbL = 0;
   lots.forEach(function(l){ pu[l.id] = l.pu; moy += l.pu * l.achetes; nbL += l.achetes; });
   moy = nbL ? moy / nbL : 0;
   var nb = 0, achat = 0, clients = 0;
   _depFichesFuts().forEach(function(o){
-    if(o.c.departId !== depId) return;
+    if(!garde(o)) return;
     clients++; nb += o.nb;
     var pl = o.c.futLots || {}, dej = 0;
     Object.keys(pl).forEach(function(k){ var n = parseInt(pl[k], 10) || 0; if(pu[k] != null){ achat += n * pu[k]; dej += n; } });
@@ -24625,6 +24632,35 @@ function _depBlocFutsContainer(depId){
     + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.4;">Pour information : les ventes sont d&eacute;j&agrave; dans les recettes de ce container et l\'achat dans les d&eacute;penses de la caisse principale. Rien ne s\'ajoute une seconde fois.</div>'
     + '</div>';
 }
+// Livraison en cours : fûts vendus, moins leur prix d'achat, moins les dépenses des camions de cette livraison (Cobey, 13/11/2026).
+function _depBlocBeneficeLivraison(colId){
+  var cl = (window.clientsParCollecte || {})[colId] || {}, ids = {};
+  Object.keys(cl).forEach(function(i){ ids[i] = 1; });
+  var st = _depFutsStats(function(o){ return o.x.src === 'col' && o.x.collecteId === colId; });
+  var dep = 0, src = ((window.depensesData || {})[colId]) || {};
+  Object.keys(src).forEach(function(cam){ var l = src[cam] || {}; Object.keys(l).forEach(function(k){ dep += (parseFloat((l[k] || {}).montant) || 0); }); });
+  dep = depArrondi2(dep);
+  var benef = depArrondi2(st.ventes - st.achat - dep);
+  var lg = function(lib, val, coul, gras){ return '<div style="display:flex;justify-content:space-between;gap:8px;padding:' + (gras ? '9px 0 2px' : '3px 0') + ';font-size:' + (gras ? '14px' : '12.5px') + ';' + (gras ? 'border-top:2px solid var(--border);margin-top:5px;font-weight:800;' : '') + '"><span style="' + (gras ? '' : 'color:var(--text3);font-weight:600;') + '">' + lib + '</span><b style="' + (gras ? 'font-size:18px;' : '') + 'color:' + coul + ';">' + val + '</b></div>'; };
+  return '<div id="liv-benef" style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;">'
+    + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;margin-bottom:6px;">&#128738;&#65039; B&Eacute;N&Eacute;FICE DE CETTE LIVRAISON</div>'
+    + lg('F&ucirc;ts vendus (' + st.nb + ')', _depEuros(st.ventes) + ' &euro;', '#006b2d')
+    + lg('Prix d\'achat de ces f&ucirc;ts', '&minus; ' + _depEuros(st.achat) + ' &euro;', '#B3261E')
+    + lg('D&eacute;penses de la tourn&eacute;e', '&minus; ' + _depEuros(dep) + ' &euro;', '#B3261E')
+    + lg('B&eacute;n&eacute;fice r&eacute;el', _depEuros(benef) + ' &euro;', benef < 0 ? '#B3261E' : '#006b2d', true)
+    + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.4;">Pour information : seuls les f&ucirc;ts et les d&eacute;penses des camions de cette livraison. Rien ne s\'ajoute une seconde fois dans le Bilan.</div></div>';
+}
+window.depBlocBeneficeLivraison = function(){
+  try{
+    var cf = _depColFuts(window.currentCollecteId); if(!cf) return;
+    var cont = $('collecte-content'); if(!cont) return;
+    var ancien = $('liv-benef'); if(ancien) ancien.remove();
+    if(window.currentSubtab !== 'dispatch' && (typeof currentSubtab === 'undefined' || currentSubtab !== 'dispatch')) return;
+    var tmp = document.createElement('div'); tmp.innerHTML = _depBlocBeneficeLivraison(cf.id);
+    var bloc = tmp.firstChild, fg = cont.querySelector('.finance-global');
+    if(fg && fg.parentNode) fg.parentNode.insertBefore(bloc, fg.nextSibling); else cont.insertBefore(bloc, cont.firstChild);
+  }catch(e){ console.error('livraison: bénéfice', e); }
+};
 function _depLigneFutsContainer(depId){
   if(_depEstContainerMali(depId)) return '';
   var f = _depFutsDeContainer(depId);
@@ -25142,6 +25178,23 @@ window.depRenderRapfinBilan = function(){
     + (b.livDu > 0 ? ligne('Reste d&ucirc;', _depEuros(b.livDu) + ' &euro;', rouge, '') : '')
     + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.45;">Cet argent n\'entre pas dans le b&eacute;n&eacute;fice : il se partage avec le livreur, et son d&eacute;compte se fera dans son propre espace.</div>'
     + '</div>';
+
+  // ── 2bis. Fûts : bénéfice réel et argent immobilisé en stock (information)
+  var stF = _depStockFuts();
+  if(stF.achetes > 0){
+    var stats = _depFutsStats(function(){ return true; });
+    var immo = depArrondi2(stF.lots.reduce(function(sm, l){ return sm + Math.max(0, l.restants) * l.pu; }, 0));
+    h += '<div class="bl-c bl-fut" style="' + carte + '">'
+      + '<div class="bl-t" style="' + titre + '">&#128738;&#65039; F&Ucirc;TS &mdash; B&Eacute;N&Eacute;FICE R&Eacute;EL (INFORMATION)</div>'
+      + ligne('F&ucirc;ts vendus', _depEuros(stats.ventes) + ' &euro;', 'var(--text)', stats.nb + ' f&ucirc;t' + (stats.nb > 1 ? 's' : '') + ' &agrave; 35 &euro;')
+      + ligne('Prix d\'achat de ces f&ucirc;ts', '&minus; ' + _depEuros(stats.achat) + ' &euro;', rouge, 'd\'apr&egrave;s le lot de chaque f&ucirc;t')
+      + '<div class="bl-ben" style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;margin-top:6px;border-top:2px solid var(--border);">'
+      +   '<span style="font-size:14px;font-weight:800;color:var(--text);">B&eacute;n&eacute;fice r&eacute;el des f&ucirc;ts</span>'
+      +   '<b style="font-size:24px;color:' + (stats.ecart < 0 ? rouge : vert) + ';">' + _depEuros(stats.ecart) + ' &euro;</b></div>'
+      + ligne('Encore en stock', stF.restants + ' f&ucirc;t' + (stF.restants > 1 ? 's' : ''), 'var(--text)', _depEuros(immo) + ' &euro; d&eacute;j&agrave; d&eacute;pens&eacute; dessus')
+      + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:6px;line-height:1.4;">Les achats de f&ucirc;ts sont d&eacute;j&agrave; dans les d&eacute;penses ci-dessus, stock compris : c\'est pourquoi le b&eacute;n&eacute;fice global para&icirc;t plus bas tant que le stock n\'est pas vendu. Rien ne s\'ajoute deux fois.</div>'
+      + '</div>';
+  }
 
   // ── 3. Les dépenses de la caisse principale : l'objet s'écrit librement (avec suggestions des objets déjà utilisés) ──
   var typesFuts = []; b.caisse.forEach(function(o){ if(o.futType && typesFuts.indexOf(o.futType) < 0) typesFuts.push(o.futType); }); if(typesFuts.indexOf('Fût 270 L') < 0) typesFuts.unshift('Fût 270 L');
