@@ -7013,3 +7013,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - **Photo obligatoire** (1 à 5 photos, comme le dépôt direct) des fûts mis à disposition du client : sans photo, l'enregistrement est refusé ; stockée dans `dct_photos_colis/<id>` comme les autres colis.
 - Testé (faux Firebase) : vente refusée sans photo, acceptée avec ; après bascule la fiche de collecte contient civilité, 2e numéro, infos, destinataire, livraison (Medina, 10 €) et `aPhotoColis`.
 - Non testé : la prise de photo réelle sur téléphone (appareil photo) — même composant que le dépôt direct.
+
+### 13/11/2026 — Case Fûts déplacée à côté de l'inscription au dépôt (v3.99.358, departs.js v2.22.84)
+> Cobey : « je trouve que la case fût est un peu mal placée, peux-tu la mettre ailleurs ? »
+- Ordre de l'accueil : … Collecte › France › Inscription au dépôt › **Fûts** › Devis … (elle suivait Stockage, avant Client). Raison : c'est une case où l'on inscrit un client, comme l'inscription au dépôt. Aucun autre changement.

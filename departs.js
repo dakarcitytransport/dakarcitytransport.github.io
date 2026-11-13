@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.83';
+var DEP_VERSION = 'v2.22.84';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3124,12 +3124,6 @@ function injecterEcrans(){
   +         '<div class="dep-case-tit" style="color:#B8720C;">STOCKAGE</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-stockage">—</div>'
   +       '</div>'
-  // v3.99.346 — Fûts de 270 L revendus aux clients (Cobey, 12/11/2026). Direction (Eric, Issyaka, Abdoulaye) + Bureau (Aminata).
-  +       '<div class="dep-case" id="dep-case-futs" style="background:#E3EEF7;" onclick="depOuvrirEspaceFuts()">'
-  +         '<div class="dep-case-ico">&#128738;&#65039;</div>'
-  +         '<div class="dep-case-tit" style="color:#1565A8;">F&Ucirc;TS</div>'
-  +         '<div class="dep-case-sub" id="dep-case-sub-futs">&mdash;</div>'
-  +       '</div>'
   +       '<div class="dep-case" id="dep-case-client" style="background:#EDE5FC;" onclick="depOuvrirEspaceClient()">'
   +         '<div class="dep-case-ico">&#128100;</div>'
   +         '<div class="dep-case-tit" style="color:#7c3aed;">CLIENT</div>'
@@ -3163,6 +3157,12 @@ function injecterEcrans(){
   +         '<div class="dep-case-ico">&#127970;</div>'
   +         '<div class="dep-case-tit" style="color:#B8720C;">INSCRIPTION AU D&Eacute;P&Ocirc;T</div>'
   +         '<div class="dep-case-sub" id="dep-case-sub-depot">—</div>'
+  +       '</div>'
+  // v3.99.346 — Fûts de 270 L revendus aux clients (Cobey, 12/11/2026). Direction (Eric, Issyaka, Abdoulaye) + Bureau (Aminata).
+  +       '<div class="dep-case" id="dep-case-futs" style="background:#E3EEF7;" onclick="depOuvrirEspaceFuts()">'
+  +         '<div class="dep-case-ico">&#128738;&#65039;</div>'
+  +         '<div class="dep-case-tit" style="color:#1565A8;">F&Ucirc;TS</div>'
+  +         '<div class="dep-case-sub" id="dep-case-sub-futs">&mdash;</div>'
   +       '</div>'
   // v1.19.85 : nouveau carré DEVIS, ouvert à tout le monde (retour de
   // Cobey du 29/08/2026) — permet d'établir un devis avant même
