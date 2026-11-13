@@ -7066,3 +7066,8 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 > Cobey (capture de l'écran Documents) : « une fois qu'on a fini d'enregistrer le client, on a cette fenêtre-là. On devrait aussi avoir un bouton pour revenir sur la page de l'espace des fûts ».
 - Écran Documents (après validation de la facture) : pour une fiche fût, bouton « 🛢️ Retour aux fûts » (ouvre l'écran Fûts) à la place de « Retour à la tournée » ; titre « Fût enregistré » au lieu de « Collecte validée ». Les autres parcours sont inchangés.
 - Testé (faux Firebase) : vente → versement → validation de la facture → écran Documents : titre « Fût enregistré », bouton fûts visible, bouton tournée masqué, clic → écran Fûts.
+
+### 13/11/2026 — Vérification fût → collecte → validation + correction des photos (v3.99.368, departs.js v2.22.94)
+> Cobey : « vérifie bien si c'est bon et tu peux coder après » (client fût basculé dans une collecte, déjà facturé avant d'être mis sur un camion).
+- Vérifié (faux Firebase) : fût basculé + affecté à un camion → l'écran « Valider » de la collecte reprend la ligne « Achat d'un fût 270 L » et les colis (2 × 35 € + 2 × 50 €) et la fiche garde ses versements (70 € nature « fût »).
+- **Défaut trouvé et corrigé** : les photos des fûts déposés (`dct_photos_colis/<id>`) restaient sous l'ancien identifiant du dépôt ; après la bascule l'écran Valider affichait « 0/5 photos ». La bascule déplace maintenant les photos vers le nouvel identifiant (1/5 photo après correction).

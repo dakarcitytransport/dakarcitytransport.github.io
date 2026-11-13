@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.93';
+var DEP_VERSION = 'v2.22.94';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -24554,6 +24554,15 @@ window.depConfirmerBasculeFut = function(){
   maj['dct/clients/' + colId + '/' + newId] = fiche;
   maj['dct/dispatch/' + colId + '/assigned/' + newId] = null;
   maj['dct_depot/' + id] = null;
+  // Les photos des fûts déposés suivent le client : elles sont rangées sous son identifiant (dct_photos_colis/<id>),
+  // qui change à la bascule — sans ça, l'écran « Valider » de la collecte affichait 0 photo (vérifié le 13/11/2026).
+  try{
+    db.ref('dct_photos_colis/' + id).once('value').then(function(sn){
+      var ph = sn.val(); if(!ph) return;
+      db.ref('dct_photos_colis/' + newId).set(ph);
+      db.ref('dct_photos_colis/' + id).remove();
+    });
+  }catch(e){}
   db.ref().update(maj).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'écriture refusée')); });
   try{ depActivite('&#128197;', 'a bascul&eacute; <strong>' + esc(fiche.name || '') + '</strong> (f&ucirc;t) dans la collecte du <strong>' + esc(col.date || '') + '</strong>'); }catch(e){}
   closeModal('modal-fut-bascule');
