@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.84';
+var DEP_VERSION = 'v2.22.85';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3385,7 +3385,7 @@ function injecterEcrans(){
   +     '<div class="fg"><label class="fl">Nombre de f&ucirc;ts (35 &euro; le f&ucirc;t)</label>'
   +       '<select class="fi" id="ft-nb" onchange="depFutVenteCalc()" style="font-size:18px;font-weight:700;"><option value="1">1 f&ucirc;t</option><option value="2">2 f&ucirc;ts</option><option value="3">3 f&ucirc;ts</option></select></div>'
   +     '<div id="ft-total" style="font-size:14px;font-weight:800;margin:-4px 0 14px;color:var(--text);">Total : 0 &euro;</div>'
-  +     '<div class="fg"><label class="fl">Date du d&eacute;p&ocirc;t du f&ucirc;t chez le client</label><input class="fi" id="ft-date" type="date"></div>'
+  +     '<div class="fg"><label class="fl">Date du d&eacute;p&ocirc;t du f&ucirc;t chez le client</label><input class="fi" id="ft-date" type="date" style="max-width:100%;min-width:0;box-sizing:border-box;"></div>'
   +     '<div class="fg"><label class="fl">Pay&eacute; maintenant (&euro;) &mdash; facultatif</label><input class="fi" id="ft-verse" type="number" min="0" step="0.01" placeholder="0" style="font-size:18px;font-weight:700;text-align:center;"></div>'
   +     '<div style="display:flex;gap:8px;margin:-4px 0 14px;">'
   +       '<button type="button" class="dep-st" id="ft-m-esp" onclick="depFutMethode(\'especes\')" style="flex:1;">Esp&egrave;ces</button>'
@@ -11699,6 +11699,7 @@ window.depConfirmerVersement = function(){
   closeModal('modal-dep-vers-confirm');
   _depVersPending = null;
   if(!p) return;
+  if(p.type === 'fut'){ p.run(); return; }
   if(p.type === 'livraison'){
     _depAjouterVersementLivraisonExecuter(p);
   } else {
@@ -24521,7 +24522,30 @@ window.depOuvrirVenteFut = function(){
   depFutVenteCalc();
   goTo('s-dep-fut-vente');
 };
+// Validation avant écriture (comme pour tout versement : Cobey, 13/11/2026 « il y a toujours une validation »).
 window.depEnregistrerVenteFut = function(){
+  if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
+  var prenom = (($('ft-prenom') || {}).value || '').trim(), nom = (($('ft-nom') || {}).value || '').trim();
+  if(!prenom && !nom){ toast('⚠️ Indiquez au moins le nom ou le prénom.'); return; }
+  var nb = parseInt(($('ft-nb') || {}).value, 10) || 0;
+  if(nb < 1){ toast('⚠️ Indiquez le nombre de fûts.'); return; }
+  var stockF = _depStockFuts().restants;
+  if(nb > stockF){ toast(stockF < 1 ? '⛔ Plus de fût en stock : la vente est impossible.' : '⛔ Il ne reste que ' + stockF + ' fût' + (stockF > 1 ? 's' : '') + ' en stock.'); return; }
+  var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * DEP_PRIX_FUT);
+  if(verse < 0){ toast('⚠️ Montant versé invalide.'); return; }
+  if(verse > 0 && !_depFutMeth){ toast('⚠️ Choisissez le mode de paiement (espèces ou virement).'); return; }
+  if(verse > total){ toast('⚠️ Le versé dépasse le total.'); return; }
+  if(!(window._depDepotPhotos || []).length){ toast('⚠️ Ajoutez au moins une photo des fûts déposés chez le client.'); return; }
+  var nomC = _composeNom(_civDct.ft || '', prenom, nom);
+  var texte = $('dep-vers-confirm-texte');
+  if(!texte){ _depEnregistrerVenteFutExecuter(); return; }
+  texte.innerHTML = 'Enregistrer la vente de <strong>' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + '</strong> (' + _depEuros(total) + '&nbsp;&euro;) &agrave; <strong>' + esc(nomC) + '</strong>'
+    + (verse > 0 ? '<br>avec un versement de <strong>' + _depEuros(verse) + '&nbsp;&euro;</strong> par <strong>' + (_depFutMeth === 'especes' ? 'Esp&egrave;ces' : 'Virement') + '</strong>' : '<br><span style="font-size:12px;">Aucun versement pour l\'instant.</span>')
+    + '&nbsp;?';
+  _depVersPending = { type: 'fut', run: _depEnregistrerVenteFutExecuter };
+  openModal('modal-dep-vers-confirm');
+};
+function _depEnregistrerVenteFutExecuter(){
   if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
   var prenom = (($('ft-prenom') || {}).value || '').trim(), nom = (($('ft-nom') || {}).value || '').trim(), tel = (($('ft-tel') || {}).value || '').trim();
   var civ = _civDct.ft || '', tel2 = (($('ft-tel2') || {}).value || '').trim(), infosF = (($('ft-infos') || {}).value || '').trim();
@@ -24760,7 +24784,7 @@ window.depRenderRapfinBilan = function(){
     +     '<div style="flex:1;min-width:0;"><label for="dep-cs-montant" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">2. Montant (&euro;)</label>'
     +       '<input class="bl-in" id="dep-cs-montant" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
     +     '<div style="flex:1;min-width:0;"><label for="dep-cs-date" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">3. Date</label>'
-    +       '<input class="bl-in" id="dep-cs-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
+    +       '<input class="bl-in" id="dep-cs-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="max-width:100%;min-width:0;box-sizing:border-box;width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
     +   '</div>'
     +   '<label for="dep-cs-note" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Note (facultatif)</label>'
     +   '<input class="bl-in" id="dep-cs-note" type="text" placeholder="Pr&eacute;cision utile, fournisseur&hellip;" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff; margin-bottom:12px;">'

@@ -7021,3 +7021,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 ### 13/11/2026 — Icône de la case Fûts assortie aux autres (v3.99.359, look-v2.css)
 > Cobey : « le symbole de la case fût n'a rien à voir avec les autres ».
 - En V2, chaque case a une icône dessinée (masque SVG dans `tools/gen_look_css.py`, `ICONS`) dans une pastille colorée ; la case Fûts avait gardé l'émoji 🛢️. Ajout d'une icône de tonneau (trait blanc, pastille bleue, comme France / Devis). Vérifié sur capture de l'accueil. V1 inchangé (émoji comme les autres cases en V1).
+
+### 13/11/2026 — Fûts : validation avant l'enregistrement + champs date qui ne dépassent plus (v3.99.360, departs.js v2.22.85, look-v2.css)
+> Cobey (capture) : « pour le paiement des fûts je vois qu'il n'y a pas de validation. Dans les versements des colis, des livraisons, des frais de déplacement il y a toujours une validation : on entre le prix, on choisit chèque ou espèces, et après on valide » ; « la case des dates est mal agencée aussi, ça dépasse ».
+- « Enregistrer la vente » ouvre maintenant la même fenêtre de confirmation que les versements (`modal-dep-vers-confirm`) : « Enregistrer la vente de 2 fûts (70 €) à … avec un versement de 30 € par Espèces ? » (ou « Aucun versement pour l'instant »). Rien n'est écrit avant « Confirmer » (fiche, photos, versement). Les contrôles (nom, nombre, stock, mode de paiement si montant, photo) se font avant d'ouvrir la fenêtre.
+- Champs date (vente de fût, dépense de caisse) : plus de débordement hors de la carte sur iPhone (`max-width:100%`, apparence native retirée en V2 pour tous les `input[type=date]`).
+- Testé (faux Firebase) : fenêtre ouverte avec le bon texte, 0 fiche avant confirmation, 1 après ; largeur du champ date à l'intérieur de sa carte (35..365 dans 16..384).
