@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.91';
+var DEP_VERSION = 'v2.22.92';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3384,7 +3384,12 @@ function injecterEcrans(){
   +     '</div>'
   +     '<div class="dep-sec">Le f&ucirc;t</div>'
   +     '<div class="fg"><label class="fl">Nombre de f&ucirc;ts (35 &euro; le f&ucirc;t)</label>'
-  +       '<select class="fi" id="ft-nb" onchange="depFutVenteCalc()" style="font-size:18px;font-weight:700;"><option value="1">1 f&ucirc;t</option><option value="2">2 f&ucirc;ts</option><option value="3">3 f&ucirc;ts</option></select></div>'
+  +       '<div style="display:flex;align-items:center;gap:8px;">'
+  +         '<button type="button" class="dep-st" onclick="depFutNb(-1)" style="width:56px;flex:none;font-size:24px;font-weight:800;">&minus;</button>'
+  +         '<input class="fi" id="ft-nb" type="number" inputmode="numeric" min="1" step="1" value="1" oninput="depFutVenteCalc()" style="flex:1;min-width:0;text-align:center;font-size:22px;font-weight:800;">'
+  +         '<button type="button" class="dep-st" onclick="depFutNb(1)" style="width:56px;flex:none;font-size:24px;font-weight:800;">+</button>'
+  +       '</div>'
+  +       '<div id="ft-stock-note" style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:4px;"></div></div>'
   +     '<div class="dep-sec">Colis envoy&eacute;s</div>'
   +     '<div style="font-size:11.5px;color:var(--text3);margin:-6px 0 8px;line-height:1.4;">Comme &agrave; l\'inscription d\'une collecte : choisissez le type de colis (le prix se remplit). Le f&ucirc;t est d&eacute;j&agrave; compt&eacute; ; ajoutez ici ce qui est envoy&eacute; en plus ou le transport.</div>'
   +     '<div id="ft-lignes" style="margin-bottom:14px;"></div>'
@@ -24549,6 +24554,16 @@ window.depConfirmerBasculeFut = function(){
 };
 
 var _depFutMeth = '', _depFutMethA = '', _depFutVerseManuel = false;
+// Nombre de fûts : − / + ou saisie directe, sans plafond fixe (limité seulement par le stock).
+window.depFutNb = function(delta){
+  var e = $('ft-nb'); if(!e) return;
+  var stock = _depStockFuts().restants;
+  var n = (parseInt(e.value, 10) || 1) + delta;
+  if(n < 1) n = 1;
+  if(n > stock){ n = Math.max(1, stock); toast('⚠️ Il ne reste que ' + stock + ' fût' + (stock > 1 ? 's' : '') + ' en stock.'); }
+  e.value = String(n);
+  depFutVenteCalc();
+};
 window.depSetLivraisonFut = function(oui){
   var bOui = $('ft-liv-oui'), bNon = $('ft-liv-non'), bloc = $('ft-liv-bloc');
   if(bOui) bOui.className = 'dep-st' + (oui ? ' on' : '');
@@ -24579,8 +24594,7 @@ window.depFutVenteCalc = function(){
 window.depOuvrirVenteFut = function(){
   var stock = _depStockFuts().restants;
   if(stock < 1){ toast('⛔ Plus de fût en stock à Émerainville : la vente est impossible.'); return; }
-  var sel = $('ft-nb');
-  if(sel) [].forEach.call(sel.options, function(o){ o.disabled = parseInt(o.value, 10) > stock; });
+  var sn = $('ft-stock-note'); if(sn) sn.textContent = stock + ' f\u00fbt' + (stock > 1 ? 's' : '') + ' en stock \u00e0 \u00c9merainville';
   ['ft-prenom', 'ft-nom', 'ft-tel', 'ft-tel2', 'ft-adresse', 'ft-infos', 'ft-cp', 'ft-ville', 'ft-verse', 'ft-note', 'ft-dest-nom', 'ft-dest-tel', 'ft-dest-tel2', 'ft-liv-adresse', 'ft-liv-prix', 'ft-liv-ville', 'ft-liv-ville-autre'].forEach(function(i){ var e = $(i); if(e) e.value = ''; });
   _civDct.ft = ''; try{ _renderCivDct('ft'); }catch(e){}
   // Mêmes aides qu'à l'inscription d'un client de collecte : un contact déjà connu se retrouve en tapant le nom ou le numéro,
