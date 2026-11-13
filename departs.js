@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.76';
+var DEP_VERSION = 'v2.22.77';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3349,6 +3349,17 @@ function injecterEcrans(){
   +   '</div>'
   +   '<div class="content"><div id="dep-futs-content"></div></div>'
   + '</div>'
+  + '<div class="screen" id="s-dep-caisse-liste">'
+  +   '<div class="header">'
+  +     '<button class="btn-back" onclick="goTo(\'s-rapfin-bilan\');depRenderRapfinBilan();">&larr; Bilan</button>'
+  +     '<div class="h-title">D&eacute;penses de la caisse</div>'
+  +     '<div style="width:60px;"></div>'
+  +   '</div>'
+  +   '<div class="content">'
+  +     '<input class="fi" id="dep-cl-q" type="search" placeholder="Chercher (objet, note, personne)&hellip;" oninput="depRenderListeCaisse()" style="margin-bottom:12px;">'
+  +     '<div id="dep-caisse-liste-content"></div>'
+  +   '</div>'
+  + '</div>'
   + '<div class="screen" id="s-dep-fut-vente">'
   +   '<div class="header">'
   +     '<button class="btn-back" onclick="depOuvrirEspaceFuts()">&larr; F&ucirc;ts</button>'
@@ -5692,6 +5703,7 @@ function ecouterDeparts(){
     window.financeData = snap.val() || {};
     try{ if($('s-rapfin-bilan') && $('s-rapfin-bilan').classList.contains('active')) depRenderRapfinBilan(); }catch(e){}
     try{ if($('s-rapfin-fixes') && $('s-rapfin-fixes').classList.contains('active')) depRenderDepensesFixes(); }catch(e){}
+    try{ if($('s-dep-caisse-liste') && $('s-dep-caisse-liste').classList.contains('active')) depRenderListeCaisse(); }catch(e){}
   });
 
   // v1.19.85 : devis en attente — voir carré DEVIS.
@@ -24268,6 +24280,14 @@ function _depCaisseLignes(){
     .filter(function(o){ return o && o.montant !== undefined; })
     .sort(function(a, b){ return String(b.date || '').localeCompare(String(a.date || '')) || (b.ts || 0) - (a.ts || 0); });
 }
+function _depLigneCaisse(o){
+  var n = parseInt(o.futs, 10) || 0;
+  return '<div class="bl-l" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eee;">'
+    + '<div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">' + _depLibObjetCaisse(o) + (n > 0 ? ' &middot; ' + n + ' f&ucirc;t' + (n > 1 ? 's' : '') : '') + '</div>'
+    + '<div style="font-size:11.5px;color:#888;margin-top:1px;">' + esc(o.date ? dateFr(o.date) : '') + (o.note ? ' &middot; ' + esc(o.note) : '') + (o.par ? ' &middot; ' + esc(o.par) : '') + '</div></div>'
+    + '<b style="color:#B3261E;white-space:nowrap;">&minus; ' + _depEuros(o.montant) + ' &euro;</b>'
+    + '<span onclick="depSupprimerDepenseCaisse(\'' + o._id + '\')" style="cursor:pointer;color:#992020;font-weight:800;font-size:14px;white-space:nowrap;" title="Supprimer">&#128465;</span></div>';
+}
 function _depLibObjetCaisse(o){
   if(o.objet) return '&#128176; ' + esc(o.objet);
   return o.poste ? _depLibellePosteFixe(o.poste) : '&#128176; Dépense';
@@ -24584,17 +24604,7 @@ window.depRenderRapfinBilan = function(){
 
   // ── 3. Les dépenses de la caisse principale : l'objet s'écrit librement (avec suggestions des objets déjà utilisés) ──
   var deja = {}; b.caisse.forEach(function(o){ if(o.objet && !(parseInt(o.futs, 10) > 0)) deja[o.objet] = 1; });
-  h += '<div class="bl-c bl-cs" style="' + carte + '">'
-    + '<div class="bl-t" style="' + titre + '">&#127974; D&Eacute;PENSES DE LA CAISSE PRINCIPALE &middot; ' + _depEuros(b.totCaisse) + ' &euro;</div>'
-    + (b.caisse.length
-      ? b.caisse.map(function(o){
-          return '<div class="bl-l" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eee;">'
-            + '<div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">' + _depLibObjetCaisse(o) + ((parseInt(o.futs, 10) || 0) > 0 ? ' &middot; ' + (parseInt(o.futs, 10)) + ' f&ucirc;t' + (parseInt(o.futs, 10) > 1 ? 's' : '') : '') + '</div>'
-            + '<div style="font-size:11.5px;color:#888;margin-top:1px;">' + esc(o.date ? dateFr(o.date) : '') + (o.note ? ' &middot; ' + esc(o.note) : '') + (o.par ? ' &middot; ' + esc(o.par) : '') + '</div></div>'
-            + '<b style="color:' + rouge + ';white-space:nowrap;">&minus; ' + _depEuros(o.montant) + ' &euro;</b>'
-            + '<span onclick="depSupprimerDepenseCaisse(\'' + o._id + '\')" style="cursor:pointer;color:#992020;font-weight:800;font-size:14px;white-space:nowrap;" title="Supprimer">&#128465;</span></div>';
-        }).join('')
-      : '<div style="font-size:12.5px;color:var(--text3);font-weight:600;padding:4px 0 8px;">Aucune d&eacute;pense de caisse pour l\'instant.</div>')
+  var formCaisse = ''
     + '<div class="bl-f" style="border-top:1.5px solid var(--border);margin-top:8px;padding-top:10px;">'
     +   '<div style="font-size:14px;font-weight:800;margin-bottom:2px;">+ Nouvelle d&eacute;pense</div>'
     +   '<label for="dep-cs-objet" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">1. Objet de la d&eacute;pense</label>'
@@ -24617,7 +24627,18 @@ window.depRenderRapfinBilan = function(){
     +   '<label for="dep-cs-note" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Note (facultatif)</label>'
     +   '<input class="bl-in" id="dep-cs-note" type="text" placeholder="Pr&eacute;cision utile, fournisseur&hellip;" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff; margin-bottom:12px;">'
     +   '<button class="btn btn-green" onclick="depAjouterDepenseCaisse()">Enregistrer la d&eacute;pense</button>'
-    + '</div></div>';
+    + '</div>';
+  var DERN = 5, nbC = b.caisse.length;
+  h += '<div class="bl-c bl-cs" style="' + carte + '">'
+    + '<div class="bl-t" style="' + titre + '">&#127974; D&Eacute;PENSES DE LA CAISSE PRINCIPALE &middot; ' + _depEuros(b.totCaisse) + ' &euro;</div>'
+    + '<button class="btn ' + (_depCaisseFormOuvert ? 'btn-gray' : 'btn-green') + '" style="margin:6px 0 4px;" onclick="depToggleFormCaisse()">' + (_depCaisseFormOuvert ? 'Fermer le formulaire' : '+ Nouvelle d&eacute;pense') + '</button>'
+    + (_depCaisseFormOuvert ? formCaisse : '')
+    + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.05em;margin:12px 0 2px;">' + (nbC > DERN ? 'LES ' + DERN + ' DERNI&Egrave;RES' : (nbC ? 'D&Eacute;PENSES' : '')) + '</div>'
+    + (nbC ? b.caisse.slice(0, DERN).map(_depLigneCaisse).join('')
+           : '<div style="font-size:12.5px;color:var(--text3);font-weight:600;padding:4px 0 8px;">Aucune d&eacute;pense de caisse pour l\'instant.</div>')
+    + (nbC > DERN ? '<button class="btn btn-gray" style="margin-top:8px;" onclick="depOuvrirListeCaisse()">Voir toutes les d&eacute;penses (' + nbC + ')</button>' : '');
+  h += '</div>';
+
 
   h += '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">Les recettes et les d&eacute;penses ne comptent que ce qui passe par '
     +   'cette application, depuis septembre 2026, et seulement le transport des colis. Le d&eacute;tail de chaque container (b&eacute;n&eacute;fice, d&eacute;penses) est dans &laquo;&nbsp;Voir les containers&nbsp;&raquo;.</div>'
@@ -24632,6 +24653,44 @@ window.depRenderRapfinBilan = function(){
 };
 
 // Selon l'objet choisi : « Achat de fûts » demande le nombre de fûts ; « Autre objet » demande d'écrire l'objet.
+// Le formulaire est replié par défaut : avec des centaines de dépenses dans l'année, « + Nouvelle dépense » reste en haut.
+var _depCaisseFormOuvert = false;
+window.depToggleFormCaisse = function(){
+  _depCaisseFormOuvert = !_depCaisseFormOuvert;
+  depRenderRapfinBilan();
+};
+// Toutes les dépenses de la caisse, rangées par mois, avec recherche.
+window.depOuvrirListeCaisse = function(){
+  goTo('s-dep-caisse-liste');
+  var q = $('dep-cl-q'); if(q) q.value = '';
+  depRenderListeCaisse();
+};
+window.depRenderListeCaisse = function(){
+  var box = $('dep-caisse-liste-content'); if(!box) return;
+  var q = _depHistoNorm(($('dep-cl-q') || {}).value || '');
+  var liste = _depCaisseLignes().filter(function(o){
+    if(!q) return true;
+    return _depHistoNorm([_depTexteBrut(_depLibObjetCaisse(o)), o.note || '', o.par || ''].join(' ')).indexOf(q) >= 0;
+  });
+  var tot = depArrondi2(liste.reduce(function(t, o){ return t + (parseFloat(o.montant) || 0); }, 0));
+  var h = '<div style="font-size:12.5px;font-weight:800;margin:2px 2px 10px;">' + liste.length + ' d&eacute;pense' + (liste.length > 1 ? 's' : '') + ' &middot; <span style="color:#B3261E;">&minus; ' + _depEuros(tot) + ' &euro;</span></div>';
+  if(!liste.length) h += '<div class="dep-vide" style="padding:24px 16px;">Aucune d&eacute;pense.</div>';
+  var mois = '';
+  liste.forEach(function(o){
+    var m = String(o.date || '').slice(0, 7) || _depMoisTs(o.ts);
+    if(m !== mois){
+      if(mois) h += '</div>';
+      mois = m;
+      var totM = depArrondi2(liste.filter(function(x){ return (String(x.date || '').slice(0, 7) || _depMoisTs(x.ts)) === m; }).reduce(function(t, x){ return t + (parseFloat(x.montant) || 0); }, 0));
+      h += '<div class="bl-c bl-cs" style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;">'
+        + '<div class="bl-t" style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;margin-bottom:4px;">' + esc(_depLibMois(m)).toUpperCase() + ' &middot; ' + _depEuros(totM) + ' &euro;</div>';
+    }
+    h += _depLigneCaisse(o);
+  });
+  if(mois) h += '</div>';
+  box.innerHTML = h;
+};
+
 window.depObjetCaisseChange = function(){
   var v = ($('dep-cs-objet') || {}).value || '';
   var l = $('dep-cs-bloc-libre'), f = $('dep-cs-bloc-futs');
@@ -24658,6 +24717,8 @@ window.depAjouterDepenseCaisse = function(){
   var u = window.currentUser || {};
   var obj = { objet: objet, futs: futsN > 0 ? futsN : null, montant: depArrondi2(montant), date: date, note: (($('dep-cs-note') || {}).value || '').trim(), ts: Date.now(), par: u.name || u.id || '', parId: u.id || '' };
   db.ref('dct_finance/caisse').push(obj).then(function(){
+    _depCaisseFormOuvert = false;
+    try{ if($('s-rapfin-bilan') && $('s-rapfin-bilan').classList.contains('active')) depRenderRapfinBilan(); }catch(e){}
     toast('✅ Dépense de caisse enregistrée — ' + _depEuros(obj.montant) + ' €');
     try{ depActivite('&#127974;', 'a ajouté une dépense de caisse de <strong>' + _depEuros(obj.montant) + ' &euro;</strong> &middot; ' + esc(_depTexteBrut(_depLibObjetCaisse(obj)))); }catch(e){}
   }).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'enregistrement refusé')); });

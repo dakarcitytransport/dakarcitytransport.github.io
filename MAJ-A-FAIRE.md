@@ -6978,3 +6978,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Formulaire en 3 étapes avec une étiquette au-dessus de chaque champ (plus de simples textes grisés) : 1. Objet (menu), 2. Montant, 3. Date, puis Note facultative.
 - Menu « Objet » : « Choisir l'objet… » / « 🛢️ Achat de fûts » / les objets déjà écrits avant (ex. « Achat barigo », sans doublon) / « ✏️ Autre objet (à écrire)… ». « Achat de fûts » fait apparaître « Combien de fûts achète-t-on ? » (obligatoire) ; « Autre objet » fait apparaître « Quel objet ? (à écrire) » (obligatoire). Aucun objet ne se saisit sans choix.
 - Testé (faux Firebase) : refus sans objet, refus fûts sans nombre, refus « autre » sans texte, enregistrement fûts (5 / 175 €), « Achat barigo » écrit puis réutilisé depuis le menu, pas de doublon « Achat de fûts ».
+
+### 13/11/2026 — Dépenses de caisse : bouton en haut, 5 dernières, liste complète à part (v3.99.351, departs.js v2.22.77)
+> Cobey : « les dépenses ne devraient pas s'afficher comme ça : imagine au fil de l'année il y a beaucoup de dépenses, on va devoir voir toutes les dépenses et aller en bas pour mettre une nouvelle dépense, c'est mal conçu ».
+- Dans le Bilan : bouton « + Nouvelle dépense » EN HAUT de la carte (le formulaire est replié, il s'ouvre au clic et se referme après l'enregistrement), puis « Les 5 dernières » dépenses, puis « Voir toutes les dépenses (N) ».
+- Nouvel écran « Dépenses de la caisse » : toutes les dépenses rangées par mois (total du mois), total général, recherche (objet, note, personne), suppression possible. Se met à jour tout seul.
+- Testé (faux Firebase) : 8 dépenses sur 2 mois → carte = 5 dernières + bouton ; liste = Novembre (260 €) / Octobre (100 €) ; recherche « depense 3 » → 1 ligne ; formulaire replié par défaut et après chaque enregistrement.
