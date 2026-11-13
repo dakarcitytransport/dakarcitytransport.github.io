@@ -7017,3 +7017,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 ### 13/11/2026 — Case Fûts déplacée à côté de l'inscription au dépôt (v3.99.358, departs.js v2.22.84)
 > Cobey : « je trouve que la case fût est un peu mal placée, peux-tu la mettre ailleurs ? »
 - Ordre de l'accueil : … Collecte › France › Inscription au dépôt › **Fûts** › Devis … (elle suivait Stockage, avant Client). Raison : c'est une case où l'on inscrit un client, comme l'inscription au dépôt. Aucun autre changement.
+
+### 13/11/2026 — Icône de la case Fûts assortie aux autres (v3.99.359, look-v2.css)
+> Cobey : « le symbole de la case fût n'a rien à voir avec les autres ».
+- En V2, chaque case a une icône dessinée (masque SVG dans `tools/gen_look_css.py`, `ICONS`) dans une pastille colorée ; la case Fûts avait gardé l'émoji 🛢️. Ajout d'une icône de tonneau (trait blanc, pastille bleue, comme France / Devis). Vérifié sur capture de l'accueil. V1 inchangé (émoji comme les autres cases en V1).

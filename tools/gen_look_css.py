@@ -10,6 +10,7 @@ ICONS = {
  'collecte':'M1 3h15v13H1zM16 8h4l3 3v5h-7zM5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
  'france':'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z',
  'depot':'M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6',
+ 'futs':['M6.5 3h11c2.3 3 2.3 15 0 18h-11c-2.3-3-2.3-15 0-18z','M5.4 8h13.2','M4.9 12h14.2','M5.4 16h13.2'],
  'devis':'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8',
  'fm':'M5 2v20l2.5-1.5L10 22l2-1.5L14 22l2.5-1.5L19 22V2zM9 8h6M9 12h6M9 16h3',
  'fid':'M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z',
@@ -36,7 +37,7 @@ LOGIN_ICO = [
  ["<rect x='2' y='6' width='12' height='9.5' rx='2.4'/>","<path d='M14 9.5h3.6a2 2 0 0 1 1.6.8l1.9 2.5a2 2 0 0 1 .4 1.2v1.5a1.5 1.5 0 0 1-1.5 1.5H14'/>","<circle cx='7' cy='17.5' r='2.3'/>","<circle cx='17' cy='17.5' r='2.3'/>"],
  ["<path d='M12 2.8 4.5 5.6v5.7c0 4.7 3.1 8.2 7.5 9.9 4.4-1.7 7.5-5.2 7.5-9.9V5.6z'/>","<rect x='9' y='10.5' width='6' height='4.7' rx='1.4'/>","<path d='M10.2 10.5V9.3a1.8 1.8 0 0 1 3.6 0v1.2'/>"],
 ]
-TEINTE = {'departs':'g','stockage':'o','client':'v','planning':'r','collecte':'g','france':'b','depot':'o','devis':'b','fm':'v','fid':'o','pa':'r','qr':'g','arch':'g','rapfin':'b','stats':'o','reglages':'g','mamadou':'o','annonce':'r'}
+TEINTE = {'departs':'g','stockage':'o','client':'v','planning':'r','collecte':'g','france':'b','depot':'o','futs':'b','devis':'b','fm':'v','fid':'o','pa':'r','qr':'g','arch':'g','rapfin':'b','stats':'o','reglages':'g','mamadou':'o','annonce':'r'}
 def uri(d):
     chemins = d if isinstance(d, (list, tuple)) else [d]      # une icône peut avoir plusieurs tracés
     corps = ''.join("<path d='%s'/>" % c for c in chemins)
