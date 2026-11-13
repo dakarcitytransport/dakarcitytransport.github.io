@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.369">
+<link rel="stylesheet" href="look-v2.css?v=3.99.370">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -1876,8 +1876,8 @@ function ecouterChangements(){
         localStorage.setItem('dct_v3_dispatch', JSON.stringify(dispatchParCollecte));
       }
       _noterBaseSync(dataInit, false);
-      if(collectes.length){
-        var enc = collectes.find(function(x){ return x.statut === 'en_cours'; });
+      if(colsN().length){
+        var enc = colsN().find(function(x){ return x.statut === 'en_cours'; });
         currentCollecteId = (enc || collectes[0]).id;
       }
     }
@@ -2289,7 +2289,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.369';
+var APP_VERSION = 'v3.99.370';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2429,6 +2429,10 @@ var excepOn = false;
 var activeFilter = '';
 var truckCount = 0;
 var collectes = [];
+// Les livraisons de fûts (type:'futs') vivent dans le même tableau (mêmes camions, dispatch, carte, dépenses) mais ne doivent jamais
+// apparaître parmi les collectes du dimanche : tout ce qui liste ou choisit « la collecte » passe par colsN().
+function colsN(){ return collectes.filter(function(c){ return c && c.type !== 'futs'; }); }
+window.colsN = colsN;
 var clientsParCollecte = {};
 var dispatchParCollecte = {};
 
@@ -2501,7 +2505,7 @@ function afficherReferencesOrphelines(){
   openModal('modal-orphelins');
 }
 function nettoyerOrphelinsCollecteEnCours(){
-  var col=collectes.find(function(c){ return c.statut==='en_cours'; });
+  var col=colsN().find(function(c){ return c.statut==='en_cours'; });
   if(!col){ alert('Aucune collecte en cours.'); return; }
   var d=dispatchParCollecte[col.id];
   if(!d||!d.trucks){ alert('Aucun camion sur la collecte en cours.'); return; }
@@ -2641,8 +2645,8 @@ function charger(){
     if(d){var p3=JSON.parse(d);if(p3)Object.assign(dispatchParCollecte,p3);}
     // Activité chargée après login (dans finalisLogin)
     window.dctContacts=ct?JSON.parse(ct):{};
-    if(collectes.length){
-      var enc=collectes.find(function(x){return x.statut==='en_cours';});
+    if(colsN().length){
+      var enc=colsN().find(function(x){return x.statut==='en_cours';});
       currentCollecteId=(enc||collectes[0]).id;
       truckCount=Object.keys(getTrucks()).length;
     }
@@ -2809,7 +2813,7 @@ function _suiviClients(){
 // semaines — mais le sélecteur reste là pour consulter le passé.
 function _suiviChoisirCollecte(){
   if(suiviCollecteId && collectes.find(function(c){return c.id===suiviCollecteId;})) return;
-  var enc = collectes.find(function(c){ return c.statut==='en_cours'; });
+  var enc = colsN().find(function(c){ return c.statut==='en_cours'; });
   suiviCollecteId = enc ? enc.id : null;
 }
 
@@ -3009,7 +3013,7 @@ function renderSuivi(){
   } else {
     b+='<div style="margin-top:10px;color:rgba(255,255,255,0.7);font-size:13px;">Aucune collecte</div>';
   }
-  var enc = collectes.find(function(c){ return c.statut==='en_cours'; });
+  var enc = colsN().find(function(c){ return c.statut==='en_cours'; });
   if(enc && suiviCollecteId!==enc.id){
     b+='<div onclick="suiviRevenirDirect()" style="display:inline-block;margin-top:8px;margin-left:6px;background:#009A44;color:#fff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;">\u21ba Revenir au direct</div>';
   }
@@ -3111,8 +3115,8 @@ function renderSuivi(){
 
 // Rien à suivre : on le dit clairement, sans chiffres trompeurs.
 function _suiviVide(){
-  var aVenir = collectes.filter(function(c){ return c.statut==='a_venir'; }).length;
-  var passees = collectes.filter(function(c){ return c.statut==='terminee'; }).length;
+  var aVenir = colsN().filter(function(c){ return c.statut==='a_venir'; }).length;
+  var passees = colsN().filter(function(c){ return c.statut==='terminee'; }).length;
   var b='<div style="padding:16px 16px 18px;">'
    + '<div style="display:flex;align-items:center;gap:7px;">'
    +   '<span class="suivi-off"></span>'
@@ -3217,7 +3221,7 @@ function ouvrirSelecteurCollecte(){
   }
   var ordre={'en_cours':0,'a_venir':1,'terminee':2};
   // Une collecte à venir n'a rien à suivre : elle n'est pas proposée ici.
-  var list=collectes.filter(function(c){ return c.statut!=='a_venir'; })
+  var list=colsN().filter(function(c){ return c.statut!=='a_venir'; })
     .sort(function(a,b){
       var d=(ordre[a.statut]===undefined?3:ordre[a.statut])-(ordre[b.statut]===undefined?3:ordre[b.statut]);
       return d!==0?d:0;
@@ -3253,7 +3257,7 @@ function suiviChangerCollecte(id){
   renderSuivi();
 }
 function suiviRevenirDirect(){
-  var enc=collectes.find(function(c){ return c.statut==='en_cours'; });
+  var enc=colsN().find(function(c){ return c.statut==='en_cours'; });
   if(enc){ suiviCollecteId=enc.id; renderSuivi(); }
 }
 
@@ -9860,8 +9864,8 @@ function finalisLogin(collab){
           localStorage.setItem('dct_v3_dispatch', JSON.stringify(dispatchParCollecte));
         }
         _noterBaseSync(data, false);
-        if(collectes.length){
-          var enc = collectes.find(function(x){ return x.statut === 'en_cours'; });
+        if(colsN().length){
+          var enc = colsN().find(function(x){ return x.statut === 'en_cours'; });
           currentCollecteId = (enc || collectes[0]).id;
         }
       }
@@ -9979,14 +9983,14 @@ function renderCollectesList(){
   }
 }
 function _renderCollectesListeCorps(){
-  var enCours=sortByDate(collectes.filter(function(c){return c.statut==='en_cours';}),true);
-  var aVenir=sortByDate(collectes.filter(function(c){return c.statut==='a_venir';}),true);
-  var terminees=sortByDate(collectes.filter(function(c){return c.statut==='terminee';}),false);
+  var enCours=sortByDate(colsN().filter(function(c){return c.statut==='en_cours';}),true);
+  var aVenir=sortByDate(colsN().filter(function(c){return c.statut==='a_venir';}),true);
+  var terminees=sortByDate(colsN().filter(function(c){return c.statut==='terminee';}),false);
   var container=document.getElementById('home-collectes');
   if(!container)return;
   container.innerHTML='';
 
-  if(!collectes.length){
+  if(!colsN().length){
     container.innerHTML='<div style="text-align:center;color:#aaa;padding:40px 20px;"><div style="font-size:40px;margin-bottom:12px;">📦</div>Aucune collecte.<br>Créez votre première collecte !</div>';
     return;
   }
@@ -13041,7 +13045,7 @@ function creerCollecte(){
     var J2=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
     dateLabel = J2[chipDate.getDay()]+' '+chipDate.getDate()+' '+M2[chipDate.getMonth()]+' '+chipDate.getFullYear();
   }
-  var doublon=collectes.find(function(c){return c.date.toLowerCase()===dateLabel.toLowerCase();});
+  var doublon=colsN().find(function(c){return c.date.toLowerCase()===dateLabel.toLowerCase();});
   if(doublon){showToastNew('⚠️ Une collecte existe déjà pour le '+dateLabel+'.');return;}
   var id='col_'+Date.now();
   // Déterminer le statut selon la semaine
@@ -13118,7 +13122,7 @@ function _retourModalPlus(){
 
 function ouvrirModalReport(){
   closeModal('modal-plus');
-  var aVenir = collectes.filter(function(c){ return c.statut === 'a_venir' && c.id !== currentCollecteId; });
+  var aVenir = colsN().filter(function(c){ return c.statut === 'a_venir' && c.id !== currentCollecteId; });
   var modal = document.getElementById('modal-report');
   if(modal) modal.remove();
   modal = document.createElement('div');

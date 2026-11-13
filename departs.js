@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.95';
+var DEP_VERSION = 'v2.22.98';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3368,6 +3368,7 @@ function injecterEcrans(){
   +     '<div style="width:60px;"></div>'
   +   '</div>'
   +   '<div class="content"><div class="ft-c ft-form">'
+  +     '<div class="fg"><label class="fl">Livraison</label><select class="fi" id="ft-livraison" style="font-weight:700;"></select></div>'
   // Mêmes informations qu'à l'inscription d'un client de collecte (Cobey, 13/11/2026) : le suivi est ensuite identique jusqu'au container.
   +     '<div class="fg"><label class="fl">Civilit&eacute;</label><div id="ft-civ" style="display:flex;gap:6px;"></div></div>'
   +     '<div class="form-row" id="ft-ligne-nom">'
@@ -3392,7 +3393,7 @@ function injecterEcrans(){
   +     '<div id="ft-lignes" style="margin-bottom:14px;"></div>'
   +     '<div id="ft-total" style="font-size:14px;font-weight:800;margin:-4px 0 14px;color:var(--text);">Total : 0 &euro;</div>'
   +     '<div class="fg"><label class="fl">Date du d&eacute;p&ocirc;t du f&ucirc;t chez le client</label><input class="fi" id="ft-date" type="date" style="max-width:100%;min-width:0;box-sizing:border-box;"></div>'
-  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin:6px 0 14px;">Les paiements (achat du f&ucirc;t, colis) s\'enregistrent sur la facture, qui s\'ouvre juste apr&egrave;s l\'enregistrement.</div>'
+  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin:6px 0 14px;">Les paiements et les photos s\'enregistrent chez le client, &agrave; la livraison : on inscrit ici, puis on organise la livraison sur un camion.</div>'
   +     '<div class="dep-sec">Destinataire &agrave; Dakar</div>'
   +     '<div class="fg"><label class="fl">Nom du destinataire</label><input class="fi" id="ft-dest-nom" autocomplete="off" placeholder="Awa Ndiaye"></div>'
   +     '<div class="fg"><label class="fl">Num&eacute;ro du destinataire</label><input class="fi" id="ft-dest-tel" type="tel" autocomplete="off" placeholder="77 000 00 00"></div>'
@@ -3408,12 +3409,8 @@ function injecterEcrans(){
   +       '<div class="fg"><label class="fl">Adresse / quartier (pr&eacute;cision)</label><input class="fi" id="ft-liv-adresse" placeholder="Quartier, rep&egrave;re..."></div>'
   +       '<div class="fg"><label class="fl">Prix de la livraison (&euro;)</label><input class="fi" id="ft-liv-prix" type="number" min="0" placeholder="0"></div>'
   +     '</div>'
-  +     '<div class="dep-sec">Photo des f&ucirc;ts d&eacute;pos&eacute;s <span style="color:#992020;">*</span></div>'
-  +     '<div style="font-size:11.5px;color:var(--text3);margin:-6px 0 8px;">Au moins 1 photo des f&ucirc;ts mis &agrave; disposition du client est obligatoire.</div>'
-  +     '<div id="ft-photo-box" style="margin-bottom:12px;"></div>'
-  +     '<input type="file" id="ft-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="depPhotoChoisieDepot(this)">'
   +     '<div class="fg"><label class="fl">Note <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label><input class="fi" id="ft-note" autocomplete="off"></div>'
-  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">Le f&ucirc;t reste chez le client le temps qu\'il le remplisse. Quand il est pr&ecirc;t, on bascule sa fiche dans une collecte : le suivi est ensuite le m&ecirc;me que pour tout client, jusqu\'au container. Le f&ucirc;t s\'ajoute au prix du transport sur sa facture.</div>'
+  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">Le f&ucirc;t est r&eacute;serv&eacute; dans le stock d&egrave;s l\'inscription. Quand le client est pr&ecirc;t, on bascule sa fiche dans une collecte : le suivi est ensuite le m&ecirc;me que pour tout client, jusqu\'au container.</div>'
   +     '<button class="btn btn-green" onclick="depEnregistrerVenteFut()">&#9989; Enregistrer la vente</button>'
   +   '</div></div>'
   + '</div>'
@@ -5958,7 +5955,7 @@ window.depRenderEspaces = function(){
     // premier élément du tableau (ordre de création Firebase, pas de
     // date), ce qui pouvait afficher une collecte plus lointaine que
     // d'autres déjà programmées avant elle.
-    var cols = (window.collectes || []).slice();
+    var cols = (window.colsN ? window.colsN() : (window.collectes || [])).slice();
     var enCoursListe = cols.filter(function(x){ return x && x.statut === 'en_cours'; })
       .sort(function(a,b){ return _depParseDateSure(a.date) - _depParseDateSure(b.date); });
     var aVenirListe = cols.filter(function(x){ return x && x.statut === 'a_venir'; })
@@ -6069,7 +6066,7 @@ window.depRenderEspaces = function(){
   var scarch = $('dep-case-sub-arch');
   if(scarch){
     var nbDepC = tousLesDeparts().filter(function(d){ return d.statut === 'cloture'; }).length;
-    var nbColT = (window.collectes || []).filter(function(c){ return c && c.statut === 'terminee'; }).length
+    var nbColT = (window.colsN ? window.colsN() : (window.collectes || [])).filter(function(c){ return c && c.statut === 'terminee'; }).length
                + _depArchiveItemsBruts('collectesFr').length;
     scarch.innerHTML = '<b style="color:#8B5E34;">'+nbDepC+'</b> d&eacute;part'+(nbDepC>1?'s':'')+' clôtur&eacute;'+(nbDepC>1?'s':'')
       + '<br>'+nbColT+' collecte'+(nbColT>1?'s':'')+' archiv&eacute;e'+(nbColT>1?'s':'');
@@ -6619,7 +6616,7 @@ var _depStatsNav = { mode: 'annee', annee: null, mois: null, conteneur: null };
 
 function _depStatsAnneesDisponibles(){
   var annees = {};
-  (window.collectes || []).forEach(function(c){
+  (window.colsN ? window.colsN() : (window.collectes || [])).forEach(function(c){
     var d = _depParseDateSure(c && c.date);
     if(d && !isNaN(d.getTime())) annees[d.getFullYear()] = true;
   });
@@ -6635,7 +6632,7 @@ function _depStatsAnneesDisponibles(){
 
 function _depStatsMoisDisponibles(annee){
   var mois = {};
-  (window.collectes || []).forEach(function(c){
+  (window.colsN ? window.colsN() : (window.collectes || [])).forEach(function(c){
     var d = _depParseDateSure(c && c.date);
     if(d && !isNaN(d.getTime()) && d.getFullYear() === annee) mois[d.getMonth()] = true;
   });
@@ -7136,7 +7133,7 @@ function _depEvolutionContainer(departId){
     var g = parCol[o.colId] || (parCol[o.colId] = { colDate:o.colDate, colTs:o.colTs, depenses:0, encaisse:0 });
     g.depenses += o.montant;
   });
-  (window.collectes || []).forEach(function(col){
+  (window.colsN ? window.colsN() : (window.collectes || [])).forEach(function(col){
     var cls = (window.clientsParCollecte || {})[col.id] || {};
     var enc = 0, present = false;
     Object.keys(cls).forEach(function(k){
@@ -7877,7 +7874,7 @@ function _depArchiveItemsBruts(type){
     });
   }
   if(type === 'collectes'){
-    return (window.collectes || []).filter(function(c){ return c && c.statut === 'terminee'; }).map(function(c){
+    return (window.colsN ? window.colsN() : (window.collectes || [])).filter(function(c){ return c && c.statut === 'terminee'; }).map(function(c){
       var dt = (typeof parseDate === 'function') ? parseDate(c.date) : new Date(NaN);
       return { date: dt, item: c };
     });
@@ -8119,7 +8116,7 @@ window.depRenderArchive = function(){
     // Niveau 0 : choix de la catégorie
     if(titreEl) titreEl.textContent = 'Archivage';
     var departsClotures = tousLesDeparts().filter(function(d){ return d.statut === 'cloture'; });
-    var colsTerminees = (window.collectes || []).filter(function(c){ return c && c.statut === 'terminee'; });
+    var colsTerminees = (window.colsN ? window.colsN() : (window.collectes || [])).filter(function(c){ return c && c.statut === 'terminee'; });
     html += _depArchiveCarteDossier('&#128230;', 'Départs clôturés', departsClotures.length+' départ'+(departsClotures.length>1?'s':''), 'depArchiveOuvrir(\'departs\')');
     html += _depArchiveCarteDossier('&#128203;', 'Collectes terminées', colsTerminees.length+' collecte'+(colsTerminees.length>1?'s':''), 'depArchiveOuvrir(\'collectes\')');
     var nbColsFr = _depArchiveItemsBruts('collectesFr').length;
@@ -14739,7 +14736,7 @@ window.depOuvrirMoveCollecte = function(clientId){
 
   // Toute autre collecte pas encore terminée (à venir ou en cours — il
   // peut y en avoir plusieurs d'actives à la fois), triée par date réelle.
-  var opts = (window.collectes || []).filter(function(k){
+  var opts = (window.colsN ? window.colsN() : (window.collectes || [])).filter(function(k){
     return k && k.id !== collecteId && k.statut !== 'terminee';
   }).sort(function(a, b){
     var ta = (typeof _parseDateCollecte === 'function' && _parseDateCollecte(a.date)) || 0;
@@ -18099,9 +18096,44 @@ function greffer(){
   }
 
   /* --- C. Ouverture du formulaire client : on remet nos champs à zéro --- */
+  // Livraison de fûts : le même écran que la collecte, mais « + Ajouter un client » inscrit un client fût, et l'en-tête le dit.
+  function _depBanniereFut(){
+    try{
+      if(!_depColFuts(window.currentCollecteId)) return;
+      var t = document.querySelector('#collecte-content .add-banner-title'), sb = document.querySelector('#collecte-content .add-banner-sub');
+      if(t) t.textContent = '+ Inscrire un client f\u00fbt';
+      if(sb) sb.textContent = 'Nom, adresse, f\u00fbts, colis \u00b7 paiement et photos \u00e0 la livraison';
+    }catch(e){}
+  }
+  if(typeof window.updateCollecteHeader === 'function' && !window.updateCollecteHeader._depFut){
+    var origUCH = window.updateCollecteHeader;
+    window.updateCollecteHeader = function(){
+      origUCH.apply(this, arguments);
+      try{
+        var cf = _depColFuts(window.currentCollecteId);
+        var cd = $('col-date'), bk = document.querySelector('#s-collecte .header .btn-back');
+        if(cf){
+          if(cd) cd.textContent = '\uD83D\uDEE2\uFE0F Livraison \u00b7 ' + cf.date;
+          if(bk){ bk.textContent = '\u2190 F\u00fbts'; bk.onclick = function(){ depOuvrirEspaceFuts(); }; }
+          setTimeout(_depBanniereFut, 150); setTimeout(_depBanniereFut, 700);   // l'habillage du nouveau look redessine la bannière juste après
+        } else if(bk && bk.textContent.indexOf('F\u00fbts') >= 0){ bk.textContent = '\u2190 Collectes'; bk.onclick = function(){ goTo('s-home'); }; }
+      }catch(e){}
+    };
+    window.updateCollecteHeader._depFut = true;
+  }
+  if(typeof window.renderCollecteContent === 'function' && !window.renderCollecteContent._depFut){
+    var origRCC = window.renderCollecteContent;
+    window.renderCollecteContent = function(){
+      origRCC.apply(this, arguments);
+      _depBanniereFut();
+    };
+    window.renderCollecteContent._depFut = true;
+  }
   if(typeof window.ouvrirAjoutClient === 'function' && !window.ouvrirAjoutClient._depPatch){
     var origOuvrir = window.ouvrirAjoutClient;
     window.ouvrirAjoutClient = function(){
+      var cLiv = _depColFuts(window.currentCollecteId);
+      if(cLiv){ depOuvrirVenteFut(cLiv.id); return; }
       origOuvrir.apply(this, arguments);
       // v1.19.86 : nouvelle ouverture "normale" (pas via un devis) — on
       // oublie tout devis en cours de redirection, pour ne jamais le
@@ -22892,7 +22924,7 @@ function _depDevisRenderChoixCollecte(){
   var ordre = { en_cours: 0, a_venir: 1 };
   // Une collecte terminée est verrouillée (lecture seule) — on ne propose
   // ici que celles où l'on peut réellement inscrire un client.
-  var liste = (window.collectes || []).filter(function(c){ return c && c.statut !== 'terminee'; })
+  var liste = (window.colsN ? window.colsN() : (window.collectes || [])).filter(function(c){ return c && c.statut !== 'terminee'; })
     .sort(function(a,b){ return (ordre[a.statut]===undefined?9:ordre[a.statut]) - (ordre[b.statut]===undefined?9:ordre[b.statut]); });
   if(!liste.length){
     box.innerHTML = '<div style="text-align:center;color:#999;font-size:13px;padding:16px;line-height:1.6;">Aucune collecte disponible pour l\'instant.<br>Cr&eacute;ez ou ouvrez une collecte d\'abord.</div>';
@@ -24457,12 +24489,65 @@ function _depLotsFuts(){
   if(sansLot > 0 && lots.length){ lots[lots.length - 1].vendus += sansLot; lots[lots.length - 1].restants -= sansLot; }
   return lots;
 }
+/* LIVRAISONS DE FÛTS (Cobey, 13/11/2026) : on reprend le système de collecte (camions, dispatch, carte, dépenses de tournée, validation à l'arrivée)
+   pour DÉPOSER les fûts chez les clients. Une livraison est une « collecte » de type 'futs', exclue de toutes les listes de collectes du
+   dimanche (voir colsN dans dct-app.html). Le client s'inscrit dans une livraison (sans paiement ni photo), on l'organise sur un camion ; chez lui, on
+   valide la facture, les paiements et les photos ; quand il est prêt, on le bascule dans une vraie collecte pour la ramasse. */
+function _depLivraisonsFuts(){ return (window.collectes || []).filter(function(c){ return c && c.type === 'futs'; }); }
+function _depColFuts(colId){ return _depLivraisonsFuts().filter(function(k){ return k.id === colId; })[0] || null; }
+function _depLivreFut(colId, id){
+  var d = (window.dispatchParCollecte || {})[colId], t = (d && d.trucks) || {};
+  return Object.keys(t).some(function(k){
+    var v = t[k] && t[k].validated; if(!v) return false;
+    if(!Array.isArray(v)) v = Object.values(v);
+    return v.indexOf(id) >= 0;
+  });
+}
+// 'a_livrer' (inscrit dans une livraison, pas encore déposé) | 'chez' (fût chez le client) | 'collecte' (basculé, ramassé ou parti)
+function _depEtatFut(o){
+  var x = o.x;
+  if(x.src === 'depot') return (!o.c.departId || o.c.departId === DEP_ID_DEPOT) ? 'chez' : 'collecte';
+  if(x.src === 'col' && _depColFuts(x.collecteId)) return _depLivreFut(x.collecteId, x.clientId) ? 'chez' : 'a_livrer';
+  return 'collecte';
+}
+var _depMoisLib = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+var _depJoursLib = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+window.depCreerLivraisonFuts = function(){
+  if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
+  var v = ($('liv-date') || {}).value;
+  if(!v){ toast('⚠️ Choisissez la date de la livraison.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  var dt = new Date(v + 'T12:00:00');
+  var label = _depJoursLib[dt.getDay()] + ' ' + dt.getDate() + ' ' + _depMoisLib[dt.getMonth()] + ' ' + dt.getFullYear();
+  if(_depLivraisonsFuts().some(function(c){ return String(c.date).toLowerCase() === label.toLowerCase(); })){ toast('⚠️ Une livraison existe déjà pour le ' + label + '.'); return; }
+  var id = 'liv_' + Date.now();
+  var now = new Date(), dow = now.getDay(), deb = new Date(now); deb.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow)); deb.setHours(0, 0, 0, 0);
+  var fin = new Date(deb); fin.setDate(deb.getDate() + 6); fin.setHours(23, 59, 59, 999);
+  var statut = (dt >= deb && dt <= fin) ? 'en_cours' : 'a_venir';
+  window.collectes.unshift({ id: id, date: label, type: 'futs', statut: statut });
+  window.clientsParCollecte[id] = {}; window.dispatchParCollecte[id] = { trucks: {}, assigned: {} };
+  // écrite tout de suite dans la base (comme les autres écritures directes) : sinon le prochain rafraîchissement venu de la base,
+  // déclenché par l'écriture de l'Activité, remplacerait la liste locale avant la sauvegarde différée et la livraison disparaîtrait
+  window._lastWriteTime = Date.now();
+  try{ db.ref('dct/collectes').transaction(function(distant){ return _fusionnerListeCollectes(distant, window.collectes, {}); }); }catch(e){ console.error('livraison: écriture', e); }
+  try{ depActivite('&#128666;', 'a cr&eacute;&eacute; la livraison de f&ucirc;ts du <strong>' + esc(label) + '</strong>'); }catch(e){}
+  try{ sauvegarder(); }catch(e){}
+  toast('✅ Livraison du ' + label + ' créée');
+  depOuvrirLivraisonFuts(id);
+};
+window.depOuvrirLivraisonFuts = function(id){
+  window.currentCollecteId = id;
+  try{ ouvrirCollecte(id); }catch(e){ console.error('livraison', e); toast('⚠️ Livraison indisponible.'); }
+};
+
 function _depStockFuts(){
   var fs = _depFichesFuts(), a = _depFutsAchetes(), v = fs.reduce(function(s, o){ return s + o.nb; }, 0);
   // « chez les clients » : vendus, fiche pas encore basculée dans une collecte (le client remplit son fût)
-  var chez = fs.filter(function(o){ return o.x.src === 'depot' && _depEstFutChezClient(o.c); });
+  var chez = fs.filter(function(o){ return _depEtatFut(o) === 'chez'; });
+  var aLiv = fs.filter(function(o){ return _depEtatFut(o) === 'a_livrer'; });
   return { achetes: a, vendus: v, restants: a - v, lots: _depLotsFuts(),
-           chezNb: chez.reduce(function(s, o){ return s + o.nb; }, 0), chezClients: chez.length };
+           chezNb: chez.reduce(function(s, o){ return s + o.nb; }, 0), chezClients: chez.length,
+           aLivrerNb: aLiv.reduce(function(s, o){ return s + o.nb; }, 0), aLivrerClients: aLiv.length };
 }
 window.depOuvrirEspaceFuts = function(){
   goTo('s-dep-futs');
@@ -24484,7 +24569,7 @@ function depRenderFuts(){
     +     '<b style="font-size:32px;color:#B8720C;">' + st.chezNb + '</b>'
     +     '<div style="font-size:11.5px;font-weight:700;color:var(--text3);">' + st.chezClients + ' client' + (st.chezClients>1?'s':'') + '</div></div>'
     + '</div>'
-    + '<div class="dep-meta"><span>' + st.achetes + ' achet&eacute;' + (st.achetes>1?'s':'') + ' &middot; ' + st.vendus + ' vendu' + (st.vendus>1?'s':'') + ' &middot; ' + (st.vendus - st.chezNb) + ' en collecte ou parti' + ((st.vendus - st.chezNb)>1?'s':'') + '</span></div>'
+    + '<div class="dep-meta"><span>' + st.achetes + ' achet&eacute;' + (st.achetes>1?'s':'') + ' &middot; ' + st.vendus + ' r&eacute;serv&eacute;' + (st.vendus>1?'s':'') + ' (inscrits) &middot; ' + st.aLivrerNb + ' &agrave; livrer &middot; ' + (st.vendus - st.chezNb - st.aLivrerNb) + ' en collecte ou parti' + ((st.vendus - st.chezNb - st.aLivrerNb)>1?'s':'') + '</span></div>'
     + (st.restants < 0 ? '<div style="font-size:11.5px;color:#B3261E;font-weight:700;margin-top:6px;">Plus de f&ucirc;ts vendus que d\'achats saisis : ajoutez l\'achat manquant.</div>' : '')
     + (st.lots.length ? '<div style="margin-top:10px;border-top:1px solid rgba(0,0,0,.1);padding-top:6px;">' + st.lots.map(function(l){
         return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;font-weight:700;">'
@@ -24493,30 +24578,46 @@ function depRenderFuts(){
       }).join('') + '</div>' : '')
     + '</div>'
     + (st.restants < 1
-      ? '<button class="btn btn-gray" style="margin-bottom:6px;opacity:.6;" onclick="depOuvrirVenteFut()">+ Vendre un f&ucirc;t</button>'
-        + '<div style="font-size:12px;color:#B3261E;font-weight:700;margin-bottom:16px;">Stock vide : la vente est impossible tant qu\'un achat de f&ucirc;ts n\'est pas saisi.</div>'
-      : '<button class="btn btn-green" style="margin-bottom:16px;" onclick="depOuvrirVenteFut()">+ Vendre un f&ucirc;t</button>');
+      ? '<button class="btn btn-gray" style="margin-bottom:6px;opacity:.6;" onclick="depOuvrirVenteFut()">+ Inscrire un client f&ucirc;t</button>'
+        + '<div style="font-size:12px;color:#B3261E;font-weight:700;margin-bottom:16px;">Stock vide : l\'inscription est impossible tant qu\'un achat de f&ucirc;ts n\'est pas saisi.</div>'
+      : '<button class="btn btn-green" style="margin-bottom:16px;" onclick="depOuvrirVenteFut()">+ Inscrire un client f&ucirc;t</button>');
 
   function carteFut(o){
-    var c = o.c, pay = depCalculerPaiement(c), x = o.x;
-    var auDepot = x.src === 'depot' && (!c.departId || c.departId === DEP_ID_DEPOT);
+    var c = o.c, pay = depCalculerPaiement(c), x = o.x, etat = _depEtatFut(o);
     var colF = x.src === 'col' ? (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0] : null;
     var jDep = c.futDepose ? Math.max(0, Math.floor((Date.now() - new Date(c.futDepose + 'T12:00:00').getTime()) / 86400000)) : null;
-    var lieu = auDepot ? 'F&ucirc;t chez le client' + (c.futDepose ? ' depuis le ' + esc(dateFr(c.futDepose)) + ' (' + (jDep === 0 ? "aujourd'hui" : jDep + ' j') + ')' : '')
-      : (x.src === 'col' ? 'En collecte' + (colF && colF.date ? ' du ' + esc(colF.date) : '') : esc(nomDepart(c.departId) || 'Container'));
+    var lieu = etat === 'a_livrer' ? '&Agrave; livrer &middot; ' + (colF && colF.date ? esc(colF.date) : 'livraison')
+      : (etat === 'chez' ? 'F&ucirc;t chez le client' + (c.futDepose ? ' depuis le ' + esc(dateFr(c.futDepose)) + ' (' + (jDep === 0 ? "aujourd'hui" : jDep + ' j') + ')' : (colF && colF.date ? ' &middot; livr&eacute; le ' + esc(colF.date) : ''))
+        : (x.src === 'col' ? 'En collecte' + (colF && colF.date ? ' du ' + esc(colF.date) : '') : esc(nomDepart(c.departId) || 'Container')));
     var ouvre = "depOuvrirFicheFut('" + x.clientId + "', '" + (x.src === 'depot' ? 'depot' : 'col') + "', '" + (x.collecteId || '') + "')";
+    var bouton = etat === 'a_livrer'
+      ? '<button class="btn btn-gray" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirLivraisonFuts(\'' + x.collecteId + '\')">&#128666; Ouvrir la livraison</button>'
+      : (etat === 'chez' ? '<button class="btn btn-green" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirBasculeFut(\'' + x.clientId + '\', \'' + (x.src === 'depot' ? 'depot' : 'col') + '\', \'' + (x.collecteId || '') + '\')">&#9989; Le client est pr&ecirc;t : basculer dans une collecte</button>' : '');
     return '<div class="dep-card ft-c ' + (pay.reste > 0 ? 'ft-du' : 'ft-ok') + '" style="cursor:pointer;" onclick="' + ouvre + '">'
       + '<div class="dep-card-top"><div class="dep-nom">' + esc(c.name || 'Client') + '</div></div>'
       + '<div class="dep-meta"><span>' + o.nb + ' f&ucirc;t' + (o.nb>1?'s':'') + ' &middot; ' + lieu + '</span></div>'
-      + (c.futDepose || c.by ? '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:2px;">' + (c.futDepose && !auDepot ? 'D&eacute;pos&eacute; chez lui le ' + esc(dateFr(c.futDepose)) : '') + (c.by ? (c.futDepose && !auDepot ? ' &middot; ' : '') + 'Enregistr&eacute; par ' + esc(c.by) : '') + (c.ville || c.cp ? ' &middot; ' + esc((c.cp || '') + ' ' + (c.ville || '')) : '') + '</div>' : '')
+      + (c.by || c.ville || c.cp ? '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:2px;">' + (c.by ? 'Enregistr&eacute; par ' + esc(c.by) : '') + (c.ville || c.cp ? (c.by ? ' &middot; ' : '') + esc((c.cp || '') + ' ' + (c.ville || '')) : '') + '</div>' : '')
       + '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-top:4px;"><span>Total ' + _depEuros(pay.total) + ' &euro;</span>'
       + '<span style="color:' + (pay.reste > 0 ? '#B3261E' : '#006b2d') + ';">' + (pay.reste > 0 ? 'Reste ' + _depEuros(pay.reste) + ' &euro;' : 'Pay&eacute;') + '</span></div>'
-      + (auDepot ? '<button class="btn btn-green" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirBasculeFut(\'' + x.clientId + '\')">&#9989; Le client est pr&ecirc;t : basculer dans une collecte</button>' : '')
-      + '</div>';
+      + bouton + '</div>';
   }
-  var chezL = fiches.filter(function(o){ return o.x.src === 'depot' && _depEstFutChezClient(o.c); });
-  var apresL = fiches.filter(function(o){ return chezL.indexOf(o) < 0; });
-  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">&#127968; Chez les clients (' + chezL.length + ')</div>'
+  // Livraisons : créer, ouvrir (même écran que les collectes : camions, dispatch, carte, dépenses)
+  var livs = _depLivraisonsFuts().slice().sort(function(a, b){ return (b.statut === 'terminee') - (a.statut === 'terminee') ? ((a.statut === 'terminee') - (b.statut === 'terminee')) : (_depParseDateSure(a.date) - _depParseDateSure(b.date)); });
+  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">&#128666; Livraisons de f&ucirc;ts (' + livs.length + ')</div>'
+    + '<div style="display:flex;gap:8px;margin-bottom:10px;"><input class="fi" id="liv-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="flex:1;min-width:0;max-width:100%;box-sizing:border-box;">'
+    + '<button class="btn btn-green" style="width:auto;margin:0;padding:0 16px;" onclick="depCreerLivraisonFuts()">+ Nouvelle</button></div>'
+    + (livs.length ? livs.map(function(k){
+        var cl = (window.clientsParCollecte || {})[k.id] || {}, ids = Object.keys(cl), nbF = 0, liv = 0;
+        ids.forEach(function(i){ var c = cl[i]; var n = 0; try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')) n += (l.qte || 0); }); }catch(e){} nbF += n; if(_depLivreFut(k.id, i)) liv++; });
+        return '<div class="dep-card ft-c" style="cursor:pointer;" onclick="depOuvrirLivraisonFuts(\'' + k.id + '\')"><div class="dep-card-top"><div class="dep-nom">&#128666; ' + esc(k.date) + '</div></div>'
+          + '<div class="dep-meta"><span>' + ids.length + ' client' + (ids.length > 1 ? 's' : '') + ' &middot; ' + nbF + ' f&ucirc;t' + (nbF > 1 ? 's' : '') + ' &middot; ' + liv + ' livr&eacute;' + (liv > 1 ? 's' : '') + (k.statut === 'terminee' ? ' &middot; termin&eacute;e' : '') + '</span></div></div>';
+      }).join('') : '<div class="dep-vide" style="padding:14px;">Aucune livraison. Cr&eacute;ez-en une pour inscrire des clients.</div>');
+  var aL = fiches.filter(function(o){ return _depEtatFut(o) === 'a_livrer'; });
+  var chezL = fiches.filter(function(o){ return _depEtatFut(o) === 'chez'; });
+  var apresL = fiches.filter(function(o){ return _depEtatFut(o) === 'collecte'; });
+  h += '<div class="dep-sec">&#128666; &Agrave; livrer (' + aL.length + ')</div>'
+    + (aL.length ? aL.map(carteFut).join('') : '<div class="dep-vide" style="padding:14px;">Aucun fût à livrer.</div>');
+  h += '<div class="dep-sec">&#127968; Chez les clients (' + chezL.length + ')</div>'
     + (chezL.length ? chezL.map(carteFut).join('') : '<div class="dep-vide" style="padding:16px;">Aucun f&ucirc;t chez un client pour l\'instant.</div>');
   if(apresL.length) h += '<div class="dep-sec">&#128197; Bascul&eacute;s en collecte ou partis (' + apresL.length + ')</div>' + apresL.map(carteFut).join('');
 
@@ -24537,11 +24638,12 @@ function depRenderFuts(){
 /* BASCULE d'un client fût dans une collecte : sa fiche quitte le Dépôt d'attente et devient un client de la collecte choisie
    (même fiche : prix, ligne « Achat d'un fût 270 L », versements déjà reçus), prêt à être affecté à un camion pour la ramasse.
    Cobey, 13/11/2026 : « on le basculera dans une collecte pour le prochain chargement […] tout soit logique jusqu'à sa ramasse ». */
-var _depBasculeFutId = '';
-window.depOuvrirBasculeFut = function(depotId){
-  var c = (window.depotClients || {})[depotId];
+var _depBasculeFutId = '', _depBasculeSrc = 'depot', _depBasculeCol = '';
+window.depOuvrirBasculeFut = function(depotId, src, srcCol){
+  var c = (src === 'col') ? (((window.clientsParCollecte || {})[srcCol] || {})[depotId]) : (window.depotClients || {})[depotId];
+  _depBasculeSrc = (src === 'col') ? 'col' : 'depot'; _depBasculeCol = srcCol || '';
   if(!c){ toast('⚠️ Fiche introuvable.'); return; }
-  var cols = (window.collectes || []).filter(function(k){ return k && k.id && k.statut !== 'terminee'; });
+  var cols = (window.colsN ? window.colsN() : (window.collectes || [])).filter(function(k){ return k && k.id && k.statut !== 'terminee'; });
   _depBasculeFutId = depotId;
   var m = $('modal-fut-bascule'); if(m) m.remove();
   m = document.createElement('div'); m.id = 'modal-fut-bascule'; m.className = 'modal-overlay';
@@ -24564,26 +24666,47 @@ window.depOuvrirBasculeFut = function(depotId){
 window.depConfirmerBasculeFut = function(){
   var colId = (($('fut-bascule-col') || {}).value || '');
   if(!colId){ toast('⚠️ Choisissez une collecte.'); return; }
-  var id = _depBasculeFutId, c = (window.depotClients || {})[id];
+  var id = _depBasculeFutId, srcCol = _depBasculeCol, depSrc = (_depBasculeSrc === 'depot');
+  var c = depSrc ? (window.depotClients || {})[id] : (((window.clientsParCollecte || {})[srcCol] || {})[id]);
   if(!c){ toast('⚠️ Fiche introuvable.'); closeModal('modal-fut-bascule'); return; }
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
   var col = (window.collectes || []).filter(function(k){ return k && k.id === colId; })[0] || {};
   var newId = (typeof window._nouvelIdClient === 'function') ? window._nouvelIdClient() : ('C' + Date.now().toString(36).toUpperCase());
   var u = window.currentUser || {};
   var fiche = JSON.parse(JSON.stringify(c));
-  fiche.departId = '';                       // il n'est plus « en attente » : il rejoindra un container à la ramasse
-  fiche.futBascule = { de: id, le: Date.now(), par: u.name || u.id || '' };
+  // Un client déjà livré est rattaché à un container (choisi à la validation de la livraison) : il le garde, avec son argent.
+  // Une ancienne fiche du dépôt d'attente n'en a pas : elle rejoindra un container à la ramasse.
+  if(depSrc || !fiche.departId || fiche.departId === DEP_ID_DEPOT) fiche.departId = '';
+  fiche.futBascule = { de: id, le: Date.now(), par: u.name || u.id || '', livraison: depSrc ? '' : srcCol };
   if(!window.clientsParCollecte[colId]) window.clientsParCollecte[colId] = {};
   window.clientsParCollecte[colId][newId] = fiche;
   if(!window.dispatchParCollecte[colId]) window.dispatchParCollecte[colId] = { trucks: {}, assigned: {} };
   if(!window.dispatchParCollecte[colId].assigned) window.dispatchParCollecte[colId].assigned = {};
   window.dispatchParCollecte[colId].assigned[newId] = null;
-  delete window.depotClients[id];
-  window._lastWriteTime = Date.now();
   var maj = {};
+  if(depSrc){ delete window.depotClients[id]; maj['dct_depot/' + id] = null; }
+  else {
+    // la fiche quitte la livraison (client + camion) pour la collecte : un fût ne doit être compté qu'une fois
+    delete window.clientsParCollecte[srcCol][id];
+    var dsp = (window.dispatchParCollecte || {})[srcCol];
+    if(dsp){
+      if(dsp.assigned) delete dsp.assigned[id];
+      Object.keys(dsp.trucks || {}).forEach(function(k){
+        var tk = dsp.trucks[k]; if(!tk) return;
+        ['clients', 'validated', 'refused', 'cancelled', 'reported'].forEach(function(f){
+          var arr = tk[f]; if(!arr) return; if(!Array.isArray(arr)) arr = Object.values(arr).filter(Boolean);
+          var n2 = arr.filter(function(z){ return z !== id; });
+          if(n2.length !== arr.length){ tk[f] = n2; maj['dct/dispatch/' + srcCol + '/trucks/' + k + '/' + f] = n2; }
+        });
+        if(tk.hours && tk.hours[id] !== undefined){ delete tk.hours[id]; maj['dct/dispatch/' + srcCol + '/trucks/' + k + '/hours/' + id] = null; }
+      });
+      maj['dct/dispatch/' + srcCol + '/assigned/' + id] = null;
+    }
+    maj['dct/clients/' + srcCol + '/' + id] = null;
+  }
+  window._lastWriteTime = Date.now();
   maj['dct/clients/' + colId + '/' + newId] = fiche;
   maj['dct/dispatch/' + colId + '/assigned/' + newId] = null;
-  maj['dct_depot/' + id] = null;
   // Les photos des fûts déposés suivent le client : elles sont rangées sous son identifiant (dct_photos_colis/<id>),
   // qui change à la bascule — sans ça, l'écran « Valider » de la collecte affichait 0 photo (vérifié le 13/11/2026).
   try{
@@ -24655,7 +24778,9 @@ window.depFutVenteCalc = function(){
     + (totC > 0 ? ' <span style="font-weight:600;color:var(--text3);">(f&ucirc;ts ' + _depEuros(depArrondi2(nb * pu)) + ' + colis ' + _depEuros(totC) + ')</span>' : '');
 
 };
-window.depOuvrirVenteFut = function(){
+window.depOuvrirVenteFut = function(colId){
+  var livsOuv = _depLivraisonsFuts().filter(function(k){ return k.statut !== 'terminee'; });
+  if(!livsOuv.length){ toast('⚠️ Créez d\'abord une livraison de fûts (écran Fûts).'); return; }
   var stock = _depStockFuts().restants;
   if(stock < 1){ toast('⛔ Plus de fût en stock à Émerainville : la vente est impossible.'); return; }
   var sn = $('ft-stock-note'); if(sn) sn.textContent = stock + ' f\u00fbt' + (stock > 1 ? 's' : '') + ' en stock \u00e0 \u00c9merainville';
@@ -24668,10 +24793,15 @@ window.depOuvrirVenteFut = function(){
     _depAdresseAutocompleteInit('ft', 'ft-adresse');
     _depCpVilleInit('ft');
   }catch(e){ console.error('departs: autocomplete fût', e); }
-  window._depDepotPhotos = []; try{ _depRenderPhotosGrille('ft'); }catch(e){}
   depSetLivraisonFut(false);
   var dtE = $('ft-date'); if(dtE) dtE.value = new Date().toISOString().slice(0, 10);
   // un fût du lot le plus ancien est proposé d'office
+  var selL = $('ft-livraison');
+  if(selL){
+    selL.innerHTML = livsOuv.map(function(k){ return '<option value="' + esc(k.id) + '">&#128666; ' + esc(k.date) + '</option>'; }).join('');
+    var pre = (typeof colId === 'string' && livsOuv.some(function(k){ return k.id === colId; })) ? colId : livsOuv[0].id;
+    selL.value = pre;
+  }
   _depFutSel = {}; var l0 = _depLotsFuts().filter(function(l){ return l.restants > 0; })[0]; if(l0) _depFutSel[l0.id] = 1;
   _depFutRenderLots();
   _depFutMeth = ''; depFutMethode(''); _depFutMethA = ''; depFutMethodeA(''); _depFutVerseManuel = false;
@@ -24706,10 +24836,10 @@ function _depEnregistrerVenteFutExecuter(){
   var dateDepot = (($('ft-date') || {}).value || new Date().toISOString().slice(0, 10));
   var total = depArrondi2(nb * pu);
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
-  var photosFut = window._depDepotPhotos || [];
-  if(!photosFut.length){ toast('⚠️ Ajoutez au moins une photo des fûts déposés chez le client.'); return; }
+  var colLiv = (($('ft-livraison') || {}).value || '');
+  if(!_depColFuts(colLiv)){ toast('⚠️ Choisissez une livraison.'); return; }
   var u = window.currentUser || {};
-  var id = (typeof window._idUnique === 'function') ? window._idUnique('D', window.depotClients) : ('D' + Date.now().toString(36).toUpperCase());
+  var id = (typeof window._nouvelIdClient === 'function') ? window._nouvelIdClient() : ('C' + Date.now().toString(36).toUpperCase());
   var lignesF = [{ nom: DEP_NOM_FUT, qte: nb, pu: pu, total: total }].concat((function(){ try{ return window.depLignesValeur() || []; }catch(e){ return []; } })());
   var fiche = {
     civilite: civ, prenom: prenom, nom: nom, name: _composeNom(civ, prenom, nom),
@@ -24717,31 +24847,34 @@ function _depEnregistrerVenteFutExecuter(){
     futDepose: dateDepot, futLots: futLots,
     colis: lignesF.map(function(l){ return (l.qte > 1 ? (l.qte + ' ') : '') + l.nom; }).join(', '), nbColis: lignesF.reduce(function(sm, l){ return sm + (l.qte || 0); }, 0) || nb,
     prix: depArrondi2(lignesF.reduce(function(sm, l){ return sm + (l.total || 0); }, 0)), prixADefinir: false,
-    departId: DEP_ID_DEPOT,
+    departId: '', futLiv: colLiv,
     destinataireNom: dnom, destinataireTel: dtel, destinataireTel2: dtel2,
     livraisonDakar: livF, livraisonAdresse: ladr, prixLivraison: lprix, livraisonVille: lville.livraisonVille, livraisonVilleAutre: lville.livraisonVilleAutre,
     note: (($('ft-note') || {}).value || '').trim(),
     colisDetail: lignesF,
-    aPhotoColis: true,
+    aPhotoColis: false,
     bg: u.bg || '#eee', color: u.color || '#333', by: u.name || '', creeLe: Date.now()
   };
   try{ _depMajDepuisLignes(fiche); }catch(e){}
 
-  db.ref('dct_depot/' + id).set(fiche);
-  var mapPh = {}; photosFut.forEach(function(p, i){ mapPh['p' + i] = p; });
-  db.ref('dct_photos_colis/' + id).set(mapPh);
-  window._depDepotPhotos = [];
+  // La fiche est un client de la livraison (même structure qu'un client de collecte), non affecté à un camion pour l'instant.
+  if(!window.clientsParCollecte[colLiv]) window.clientsParCollecte[colLiv] = {};
+  window.clientsParCollecte[colLiv][id] = fiche;
+  if(!window.dispatchParCollecte[colLiv]) window.dispatchParCollecte[colLiv] = { trucks: {}, assigned: {} };
+  if(!window.dispatchParCollecte[colLiv].assigned) window.dispatchParCollecte[colLiv].assigned = {};
+  window.dispatchParCollecte[colLiv].assigned[id] = null;
+  window._lastWriteTime = Date.now();
+  var majF = {}; majF['dct/clients/' + colLiv + '/' + id] = fiche; majF['dct/dispatch/' + colLiv + '/assigned/' + id] = null;
+  db.ref().update(majF).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'écriture refusée')); });
   if(!window.dctContacts) window.dctContacts = {};
   var ckey = tel ? tel.replace(/\s/g, '') : (prenom + '_' + nom).toLowerCase();
   window.dctContacts[ckey] = { civilite: civ, prenom: prenom, nom: nom, name: fiche.name, tel: tel, tel2: tel2, adresse: adresseF, infos: infosF, ville: villeF, cp: cpF, dept: cpF.substring(0, 2), by: (u.name || '') };
   try{ sauvegarder(); }catch(e){}
-  depActivite('&#128738;&#65039;', 'a vendu ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' &agrave; <strong>' + esc(fiche.name) + '</strong> &mdash; ' + _depEuros(total) + ' &euro;' + '');
-  toast('✅ Fût enregistré — ' + fiche.name + ' : notez maintenant les paiements sur la facture');
-  // Parcours : formulaire → fiche client → facture. Le formulaire sort de la pile de navigation : « ← » depuis la facture
-  // revient à la fiche client, puis à l'écran Fûts (jamais à un formulaire déjà enregistré).
-  depOuvrirFicheFut(id, 'depot', '');
+  depActivite('&#128738;&#65039;', 'a inscrit <strong>' + esc(fiche.name) + '</strong> pour ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' (livraison du ' + esc((_depColFuts(colLiv) || {}).date || '') + ')');
+  toast('✅ ' + fiche.name + ' inscrit dans la livraison du ' + (_depColFuts(colLiv) || {}).date);
   try{ if(Array.isArray(window._navPile)) window._navPile = window._navPile.filter(function(e){ return e && e.id !== 's-dep-fut-vente'; }); }catch(e){}
-  setTimeout(function(){ depOuvrirFacture('', id, true); }, 90);   // > 40 ms : sinon la navigation ne retient pas la fiche comme étape
+  window.currentCollecteId = colLiv;
+  setTimeout(function(){ try{ ouvrirCollecte(colLiv); }catch(e){} }, 60);
 };
 
 // Mois pour lesquels il y a quelque chose à voir (le mois en cours toujours en tête).

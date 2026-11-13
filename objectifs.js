@@ -129,6 +129,8 @@
   // dépôt direct = le client apporte son colis, il compte dès que la fiche existe.
   function valides(colId){
     var out = {};
+    // une livraison de fûts (type 'futs') dépose des fûts : ce n'est pas une ramasse, elle ne compte pas dans les objectifs
+    try{ var cf = (window.collectes || []).filter(function(c){ return c && c.id === colId; })[0]; if(cf && cf.type === 'futs') return out; }catch(e){}
     try{
       var t = ((window.dispatchParCollecte || {})[colId] || {}).trucks || {};
       Object.keys(t).forEach(function(k){
@@ -159,7 +161,7 @@
   function dateRamasse(x){
     if(x.src === 'france') return x.c.ramasseTs ? isoTs(x.c.ramasseTs) : '';
     if(x.src === 'depot') return x.c.creeLe ? isoTs(x.c.creeLe) : '';
-    var cols = (typeof collectes !== 'undefined' && Array.isArray(collectes)) ? collectes : [];
+    var cols = (typeof collectes !== 'undefined' && Array.isArray(collectes)) ? collectes.filter(function(c){ return c && c.type !== 'futs'; }) : [];
     for(var i = 0; i < cols.length; i++){ if(cols[i] && cols[i].id === x.collecteId) return isoDeLibelle(cols[i].date); }
     return '';
   }
@@ -379,7 +381,7 @@
   }
   function messageDimanche(){
     var obj = objDimanche(), aujIso = auj(), ref = null, refIso = '';
-    var cols = (typeof collectes !== 'undefined' && Array.isArray(collectes)) ? collectes.filter(function(c){ return c && c.date; }) : [];
+    var cols = (typeof collectes !== 'undefined' && Array.isArray(collectes)) ? collectes.filter(function(c){ return c && c.date && c.type !== 'futs'; }) : [];
     // Le dimanche même : bilan de la collecte du jour (quel que soit son statut). Sinon : le prochain dimanche.
     var duJour = cols.filter(function(c){ return isoDeLibelle(c.date) === aujIso; })[0];
     if(duJour){ ref = duJour; refIso = aujIso; }
