@@ -6992,3 +6992,10 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - La carte du client affiche ensuite « En collecte du Dimanche 22 novembre 2026 » ; le stock ne bouge pas (le fût reste compté vendu). La suite du parcours (dispatch → ramasse → container) est celle de n'importe quel client de collecte.
 - Testé (faux Firebase) : achat 10 fûts, vente 2 fûts (70 €, 30 € versés), bascule sans choix refusée, bascule dans la collecte du 22/11 : dépôt vidé, fiche présente dans la collecte avec prix 70 € et versement 30 €.
 - Non testé : le dispatch / la validation de ramasse d'un client fût (même code que les autres clients) et l'impression de la facture avec la ligne fût.
+
+### 13/11/2026 — Fûts : « chez le client » et « au dépôt » séparés (v3.99.354, departs.js v2.22.80)
+> Cobey : « en vrai, c'est pas en attente au dépôt : le fût est chez le client, le temps qu'il le ramasse, le remplisse, et une fois que le client dit qu'il est prêt, c'est là qu'on bascule dans une collecte » ; « il doit y avoir un côté où il y a les barils dans le dépôt et un côté où les barils sont chez le client ».
+- Écran Fûts : une carte à DEUX côtés — « 🏢 Au dépôt » (stock Émerainville, fûts achetés − vendus) et « 🏠 Chez les clients » (fûts vendus dont la fiche n'est pas encore basculée, avec le nombre de clients) — puis la liste « Chez les clients » (bouton « ✅ Le client est prêt : basculer dans une collecte ») et « Basculés en collecte ou partis ».
+- Libellé « Fût chez le client » (plus « en attente au dépôt »). Ces fiches ne comptent plus parmi les clients « en attente à Mitry » (case Stockage, liste du Dépôt d'attente) : leur argent reste dans le bilan. Reconnues par la ligne « Achat d'un fût 270 L » d'une fiche au Dépôt d'attente.
+- Accueil et Stockage : « N au dépôt / M chez les clients ».
+- Testé (faux Firebase) : après une vente de 2 fûts, Mitry reste à 0, la carte montre 8 au dépôt / 2 chez 1 client ; après la bascule : 0 chez les clients, 1 client dans « Basculés ».

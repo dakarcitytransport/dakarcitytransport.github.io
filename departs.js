@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.78';
+var DEP_VERSION = 'v2.22.80';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3379,7 +3379,7 @@ function injecterEcrans(){
   +       '<button type="button" class="dep-st" id="ft-m-vir" onclick="depFutMethode(\'virement\')" style="flex:1;">Virement</button>'
   +     '</div>'
   +     '<div class="fg"><label class="fl">Note (facultatif)</label><input class="fi" id="ft-note" autocomplete="off"></div>'
-  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">La fiche du client est cr&eacute;&eacute;e au d&eacute;p&ocirc;t. Le f&ucirc;t s\'ajoute au prix du transport sur sa facture ; le reste se paie en versements, jusqu\'&agrave; l\'arriv&eacute;e du container.</div>'
+  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">Le f&ucirc;t reste chez le client le temps qu\'il le remplisse. Quand il est pr&ecirc;t, on bascule sa fiche dans une collecte. Le f&ucirc;t s\'ajoute au prix du transport sur sa facture ; le reste se paie en versements, jusqu\'&agrave; l\'arriv&eacute;e du container.</div>'
   +     '<button class="btn btn-green" onclick="depEnregistrerVenteFut()">&#9989; Enregistrer la vente</button>'
   +   '</div></div>'
   + '</div>'
@@ -5992,7 +5992,7 @@ window.depRenderEspaces = function(){
   // correctement dans depRenderStockageChoix().
   var sdd = $('dep-case-sub-stockage');
   if(sdd){
-    var nbMitry = compteursDepart(DEP_ID_DEPOT).clients;
+    var nbMitry = Math.max(0, compteursDepart(DEP_ID_DEPOT).clients - _depNbFutsChezClient());
     var nbDd = (typeof _depListeDepotDakar === 'function') ? _depListeDepotDakar().filter(function(x){
       return !_depColisRemis(x.c);
     }).length : 0;
@@ -6005,7 +6005,7 @@ window.depRenderEspaces = function(){
   if(sft){
     var stF = _depStockFuts();
     sft.innerHTML = (stF.achetes + stF.vendus) === 0 ? 'Aucun f&ucirc;t'
-      : '<b style="color:#1565A8;">' + stF.restants + '</b> en stock<br>' + stF.vendus + ' vendu' + (stF.vendus > 1 ? 's' : '');
+      : '<b style="color:#1565A8;">' + stF.restants + '</b> au d&eacute;p&ocirc;t<br><b style="color:#B8720C;">' + stF.chezNb + '</b> chez les clients';
   }
 
   // Case DEVIS (v1.19.85)
@@ -6125,7 +6125,7 @@ window.depOuvrirEspaceStockage = function(){
 function depRenderStockageChoix(){
   var box = $('dep-stockage-content');
   if(!box) return;
-  var nbMitry = compteursDepart(DEP_ID_DEPOT).clients;
+  var nbMitry = Math.max(0, compteursDepart(DEP_ID_DEPOT).clients - _depNbFutsChezClient());
   var nbDakar = (typeof _depListeDepotDakar === 'function') ? _depListeDepotDakar().filter(function(x){
     return !_depColisRemis(x.c);
   }).length : 0;
@@ -6148,7 +6148,7 @@ function depRenderStockageChoix(){
       +   '<div class="dep-card-top">'
       +     '<div class="dep-nom">&#128738;&#65039; &Eacute;merainville &middot; f&ucirc;ts</div>'
       +   '</div>'
-      +   '<div class="dep-meta"><span>' + stK.restants + ' f&ucirc;t' + (stK.restants>1?'s':'') + ' en stock &middot; ' + stK.vendus + ' vendu' + (stK.vendus>1?'s':'') + '</span></div>'
+      +   '<div class="dep-meta"><span>' + stK.restants + ' au d&eacute;p&ocirc;t &middot; ' + stK.chezNb + ' chez les clients</span></div>'
       + '</div>';
   }
   box.innerHTML = h;
@@ -8841,7 +8841,7 @@ window.depDetail = function(id, gardeFiltres){
   // directement au dépôt (hors collecte)
   var clients = tousLesClients().filter(function(x){ return x.c.departId === id; });
   var clientsDepot = Object.keys(window.depotClients||{})
-    .filter(function(k){ return window.depotClients[k] && window.depotClients[k].departId === id; })
+    .filter(function(k){ return window.depotClients[k] && window.depotClients[k].departId === id && !(id === DEP_ID_DEPOT && _depEstFutChezClient(window.depotClients[k])); })
     .map(function(k){ return { depot:true, clientId:k, c: window.depotClients[k] }; });
   // v1.19.67 : les clients France & Europe affectés à ce container en
   // manquaient complètement ici — comptés dans le total en haut (voir
@@ -24315,9 +24315,23 @@ function _depFichesFuts(){
   });
   return out;
 }
+// Un client fût dont la fiche attend encore (au Dépôt d'attente) : le fût est CHEZ LE CLIENT, pas au dépôt.
+// Cobey, 13/11/2026 : « le fût est chez le client, le temps qu'il le remplisse […] une fois qu'il dit qu'il est prêt, on bascule dans une collecte ».
+// Ces fiches ne comptent donc pas parmi les clients « en attente à Mitry » (leur argent reste dans le bilan).
+function _depEstFutChezClient(c){
+  if(!c || (c.departId && c.departId !== DEP_ID_DEPOT)) return false;
+  try{ return _depLignesColis(c).some(function(l){ return DEP_RE_FUT.test(l.nom || ''); }); }catch(e){ return false; }
+}
+function _depNbFutsChezClient(){
+  var dep = window.depotClients || {};
+  return Object.keys(dep).filter(function(k){ return dep[k] && !_depEstFusionnee(dep[k]) && _depEstFutChezClient(dep[k]); }).length;
+}
 function _depStockFuts(){
-  var a = _depFutsAchetes(), v = _depFichesFuts().reduce(function(s, o){ return s + o.nb; }, 0);
-  return { achetes: a, vendus: v, restants: a - v };
+  var fs = _depFichesFuts(), a = _depFutsAchetes(), v = fs.reduce(function(s, o){ return s + o.nb; }, 0);
+  // « chez les clients » : vendus, fiche pas encore basculée dans une collecte (le client remplit son fût)
+  var chez = fs.filter(function(o){ return o.x.src === 'depot' && _depEstFutChezClient(o.c); });
+  return { achetes: a, vendus: v, restants: a - v,
+           chezNb: chez.reduce(function(s, o){ return s + o.nb; }, 0), chezClients: chez.length };
 }
 window.depOuvrirEspaceFuts = function(){
   goTo('s-dep-futs');
@@ -24328,11 +24342,18 @@ function depRenderFuts(){
   if(!box) return;
   var st = _depStockFuts(), fiches = _depFichesFuts().sort(function(a, b){ return (b.c.creeLe || 0) - (a.c.creeLe || 0); });
   var h = '<div class="dep-card ft-c ft-stock" style="border-left-color:#1565A8;">'
-    + '<div class="dep-card-top"><div class="dep-nom">&#128738;&#65039; Stockage &Eacute;merainville</div></div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0 2px;">'
-    +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">F&ucirc;ts en stock</span>'
-    +   '<b style="font-size:30px;color:' + (st.restants < 0 ? '#B3261E' : '#1565A8') + ';">' + st.restants + '</b></div>'
-    + '<div class="dep-meta"><span>' + st.achetes + ' achet&eacute;' + (st.achetes>1?'s':'') + ' &middot; ' + st.vendus + ' vendu' + (st.vendus>1?'s':'') + '</span></div>'
+    + '<div class="dep-card-top"><div class="dep-nom">&#128738;&#65039; F&ucirc;ts</div></div>'
+    + '<div style="display:flex;gap:10px;margin-top:6px;">'
+    +   '<div style="flex:1;min-width:0;background:rgba(255,255,255,.6);border-radius:16px;padding:10px 12px;">'
+    +     '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.05em;">&#127970; AU D&Eacute;P&Ocirc;T</div>'
+    +     '<b style="font-size:32px;color:' + (st.restants < 0 ? '#B3261E' : '#1565A8') + ';">' + st.restants + '</b>'
+    +     '<div style="font-size:11.5px;font-weight:700;color:var(--text3);">f&ucirc;t' + (st.restants>1?'s':'') + ' &Eacute;merainville</div></div>'
+    +   '<div style="flex:1;min-width:0;background:rgba(255,255,255,.6);border-radius:16px;padding:10px 12px;">'
+    +     '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.05em;">&#127968; CHEZ LES CLIENTS</div>'
+    +     '<b style="font-size:32px;color:#B8720C;">' + st.chezNb + '</b>'
+    +     '<div style="font-size:11.5px;font-weight:700;color:var(--text3);">' + st.chezClients + ' client' + (st.chezClients>1?'s':'') + '</div></div>'
+    + '</div>'
+    + '<div class="dep-meta"><span>' + st.achetes + ' achet&eacute;' + (st.achetes>1?'s':'') + ' &middot; ' + st.vendus + ' vendu' + (st.vendus>1?'s':'') + ' &middot; ' + (st.vendus - st.chezNb) + ' en collecte ou parti' + ((st.vendus - st.chezNb)>1?'s':'') + '</span></div>'
     + (st.restants < 0 ? '<div style="font-size:11.5px;color:#B3261E;font-weight:700;margin-top:6px;">Plus de f&ucirc;ts vendus que d\'achats saisis : ajoutez l\'achat manquant.</div>' : '')
     + '</div>'
     + (st.restants < 1
@@ -24340,27 +24361,27 @@ function depRenderFuts(){
         + '<div style="font-size:12px;color:#B3261E;font-weight:700;margin-bottom:16px;">Stock vide : la vente est impossible tant qu\'un achat de f&ucirc;ts n\'est pas saisi.</div>'
       : '<button class="btn btn-green" style="margin-bottom:16px;" onclick="depOuvrirVenteFut()">+ Vendre un f&ucirc;t</button>');
 
-  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Clients f&ucirc;ts</div>';
-  if(!fiches.length){
-    h += '<div class="dep-vide" style="padding:20px 16px;">Aucun f&ucirc;t vendu pour l\'instant.</div>';
-  } else {
-    h += fiches.map(function(o){
-      var c = o.c, pay = depCalculerPaiement(c), x = o.x;
-      var auDepot = x.src === 'depot' && (!c.departId || c.departId === DEP_ID_DEPOT);
-      var colF = x.src === 'col' ? (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0] : null;
-      var lieu = auDepot ? 'En attente au d&eacute;p&ocirc;t'
-        : (x.src === 'col' ? 'En collecte' + (colF && colF.date ? ' du ' + esc(colF.date) : '') : esc(nomDepart(c.departId) || 'Container'));
-      var ouvre = x.src === 'depot' ? "depOuvrirFacture('', '" + x.clientId + "', true)"
-        : (x.src === 'france' ? "depOuvrirFacture('', '" + x.clientId + "', false)" : "depOuvrirFacture('" + x.collecteId + "', '" + x.clientId + "')");
-      return '<div class="dep-card ft-c ' + (pay.reste > 0 ? 'ft-du' : 'ft-ok') + '" style="cursor:pointer;" onclick="' + ouvre + '">'
-        + '<div class="dep-card-top"><div class="dep-nom">' + esc(c.name || 'Client') + '</div></div>'
-        + '<div class="dep-meta"><span>' + o.nb + ' f&ucirc;t' + (o.nb>1?'s':'') + ' &middot; ' + lieu + '</span></div>'
-        + '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-top:4px;"><span>Total ' + _depEuros(pay.total) + ' &euro;</span>'
-        + '<span style="color:' + (pay.reste > 0 ? '#B3261E' : '#006b2d') + ';">' + (pay.reste > 0 ? 'Reste ' + _depEuros(pay.reste) + ' &euro;' : 'Pay&eacute;') + '</span></div>'
-        + (auDepot ? '<button class="btn btn-green" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirBasculeFut(\'' + x.clientId + '\')">&#128197; Basculer dans une collecte</button>' : '')
-        + '</div>';
-    }).join('');
+  function carteFut(o){
+    var c = o.c, pay = depCalculerPaiement(c), x = o.x;
+    var auDepot = x.src === 'depot' && (!c.departId || c.departId === DEP_ID_DEPOT);
+    var colF = x.src === 'col' ? (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0] : null;
+    var lieu = auDepot ? 'F&ucirc;t chez le client'
+      : (x.src === 'col' ? 'En collecte' + (colF && colF.date ? ' du ' + esc(colF.date) : '') : esc(nomDepart(c.departId) || 'Container'));
+    var ouvre = x.src === 'depot' ? "depOuvrirFacture('', '" + x.clientId + "', true)"
+      : (x.src === 'france' ? "depOuvrirFacture('', '" + x.clientId + "', false)" : "depOuvrirFacture('" + x.collecteId + "', '" + x.clientId + "')");
+    return '<div class="dep-card ft-c ' + (pay.reste > 0 ? 'ft-du' : 'ft-ok') + '" style="cursor:pointer;" onclick="' + ouvre + '">'
+      + '<div class="dep-card-top"><div class="dep-nom">' + esc(c.name || 'Client') + '</div></div>'
+      + '<div class="dep-meta"><span>' + o.nb + ' f&ucirc;t' + (o.nb>1?'s':'') + ' &middot; ' + lieu + '</span></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-top:4px;"><span>Total ' + _depEuros(pay.total) + ' &euro;</span>'
+      + '<span style="color:' + (pay.reste > 0 ? '#B3261E' : '#006b2d') + ';">' + (pay.reste > 0 ? 'Reste ' + _depEuros(pay.reste) + ' &euro;' : 'Pay&eacute;') + '</span></div>'
+      + (auDepot ? '<button class="btn btn-green" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirBasculeFut(\'' + x.clientId + '\')">&#9989; Le client est pr&ecirc;t : basculer dans une collecte</button>' : '')
+      + '</div>';
   }
+  var chezL = fiches.filter(function(o){ return o.x.src === 'depot' && _depEstFutChezClient(o.c); });
+  var apresL = fiches.filter(function(o){ return chezL.indexOf(o) < 0; });
+  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">&#127968; Chez les clients (' + chezL.length + ')</div>'
+    + (chezL.length ? chezL.map(carteFut).join('') : '<div class="dep-vide" style="padding:16px;">Aucun f&ucirc;t chez un client pour l\'instant.</div>');
+  if(apresL.length) h += '<div class="dep-sec">&#128197; Bascul&eacute;s en collecte ou partis (' + apresL.length + ')</div>' + apresL.map(carteFut).join('');
 
   if(estDirection()){
     var achats = _depCaisseLignes().filter(function(o){ return (parseInt(o.futs, 10) || 0) > 0; });
@@ -24388,8 +24409,8 @@ window.depOuvrirBasculeFut = function(depotId){
   var m = $('modal-fut-bascule'); if(m) m.remove();
   m = document.createElement('div'); m.id = 'modal-fut-bascule'; m.className = 'modal-overlay';
   var h = '<div class="modal-sheet">'
-    + '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:4px;">&#128197; Basculer dans une collecte</div>'
-    + '<div style="font-size:13px;color:#666;margin-bottom:14px;">' + esc(c.name || '') + ' &middot; ' + esc(c.colis || '') + '</div>';
+    + '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:4px;">&#9989; Le client est pr&ecirc;t</div>'
+    + '<div style="font-size:13px;color:#666;margin-bottom:14px;">' + esc(c.name || '') + ' &middot; ' + esc(c.colis || '') + '<br>Choisissez la collecte o&ugrave; sa ramasse aura lieu.</div>';
   if(cols.length){
     h += '<label for="fut-bascule-col" style="font-size:12px;font-weight:800;color:#666;">Collecte</label>'
       + '<select id="fut-bascule-col" style="width:100%;padding:11px;border:1.5px solid #ddd;border-radius:10px;font-size:15px;font-weight:700;margin:4px 0 12px;">'
