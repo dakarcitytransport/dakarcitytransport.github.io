@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.87';
+var DEP_VERSION = 'v2.22.90';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -868,6 +868,7 @@ var _depPubFactureCtx = null;   // { ctx, c }
 // de revenir sur "Documents" pour imprimer autre chose ou repartir en
 // tournée.
 var _depPubVientImpression = false;
+var _depVersNature = '';        // fiche fût : 'fut' | 'colis' — poste payé par le versement saisi
 var _depVersMethode = '';       // 'especes' | 'virement' — méthode choisie sur le bouton "Ajouter un versement"
 var _depVersDevise  = 'eur';    // 'eur' | 'fcfa' — devise choisie sur le bouton "Ajouter un versement"
 // v1.19.22 : caisse livraison, indépendante de celle du colis ci-dessus.
@@ -3389,18 +3390,7 @@ function injecterEcrans(){
   +     '<div id="ft-lignes" style="margin-bottom:14px;"></div>'
   +     '<div id="ft-total" style="font-size:14px;font-weight:800;margin:-4px 0 14px;color:var(--text);">Total : 0 &euro;</div>'
   +     '<div class="fg"><label class="fl">Date du d&eacute;p&ocirc;t du f&ucirc;t chez le client</label><input class="fi" id="ft-date" type="date" style="max-width:100%;min-width:0;box-sizing:border-box;"></div>'
-  +     '<div class="dep-sec">Paiement &agrave; la remise du f&ucirc;t</div>'
-  +     '<div class="fg"><label class="fl">Achat du f&ucirc;t pay&eacute; (&euro;)</label><input class="fi" id="ft-verse" type="number" min="0" step="0.01" placeholder="0" oninput="_depFutVerseManuel=true" style="font-size:18px;font-weight:700;text-align:center;"></div>'
-  +     '<div style="display:flex;gap:8px;margin:-4px 0 14px;">'
-  +       '<button type="button" class="dep-st" id="ft-m-esp" onclick="depFutMethode(\'especes\')" style="flex:1;">Esp&egrave;ces</button>'
-  +       '<button type="button" class="dep-st" id="ft-m-vir" onclick="depFutMethode(\'virement\')" style="flex:1;">Virement</button>'
-  +     '</div>'
-  +     '<div class="fg"><label class="fl">Acompte sur le frais de transport (&euro;) <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label><input class="fi" id="ft-acompte" type="number" min="0" step="0.01" placeholder="0" style="font-size:18px;font-weight:700;text-align:center;"></div>'
-  +     '<div style="display:flex;gap:8px;margin:-4px 0 6px;">'
-  +       '<button type="button" class="dep-st" id="ft-a-esp" onclick="depFutMethodeA(\'especes\')" style="flex:1;">Esp&egrave;ces</button>'
-  +       '<button type="button" class="dep-st" id="ft-a-vir" onclick="depFutMethodeA(\'virement\')" style="flex:1;">Virement</button>'
-  +     '</div>'
-  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:14px;">L\'achat du f&ucirc;t est not&eacute; &agrave; chaque remise. L\'acompte sur le transport est un premier versement : il sera d&eacute;duit du prix total sur la facture.</div>'
+  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin:6px 0 14px;">Les paiements (achat du f&ucirc;t, colis) s\'enregistrent sur la facture, qui s\'ouvre juste apr&egrave;s l\'enregistrement.</div>'
   +     '<div class="dep-sec">Destinataire &agrave; Dakar</div>'
   +     '<div class="fg"><label class="fl">Nom du destinataire</label><input class="fi" id="ft-dest-nom" autocomplete="off" placeholder="Awa Ndiaye"></div>'
   +     '<div class="fg"><label class="fl">Num&eacute;ro du destinataire</label><input class="fi" id="ft-dest-tel" type="tel" autocomplete="off" placeholder="77 000 00 00"></div>'
@@ -3421,7 +3411,7 @@ function injecterEcrans(){
   +     '<div id="ft-photo-box" style="margin-bottom:12px;"></div>'
   +     '<input type="file" id="ft-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="depPhotoChoisieDepot(this)">'
   +     '<div class="fg"><label class="fl">Note <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label><input class="fi" id="ft-note" autocomplete="off"></div>'
-  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">Le f&ucirc;t reste chez le client le temps qu\'il le remplisse. Quand il est pr&ecirc;t, on bascule sa fiche dans une collecte : le suivi est ensuite le m&ecirc;me que pour tout client, jusqu\'au container. Le f&ucirc;t s\'ajoute au prix du transport sur sa facture ; le reste se paie en versements.</div>'
+  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">Le f&ucirc;t reste chez le client le temps qu\'il le remplisse. Quand il est pr&ecirc;t, on bascule sa fiche dans une collecte : le suivi est ensuite le m&ecirc;me que pour tout client, jusqu\'au container. Le f&ucirc;t s\'ajoute au prix du transport sur sa facture.</div>'
   +     '<button class="btn btn-green" onclick="depEnregistrerVenteFut()">&#9989; Enregistrer la vente</button>'
   +   '</div></div>'
   + '</div>'
@@ -9400,6 +9390,10 @@ window.depOuvrirFacture = function(collecteId, clientId, depot, retourCamion, vi
       // v3.99.69 : ouverte depuis la liste du Dépôt Dakar (case Stockage).
       btnRetour.textContent = '← Dépôt Dakar';
       btnRetour.onclick = function(){ depOuvrirEspaceDepotDakar(); };
+    } else if(_depEstFutFiche(c)){
+      // Cobey, 13/11/2026 : « chaque bouton retour doit revenir à sa page précédente » — la facture d'un fût revient à sa fiche client.
+      btnRetour.textContent = '← Fiche client';
+      btnRetour.onclick = function(){ depOuvrirFicheFut(clientId, depot ? 'depot' : 'col', collecteId || ''); };
     } else if(depot && _depDepotViaCarre){
       // v1.19.50 : client dépôt inscrit depuis le carré Dépôt (pas le
       // carré Départs) — _depDetailId n'a jamais été posé dans ce cas.
@@ -11465,6 +11459,12 @@ window.depVersDevise = function(d){
   depVersMajFcfa();
 };
 
+window.depVersNature = function(n){
+  _depVersNature = n;
+  var f = $('dep-vers-nat-fut'), c = $('dep-vers-nat-colis');
+  if(f) f.classList.toggle('on', n === 'fut');
+  if(c) c.classList.toggle('on', n === 'colis');
+};
 window.depVersMethode = function(m){
   _depVersMethode = m;
   var be = $('dep-vers-meth-esp'), bv = $('dep-vers-meth-vir');
@@ -11693,7 +11693,7 @@ function _depOuvrirConfirmationVersement(p){
   if(texte){
     var methodeTxt = p.methode === 'especes' ? 'Esp&egrave;ces' : 'Virement';
     var montantTxt = p.montant + '&nbsp;&euro;' + (p.devise === 'fcfa' ? ' (' + p.saisie + '&nbsp;FCFA)' : '');
-    var natureTxt = p.estAcompte ? ' <strong>acompte</strong>' : (p.type === 'livraison' ? ' <strong>livraison</strong>' : '');
+    var natureTxt = p.estAcompte ? ' <strong>acompte</strong>' : (p.type === 'livraison' ? ' <strong>livraison</strong>' : (p.nature === 'fut' ? ' <strong>pour l\'achat du f&ucirc;t</strong>' : (p.nature === 'colis' ? ' <strong>pour les colis</strong>' : '')));
     texte.innerHTML = 'Enregistrer un versement' + natureTxt
       + ' de <strong>' + montantTxt + '</strong> par <strong>' + methodeTxt + '</strong>'
       + ' pour <strong>' + esc(p.c.name || '') + '</strong>&nbsp;?'
@@ -11741,7 +11741,7 @@ window.depAjouterVersement = function(){
   var devise = _depVersDevise;
   var montant = devise === 'fcfa' ? Math.round((saisie / TAUX_FCFA_EUR) * 100) / 100 : saisie;
 
-  _depOuvrirConfirmationVersement({ type: 'colis', ctx: ctx, c: c, montant: montant, devise: devise, saisie: saisie, methode: _depVersMethode });
+  _depOuvrirConfirmationVersement({ type: 'colis', ctx: ctx, c: c, montant: montant, devise: devise, saisie: saisie, methode: _depVersMethode, nature: (_depEstFutFiche(c) && _depVersNature) ? _depVersNature : '' });
 };
 
 function _depAjouterVersementExecuter(p){
@@ -11755,6 +11755,7 @@ function _depAjouterVersementExecuter(p){
   // compter dans les "Acomptes conservés" du camion en cas de refus/
   // annulation (voir _depAcomptesConservesCamion).
   if(p.estAcompte) v.estAcompte = true;
+  if(p.nature) v.nature = p.nature;
 
   var versements = Array.isArray(c.versements) ? c.versements : [];
   versements.push(v);
@@ -12186,7 +12187,7 @@ function depRenderFacture(c){
       h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
         + '<div style="font-size:12px;color:var(--text2);line-height:1.6;">'
         +   '&#128176; <strong>' + (parseFloat(v.montant)||0) + ' &euro;</strong>' + fcfa
-        +   (meth ? (' &middot; ' + meth) : '') + ' &middot; ' + esc(dateHeureFr(v.le))
+        +   (meth ? (' &middot; ' + meth) : '') + (v.nature === 'fut' ? ' &middot; f&ucirc;t' : (v.nature === 'colis' ? ' &middot; colis' : '')) + ' &middot; ' + esc(dateHeureFr(v.le))
         +   (v.par ? (' &middot; ' + esc(v.par)) : '')
         + '</div>'
         + (supprimable
@@ -12206,7 +12207,34 @@ function depRenderFacture(c){
   // chaque affichage de la facture.
   _depVersDevise = 'eur';
   _depVersMethode = '';
+  // Fiche fût (Cobey, 13/11/2026) : « là où c'est vers la facture, c'est là qu'on enregistre le montant payé espèces / virement du fût,
+  // plus une deuxième case pour les montants des colis ». Deux postes, chacun avec son total et son payé.
+  _depVersNature = '';
+  if(_depEstFutFiche(c)){
+    var ls = _depLignesColis(c), totF = 0, totC = 0;
+    ls.forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')) totF += (l.total || 0); else totC += (l.total || 0); });
+    var payF = 0, payC = 0;
+    (Array.isArray(c.versements) ? c.versements : []).forEach(function(v){ var m = parseFloat(v && v.montant) || 0; if(v && v.nature === 'fut') payF += m; else payC += m; });
+    totF = depArrondi2(totF); totC = depArrondi2(totC); payF = depArrondi2(payF); payC = depArrondi2(payC);
+    var resF = depArrondi2(Math.max(0, totF - payF)), resC = depArrondi2(Math.max(0, totC - payC));
+    _depVersNature = resF > 0 ? 'fut' : 'colis';
+    var poste = function(titre, tot, pay, res, nat){
+      return '<div style="flex:1;min-width:0;border:2px solid ' + (res > 0 ? '#E58A00' : '#0d7a3a') + ';border-radius:12px;padding:10px 12px;background:' + (res > 0 ? '#FFF8EC' : '#EAF7EE') + ';">'
+        + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;">' + titre + '</div>'
+        + '<div style="font-size:12.5px;margin-top:4px;">Total <b>' + _depEuros(tot) + ' &euro;</b></div>'
+        + '<div style="font-size:12.5px;">Pay&eacute; <b>' + _depEuros(pay) + ' &euro;</b></div>'
+        + '<div style="font-size:12.5px;font-weight:800;color:' + (res > 0 ? '#B3261E' : '#006b2d') + ';">' + (res > 0 ? 'Reste ' + _depEuros(res) + ' &euro;' : 'Sold&eacute;') + '</div></div>';
+    };
+    h += '<div class="dep-sec">Paiements par poste</div>'
+      + '<div style="display:flex;gap:8px;margin-bottom:12px;">' + poste('&#128738;&#65039; ACHAT DU F&Ucirc;T', totF, payF, resF) + (totC > 0 || payC > 0 ? poste('&#128230; COLIS', totC, payC, resC) : '') + '</div>';
+  }
   h += '<div class="dep-sec">Ajouter un versement</div>'
+    + (_depVersNature
+      ? '<div class="fg"><label class="fl">Ce versement concerne</label><div style="display:flex;gap:8px;">'
+        + '<button type="button" class="dep-st' + (_depVersNature === 'fut' ? ' on' : '') + '" id="dep-vers-nat-fut" onclick="depVersNature(\'fut\')" style="flex:1;">&#128738;&#65039; Achat du f&ucirc;t</button>'
+        + '<button type="button" class="dep-st' + (_depVersNature === 'colis' ? ' on' : '') + '" id="dep-vers-nat-colis" onclick="depVersNature(\'colis\')" style="flex:1;">&#128230; Colis</button>'
+        + '</div></div>'
+      : '')
     + '<div style="display:none;">'
     +   '<button type="button" class="dep-st on" id="dep-vers-dev-eur" onclick="depVersDevise(\'eur\')" style="flex:1;">&euro; Euros</button>'
     +   '<button type="button" class="dep-st" id="dep-vers-dev-fcfa" onclick="depVersDevise(\'fcfa\')" style="flex:1;">FCFA</button>'
@@ -12848,12 +12876,13 @@ function depRenderFicheLecture(colId, clientId, depot, france){
     // accessible (voir depOuvrirVersementAvance). v1.21.0 : bouton
     // "🏷️ Acompte" ajouté à côté (voir depOuvrirAcompte), même mécanisme
     // avec un drapeau en plus.
-    +   (c.prixADefinir ? '' : '<div style="display:flex;gap:8px;margin-top:10px;">'
+    +   (_depEstFutFiche(c) ? '<button type="button" class="btn btn-green" style="margin-top:10px;" onclick="depOuvrirFactureFut()">&#129534; Facture et paiements</button>'
+        : (c.prixADefinir ? '' : '<div style="display:flex;gap:8px;margin-top:10px;">'
           + '<button type="button" class="btn btn-gray" style="flex:1;margin-top:0;background:#EAF7EE;border-color:#BFE6C8;color:#0d7a3a;" '
           +   'onclick="depOuvrirVersementAvance()">&#128176; Versement</button>'
           + '<button type="button" class="btn btn-gray" style="flex:1;margin-top:0;background:#FFF3E0;border-color:#F0C36D;color:#B45309;" '
           +   'onclick="depOuvrirAcompte()">&#127991;&#65039; Acompte</button>'
-          + '</div>')
+          + '</div>'))
     + '</div>'
     + '<div class="dep-fiche-card">'
     +   (c.livraisonDakar
@@ -24361,6 +24390,25 @@ function _depFichesFuts(){
 // Un client fût dont la fiche attend encore (au Dépôt d'attente) : le fût est CHEZ LE CLIENT, pas au dépôt.
 // Cobey, 13/11/2026 : « le fût est chez le client, le temps qu'il le remplisse […] une fois qu'il dit qu'il est prêt, on bascule dans une collecte ».
 // Ces fiches ne comptent donc pas parmi les clients « en attente à Mitry » (leur argent reste dans le bilan).
+function _depEstFutFiche(c){
+  if(!c) return false;
+  try{ return _depLignesColis(c).some(function(l){ return DEP_RE_FUT.test(l.nom || ''); }); }catch(e){ return false; }
+}
+// La fiche client d'un fût : retour vers l'écran Fûts ; la facture s'ouvre depuis elle et y revient.
+window.depOuvrirFicheFut = function(clientId, src, colId){
+  var depot = (src === 'depot');
+  var c = depot ? (window.depotClients || {})[clientId] : ((window.clientsParCollecte || {})[colId] || {})[clientId];
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  _depDepotViaCarre = false; _depDepotViaDakar = false; _depDepotDepart = c.departId || DEP_ID_DEPOT;
+  var bk = $('client-back'); if(bk) bk.onclick = function(){ depOuvrirEspaceFuts(); };
+  depRenderFicheLecture(depot ? '' : colId, clientId, depot);
+  goTo('s-dep-fiche-lecture');
+};
+window.depOuvrirFactureFut = function(){
+  var ctx = _depFicheLectureCtx;
+  if(!ctx){ toast('⚠️ Fiche introuvable.'); return; }
+  depOuvrirFacture(ctx.colId || '', ctx.clientId, !!ctx.depot);
+};
 function _depEstFutChezClient(c){
   if(!c || (c.departId && c.departId !== DEP_ID_DEPOT)) return false;
   try{ return _depLignesColis(c).some(function(l){ return DEP_RE_FUT.test(l.nom || ''); }); }catch(e){ return false; }
@@ -24411,8 +24459,7 @@ function depRenderFuts(){
     var jDep = c.futDepose ? Math.max(0, Math.floor((Date.now() - new Date(c.futDepose + 'T12:00:00').getTime()) / 86400000)) : null;
     var lieu = auDepot ? 'F&ucirc;t chez le client' + (c.futDepose ? ' depuis le ' + esc(dateFr(c.futDepose)) + ' (' + (jDep === 0 ? "aujourd'hui" : jDep + ' j') + ')' : '')
       : (x.src === 'col' ? 'En collecte' + (colF && colF.date ? ' du ' + esc(colF.date) : '') : esc(nomDepart(c.departId) || 'Container'));
-    var ouvre = x.src === 'depot' ? "depOuvrirFacture('', '" + x.clientId + "', true)"
-      : (x.src === 'france' ? "depOuvrirFacture('', '" + x.clientId + "', false)" : "depOuvrirFacture('" + x.collecteId + "', '" + x.clientId + "')");
+    var ouvre = "depOuvrirFicheFut('" + x.clientId + "', '" + (x.src === 'depot' ? 'depot' : 'col') + "', '" + (x.collecteId || '') + "')";
     return '<div class="dep-card ft-c ' + (pay.reste > 0 ? 'ft-du' : 'ft-ok') + '" style="cursor:pointer;" onclick="' + ouvre + '">'
       + '<div class="dep-card-top"><div class="dep-nom">' + esc(c.name || 'Client') + '</div></div>'
       + '<div class="dep-meta"><span>' + o.nb + ' f&ucirc;t' + (o.nb>1?'s':'') + ' &middot; ' + lieu + '</span></div>'
@@ -24525,8 +24572,7 @@ window.depFutVenteCalc = function(){
   var totC = depArrondi2(lgC.reduce(function(s, l){ return s + (l.total || 0); }, 0));
   var t = $('ft-total'); if(t) t.innerHTML = 'Total : ' + _depEuros(depArrondi2(nb * pu + totC)) + ' &euro;'
     + (totC > 0 ? ' <span style="font-weight:600;color:var(--text3);">(f&ucirc;ts ' + _depEuros(depArrondi2(nb * pu)) + ' + colis ' + _depEuros(totC) + ')</span>' : '');
-  // le montant de l'achat est proposé tout de suite (modifiable) : l'achat du fût est acté à chaque remise
-  var v = $('ft-verse'); if(v && !_depFutVerseManuel) v.value = String(depArrondi2(nb * pu));
+
 };
 window.depOuvrirVenteFut = function(){
   var stock = _depStockFuts().restants;
@@ -24541,37 +24587,13 @@ window.depOuvrirVenteFut = function(){
   var nb = $('ft-nb'); if(nb) nb.value = '1';
   _depFutMeth = ''; depFutMethode(''); _depFutMethA = ''; depFutMethodeA(''); _depFutVerseManuel = false;
   try{ window.depEditerLignes('ft-lignes', [], function(){ depFutVenteCalc(); }); }catch(e){}
-  var acE = $('ft-acompte'); if(acE) acE.value = '';
   depFutVenteCalc();
   goTo('s-dep-fut-vente');
 };
-// Validation avant écriture (comme pour tout versement : Cobey, 13/11/2026 « il y a toujours une validation »).
+// Enregistre la fiche (fûts + colis + photo) puis ouvre la facture, où l'on note les paiements (Cobey, 13/11/2026 :
+// « pas de confirmation du paiement ici, ça fait doublon avec la facture »).
 window.depEnregistrerVenteFut = function(){
-  if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
-  var prenom = (($('ft-prenom') || {}).value || '').trim(), nom = (($('ft-nom') || {}).value || '').trim();
-  if(!prenom && !nom){ toast('⚠️ Indiquez au moins le nom ou le prénom.'); return; }
-  var nb = parseInt(($('ft-nb') || {}).value, 10) || 0;
-  if(nb < 1){ toast('⚠️ Indiquez le nombre de fûts.'); return; }
-  var stockF = _depStockFuts().restants;
-  if(nb > stockF){ toast(stockF < 1 ? '⛔ Plus de fût en stock : la vente est impossible.' : '⛔ Il ne reste que ' + stockF + ' fût' + (stockF > 1 ? 's' : '') + ' en stock.'); return; }
-  var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * DEP_PRIX_FUT), acompte = parseFloat(($('ft-acompte') || {}).value) || 0;
-  if(verse < 0 || acompte < 0){ toast('⚠️ Montant invalide.'); return; }
-  if(verse > 0 && !_depFutMeth){ toast('⚠️ Choisissez le mode de paiement de l\'achat du fût (espèces ou virement).'); return; }
-  if(acompte > 0 && !_depFutMethA){ toast('⚠️ Choisissez le mode de paiement de l\'acompte (espèces ou virement).'); return; }
-  if(verse > total){ toast('⚠️ Le versé pour l\'achat dépasse le prix des fûts.'); return; }
-  var lgV = []; try{ lgV = window.depLignesValeur() || []; }catch(e){}
-  var totGlobal = depArrondi2(total + lgV.reduce(function(sm, l){ return sm + (l.total || 0); }, 0));
-  if(depArrondi2(verse + acompte) > totGlobal){ toast('⚠️ Les versements (' + _depEuros(depArrondi2(verse + acompte)) + ' €) dépassent le prix total (' + _depEuros(totGlobal) + ' €). Ajoutez les colis envoyés ou corrigez l\'acompte.'); return; }
-  if(!(window._depDepotPhotos || []).length){ toast('⚠️ Ajoutez au moins une photo des fûts déposés chez le client.'); return; }
-  var nomC = _composeNom(_civDct.ft || '', prenom, nom);
-  var texte = $('dep-vers-confirm-texte');
-  if(!texte){ _depEnregistrerVenteFutExecuter(); return; }
-  texte.innerHTML = 'Enregistrer la vente de <strong>' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + '</strong> (' + _depEuros(total) + '&nbsp;&euro;)' + (totGlobal > total ? ' + colis (' + _depEuros(depArrondi2(totGlobal - total)) + '&nbsp;&euro;), total <strong>' + _depEuros(totGlobal) + '&nbsp;&euro;</strong>' : '') + ' &agrave; <strong>' + esc(nomC) + '</strong>'
-    + (verse > 0 ? '<br>&bull; achat du f&ucirc;t : <strong>' + _depEuros(verse) + '&nbsp;&euro;</strong> par <strong>' + (_depFutMeth === 'especes' ? 'Esp&egrave;ces' : 'Virement') + '</strong>' : '<br>&bull; achat du f&ucirc;t : <strong>rien pay&eacute;</strong> pour l\'instant')
-    + (acompte > 0 ? '<br>&bull; acompte transport : <strong>' + _depEuros(acompte) + '&nbsp;&euro;</strong> par <strong>' + (_depFutMethA === 'especes' ? 'Esp&egrave;ces' : 'Virement') + '</strong>' : '')
-    + '<br>Total encaiss&eacute; : <strong>' + _depEuros(depArrondi2(verse + acompte)) + '&nbsp;&euro;</strong>. La facture s\'ouvre ensuite.<br>Confirmer&nbsp;?';
-  _depVersPending = { type: 'fut', run: _depEnregistrerVenteFutExecuter };
-  openModal('modal-dep-vers-confirm');
+  _depEnregistrerVenteFutExecuter();
 };
 function _depEnregistrerVenteFutExecuter(){
   if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
@@ -24588,11 +24610,7 @@ function _depEnregistrerVenteFutExecuter(){
   var pu = DEP_PRIX_FUT;
   var adresseF = (($('ft-adresse') || {}).value || '').trim(), cpF = (($('ft-cp') || {}).value || '').trim(), villeF = (($('ft-ville') || {}).value || '').trim();
   var dateDepot = (($('ft-date') || {}).value || new Date().toISOString().slice(0, 10));
-  var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * pu), acompte = parseFloat(($('ft-acompte') || {}).value) || 0;
-  if(verse < 0 || acompte < 0){ toast('⚠️ Montant invalide.'); return; }
-  if(verse > 0 && !_depFutMeth){ toast('⚠️ Choisissez le mode de paiement (espèces ou virement).'); return; }
-  if(acompte > 0 && !_depFutMethA){ toast('⚠️ Choisissez le mode de paiement de l\'acompte.'); return; }
-  if(verse > total){ toast('⚠️ Le versé dépasse le total.'); return; }
+  var total = depArrondi2(nb * pu);
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
   var photosFut = window._depDepotPhotos || [];
   if(!photosFut.length){ toast('⚠️ Ajoutez au moins une photo des fûts déposés chez le client.'); return; }
@@ -24614,12 +24632,7 @@ function _depEnregistrerVenteFutExecuter(){
     bg: u.bg || '#eee', color: u.color || '#333', by: u.name || '', creeLe: Date.now()
   };
   try{ _depMajDepuisLignes(fiche); }catch(e){}
-  var totFiche = depArrondi2(window._depTotalColis(fiche));
-  if(depArrondi2(verse + acompte) > totFiche){ toast('⚠️ Les versements dépassent le prix total.'); return; }
-  var versF = [];
-  if(verse > 0) versF.push({ montant: depArrondi2(verse), le: Date.now(), par: u.name || u.id || '', methode: _depFutMeth, nature: 'fut' });
-  if(acompte > 0) versF.push({ montant: depArrondi2(acompte), le: Date.now(), par: u.name || u.id || '', methode: _depFutMethA, estAcompte: true, nature: 'acompteTransport' });
-  if(versF.length) fiche.versements = versF;
+
   db.ref('dct_depot/' + id).set(fiche);
   var mapPh = {}; photosFut.forEach(function(p, i){ mapPh['p' + i] = p; });
   db.ref('dct_photos_colis/' + id).set(mapPh);
@@ -24628,9 +24641,13 @@ function _depEnregistrerVenteFutExecuter(){
   var ckey = tel ? tel.replace(/\s/g, '') : (prenom + '_' + nom).toLowerCase();
   window.dctContacts[ckey] = { civilite: civ, prenom: prenom, nom: nom, name: fiche.name, tel: tel, tel2: tel2, adresse: adresseF, infos: infosF, ville: villeF, cp: cpF, dept: cpF.substring(0, 2), by: (u.name || '') };
   try{ sauvegarder(); }catch(e){}
-  depActivite('&#128738;&#65039;', 'a vendu ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' &agrave; <strong>' + esc(fiche.name) + '</strong> &mdash; ' + _depEuros(total) + ' &euro;' + (verse > 0 ? ' (pay&eacute; ' + _depEuros(verse) + ' &euro;)' : '') + (acompte > 0 ? ' + acompte transport ' + _depEuros(acompte) + ' &euro;' : ''));
-  toast('✅ Vente enregistrée — ' + fiche.name);
-  depOuvrirFacture('', id, true);
+  depActivite('&#128738;&#65039;', 'a vendu ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' &agrave; <strong>' + esc(fiche.name) + '</strong> &mdash; ' + _depEuros(total) + ' &euro;' + '');
+  toast('✅ Fût enregistré — ' + fiche.name + ' : notez maintenant les paiements sur la facture');
+  // Parcours : formulaire → fiche client → facture. Le formulaire sort de la pile de navigation : « ← » depuis la facture
+  // revient à la fiche client, puis à l'écran Fûts (jamais à un formulaire déjà enregistré).
+  depOuvrirFicheFut(id, 'depot', '');
+  try{ if(Array.isArray(window._navPile)) window._navPile = window._navPile.filter(function(e){ return e && e.id !== 's-dep-fut-vente'; }); }catch(e){}
+  setTimeout(function(){ depOuvrirFacture('', id, true); }, 90);   // > 40 ms : sinon la navigation ne retient pas la fiche comme étape
 };
 
 // Mois pour lesquels il y a quelque chose à voir (le mois en cours toujours en tête).
