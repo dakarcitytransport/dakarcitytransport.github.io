@@ -6999,3 +6999,10 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Libellé « Fût chez le client » (plus « en attente au dépôt »). Ces fiches ne comptent plus parmi les clients « en attente à Mitry » (case Stockage, liste du Dépôt d'attente) : leur argent reste dans le bilan. Reconnues par la ligne « Achat d'un fût 270 L » d'une fiche au Dépôt d'attente.
 - Accueil et Stockage : « N au dépôt / M chez les clients ».
 - Testé (faux Firebase) : après une vente de 2 fûts, Mitry reste à 0, la carte montre 8 au dépôt / 2 chez 1 client ; après la bascule : 0 chez les clients, 1 client dans « Basculés ».
+
+### 13/11/2026 — Fûts : date de dépôt chez le client + adresse saisie sur place (v3.99.355, departs.js v2.22.81)
+> Cobey : « est-ce qu'il y aura bien la date à laquelle le fût a été déposé chez le client ? […] Abdoulaye va aller chez le client, c'est là-bas qu'il enregistre, je pense ».
+- Formulaire de vente (pensé pour être rempli chez le client, sur téléphone) : ajout de l'adresse, du code postal, de la ville et de la « date du dépôt du fût chez le client » (aujourd'hui par défaut, modifiable). Adresse / CP facultatifs à la vente, utiles pour la ramasse.
+- Carte du client : « Fût chez le client depuis le 10/11/2026 (2 j) », « Enregistré par … · 93100 Montreuil ». Après bascule : « Déposé chez lui le … ». La date (`futDepose`) suit la fiche dans la collecte.
+- À la bascule, un message rappelle de compléter l'adresse si elle manque (nécessaire au dispatch par département / à la carte).
+- Testé (faux Firebase) : dépôt daté du 10/11 → « depuis le 10/11/2026 (2 j) », adresse reprise dans la fiche collecte.

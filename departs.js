@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.80';
+var DEP_VERSION = 'v2.22.81';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3370,6 +3370,10 @@ function injecterEcrans(){
   +     '<div class="fg"><label class="fl">Pr&eacute;nom</label><input class="fi" id="ft-prenom" autocomplete="off"></div>'
   +     '<div class="fg"><label class="fl">Nom</label><input class="fi" id="ft-nom" autocomplete="off"></div>'
   +     '<div class="fg"><label class="fl">T&eacute;l&eacute;phone</label><input class="fi" id="ft-tel" type="tel" autocomplete="off"></div>'
+  +     '<div class="fg"><label class="fl">Adresse du client (o&ugrave; le f&ucirc;t est d&eacute;pos&eacute;)</label><input class="fi" id="ft-adresse" autocomplete="off"></div>'
+  +     '<div style="display:flex;gap:10px;"><div class="fg" style="flex:1;"><label class="fl">Code postal</label><input class="fi" id="ft-cp" inputmode="numeric" autocomplete="off"></div>'
+  +     '<div class="fg" style="flex:2;"><label class="fl">Ville</label><input class="fi" id="ft-ville" autocomplete="off"></div></div>'
+  +     '<div class="fg"><label class="fl">Date du d&eacute;p&ocirc;t du f&ucirc;t chez le client</label><input class="fi" id="ft-date" type="date"></div>'
   +     '<div class="fg"><label class="fl">Nombre de f&ucirc;ts (35 &euro; le f&ucirc;t)</label>'
   +       '<select class="fi" id="ft-nb" onchange="depFutVenteCalc()" style="font-size:18px;font-weight:700;"><option value="1">1 f&ucirc;t</option><option value="2">2 f&ucirc;ts</option><option value="3">3 f&ucirc;ts</option></select></div>'
   +     '<div id="ft-total" style="font-size:14px;font-weight:800;margin:-4px 0 14px;color:var(--text);">Total : 0 &euro;</div>'
@@ -24365,13 +24369,15 @@ function depRenderFuts(){
     var c = o.c, pay = depCalculerPaiement(c), x = o.x;
     var auDepot = x.src === 'depot' && (!c.departId || c.departId === DEP_ID_DEPOT);
     var colF = x.src === 'col' ? (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0] : null;
-    var lieu = auDepot ? 'F&ucirc;t chez le client'
+    var jDep = c.futDepose ? Math.max(0, Math.floor((Date.now() - new Date(c.futDepose + 'T12:00:00').getTime()) / 86400000)) : null;
+    var lieu = auDepot ? 'F&ucirc;t chez le client' + (c.futDepose ? ' depuis le ' + esc(dateFr(c.futDepose)) + ' (' + (jDep === 0 ? "aujourd'hui" : jDep + ' j') + ')' : '')
       : (x.src === 'col' ? 'En collecte' + (colF && colF.date ? ' du ' + esc(colF.date) : '') : esc(nomDepart(c.departId) || 'Container'));
     var ouvre = x.src === 'depot' ? "depOuvrirFacture('', '" + x.clientId + "', true)"
       : (x.src === 'france' ? "depOuvrirFacture('', '" + x.clientId + "', false)" : "depOuvrirFacture('" + x.collecteId + "', '" + x.clientId + "')");
     return '<div class="dep-card ft-c ' + (pay.reste > 0 ? 'ft-du' : 'ft-ok') + '" style="cursor:pointer;" onclick="' + ouvre + '">'
       + '<div class="dep-card-top"><div class="dep-nom">' + esc(c.name || 'Client') + '</div></div>'
       + '<div class="dep-meta"><span>' + o.nb + ' f&ucirc;t' + (o.nb>1?'s':'') + ' &middot; ' + lieu + '</span></div>'
+      + (c.futDepose || c.by ? '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:2px;">' + (c.futDepose && !auDepot ? 'D&eacute;pos&eacute; chez lui le ' + esc(dateFr(c.futDepose)) : '') + (c.by ? (c.futDepose && !auDepot ? ' &middot; ' : '') + 'Enregistr&eacute; par ' + esc(c.by) : '') + (c.ville || c.cp ? ' &middot; ' + esc((c.cp || '') + ' ' + (c.ville || '')) : '') + '</div>' : '')
       + '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-top:4px;"><span>Total ' + _depEuros(pay.total) + ' &euro;</span>'
       + '<span style="color:' + (pay.reste > 0 ? '#B3261E' : '#006b2d') + ';">' + (pay.reste > 0 ? 'Reste ' + _depEuros(pay.reste) + ' &euro;' : 'Pay&eacute;') + '</span></div>'
       + (auDepot ? '<button class="btn btn-green" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirBasculeFut(\'' + x.clientId + '\')">&#9989; Le client est pr&ecirc;t : basculer dans une collecte</button>' : '')
@@ -24450,7 +24456,7 @@ window.depConfirmerBasculeFut = function(){
   db.ref().update(maj).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'écriture refusée')); });
   try{ depActivite('&#128197;', 'a bascul&eacute; <strong>' + esc(fiche.name || '') + '</strong> (f&ucirc;t) dans la collecte du <strong>' + esc(col.date || '') + '</strong>'); }catch(e){}
   closeModal('modal-fut-bascule');
-  toast('✅ ' + (fiche.name || 'Client') + ' basculé dans la collecte');
+  toast('✅ ' + (fiche.name || 'Client') + ' basculé dans la collecte' + ((!fiche.cp || !fiche.adresse) ? ' — pensez à compléter son adresse pour la ramasse' : ''));
   try{ depRenderFuts(); }catch(e){}
 };
 
@@ -24470,7 +24476,8 @@ window.depOuvrirVenteFut = function(){
   if(stock < 1){ toast('⛔ Plus de fût en stock à Émerainville : la vente est impossible.'); return; }
   var sel = $('ft-nb');
   if(sel) [].forEach.call(sel.options, function(o){ o.disabled = parseInt(o.value, 10) > stock; });
-  ['ft-prenom', 'ft-nom', 'ft-tel', 'ft-verse', 'ft-note'].forEach(function(i){ var e = $(i); if(e) e.value = ''; });
+  ['ft-prenom', 'ft-nom', 'ft-tel', 'ft-adresse', 'ft-cp', 'ft-ville', 'ft-verse', 'ft-note'].forEach(function(i){ var e = $(i); if(e) e.value = ''; });
+  var dtE = $('ft-date'); if(dtE) dtE.value = new Date().toISOString().slice(0, 10);
   var nb = $('ft-nb'); if(nb) nb.value = '1';
   _depFutMeth = ''; depFutMethode('');
   depFutVenteCalc();
@@ -24485,6 +24492,8 @@ window.depEnregistrerVenteFut = function(){
   var stockF = _depStockFuts().restants;
   if(nb > stockF){ toast(stockF < 1 ? '⛔ Plus de fût en stock : la vente est impossible.' : '⛔ Il ne reste que ' + stockF + ' fût' + (stockF > 1 ? 's' : '') + ' en stock.'); return; }
   var pu = DEP_PRIX_FUT;
+  var adresseF = (($('ft-adresse') || {}).value || '').trim(), cpF = (($('ft-cp') || {}).value || '').trim(), villeF = (($('ft-ville') || {}).value || '').trim();
+  var dateDepot = (($('ft-date') || {}).value || new Date().toISOString().slice(0, 10));
   var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * pu);
   if(verse < 0){ toast('⚠️ Montant versé invalide.'); return; }
   if(verse > 0 && !_depFutMeth){ toast('⚠️ Choisissez le mode de paiement (espèces ou virement).'); return; }
@@ -24494,7 +24503,8 @@ window.depEnregistrerVenteFut = function(){
   var id = (typeof window._idUnique === 'function') ? window._idUnique('D', window.depotClients) : ('D' + Date.now().toString(36).toUpperCase());
   var fiche = {
     civilite: '', prenom: prenom, nom: nom, name: _composeNom('', prenom, nom),
-    tel: tel, tel2: '', adresse: '', infos: '', ville: '', cp: '', dept: '',
+    tel: tel, tel2: '', adresse: adresseF, infos: '', ville: villeF, cp: cpF, dept: cpF.substring(0, 2),
+    futDepose: dateDepot,
     colis: DEP_NOM_FUT, nbColis: nb, prix: total, prixADefinir: false,
     departId: DEP_ID_DEPOT,
     destinataireNom: '', destinataireTel: '', destinataireTel2: '',
@@ -24509,7 +24519,7 @@ window.depEnregistrerVenteFut = function(){
   db.ref('dct_depot/' + id).set(fiche);
   if(!window.dctContacts) window.dctContacts = {};
   var ckey = tel ? tel.replace(/\s/g, '') : (prenom + '_' + nom).toLowerCase();
-  window.dctContacts[ckey] = { civilite: '', prenom: prenom, nom: nom, name: fiche.name, tel: tel, tel2: '', adresse: '', infos: '', ville: '', cp: '', dept: '', by: (u.name || '') };
+  window.dctContacts[ckey] = { civilite: '', prenom: prenom, nom: nom, name: fiche.name, tel: tel, tel2: '', adresse: adresseF, infos: '', ville: villeF, cp: cpF, dept: cpF.substring(0, 2), by: (u.name || '') };
   try{ sauvegarder(); }catch(e){}
   depActivite('&#128738;&#65039;', 'a vendu ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' &agrave; <strong>' + esc(fiche.name) + '</strong> &mdash; ' + _depEuros(total) + ' &euro;' + (verse > 0 ? ' (pay&eacute; ' + _depEuros(verse) + ' &euro;)' : ''));
   toast('✅ Vente enregistrée — ' + fiche.name);
