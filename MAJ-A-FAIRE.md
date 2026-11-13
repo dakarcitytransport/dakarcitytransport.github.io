@@ -7061,3 +7061,8 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 > Cobey : « le nombre d'ajouts de fûts est limité à 3, comment on fait si un client veut 5 fûts ? Il faut que tu fasses un autre système ».
 - Le menu 1 / 2 / 3 est remplacé par un compteur : boutons « − » et « + » (gros, pour le téléphone) et saisie directe du nombre. Aucune limite fixe : seul le stock plafonne (« 5 fûts en stock à Émerainville » affiché sous le compteur ; « + » s'arrête au stock avec un message, une saisie au-delà est refusée à l'enregistrement). Total = 35 € × nombre.
 - Testé (faux Firebase) : 4 clics « + » → 5 fûts / 175 € ; « − » → 4 ; saisie 7 → 245 € ; « + » bloqué au stock de 5 ; vente de 5 fûts → fiche 175 €, ligne « Achat d'un fût 270 L » × 5 ; stock à 0 → nouvelle vente refusée.
+
+### 13/11/2026 — Fûts : bouton « Retour aux fûts » sur l'écran Documents (v3.99.367, departs.js v2.22.93)
+> Cobey (capture de l'écran Documents) : « une fois qu'on a fini d'enregistrer le client, on a cette fenêtre-là. On devrait aussi avoir un bouton pour revenir sur la page de l'espace des fûts ».
+- Écran Documents (après validation de la facture) : pour une fiche fût, bouton « 🛢️ Retour aux fûts » (ouvre l'écran Fûts) à la place de « Retour à la tournée » ; titre « Fût enregistré » au lieu de « Collecte validée ». Les autres parcours sont inchangés.
+- Testé (faux Firebase) : vente → versement → validation de la facture → écran Documents : titre « Fût enregistré », bouton fûts visible, bouton tournée masqué, clic → écran Fûts.

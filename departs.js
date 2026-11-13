@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.92';
+var DEP_VERSION = 'v2.22.93';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3751,7 +3751,7 @@ function injecterEcrans(){
   +   '<div class="content">'
   // 05/11/2026 — Cobey : « la page de consultation des documents [...] vraiment moche » — choix « B » : bandeau de
   // validation + liste d'actions (icône, titre, explication). Les actions et leurs fonctions ne changent pas.
-  +     '<div class="doc-ok"><span class="doc-ok-c"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></span><div><b>Collecte valid&eacute;e</b><span id="dep-doc-sous"></span></div></div>'
+  +     '<div class="doc-ok"><span class="doc-ok-c"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></span><div><b id="dep-doc-titre">Collecte valid&eacute;e</b><span id="dep-doc-sous"></span></div></div>'
   +     '<div class="doc-liste">'
   +       '<button type="button" class="doc-ligne" onclick="depOuvrirFacturePDF()"><span class="doc-i" style="background:rgba(14,159,91,.16);color:#0A7A45;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg></span><span class="doc-tx"><b>Facture en PDF</b><span>Imprimer ou enregistrer</span></span><span class="doc-ch"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></span></button>'
   +       '<button type="button" class="doc-ligne" onclick="depOuvrirEtiquette()"><span class="doc-i" style="background:rgba(224,130,15,.16);color:#A8500A;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8zM7 7h.01"/></svg></span><span class="doc-tx"><b>&Eacute;tiquette du colis</b><span>Pr&ecirc;te &agrave; imprimer</span></span><span class="doc-ch"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></span></button>'
@@ -3762,6 +3762,8 @@ function injecterEcrans(){
   +     '</div>'
   // v1.19.27 : retour direct vers la tournée (voir _depAfficherEcranDocuments : masqué hors tournée).
   +     '<button id="dep-doc-retour-tournee" type="button" class="doc-lien" onclick="depRetourDocumentsListe()">&#128666; Retour &agrave; la tourn&eacute;e</button>'
+  // Fûts (Cobey, 13/11/2026) : « on devrait aussi avoir un bouton pour revenir sur la page de l'espace des fûts ».
+  +     '<button id="dep-doc-retour-futs" type="button" class="doc-lien" style="display:none;" onclick="depOuvrirEspaceFuts()">&#128738;&#65039; Retour aux f&ucirc;ts</button>'
   +   '</div>'
   + '</div>'
 
@@ -9504,6 +9506,12 @@ function _depAfficherEcranDocuments(){
     var venuDeTournee = !window._depDocVientDepart && !window._depDocVientDakar && !(ctx && ctx.depot);
     btnTournee.style.display = venuDeTournee ? '' : 'none';
   }
+  try{
+    var cF = _depFactureCtx ? _depClientFacture(_depFactureCtx) : null, estFut = _depEstFutFiche(cF);
+    var bFut = $('dep-doc-retour-futs'); if(bFut) bFut.style.display = estFut ? '' : 'none';
+    if(estFut && btnTournee) btnTournee.style.display = 'none';
+    var tit = $('dep-doc-titre'); if(tit) tit.textContent = estFut ? 'F\u00fbt enregistr\u00e9' : 'Collecte valid\u00e9e';
+  }catch(e){}
   try{
     var sous = $('dep-doc-sous'), cx = _depFactureCtx;
     if(sous && cx){
