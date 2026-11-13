@@ -883,6 +883,11 @@ html.look-v2 .ft-form{background:var(--lk-glass);}
 html.look-v2 .ft-form input[type=date]{max-width:100% !important;min-width:0 !important;width:100% !important;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:left}
 html.look-v2 .ft-form .fi,html.look-v2 .ft-form input,html.look-v2 .ft-form select{border-radius:14px !important;background:var(--lk-field) !important;border:1.5px solid #cfd8d3 !important}
 html.look-v2 .ft-c .dep-nom{font-size:17px}
+html.look-v2 .ft-v2{display:block}
+html.look-v2 .ft-v1{display:none !important}
+html.look-v2 .ft-c .route-details{padding:2px 0 0}
+html.look-v2 .ft-c .rd-fut .rd-ic{background:rgba(21,101,168,.16)}
+html.look-v2 .ft-c .rd-fut .rd-px{color:#1565A8;font-size:17px}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

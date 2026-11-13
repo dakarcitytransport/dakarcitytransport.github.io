@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.98';
+var DEP_VERSION = 'v2.22.100';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8567,6 +8567,24 @@ window.depEtapeSuivante = function(){
   var prochaine = etapes.filter(function(e){ return !(fait[e.key] && fait[e.key].fait); })[0];
   if(!prochaine){ toast('✅ Toutes les étapes sont déjà validées.'); return; }
   if(!window.db || !window.firebaseReady){ toast('❌ Connexion Firebase indisponible.'); return; }
+  // Départ de Mitry : les clients fûts qui ne sont pas dans une collecte passent au container suivant (message + confirmation).
+  if(prochaine.key === 'depart_mitry'){
+    var horsF = _depFutsHorsContainer(id);
+    if(horsF.length){
+      var suivF = _depProchainContainer(id);
+      var nbFt = horsF.reduce(function(sm, o){ return sm + o.nb; }, 0);
+      if(!suivF){
+        toast('⛔ ' + horsF.length + ' client' + (horsF.length > 1 ? 's' : '') + ' fût (' + nbFt + ' fût' + (nbFt > 1 ? 's' : '') + ') ne sont pas dans le container et aucun container suivant n\'est prévu : créez-en un avant de valider le départ.');
+        return;
+      }
+      var msgF = '⚠️ ' + horsF.length + ' client' + (horsF.length > 1 ? 's' : '') + ' fût (' + nbFt + ' fût' + (nbFt > 1 ? 's' : '') + ') ne sont pas dans ce container (pas encore mis dans une collecte) :\n'
+        + horsF.map(function(o){ return '• ' + _depNomFiche2(o) + ' (' + o.nb + ' fût' + (o.nb > 1 ? 's' : '') + ')'; }).join('\n')
+        + '\n\nIls seront mis automatiquement, avec leur argent, dans le container suivant : « ' + (suivF.nom || 'container') + ' » (départ du ' + dateFr(suivF.dateDepart) + ').\n\nValider le départ de Mitry ?';
+      if(!confirm(msgF)) return;
+      _depDeplacerFutsVersContainer(horsF, suivF._id);
+      try{ depActivite('&#128738;&#65039;', 'a mis <strong>' + horsF.length + ' client' + (horsF.length > 1 ? 's' : '') + ' f&ucirc;t</strong> dans le container suivant <strong>' + esc(suivF.nom || '') + '</strong> (d&eacute;part de Mitry de <strong>' + esc(d.nom || '') + '</strong>)'); }catch(e){}
+    }
+  }
   var u = window.currentUser || {};
   var maj = {};
   maj[prochaine.key] = { fait: true, ts: Date.now(), par: u.name || u.id || '' };
@@ -23320,7 +23338,7 @@ function _depRapfinLigneResultat(departId, cp){
     + '<div class="rf-q"><span>Encaiss&eacute;</span><b class="rf-g">' + _depEuros(cp.colisPaye || 0) + ' &euro;</b></div>'
     + '<div class="rf-q"><span>' + (_depEstContainerMali(departId) ? 'Taxe prestataire' : 'D&eacute;pens&eacute;') + '</span><b>' + (dep2 > 0 ? '&minus; ' : '') + _depEuros(dep2) + ' &euro;</b></div>'
     + '<div class="rf-b"><span>&#128176; B&eacute;n&eacute;fice r&eacute;el</span><b style="color:' + (resultat < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(resultat) + ' &euro;</b></div></div>';
-  return v2 + '<div class="rf-res" style="display:flex;justify-content:space-between;align-items:baseline;'
+  return v2 + _depLigneFutsContainer(departId) + '<div class="rf-res" style="display:flex;justify-content:space-between;align-items:baseline;'
     + 'margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
     + '<span style="font-size:11.5px;color:var(--text3);font-weight:700;">&#128176; B&eacute;n&eacute;fice r&eacute;el'
     +   '<span style="font-weight:500;color:#999;"> (' + sousTitre + ')</span></span>'
@@ -23351,6 +23369,7 @@ window.depRapfinContainer = function(id){
     + (estDepot ? '' : ' · part le ' + dateFr(d.dateDepart));
 
   var h = _depBlocCaisse(cp);
+  if(!estDepot && depPaysDepart(d) !== 'ML') h += _depBlocFutsContainer(id);
 
   /* v1.66.0 — Ce que ce container a coûté, et ce qu'il laisse.
      Les tournées qui l'ont rempli (report au prorata des clients, voir
@@ -24549,6 +24568,71 @@ function _depStockFuts(){
            chezNb: chez.reduce(function(s, o){ return s + o.nb; }, 0), chezClients: chez.length,
            aLivrerNb: aLiv.reduce(function(s, o){ return s + o.nb; }, 0), aLivrerClients: aLiv.length };
 }
+/* ÉTAPE 3 — Départ de Mitry (Cobey, 13/11/2026) : les clients fûts rattachés à ce container qui n'ont pas été mis dans une collecte
+   (fût encore à livrer ou chez le client) ne partent pas : quand on valide « Départ de Mitry », un message les annonce et ils sont mis
+   automatiquement, avec leur argent, dans le container suivant. */
+function _depFutsHorsContainer(depId){
+  return _depFichesFuts().filter(function(o){
+    var e = _depEtatFut(o);
+    return (e === 'chez' || e === 'a_livrer') && o.c.departId === depId;
+  });
+}
+// Prochain container prévu (Sénégal, en préparation, qui part après celui-ci)
+function _depProchainContainer(depId){
+  var cur = (window.departsData || {})[depId]; if(!cur) return null;
+  var qc = _depQuandDepart(cur);
+  return tousLesDeparts('SN').filter(function(d){ return d._id !== depId && (d.statut || 'preparation') === 'preparation' && _depQuandDepart(d) > qc; })
+    .sort(function(a, b){ return _depQuandDepart(a) - _depQuandDepart(b); })[0] || null;
+}
+function _depNomFiche2(o){ return (o.c && o.c.name) || 'Client'; }
+function _depDeplacerFutsVersContainer(liste, versId){
+  var maj = {};
+  liste.forEach(function(o){
+    var x = o.x; o.c.departId = versId;
+    if(x.src === 'depot') maj['dct_depot/' + x.clientId + '/departId'] = versId;
+    else maj['dct/clients/' + x.collecteId + '/' + x.clientId + '/departId'] = versId;
+  });
+  window._lastWriteTime = Date.now();
+  try{ db.ref().update(maj); }catch(e){ console.error('fûts: déplacement vers le container suivant', e); }
+}
+
+// Fûts d'un container, pour le Rapport financier : à titre d'INFORMATION seulement (l'achat est déjà une dépense de la caisse principale,
+// la vente est déjà dans les recettes du container : rien ne s'ajoute deux fois).
+function _depFutsDeContainer(depId){
+  var lots = _depLotsFuts(), pu = {}, moy = 0, nbL = 0;
+  lots.forEach(function(l){ pu[l.id] = l.pu; moy += l.pu * l.achetes; nbL += l.achetes; });
+  moy = nbL ? moy / nbL : 0;
+  var nb = 0, achat = 0, clients = 0;
+  _depFichesFuts().forEach(function(o){
+    if(o.c.departId !== depId) return;
+    clients++; nb += o.nb;
+    var pl = o.c.futLots || {}, dej = 0;
+    Object.keys(pl).forEach(function(k){ var n = parseInt(pl[k], 10) || 0; if(pu[k] != null){ achat += n * pu[k]; dej += n; } });
+    if(o.nb - dej > 0) achat += (o.nb - dej) * moy;
+  });
+  var ventes = depArrondi2(nb * DEP_PRIX_FUT); achat = depArrondi2(achat);
+  return { nb: nb, clients: clients, ventes: ventes, achat: achat, ecart: depArrondi2(ventes - achat) };
+}
+function _depBlocFutsContainer(depId){
+  var f = _depFutsDeContainer(depId);
+  if(!f.nb) return '';
+  return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">'
+    + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;">&#128738;&#65039; F&ucirc;ts vendus dans ce container</div>'
+    + '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12.5px;"><span style="color:var(--text3);font-weight:600;">Fûts vendus</span><b>' + f.nb + ' &middot; ' + f.clients + ' client' + (f.clients > 1 ? 's' : '') + '</b></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12.5px;"><span style="color:var(--text3);font-weight:600;">Vendus pour</span><b style="color:#006b2d;">' + _depEuros(f.ventes) + ' &euro;</b></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12.5px;"><span style="color:var(--text3);font-weight:600;">Achet&eacute;s</span><b style="color:#B3261E;">&minus; ' + _depEuros(f.achat) + ' &euro;</b></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:8px 0 2px;margin-top:4px;border-top:2px solid var(--border);"><span style="font-size:13px;font-weight:800;">&Eacute;cart</span><b style="font-size:16px;color:' + (f.ecart < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(f.ecart) + ' &euro;</b></div>'
+    + '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.4;">Pour information : les ventes sont d&eacute;j&agrave; dans les recettes de ce container et l\'achat dans les d&eacute;penses de la caisse principale. Rien ne s\'ajoute une seconde fois.</div>'
+    + '</div>';
+}
+function _depLigneFutsContainer(depId){
+  var f = _depFutsDeContainer(depId);
+  if(!f.nb) return '';
+  return '<div class="rf-fut" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;padding:7px 10px;border-radius:10px;background:rgba(21,101,168,.1);font-size:12px;font-weight:700;">'
+    + '<span>&#128738;&#65039; ' + f.nb + ' f&ucirc;t' + (f.nb > 1 ? 's' : '') + ' vendu' + (f.nb > 1 ? 's' : '') + ' &middot; ' + _depEuros(f.ventes) + ' &euro;</span>'
+    + '<span>achet&eacute;s ' + _depEuros(f.achat) + ' &euro; &middot; <b style="color:' + (f.ecart < 0 ? '#B3261E' : '#006b2d') + ';">&eacute;cart ' + _depEuros(f.ecart) + ' &euro;</b></span></div>';
+}
+
 window.depOuvrirEspaceFuts = function(){
   goTo('s-dep-futs');
   depRenderFuts();
@@ -24597,7 +24681,21 @@ function depRenderFuts(){
       + '<div class="dep-card-top"><div class="dep-nom">' + esc(c.name || 'Client') + '</div></div>'
       + '<div class="dep-meta"><span>' + o.nb + ' f&ucirc;t' + (o.nb>1?'s':'') + ' &middot; ' + lieu + '</span></div>'
       + (c.by || c.ville || c.cp ? '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:2px;">' + (c.by ? 'Enregistr&eacute; par ' + esc(c.by) : '') + (c.ville || c.cp ? (c.by ? ' &middot; ' : '') + esc((c.cp || '') + ' ' + (c.ville || '')) : '') + '</div>' : '')
-      + '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-top:4px;"><span>Total ' + _depEuros(pay.total) + ' &euro;</span>'
+      // Nouveau look : le détail des prix par objet, comme dans le dispatch (ft-v2, masqué en V1) ; l'ancien total / reste reste pour la V1 (ft-v1, masqué en V2).
+      + '<div class="ft-v2"><div class="route-details" style="padding:4px 0 0;">'
+      +   (function(){
+            var rows = '';
+            try{ _depLignesColis(c).forEach(function(l){
+              var fut = DEP_RE_FUT.test(l.nom || '');
+              rows += '<div class="route-detail-row ' + (fut ? 'rd-fut' : 'rd-col') + '"><span class="rd-ic">' + (fut ? '&#128738;&#65039;' : '&#128230;') + '</span> <span class="rd-t"><small class="rd-l">' + (fut ? 'Achat du f&ucirc;t' : 'Colis') + '</small>'
+                + ((l.qte || 1) > 1 ? (l.qte + ' &times; ') : '') + (fut ? 'F&ucirc;t 270 L' : esc(String(l.nom || 'Colis').replace(/^\d+\s*/, '')))
+                + ((l.qte || 1) > 1 ? ' <span style="color:var(--text3);font-weight:600;">(' + _depEuros(l.pu || 0) + ' &euro; pi&egrave;ce)</span>' : '') + '</span><span class="rd-px">' + _depEuros(l.total || 0) + ' &euro;</span></div>';
+            }); }catch(e){}
+            if(c.livraisonDakar) rows += '<div class="route-detail-row rd-liv"><span class="rd-ic">&#128666;</span> <span class="rd-t"><small class="rd-l">Livraison &agrave; Dakar</small>' + esc((c.livraisonVille === 'Autre' ? c.livraisonVilleAutre : c.livraisonVille) || c.livraisonVilleAutre || 'Oui') + '</span><span class="rd-px">' + _depEuros(parseFloat(c.prixLivraison) || 0) + ' &euro;</span></div>';
+            return rows;
+          })()
+      + '</div><div class="rd-tot">' + (typeof _htmlBlocPrix === 'function' ? _htmlBlocPrix(c, false, true) : '') + '</div></div>'
+      + '<div class="ft-v1" style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-top:4px;"><span>Total ' + _depEuros(pay.total) + ' &euro;</span>'
       + '<span style="color:' + (pay.reste > 0 ? '#B3261E' : '#006b2d') + ';">' + (pay.reste > 0 ? 'Reste ' + _depEuros(pay.reste) + ' &euro;' : 'Pay&eacute;') + '</span></div>'
       + bouton + '</div>';
   }
