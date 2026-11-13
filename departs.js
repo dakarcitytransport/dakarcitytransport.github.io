@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.81';
+var DEP_VERSION = 'v2.22.83';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3367,23 +3367,51 @@ function injecterEcrans(){
   +     '<div style="width:60px;"></div>'
   +   '</div>'
   +   '<div class="content"><div class="ft-c ft-form">'
-  +     '<div class="fg"><label class="fl">Pr&eacute;nom</label><input class="fi" id="ft-prenom" autocomplete="off"></div>'
-  +     '<div class="fg"><label class="fl">Nom</label><input class="fi" id="ft-nom" autocomplete="off"></div>'
-  +     '<div class="fg"><label class="fl">T&eacute;l&eacute;phone</label><input class="fi" id="ft-tel" type="tel" autocomplete="off"></div>'
-  +     '<div class="fg"><label class="fl">Adresse du client (o&ugrave; le f&ucirc;t est d&eacute;pos&eacute;)</label><input class="fi" id="ft-adresse" autocomplete="off"></div>'
-  +     '<div style="display:flex;gap:10px;"><div class="fg" style="flex:1;"><label class="fl">Code postal</label><input class="fi" id="ft-cp" inputmode="numeric" autocomplete="off"></div>'
-  +     '<div class="fg" style="flex:2;"><label class="fl">Ville</label><input class="fi" id="ft-ville" autocomplete="off"></div></div>'
-  +     '<div class="fg"><label class="fl">Date du d&eacute;p&ocirc;t du f&ucirc;t chez le client</label><input class="fi" id="ft-date" type="date"></div>'
+  // Mêmes informations qu'à l'inscription d'un client de collecte (Cobey, 13/11/2026) : le suivi est ensuite identique jusqu'au container.
+  +     '<div class="fg"><label class="fl">Civilit&eacute;</label><div id="ft-civ" style="display:flex;gap:6px;"></div></div>'
+  +     '<div class="form-row">'
+  +       '<div class="fg" id="ft-bloc-prenom"><label class="fl">Pr&eacute;nom</label><input class="fi" id="ft-prenom" autocomplete="off" placeholder="Fatou"></div>'
+  +       '<div class="fg"><label class="fl" id="ft-lab-nom">Nom</label><input class="fi" id="ft-nom" autocomplete="off" placeholder="Diallo"></div>'
+  +     '</div>'
+  +     '<div class="fg"><label class="fl">T&eacute;l&eacute;phone</label><input class="fi" id="ft-tel" type="tel" autocomplete="off" placeholder="06 00 00 00 00"></div>'
+  +     '<div class="fg"><label class="fl">Deuxi&egrave;me num&eacute;ro <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label><input class="fi" id="ft-tel2" type="tel" autocomplete="off" placeholder="07 00 00 00 00"></div>'
+  +     '<div class="fg"><label class="fl">Adresse (o&ugrave; le f&ucirc;t est d&eacute;pos&eacute;)</label><input class="fi" id="ft-adresse" autocomplete="off" placeholder="12 rue Pasteur"></div>'
+  +     '<div class="fg"><label class="fl">Infos compl&eacute;mentaires</label><input class="fi" id="ft-infos" autocomplete="off" placeholder="Appt 3B &middot; B&acirc;t C..."></div>'
+  +     '<div class="form-row">'
+  +       '<div class="fg"><label class="fl">Code postal</label><input class="fi" id="ft-cp" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="93300"></div>'
+  +       '<div class="fg"><label class="fl">Ville</label><input class="fi" id="ft-ville" autocomplete="off" placeholder="Aubervilliers"></div>'
+  +     '</div>'
+  +     '<div class="dep-sec">Le f&ucirc;t</div>'
   +     '<div class="fg"><label class="fl">Nombre de f&ucirc;ts (35 &euro; le f&ucirc;t)</label>'
   +       '<select class="fi" id="ft-nb" onchange="depFutVenteCalc()" style="font-size:18px;font-weight:700;"><option value="1">1 f&ucirc;t</option><option value="2">2 f&ucirc;ts</option><option value="3">3 f&ucirc;ts</option></select></div>'
   +     '<div id="ft-total" style="font-size:14px;font-weight:800;margin:-4px 0 14px;color:var(--text);">Total : 0 &euro;</div>'
+  +     '<div class="fg"><label class="fl">Date du d&eacute;p&ocirc;t du f&ucirc;t chez le client</label><input class="fi" id="ft-date" type="date"></div>'
   +     '<div class="fg"><label class="fl">Pay&eacute; maintenant (&euro;) &mdash; facultatif</label><input class="fi" id="ft-verse" type="number" min="0" step="0.01" placeholder="0" style="font-size:18px;font-weight:700;text-align:center;"></div>'
   +     '<div style="display:flex;gap:8px;margin:-4px 0 14px;">'
   +       '<button type="button" class="dep-st" id="ft-m-esp" onclick="depFutMethode(\'especes\')" style="flex:1;">Esp&egrave;ces</button>'
   +       '<button type="button" class="dep-st" id="ft-m-vir" onclick="depFutMethode(\'virement\')" style="flex:1;">Virement</button>'
   +     '</div>'
-  +     '<div class="fg"><label class="fl">Note (facultatif)</label><input class="fi" id="ft-note" autocomplete="off"></div>'
-  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">Le f&ucirc;t reste chez le client le temps qu\'il le remplisse. Quand il est pr&ecirc;t, on bascule sa fiche dans une collecte. Le f&ucirc;t s\'ajoute au prix du transport sur sa facture ; le reste se paie en versements, jusqu\'&agrave; l\'arriv&eacute;e du container.</div>'
+  +     '<div class="dep-sec">Destinataire &agrave; Dakar</div>'
+  +     '<div class="fg"><label class="fl">Nom du destinataire</label><input class="fi" id="ft-dest-nom" autocomplete="off" placeholder="Awa Ndiaye"></div>'
+  +     '<div class="fg"><label class="fl">Num&eacute;ro du destinataire</label><input class="fi" id="ft-dest-tel" type="tel" autocomplete="off" placeholder="77 000 00 00"></div>'
+  +     '<div class="fg"><label class="fl">Deuxi&egrave;me num&eacute;ro du destinataire <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label><input class="fi" id="ft-dest-tel2" type="tel" autocomplete="off" placeholder="77 000 00 00"></div>'
+  +     '<div class="dep-sec">Livraison</div>'
+  +     '<div class="fg"><label class="fl">Le f&ucirc;t doit-il &ecirc;tre livr&eacute; ?</label>'
+  +       '<div style="display:flex;gap:8px;">'
+  +         '<button type="button" class="dep-st on" id="ft-liv-non" onclick="depSetLivraisonFut(false)">Non &middot; retrait sur place</button>'
+  +         '<button type="button" class="dep-st" id="ft-liv-oui" onclick="depSetLivraisonFut(true)">Oui &middot; livraison</button>'
+  +       '</div></div>'
+  +     '<div id="ft-liv-bloc" style="display:none;">'
+  +       _depChampVille('ft')
+  +       '<div class="fg"><label class="fl">Adresse / quartier (pr&eacute;cision)</label><input class="fi" id="ft-liv-adresse" placeholder="Quartier, rep&egrave;re..."></div>'
+  +       '<div class="fg"><label class="fl">Prix de la livraison (&euro;)</label><input class="fi" id="ft-liv-prix" type="number" min="0" placeholder="0"></div>'
+  +     '</div>'
+  +     '<div class="dep-sec">Photo des f&ucirc;ts d&eacute;pos&eacute;s <span style="color:#992020;">*</span></div>'
+  +     '<div style="font-size:11.5px;color:var(--text3);margin:-6px 0 8px;">Au moins 1 photo des f&ucirc;ts mis &agrave; disposition du client est obligatoire.</div>'
+  +     '<div id="ft-photo-box" style="margin-bottom:12px;"></div>'
+  +     '<input type="file" id="ft-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="depPhotoChoisieDepot(this)">'
+  +     '<div class="fg"><label class="fl">Note <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label><input class="fi" id="ft-note" autocomplete="off"></div>'
+  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">Le f&ucirc;t reste chez le client le temps qu\'il le remplisse. Quand il est pr&ecirc;t, on bascule sa fiche dans une collecte : le suivi est ensuite le m&ecirc;me que pour tout client, jusqu\'au container. Le f&ucirc;t s\'ajoute au prix du transport sur sa facture ; le reste se paie en versements.</div>'
   +     '<button class="btn btn-green" onclick="depEnregistrerVenteFut()">&#9989; Enregistrer la vente</button>'
   +   '</div></div>'
   + '</div>'
@@ -14202,7 +14230,7 @@ window.depPhotoChoisieDepot = function(input){
       if(!data){ toast('❌ Photo illisible.'); return; }
       var u = window.currentUser || {};
       window._depDepotPhotos.push({ d: data, ts: Date.now(), q: (u.name||''), uid: (u.id||'') });
-      _depRenderPhotosGrille('dp');
+      _depRenderPhotosGrille('dp'); _depRenderPhotosGrille('ft');
       toast('📷 Photo ajoutée — enregistrez la fiche');
     });
   }catch(e){ toast('❌ Photo illisible.'); }
@@ -24461,6 +24489,13 @@ window.depConfirmerBasculeFut = function(){
 };
 
 var _depFutMeth = '';
+window.depSetLivraisonFut = function(oui){
+  var bOui = $('ft-liv-oui'), bNon = $('ft-liv-non'), bloc = $('ft-liv-bloc');
+  if(bOui) bOui.className = 'dep-st' + (oui ? ' on' : '');
+  if(bNon) bNon.className = 'dep-st' + (oui ? '' : ' on');
+  if(bloc) bloc.style.display = oui ? 'block' : 'none';
+  window._depLivraisonFut = !!oui;
+};
 window.depFutMethode = function(m){
   _depFutMeth = m;
   var e = $('ft-m-esp'), v = $('ft-m-vir');
@@ -24476,7 +24511,10 @@ window.depOuvrirVenteFut = function(){
   if(stock < 1){ toast('⛔ Plus de fût en stock à Émerainville : la vente est impossible.'); return; }
   var sel = $('ft-nb');
   if(sel) [].forEach.call(sel.options, function(o){ o.disabled = parseInt(o.value, 10) > stock; });
-  ['ft-prenom', 'ft-nom', 'ft-tel', 'ft-adresse', 'ft-cp', 'ft-ville', 'ft-verse', 'ft-note'].forEach(function(i){ var e = $(i); if(e) e.value = ''; });
+  ['ft-prenom', 'ft-nom', 'ft-tel', 'ft-tel2', 'ft-adresse', 'ft-infos', 'ft-cp', 'ft-ville', 'ft-verse', 'ft-note', 'ft-dest-nom', 'ft-dest-tel', 'ft-dest-tel2', 'ft-liv-adresse', 'ft-liv-prix', 'ft-liv-ville', 'ft-liv-ville-autre'].forEach(function(i){ var e = $(i); if(e) e.value = ''; });
+  _civDct.ft = ''; try{ _renderCivDct('ft'); }catch(e){}
+  window._depDepotPhotos = []; try{ _depRenderPhotosGrille('ft'); }catch(e){}
+  depSetLivraisonFut(false);
   var dtE = $('ft-date'); if(dtE) dtE.value = new Date().toISOString().slice(0, 10);
   var nb = $('ft-nb'); if(nb) nb.value = '1';
   _depFutMeth = ''; depFutMethode('');
@@ -24486,6 +24524,10 @@ window.depOuvrirVenteFut = function(){
 window.depEnregistrerVenteFut = function(){
   if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
   var prenom = (($('ft-prenom') || {}).value || '').trim(), nom = (($('ft-nom') || {}).value || '').trim(), tel = (($('ft-tel') || {}).value || '').trim();
+  var civ = _civDct.ft || '', tel2 = (($('ft-tel2') || {}).value || '').trim(), infosF = (($('ft-infos') || {}).value || '').trim();
+  var dnom = (($('ft-dest-nom') || {}).value || '').trim(), dtel = (($('ft-dest-tel') || {}).value || '').trim(), dtel2 = (($('ft-dest-tel2') || {}).value || '').trim();
+  var livF = !!window._depLivraisonFut, ladr = livF ? (($('ft-liv-adresse') || {}).value || '').trim() : '', lprix = livF ? (parseFloat(($('ft-liv-prix') || {}).value) || 0) : 0;
+  var lville = livF ? _depVilleLire('ft') : { livraisonVille: '', livraisonVilleAutre: '' };
   if(!prenom && !nom){ toast('⚠️ Indiquez au moins le nom ou le prénom.'); return; }
   var nb = parseInt(($('ft-nb') || {}).value, 10) || 0;
   if(nb < 1){ toast('⚠️ Indiquez le nombre de fûts.'); return; }
@@ -24499,27 +24541,32 @@ window.depEnregistrerVenteFut = function(){
   if(verse > 0 && !_depFutMeth){ toast('⚠️ Choisissez le mode de paiement (espèces ou virement).'); return; }
   if(verse > total){ toast('⚠️ Le versé dépasse le total.'); return; }
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  var photosFut = window._depDepotPhotos || [];
+  if(!photosFut.length){ toast('⚠️ Ajoutez au moins une photo des fûts déposés chez le client.'); return; }
   var u = window.currentUser || {};
   var id = (typeof window._idUnique === 'function') ? window._idUnique('D', window.depotClients) : ('D' + Date.now().toString(36).toUpperCase());
   var fiche = {
-    civilite: '', prenom: prenom, nom: nom, name: _composeNom('', prenom, nom),
-    tel: tel, tel2: '', adresse: adresseF, infos: '', ville: villeF, cp: cpF, dept: cpF.substring(0, 2),
+    civilite: civ, prenom: prenom, nom: nom, name: _composeNom(civ, prenom, nom),
+    tel: tel, tel2: tel2, adresse: adresseF, infos: infosF, ville: villeF, cp: cpF, dept: cpF.substring(0, 2),
     futDepose: dateDepot,
     colis: DEP_NOM_FUT, nbColis: nb, prix: total, prixADefinir: false,
     departId: DEP_ID_DEPOT,
-    destinataireNom: '', destinataireTel: '', destinataireTel2: '',
-    livraisonDakar: false, livraisonAdresse: '', prixLivraison: 0, livraisonVille: '', livraisonVilleAutre: '',
+    destinataireNom: dnom, destinataireTel: dtel, destinataireTel2: dtel2,
+    livraisonDakar: livF, livraisonAdresse: ladr, prixLivraison: lprix, livraisonVille: lville.livraisonVille, livraisonVilleAutre: lville.livraisonVilleAutre,
     note: (($('ft-note') || {}).value || '').trim(),
     colisDetail: [{ nom: DEP_NOM_FUT, qte: nb, pu: pu, total: total }],
-    aPhotoColis: false,
+    aPhotoColis: true,
     bg: u.bg || '#eee', color: u.color || '#333', by: u.name || '', creeLe: Date.now()
   };
   try{ _depMajDepuisLignes(fiche); }catch(e){}
   if(verse > 0) fiche.versements = [{ montant: depArrondi2(verse), le: Date.now(), par: u.name || u.id || '', methode: _depFutMeth }];
   db.ref('dct_depot/' + id).set(fiche);
+  var mapPh = {}; photosFut.forEach(function(p, i){ mapPh['p' + i] = p; });
+  db.ref('dct_photos_colis/' + id).set(mapPh);
+  window._depDepotPhotos = [];
   if(!window.dctContacts) window.dctContacts = {};
   var ckey = tel ? tel.replace(/\s/g, '') : (prenom + '_' + nom).toLowerCase();
-  window.dctContacts[ckey] = { civilite: '', prenom: prenom, nom: nom, name: fiche.name, tel: tel, tel2: '', adresse: adresseF, infos: '', ville: villeF, cp: cpF, dept: cpF.substring(0, 2), by: (u.name || '') };
+  window.dctContacts[ckey] = { civilite: civ, prenom: prenom, nom: nom, name: fiche.name, tel: tel, tel2: tel2, adresse: adresseF, infos: infosF, ville: villeF, cp: cpF, dept: cpF.substring(0, 2), by: (u.name || '') };
   try{ sauvegarder(); }catch(e){}
   depActivite('&#128738;&#65039;', 'a vendu ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' &agrave; <strong>' + esc(fiche.name) + '</strong> &mdash; ' + _depEuros(total) + ' &euro;' + (verse > 0 ? ' (pay&eacute; ' + _depEuros(verse) + ' &euro;)' : ''));
   toast('✅ Vente enregistrée — ' + fiche.name);

@@ -7006,3 +7006,10 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Carte du client : « Fût chez le client depuis le 10/11/2026 (2 j) », « Enregistré par … · 93100 Montreuil ». Après bascule : « Déposé chez lui le … ». La date (`futDepose`) suit la fiche dans la collecte.
 - À la bascule, un message rappelle de compléter l'adresse si elle manque (nécessaire au dispatch par département / à la carte).
 - Testé (faux Firebase) : dépôt daté du 10/11 → « depuis le 10/11/2026 (2 j) », adresse reprise dans la fiche collecte.
+
+### 13/11/2026 — Fûts : même fiche qu'un client de collecte + photo des fûts déposés (v3.99.357, departs.js v2.22.83)
+> Cobey : « il devra enregistrer le client avec les mêmes informations que lorsque l'on enregistre un client pour une collecte, comme ça ça fera tout le suivi exactement jusqu'au conteneur » ; « il faudra qu'il prenne également une photo lorsqu'il dépose les colis chez le client : une photo des fûts qu'il aura mis à disposition du client ».
+- Formulaire « Vendre un fût » = mêmes champs que l'inscription d'un client : civilité, prénom, nom, téléphone, 2e numéro, adresse, infos complémentaires, code postal, ville, destinataire à Dakar (nom, 2 numéros), livraison (non / oui + ville + quartier + prix), note ; plus le nombre de fûts (1 à 3, 35 € le fût), la date de dépôt et le montant payé maintenant. Le tout est repris dans la fiche, donc dans la fiche de collecte à la bascule.
+- **Photo obligatoire** (1 à 5 photos, comme le dépôt direct) des fûts mis à disposition du client : sans photo, l'enregistrement est refusé ; stockée dans `dct_photos_colis/<id>` comme les autres colis.
+- Testé (faux Firebase) : vente refusée sans photo, acceptée avec ; après bascule la fiche de collecte contient civilité, 2e numéro, infos, destinataire, livraison (Medina, 10 €) et `aPhotoColis`.
+- Non testé : la prise de photo réelle sur téléphone (appareil photo) — même composant que le dépôt direct.
