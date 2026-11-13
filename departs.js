@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.100';
+var DEP_VERSION = 'v2.22.101';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -8568,7 +8568,7 @@ window.depEtapeSuivante = function(){
   if(!prochaine){ toast('✅ Toutes les étapes sont déjà validées.'); return; }
   if(!window.db || !window.firebaseReady){ toast('❌ Connexion Firebase indisponible.'); return; }
   // Départ de Mitry : les clients fûts qui ne sont pas dans une collecte passent au container suivant (message + confirmation).
-  if(prochaine.key === 'depart_mitry'){
+  if(prochaine.key === 'depart_mitry' && depPaysDepart(d) === 'SN'){   // Sénégal seulement : pas de fûts pour le Mali
     var horsF = _depFutsHorsContainer(id);
     if(horsF.length){
       var suivF = _depProchainContainer(id);
@@ -24626,6 +24626,7 @@ function _depBlocFutsContainer(depId){
     + '</div>';
 }
 function _depLigneFutsContainer(depId){
+  if(_depEstContainerMali(depId)) return '';
   var f = _depFutsDeContainer(depId);
   if(!f.nb) return '';
   return '<div class="rf-fut" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;padding:7px 10px;border-radius:10px;background:rgba(21,101,168,.1);font-size:12px;font-weight:700;">'
@@ -24945,7 +24946,7 @@ function _depEnregistrerVenteFutExecuter(){
     futDepose: dateDepot, futLots: futLots,
     colis: lignesF.map(function(l){ return (l.qte > 1 ? (l.qte + ' ') : '') + l.nom; }).join(', '), nbColis: lignesF.reduce(function(sm, l){ return sm + (l.qte || 0); }, 0) || nb,
     prix: depArrondi2(lignesF.reduce(function(sm, l){ return sm + (l.total || 0); }, 0)), prixADefinir: false,
-    departId: '', futLiv: colLiv,
+    departId: '', futLiv: colLiv, paysDestination: 'SN',   // les fûts ne concernent que les containers du Sénégal (pas le Mali)
     destinataireNom: dnom, destinataireTel: dtel, destinataireTel2: dtel2,
     livraisonDakar: livF, livraisonAdresse: ladr, prixLivraison: lprix, livraisonVille: lville.livraisonVille, livraisonVilleAutre: lville.livraisonVilleAutre,
     note: (($('ft-note') || {}).value || '').trim(),

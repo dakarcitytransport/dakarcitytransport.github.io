@@ -7098,3 +7098,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - **Étape 5 — présentation** : la carte d'un client fût (écran Fûts) affiche, en nouveau look, une ligne par objet (🛢️ Achat du fût × N, 📦 colis, 🚚 livraison) avec son prix, puis le bloc TOTAL / PAYÉ / RESTE du dispatch ; l'ancien « Total / Reste » reste en V1.
 - Testé (faux Firebase) : bloc et ligne du Rapport financier (2 fûts, 70 € vendus, 34 € d'achat, écart 36 €) ; Départ de Mitry sans container suivant → bloqué, étape non faite ; avec un container suivant → message correct, client déplacé vers « Chargement DKR 2 », étape faite ; carte en nouveau look avec lignes et total (capture).
 - Plan de la demande entièrement réalisé : achat par lots (v3.99.369), livraisons de fûts (v3.99.370), étapes 3 à 5 (cette version). Non testé en réel : camions et carte avec de vrais chauffeurs, anciennes fiches de test du dépôt d'attente.
+
+### 13/11/2026 — Fûts : Sénégal seulement, pas le Mali (v3.99.373, departs.js v2.22.101)
+> Cobey : « on parle bien des conteneurs uniquement Sénégal, pas pour le Mali ».
+- Les fiches de fûts portent `paysDestination: 'SN'` : l'écran Valider de la livraison ne propose que des containers du Sénégal. Le message de « Départ de Mitry » et le passage au container suivant ne s'appliquent qu'aux containers du Sénégal (le container suivant est cherché parmi les départs Sénégal) ; l'encadré et la ligne « Fûts » du Rapport financier ne s'affichent jamais pour un container du Mali. Re-testé : mêmes résultats sur le container Sénégal.
