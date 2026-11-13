@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.375">
+<link rel="stylesheet" href="look-v2.css?v=3.99.376">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -2291,7 +2291,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.375';
+var APP_VERSION = 'v3.99.376';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -12500,6 +12500,9 @@ function buildAffectOptions(){
 function retirerClient(){
   var asgn=getAssigned(),trks=getTrucks(),old=asgn[curAffectId];
   var truckName = old && trks[old] ? trks[old].name : '';
+  // Retirer un client d'un camion efface son heure de passage : on prévient avant (Cobey, 13/11/2026 : les heures de Fatou, Hamidou et Rahmany avaient disparu).
+  var _hRetrait = old && trks[old] && trks[old].hours && trks[old].hours[curAffectId];
+  if(_hRetrait && !confirm('Retirer '+curAffectName+' du camion efface son heure ('+_hRetrait+'). Continuer ?')) return;
   if(old&&trks[old]){
     trks[old].clients=(trks[old].clients||[]).filter(function(i){return i!==curAffectId;});
     if(trks[old].hours)delete trks[old].hours[curAffectId];
@@ -13109,6 +13112,7 @@ function ouvrirModalPlus(cid, tk, nom){
     html += '<div style="display:grid;gap:10px;margin-top:16px;">';
     html += '<button style="padding:14px;background:#ede0ff;color:#4a0080;border:2px solid #6b21a8;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);" onclick="demanderAnnulation(_plusClientId,_plusTruckKey)">🚫 Annulé</button>';
     html += '<button style="padding:14px;background:#fff3e0;color:#e65100;border:2px solid #e65100;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);" onclick="ouvrirModalReport()">📅 Reporté</button>';
+    html += '<button style="padding:14px;background:#fdecea;color:#992020;border:2px solid #c0392b;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);" onclick="retirerDuCamion()">↩️ Retirer du camion</button>';
     html += '<button style="padding:12px;background:#f0f0f0;color:#333;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);" onclick="closeModal(&quot;modal-plus&quot;)">Annuler</button>';
     html += '</div></div></div>';
     modal.innerHTML = html;
@@ -13117,6 +13121,16 @@ function ouvrirModalPlus(cid, tk, nom){
   var t = document.getElementById('plus-title');
   if(t) t.textContent = nom || '';
   openModal('modal-plus');
+}
+
+// Depuis la tournée d'un camion (menu ⋯) : le client redevient « non affecté » (retirerClient gère l'heure et l'Activité).
+function retirerDuCamion(){
+  var cid=_plusClientId, tk=_plusTruckKey;
+  closeModal('modal-plus');
+  if(!cid) return;
+  curAffectId=cid; curAffectName=_plusClientNom||((getClients()[cid]||{}).name||'');
+  retirerClient();
+  try{ if(currentCamion===tk || document.getElementById('s-camion').classList.contains('active')) renderCamion(tk); }catch(e){}
 }
 
 function _retourModalPlus(){

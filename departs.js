@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.103';
+var DEP_VERSION = 'v2.22.104';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -19669,7 +19669,25 @@ function greffer(){
           _delColLib = _col0 ? (_col0.date || '') : '';
         }
       }catch(eCp){}
+      // Camion du client, noté AVANT l'appel natif : ce dernier le retire de la tournée en mémoire, mais l'écho de la base (qui ne connaît
+      // pas encore ce retrait) le remettait aussitôt — le client supprimé restait « fantôme » dans le camion (vérifié le 13/11/2026).
+      var _delTk = null;
+      try{ _delTk = (((window.dispatchParCollecte || {})[_delCollecteId] || {}).assigned || {})[_delClientId] || null; }catch(eTk){}
       origConfirmDelete.apply(this, arguments);
+      try{
+        if(_delTk && _delCollecteId && window.db && window.firebaseReady){
+          var dpS = (window.dispatchParCollecte || {})[_delCollecteId] || {}, tkS = (dpS.trucks || {})[_delTk], majT = {}, base = 'dct/dispatch/' + _delCollecteId;
+          majT[base + '/assigned/' + _delClientId] = null;
+          if(tkS){
+            ['clients', 'validated', 'refused', 'cancelled', 'reported'].forEach(function(f){
+              if(Array.isArray(tkS[f])) majT[base + '/trucks/' + _delTk + '/' + f] = tkS[f].filter(function(z){ return z !== _delClientId; });
+            });
+            ['hours', 'wazeTs', 'finTs'].forEach(function(f){ majT[base + '/trucks/' + _delTk + '/' + f + '/' + _delClientId] = null; });
+          }
+          window._lastWriteTime = Date.now();
+          window.db.ref().update(majT).catch(function(e){ console.error('departs: retrait du client supprimé dans le camion', e); });
+        }
+      }catch(eDp){ console.error('departs: nettoyage camion', eDp); }
       try{
         if(_delCopie) window._depCorbeille('clientCol', _delCollecteId + '_' + _delClientId, {
           titre: _delCopie.name || ((_delCopie.prenom || '') + ' ' + (_delCopie.nom || '')).trim() || 'Client',
