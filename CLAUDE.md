@@ -56,3 +56,11 @@ avec les phrases de Cobey : **`MAJ-A-FAIRE.md`**. **À lire en premier : `RESUME
 - IMPORTANT : à chaque commit, monter aussi `?v=` du `<link href="look-v2.css?v=…">` (sinon les téléphones gardent l'ancien style).
 - Fait en V2 : écran de connexion (espaces + profils), accueil (Espaces), Réglages > Apparence. Reste : les ~70 autres écrans, et le
   remappage automatique des couleurs écrites en dur (pour le mode sombre). Tester V2 avec `localStorage.dct_look_test='v2'`.
+
+## Livraisons de fûts (13/11/2026) — séparées des collectes
+- Une livraison de fûts (`type:'futs'`, id `liv_…`) vit dans ses PROPRES variables : `window.livsFuts`, `window.clientsLiv`, `window.dispatchLiv` (departs.js).
+  `collectes`, `clientsParCollecte` et `dispatchParCollecte` n'en contiennent JAMAIS, sauf le temps où l'on travaille sur une livraison
+  (`depEntrerLivraison` / `depSortirLivraison`, sortie automatique par le `goTo` greffé dès qu'on va sur un écran hors `_LIV_ECRANS`).
+- Après tout nouveau chargement venu de la base qui remplit `collectes` / `clientsParCollecte` / `dispatchParCollecte`, appeler `window._depSeparerLivraisons()`.
+- Un nouvel écran qui doit rester dans le parcours d'une livraison doit être ajouté à `_LIV_ECRANS`.
+- Une livraison ne doit pas être comptée dans les collectes, objectifs, fidélité, archives. Seul son argent compte dans les finances du container (`compteursDepart`).

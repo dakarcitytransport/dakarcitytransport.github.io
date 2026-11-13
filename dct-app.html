@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.374">
+<link rel="stylesheet" href="look-v2.css?v=3.99.375">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -1875,6 +1875,7 @@ function ecouterChangements(){
         });
         localStorage.setItem('dct_v3_dispatch', JSON.stringify(dispatchParCollecte));
       }
+      try{ if(window._depSeparerLivraisons) window._depSeparerLivraisons(); }catch(e){}   // les livraisons de fûts sont rangées à part (departs.js)
       _noterBaseSync(dataInit, false);
       if(colsN().length){
         var enc = colsN().find(function(x){ return x.statut === 'en_cours'; });
@@ -1988,6 +1989,7 @@ function ecouterChangements(){
         }
       });
     }
+    try{ if(window._depSeparerLivraisons) window._depSeparerLivraisons(); }catch(e){}   // les livraisons de fûts sont rangées à part (departs.js)
     // Toujours mettre à jour dctContacts, même si null (contact supprimé)
     if(data.contacts && typeof data.contacts==='object'){
       window.dctContacts = data.contacts;
@@ -2289,7 +2291,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.374';
+var APP_VERSION = 'v3.99.375';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -2643,6 +2645,7 @@ function charger(){
     if(c){var p=JSON.parse(c);if(p&&p.length)collectes=p;}
     if(cl){var p2=JSON.parse(cl);if(p2)Object.assign(clientsParCollecte,p2);}
     if(d){var p3=JSON.parse(d);if(p3)Object.assign(dispatchParCollecte,p3);}
+    try{ if(window._depSeparerLivraisons) window._depSeparerLivraisons(); }catch(e){}   // les livraisons de fûts sont rangées à part (departs.js)
     // Activité chargée après login (dans finalisLogin)
     window.dctContacts=ct?JSON.parse(ct):{};
     if(colsN().length){
@@ -9863,6 +9866,7 @@ function finalisLogin(collab){
           });
           localStorage.setItem('dct_v3_dispatch', JSON.stringify(dispatchParCollecte));
         }
+        try{ if(window._depSeparerLivraisons) window._depSeparerLivraisons(); }catch(e){}   // les livraisons de fûts sont rangées à part (departs.js)
         _noterBaseSync(data, false);
         if(colsN().length){
           var enc = colsN().find(function(x){ return x.statut === 'en_cours'; });

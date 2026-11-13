@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.102';
+var DEP_VERSION = 'v2.22.103';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2453,13 +2453,13 @@ function compteursDepart(departId){
             livTotal:0,   livPaye:0,   livDu:0,   livTrop:0,   livTropNb:0,
             livClients:0, sansPrix:0, taxePrestataire:0 };
 
-  function ajouter(c){
+  function ajouter(c, silencieux){
     // v1.31.0 : ne compter qu'une fois une facture regroupée — ses colis,
     // son montant et ses versements sont portés par la principale.
     if(!c || c.departId !== departId || _depEstFusionnee(c)) return;
-    r.clients++;
+    if(!silencieux){ r.clients++;
     // v1.86.0 : le nombre de colis, pour la comparaison de périodes.
-    r.colis += (parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 1);
+    r.colis += (parseInt(c.nbColis, 10) || parseInt(c.nb, 10) || 1); }
     r.euros += (parseFloat(c.prix) || 0);
     // v2.14.0 : ce que le partenaire Mali prélève sur ce client — voir
     // depOuvrirTaxePrestataire et le bilan du container (depRapfinContainer).
@@ -2483,6 +2483,11 @@ function compteursDepart(departId){
   }
 
   tousLesClients().forEach(function(x){ ajouter(x.c); });
+  // Fûts livrés ou à livrer rattachés à ce container (livraisons rangées à part) : leur argent compte dans ses recettes, sans les mêler à ses clients.
+  Object.keys(window.clientsLiv || {}).forEach(function(lid){
+    if(lid === _livOuverte) return;
+    Object.keys(window.clientsLiv[lid] || {}).forEach(function(k){ ajouter(window.clientsLiv[lid][k], true); });
+  });
   // v1.48.0 : une facture regroupée ne comptait qu'une fois côté Collecte,
   // mais deux fois pour le Dépôt direct et France & Europe — le total
   // annoncé en haut du container dépassait alors le nombre de fiches
@@ -18114,6 +18119,16 @@ function greffer(){
   }
 
   /* --- C. Ouverture du formulaire client : on remet nos champs à zéro --- */
+  // Sortie de la livraison : dès qu'on va sur un écran qui n'est pas de la livraison, elle quitte `collectes` (voir depSortirLivraison).
+  if(typeof window.goTo === 'function' && !window.goTo._depLiv){
+    var origGoTo = window.goTo;
+    window.goTo = function(id){
+      var r = origGoTo.apply(this, arguments);
+      try{ if(_livOuverte && !_LIV_ECRANS[id]) window.depSortirLivraison(); }catch(e){ console.error('livraison: sortie', e); }
+      return r;
+    };
+    window.goTo._depLiv = true;
+  }
   // Livraison de fûts : le même écran que la collecte, mais « + Ajouter un client » inscrit un client fût, et l'en-tête le dit.
   function _depBanniereFut(){
     try{
@@ -23216,7 +23231,7 @@ function _depRapfinTotaux(mois){
     // Bilan d'un mois : seuls les containers partis ce mois-là (sans date : seulement dans « Tout »).
     if(mois && mois !== 'tout' && String(d.dateDepart || '').slice(0, 7) !== mois) return;
     var cp = compteursDepart(d._id);
-    if(!cp.clients) return;          // un container vide n'a rien à dire ici
+    if(!cp.clients && !cp.colisTotal && !cp.livTotal) return;          // un container vide n'a rien à dire ici (les fûts à livrer comptent : leur argent est à lui)
     g.nb++;
     ['clients','sansPrix','colisTotal','colisPaye','colisDu','livTotal','livPaye','livDu','taxePrestataire']
       .forEach(function(k){ g[k] += cp[k]; });
@@ -24377,6 +24392,7 @@ function _depRepartitionFixes(departId){
 function _depCollecteExiste(colId){
   var cols = window.collectes;
   if(!Array.isArray(cols) || !cols.length) return true;
+  if(_depColFuts(colId)) return true;   // une livraison de fûts existe aussi (rangée à part)
   return cols.some(function(c){ return c && c.id === colId; });
 }
 
@@ -24392,6 +24408,7 @@ function _depCollecteExiste(colId){
 function _depColIdValide(colId){
   var cols = window.collectes;
   if(!Array.isArray(cols) || !cols.length) return true;
+  if(_depColFuts(colId)) return true;
   if(cols.some(function(c){ return c && c.id === colId; })) return true;
   return !!(((window.franceData || {}).collectes || {})[colId]);
 }
@@ -24450,6 +24467,17 @@ function _depFichesFuts(){
     try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')){ nb += (l.qte || 0); pu = l.pu || pu; } }); }catch(e){}
     if(nb > 0) out.push({ x: x, c: c, nb: nb, pu: pu });
   });
+  // les clients des livraisons (rangés à part ; ceux de la livraison ouverte sont déjà dans la liste ci-dessus)
+  Object.keys(window.clientsLiv || {}).forEach(function(lid){
+    if(lid === _livOuverte) return;
+    var cl = window.clientsLiv[lid] || {};
+    Object.keys(cl).forEach(function(cid){
+      var c = cl[cid]; if(!c || _depEstFusionnee(c)) return;
+      var nb = 0, pu = 0;
+      try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')){ nb += (l.qte || 0); pu = l.pu || pu; } }); }catch(e){}
+      if(nb > 0) out.push({ x: { src: 'col', collecteId: lid, clientId: cid, c: c }, c: c, nb: nb, pu: pu });
+    });
+  });
   return out;
 }
 // Un client fût dont la fiche attend encore (au Dépôt d'attente) : le fût est CHEZ LE CLIENT, pas au dépôt.
@@ -24466,6 +24494,7 @@ function _depEstFutFiche(c){
 // La fiche client d'un fût : retour vers l'écran Fûts ; la facture s'ouvre depuis elle et y revient.
 window.depOuvrirFicheFut = function(clientId, src, colId){
   var depot = (src === 'depot');
+  if(!depot && _depColFuts(colId)) depEntrerLivraison(colId);   // la fiche d'un client de livraison s'ouvre dans sa livraison
   var c = depot ? (window.depotClients || {})[clientId] : ((window.clientsParCollecte || {})[colId] || {})[clientId];
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   _depDepotViaCarre = false; _depDepotViaDakar = false; _depDepotDepart = c.departId || DEP_ID_DEPOT;
@@ -24517,10 +24546,82 @@ function _depLotsFuts(){
    pour DÉPOSER les fûts chez les clients. Une livraison est une « collecte » de type 'futs', exclue de toutes les listes de collectes du
    dimanche (voir colsN dans dct-app.html). Le client s'inscrit dans une livraison (sans paiement ni photo), on l'organise sur un camion ; chez lui, on
    valide la facture, les paiements et les photos ; quand il est prêt, on le bascule dans une vraie collecte pour la ramasse. */
-function _depLivraisonsFuts(){ return (window.collectes || []).filter(function(c){ return c && c.type === 'futs'; }); }
-function _depColFuts(colId){ return _depLivraisonsFuts().filter(function(k){ return k.id === colId; })[0] || null; }
+/* SÉPARATION TOTALE (Cobey, 13/11/2026) : « la collecte, c'est la collecte ; les livraisons, c'est livraison ; pas de connexion, pas de risque de mélange ».
+   Les livraisons vivent dans leurs PROPRES variables (livsFuts, clientsLiv, dispatchLiv) ; `collectes`, `clientsParCollecte` et `dispatchParCollecte`
+   n'en contiennent JAMAIS, sauf le temps où l'on travaille sur une livraison (depEntrerLivraison → depSortirLivraison à la première sortie vers un
+   écran qui n'est pas de la livraison). Les écrans de dispatch (camions, carte, dépenses, validation, facture) sont réutilisés tels quels pendant ce temps.
+   Dans la base, une livraison porte un identifiant « liv_… » : jamais confondu avec une collecte. */
+window.livsFuts = window.livsFuts || [];
+window.clientsLiv = window.clientsLiv || {};
+window.dispatchLiv = window.dispatchLiv || {};
+var _livOuverte = '', _livPrecedente = null;
+var _LIV_ECRANS = { 's-collecte':1, 's-camion':1, 's-client':1, 's-client-fiche':1, 's-add':1, 's-dep-fiche-lecture':1, 's-dep-valider':1, 's-facture':1,
+  's-dep-impression':1, 's-etiquette':1, 's-dep-suivi':1, 's-dep-fut-vente':1, 's-facture-publique':1 };
+function _depLivraisonsFuts(){ return window.livsFuts || []; }
+function _depColFuts(colId){ return _depLivraisonsFuts().filter(function(k){ return k && k.id === colId; })[0] || null; }
+// À appeler après chaque chargement venu de la base : sort les livraisons de `collectes`, `clientsParCollecte` et `dispatchParCollecte`.
+window._depSeparerLivraisons = function(){
+  try{
+    var cols = window.collectes || [];
+    var futs = cols.filter(function(c){ return c && c.type === 'futs'; });
+    if(futs.length){
+      futs.forEach(function(c){
+        var i = window.livsFuts.map(function(z){ return z && z.id; }).indexOf(c.id);
+        if(i < 0) window.livsFuts.push(c); else window.livsFuts[i] = c;
+      });
+      window.collectes = cols.filter(function(c){ return !(c && c.type === 'futs'); });
+    }
+    [['clientsParCollecte', 'clientsLiv'], ['dispatchParCollecte', 'dispatchLiv']].forEach(function(p){
+      var src = window[p[0]] || {};
+      Object.keys(src).forEach(function(k){
+        if(k.indexOf('liv_') !== 0) return;
+        window[p[1]][k] = src[k];
+        if(k !== _livOuverte) delete src[k];
+      });
+    });
+    // Une livraison ouverte reste visible pour les écrans de dispatch : on la remet si un rechargement venu de la base l'a retirée.
+    if(_livOuverte){
+      var L = _depColFuts(_livOuverte);
+      if(L && !window.collectes.some(function(c){ return c && c.id === _livOuverte; })) window.collectes.push(L);
+      if(window.clientsLiv[_livOuverte]) window.clientsParCollecte[_livOuverte] = window.clientsLiv[_livOuverte];
+      if(window.dispatchLiv[_livOuverte]) window.dispatchParCollecte[_livOuverte] = window.dispatchLiv[_livOuverte];
+    }
+  }catch(e){ console.error('livraisons: séparation', e); }
+};
+function _depListeComplete(){ return (window.collectes || []).concat(window.livsFuts || []).filter(function(c, i, a){ return c && a.map(function(z){ return z && z.id; }).indexOf(c.id) === i; }); }
+// Écrit la livraison (liste, clients, camions) dans la base : appelé à la sortie, pour que rien ne reste dans la sauvegarde différée.
+function _depEcrireLivraison(id){
+  if(!window.db || !window.firebaseReady || !id) return;
+  var u = {};
+  u['dct/clients/' + id] = window.clientsLiv[id] || null;
+  u['dct/dispatch/' + id] = window.dispatchLiv[id] || null;
+  window._lastWriteTime = Date.now();
+  db.ref().update(u).catch(function(e){ console.error('livraison: écriture', e); });
+  db.ref('dct/collectes').transaction(function(distant){ return _fusionnerListeCollectes(distant, _depListeComplete(), {}); });
+}
+window.depEntrerLivraison = function(id){
+  if(_livOuverte === id) return true;
+  if(_livOuverte) window.depSortirLivraison();
+  var L = _depColFuts(id); if(!L) return false;
+  _livOuverte = id; _livPrecedente = window.currentCollecteId;
+  if(!window.collectes.some(function(c){ return c && c.id === id; })) window.collectes.push(L);
+  window.clientsLiv[id] = window.clientsLiv[id] || {};
+  window.dispatchLiv[id] = window.dispatchLiv[id] || { trucks: {}, assigned: {} };
+  window.clientsParCollecte[id] = window.clientsLiv[id];
+  window.dispatchParCollecte[id] = window.dispatchLiv[id];
+  window.currentCollecteId = id;
+  return true;
+};
+window.depSortirLivraison = function(){
+  var id = _livOuverte; if(!id) return;
+  try{ _depEcrireLivraison(id); }catch(e){}
+  _livOuverte = '';
+  window.collectes = window.collectes.filter(function(c){ return !(c && c.id === id); });
+  delete window.clientsParCollecte[id]; delete window.dispatchParCollecte[id];
+  window.currentCollecteId = _livPrecedente;
+};
 function _depLivreFut(colId, id){
-  var d = (window.dispatchParCollecte || {})[colId], t = (d && d.trucks) || {};
+  var d = (window.dispatchLiv || {})[colId] || (window.dispatchParCollecte || {})[colId], t = (d && d.trucks) || {};
   return Object.keys(t).some(function(k){
     var v = t[k] && t[k].validated; if(!v) return false;
     if(!Array.isArray(v)) v = Object.values(v);
@@ -24548,19 +24649,18 @@ window.depCreerLivraisonFuts = function(){
   var now = new Date(), dow = now.getDay(), deb = new Date(now); deb.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow)); deb.setHours(0, 0, 0, 0);
   var fin = new Date(deb); fin.setDate(deb.getDate() + 6); fin.setHours(23, 59, 59, 999);
   var statut = (dt >= deb && dt <= fin) ? 'en_cours' : 'a_venir';
-  window.collectes.unshift({ id: id, date: label, type: 'futs', statut: statut });
-  window.clientsParCollecte[id] = {}; window.dispatchParCollecte[id] = { trucks: {}, assigned: {} };
+  window.livsFuts.unshift({ id: id, date: label, type: 'futs', statut: statut });
+  window.clientsLiv[id] = {}; window.dispatchLiv[id] = { trucks: {}, assigned: {} };
   // écrite tout de suite dans la base (comme les autres écritures directes) : sinon le prochain rafraîchissement venu de la base,
   // déclenché par l'écriture de l'Activité, remplacerait la liste locale avant la sauvegarde différée et la livraison disparaîtrait
   window._lastWriteTime = Date.now();
-  try{ db.ref('dct/collectes').transaction(function(distant){ return _fusionnerListeCollectes(distant, window.collectes, {}); }); }catch(e){ console.error('livraison: écriture', e); }
+  try{ db.ref('dct/collectes').transaction(function(distant){ return _fusionnerListeCollectes(distant, _depListeComplete(), {}); }); }catch(e){ console.error('livraison: écriture', e); }
   try{ depActivite('&#128666;', 'a cr&eacute;&eacute; la livraison de f&ucirc;ts du <strong>' + esc(label) + '</strong>'); }catch(e){}
-  try{ sauvegarder(); }catch(e){}
   toast('✅ Livraison du ' + label + ' créée');
   depOuvrirLivraisonFuts(id);
 };
 window.depOuvrirLivraisonFuts = function(id){
-  window.currentCollecteId = id;
+  if(!depEntrerLivraison(id)){ toast('⚠️ Livraison introuvable.'); return; }
   try{ ouvrirCollecte(id); }catch(e){ console.error('livraison', e); toast('⚠️ Livraison indisponible.'); }
 };
 
@@ -24705,7 +24805,7 @@ function depRenderFuts(){
 
   function carteFut(o){
     var c = o.c, pay = depCalculerPaiement(c), x = o.x, etat = _depEtatFut(o);
-    var colF = x.src === 'col' ? (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0] : null;
+    var colF = x.src === 'col' ? (_depColFuts(x.collecteId) || (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0]) : null;
     var jDep = c.futDepose ? Math.max(0, Math.floor((Date.now() - new Date(c.futDepose + 'T12:00:00').getTime()) / 86400000)) : null;
     var lieu = etat === 'a_livrer' ? '&Agrave; livrer &middot; ' + (colF && colF.date ? esc(colF.date) : 'livraison')
       : (etat === 'chez' ? 'F&ucirc;t chez le client' + (c.futDepose ? ' depuis le ' + esc(dateFr(c.futDepose)) + ' (' + (jDep === 0 ? "aujourd'hui" : jDep + ' j') + ')' : (colF && colF.date ? ' &middot; livr&eacute; le ' + esc(colF.date) : ''))
@@ -24742,7 +24842,7 @@ function depRenderFuts(){
     + '<div style="display:flex;gap:8px;margin-bottom:10px;"><input class="fi" id="liv-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="flex:1;min-width:0;max-width:100%;box-sizing:border-box;">'
     + '<button class="btn btn-green" style="width:auto;margin:0;padding:0 16px;" onclick="depCreerLivraisonFuts()">+ Nouvelle</button></div>'
     + (livs.length ? livs.map(function(k){
-        var cl = (window.clientsParCollecte || {})[k.id] || {}, ids = Object.keys(cl), nbF = 0, liv = 0;
+        var cl = (window.clientsLiv || {})[k.id] || (window.clientsParCollecte || {})[k.id] || {}, ids = Object.keys(cl), nbF = 0, liv = 0;
         ids.forEach(function(i){ var c = cl[i]; var n = 0; try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')) n += (l.qte || 0); }); }catch(e){} nbF += n; if(_depLivreFut(k.id, i)) liv++; });
         return '<div class="dep-card ft-c" style="cursor:pointer;" onclick="depOuvrirLivraisonFuts(\'' + k.id + '\')"><div class="dep-card-top"><div class="dep-nom">&#128666; ' + esc(k.date) + '</div></div>'
           + '<div class="dep-meta"><span>' + ids.length + ' client' + (ids.length > 1 ? 's' : '') + ' &middot; ' + nbF + ' f&ucirc;t' + (nbF > 1 ? 's' : '') + ' &middot; ' + liv + ' livr&eacute;' + (liv > 1 ? 's' : '') + (k.statut === 'terminee' ? ' &middot; termin&eacute;e' : '') + '</span></div></div>';
@@ -24775,7 +24875,7 @@ function depRenderFuts(){
    Cobey, 13/11/2026 : « on le basculera dans une collecte pour le prochain chargement […] tout soit logique jusqu'à sa ramasse ». */
 var _depBasculeFutId = '', _depBasculeSrc = 'depot', _depBasculeCol = '';
 window.depOuvrirBasculeFut = function(depotId, src, srcCol){
-  var c = (src === 'col') ? (((window.clientsParCollecte || {})[srcCol] || {})[depotId]) : (window.depotClients || {})[depotId];
+  var c = (src === 'col') ? ((((window.clientsLiv || {})[srcCol]) || ((window.clientsParCollecte || {})[srcCol]) || {})[depotId]) : (window.depotClients || {})[depotId];
   _depBasculeSrc = (src === 'col') ? 'col' : 'depot'; _depBasculeCol = srcCol || '';
   if(!c){ toast('⚠️ Fiche introuvable.'); return; }
   var cols = (window.colsN ? window.colsN() : (window.collectes || [])).filter(function(k){ return k && k.id && k.statut !== 'terminee'; });
@@ -24802,7 +24902,7 @@ window.depConfirmerBasculeFut = function(){
   var colId = (($('fut-bascule-col') || {}).value || '');
   if(!colId){ toast('⚠️ Choisissez une collecte.'); return; }
   var id = _depBasculeFutId, srcCol = _depBasculeCol, depSrc = (_depBasculeSrc === 'depot');
-  var c = depSrc ? (window.depotClients || {})[id] : (((window.clientsParCollecte || {})[srcCol] || {})[id]);
+  var c = depSrc ? (window.depotClients || {})[id] : ((((window.clientsLiv || {})[srcCol]) || ((window.clientsParCollecte || {})[srcCol]) || {})[id]);
   if(!c){ toast('⚠️ Fiche introuvable.'); closeModal('modal-fut-bascule'); return; }
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
   var col = (window.collectes || []).filter(function(k){ return k && k.id === colId; })[0] || {};
@@ -24822,8 +24922,9 @@ window.depConfirmerBasculeFut = function(){
   if(depSrc){ delete window.depotClients[id]; maj['dct_depot/' + id] = null; }
   else {
     // la fiche quitte la livraison (client + camion) pour la collecte : un fût ne doit être compté qu'une fois
-    delete window.clientsParCollecte[srcCol][id];
-    var dsp = (window.dispatchParCollecte || {})[srcCol];
+    if(window.clientsLiv[srcCol]) delete window.clientsLiv[srcCol][id];
+    if(window.clientsParCollecte[srcCol]) delete window.clientsParCollecte[srcCol][id];
+    var dsp = (window.dispatchLiv || {})[srcCol] || (window.dispatchParCollecte || {})[srcCol];
     if(dsp){
       if(dsp.assigned) delete dsp.assigned[id];
       Object.keys(dsp.trucks || {}).forEach(function(k){
@@ -24974,7 +25075,10 @@ function _depEnregistrerVenteFutExecuter(){
   var colLiv = (($('ft-livraison') || {}).value || '');
   if(!_depColFuts(colLiv)){ toast('⚠️ Choisissez une livraison.'); return; }
   var u = window.currentUser || {};
-  var id = (typeof window._nouvelIdClient === 'function') ? window._nouvelIdClient() : ('C' + Date.now().toString(36).toUpperCase());
+  var pris = {};
+  Object.keys(window.clientsParCollecte || {}).forEach(function(k){ Object.keys(window.clientsParCollecte[k] || {}).forEach(function(i){ pris[i] = 1; }); });
+  Object.keys(window.clientsLiv || {}).forEach(function(k){ Object.keys(window.clientsLiv[k] || {}).forEach(function(i){ pris[i] = 1; }); });
+  var id = (typeof window._idUnique === 'function') ? window._idUnique('C', pris) : ('C' + Date.now().toString(36).toUpperCase());
   var lignesF = [{ nom: DEP_NOM_FUT, qte: nb, pu: pu, total: total }].concat((function(){ try{ return window.depLignesValeur() || []; }catch(e){ return []; } })());
   var fiche = {
     civilite: civ, prenom: prenom, nom: nom, name: _composeNom(civ, prenom, nom),
@@ -24993,11 +25097,12 @@ function _depEnregistrerVenteFutExecuter(){
   try{ _depMajDepuisLignes(fiche); }catch(e){}
 
   // La fiche est un client de la livraison (même structure qu'un client de collecte), non affecté à un camion pour l'instant.
-  if(!window.clientsParCollecte[colLiv]) window.clientsParCollecte[colLiv] = {};
-  window.clientsParCollecte[colLiv][id] = fiche;
-  if(!window.dispatchParCollecte[colLiv]) window.dispatchParCollecte[colLiv] = { trucks: {}, assigned: {} };
-  if(!window.dispatchParCollecte[colLiv].assigned) window.dispatchParCollecte[colLiv].assigned = {};
-  window.dispatchParCollecte[colLiv].assigned[id] = null;
+  if(!window.clientsLiv[colLiv]) window.clientsLiv[colLiv] = {};
+  window.clientsLiv[colLiv][id] = fiche;
+  if(!window.dispatchLiv[colLiv]) window.dispatchLiv[colLiv] = { trucks: {}, assigned: {} };
+  if(!window.dispatchLiv[colLiv].assigned) window.dispatchLiv[colLiv].assigned = {};
+  window.dispatchLiv[colLiv].assigned[id] = null;
+  if(_livOuverte === colLiv){ window.clientsParCollecte[colLiv] = window.clientsLiv[colLiv]; window.dispatchParCollecte[colLiv] = window.dispatchLiv[colLiv]; }
   window._lastWriteTime = Date.now();
   var majF = {}; majF['dct/clients/' + colLiv + '/' + id] = fiche; majF['dct/dispatch/' + colLiv + '/assigned/' + id] = null;
   db.ref().update(majF).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'écriture refusée')); });
@@ -25008,8 +25113,7 @@ function _depEnregistrerVenteFutExecuter(){
   depActivite('&#128738;&#65039;', 'a inscrit <strong>' + esc(fiche.name) + '</strong> pour ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' (livraison du ' + esc((_depColFuts(colLiv) || {}).date || '') + ')');
   toast('✅ ' + fiche.name + ' inscrit dans la livraison du ' + (_depColFuts(colLiv) || {}).date);
   try{ if(Array.isArray(window._navPile)) window._navPile = window._navPile.filter(function(e){ return e && e.id !== 's-dep-fut-vente'; }); }catch(e){}
-  window.currentCollecteId = colLiv;
-  setTimeout(function(){ try{ ouvrirCollecte(colLiv); }catch(e){} }, 60);
+  setTimeout(function(){ try{ depEntrerLivraison(colLiv); ouvrirCollecte(colLiv); }catch(e){} }, 60);
 };
 
 // Mois pour lesquels il y a quelque chose à voir (le mois en cours toujours en tête).
