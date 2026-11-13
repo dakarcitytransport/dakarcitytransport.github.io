@@ -870,6 +870,16 @@ html.look-v2 .bl-al{border-radius:14px !important}
 html.look-v2 .bl-l{border-top:1px solid rgba(0,0,0,.08) !important}
 html.look-v2 .bl-f{border-top:1px solid rgba(0,0,0,.1) !important}
 html.look-v2 .bl-in{border-radius:14px !important;background:var(--lk-field) !important;border:1.5px solid #cfd8d3 !important;color:var(--text)}
+/* Fûts : stock bleu, clients vert (payé) / orange (reste dû), achats rouge, formulaire en carte */
+html.look-v2 .ft-c{border:1px solid var(--lk-edge) !important;border-left:1px solid var(--lk-edge) !important;border-radius:24px !important;padding:16px 18px !important;margin-bottom:12px !important;box-shadow:0 6px 18px rgba(30,60,45,.12)}
+html.look-v2 .ft-stock{background:linear-gradient(150deg,rgba(21,101,168,.26),rgba(21,101,168,.06)) !important;border-color:rgba(21,101,168,.33) !important}
+html.look-v2 .ft-stock b{font-size:34px !important}
+html.look-v2 .ft-du{background:linear-gradient(150deg,rgba(224,130,15,.26),rgba(224,130,15,.07)) !important;border-color:rgba(224,130,15,.35) !important}
+html.look-v2 .ft-ok{background:linear-gradient(150deg,rgba(26,138,92,.26),rgba(26,138,92,.07)) !important;border-color:rgba(26,138,92,.35) !important}
+html.look-v2 .ft-ach{background:linear-gradient(150deg,rgba(192,57,43,.2),rgba(192,57,43,.05)) !important;border-color:rgba(192,57,43,.3) !important}
+html.look-v2 .ft-form{background:var(--lk-glass);}
+html.look-v2 .ft-form .fi,html.look-v2 .ft-form input,html.look-v2 .ft-form select{border-radius:14px !important;background:var(--lk-field) !important;border:1.5px solid #cfd8d3 !important}
+html.look-v2 .ft-c .dep-nom{font-size:17px}
 /* ── accueil ── */
 html.look-v2 #dep-esp-activite-btn{background:var(--lk-glass) !important;color:var(--text) !important;border:1px solid var(--lk-edge) !important;border-radius:50% !important;width:42px;height:42px;padding:0 !important;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.look-v2 #dep-esp-av{width:42px !important;height:42px !important;font-size:14px !important}

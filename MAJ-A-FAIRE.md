@@ -6968,3 +6968,7 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 > Cobey : « on ne peut vendre des fûts uniquement s'il y en a en stock à Émerainville. S'il n'y a pas de stock, la vente est impossible. Est-ce que c'est mis en place ? » (non : seul un avertissement existait).
 - Stock 0 : le bouton « + Vendre un fût » est grisé avec le message « Stock vide… », et l'écran de vente refuse de s'ouvrir. Le menu 1/2/3 fûts grise les quantités supérieures au stock. À l'enregistrement, une vente dépassant le stock est refusée (« Il ne reste que N fût(s) »). Testé : stock 0 refusé ; stock 2 → 3 fûts refusé, 2 fûts accepté.
 - Limite connue : le contrôle se fait sur le téléphone ; deux ventes simultanées du dernier fût par deux personnes pourraient passer toutes les deux.
+
+### 13/11/2026 — Fûts : écrans au look V2 (v3.99.349, departs.js v2.22.75, look-v2.css)
+> Cobey : « j'ai vu que tu as mis l'interface dans Fût dans l'ancien look, avec une carte de l'ancien look ».
+- Écran Fûts : carte stock bleue (gros chiffre), clients en carte verte (payé) ou orange (reste dû), achats en carte rouge ; formulaire de vente dans une carte arrondie à champs arrondis ; carte « Émerainville · fûts » du Stockage assortie (classes `ft-*` dans `tools/gen_look_css.py`). Les autres cartes du Stockage (Mitry, Dépôt Dakar) restent en V1 : elles font partie du chantier « V2 partout ».

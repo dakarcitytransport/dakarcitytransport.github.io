@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.74';
+var DEP_VERSION = 'v2.22.75';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3355,7 +3355,7 @@ function injecterEcrans(){
   +     '<div class="h-title">Vendre un f&ucirc;t</div>'
   +     '<div style="width:60px;"></div>'
   +   '</div>'
-  +   '<div class="content">'
+  +   '<div class="content"><div class="ft-c ft-form">'
   +     '<div class="fg"><label class="fl">Pr&eacute;nom</label><input class="fi" id="ft-prenom" autocomplete="off"></div>'
   +     '<div class="fg"><label class="fl">Nom</label><input class="fi" id="ft-nom" autocomplete="off"></div>'
   +     '<div class="fg"><label class="fl">T&eacute;l&eacute;phone</label><input class="fi" id="ft-tel" type="tel" autocomplete="off"></div>'
@@ -3370,7 +3370,7 @@ function injecterEcrans(){
   +     '<div class="fg"><label class="fl">Note (facultatif)</label><input class="fi" id="ft-note" autocomplete="off"></div>'
   +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:12px;">La fiche du client est cr&eacute;&eacute;e au d&eacute;p&ocirc;t. Le f&ucirc;t s\'ajoute au prix du transport sur sa facture ; le reste se paie en versements, jusqu\'&agrave; l\'arriv&eacute;e du container.</div>'
   +     '<button class="btn btn-green" onclick="depEnregistrerVenteFut()">&#9989; Enregistrer la vente</button>'
-  +   '</div>'
+  +   '</div></div>'
   + '</div>'
 
   /* ---- ÉCRAN 2 : liste des départs (d'un pays donné) ---- */
@@ -6132,7 +6132,7 @@ function depRenderStockageChoix(){
     + '</div>';
   if(_depPeutCase('futs')){
     var stK = _depStockFuts();
-    h += '<div class="dep-card" style="border-left-color:#1565A8;cursor:pointer;" onclick="depOuvrirEspaceFuts()">'
+    h += '<div class="dep-card ft-c ft-stock" style="border-left-color:#1565A8;cursor:pointer;" onclick="depOuvrirEspaceFuts()">'
       +   '<div class="dep-card-top">'
       +     '<div class="dep-nom">&#128738;&#65039; &Eacute;merainville &middot; f&ucirc;ts</div>'
       +   '</div>'
@@ -24307,7 +24307,7 @@ function depRenderFuts(){
   var box = $('dep-futs-content');
   if(!box) return;
   var st = _depStockFuts(), fiches = _depFichesFuts().sort(function(a, b){ return (b.c.creeLe || 0) - (a.c.creeLe || 0); });
-  var h = '<div class="dep-card" style="border-left-color:#1565A8;">'
+  var h = '<div class="dep-card ft-c ft-stock" style="border-left-color:#1565A8;">'
     + '<div class="dep-card-top"><div class="dep-nom">&#128738;&#65039; Stockage &Eacute;merainville</div></div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0 2px;">'
     +   '<span style="font-size:13px;font-weight:700;color:var(--text3);">F&ucirc;ts en stock</span>'
@@ -24330,7 +24330,7 @@ function depRenderFuts(){
         : (x.src === 'col' ? 'En collecte' : esc(nomDepart(c.departId) || 'Container'));
       var ouvre = x.src === 'depot' ? "depOuvrirFacture('', '" + x.clientId + "', true)"
         : (x.src === 'france' ? "depOuvrirFacture('', '" + x.clientId + "', false)" : "depOuvrirFacture('" + x.collecteId + "', '" + x.clientId + "')");
-      return '<div class="dep-card" style="cursor:pointer;" onclick="' + ouvre + '">'
+      return '<div class="dep-card ft-c ' + (pay.reste > 0 ? 'ft-du' : 'ft-ok') + '" style="cursor:pointer;" onclick="' + ouvre + '">'
         + '<div class="dep-card-top"><div class="dep-nom">' + esc(c.name || 'Client') + '</div></div>'
         + '<div class="dep-meta"><span>' + o.nb + ' f&ucirc;t' + (o.nb>1?'s':'') + ' &middot; ' + lieu + '</span></div>'
         + '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-top:4px;"><span>Total ' + _depEuros(pay.total) + ' &euro;</span>'
@@ -24342,7 +24342,7 @@ function depRenderFuts(){
   if(estDirection()){
     var achats = _depCaisseLignes().filter(function(o){ return (parseInt(o.futs, 10) || 0) > 0; });
     h += '<div class="dep-sec">Achats de f&ucirc;ts</div>'
-      + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">'
+      + '<div class="ft-c ft-ach" style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">'
       + (achats.length ? achats.map(function(o){
           return '<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:13px;"><span>' + esc(o.date ? dateFr(o.date) : '') + ' &middot; <b>' + (parseInt(o.futs, 10) || 0) + ' f&ucirc;ts</b></span>'
             + '<b style="color:#B3261E;white-space:nowrap;">&minus; ' + _depEuros(o.montant) + ' &euro;</b></div>';
