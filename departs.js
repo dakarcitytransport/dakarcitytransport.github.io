@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.94';
+var DEP_VERSION = 'v2.22.95';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3383,12 +3383,9 @@ function injecterEcrans(){
   +       '<div class="fg"><label class="fl">Ville</label><input class="fi" id="ft-ville" autocomplete="off" placeholder="Aubervilliers"></div>'
   +     '</div>'
   +     '<div class="dep-sec">Le f&ucirc;t</div>'
-  +     '<div class="fg"><label class="fl">Nombre de f&ucirc;ts (35 &euro; le f&ucirc;t)</label>'
-  +       '<div style="display:flex;align-items:center;gap:8px;">'
-  +         '<button type="button" class="dep-st" onclick="depFutNb(-1)" style="width:56px;flex:none;font-size:24px;font-weight:800;">&minus;</button>'
-  +         '<input class="fi" id="ft-nb" type="number" inputmode="numeric" min="1" step="1" value="1" oninput="depFutVenteCalc()" style="flex:1;min-width:0;text-align:center;font-size:22px;font-weight:800;">'
-  +         '<button type="button" class="dep-st" onclick="depFutNb(1)" style="width:56px;flex:none;font-size:24px;font-weight:800;">+</button>'
-  +       '</div>'
+  +     '<div class="fg"><label class="fl">F&ucirc;ts vendus (35 &euro; le f&ucirc;t) &mdash; choisissez le lot</label>'
+  +       '<div id="ft-lots"></div>'
+  +       '<input type="hidden" id="ft-nb" value="1">'
   +       '<div id="ft-stock-note" style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:4px;"></div></div>'
   +     '<div class="dep-sec">Colis envoy&eacute;s</div>'
   +     '<div style="font-size:11.5px;color:var(--text3);margin:-6px 0 8px;line-height:1.4;">Comme &agrave; l\'inscription d\'une collecte : choisissez le type de colis (le prix se remplit). Le f&ucirc;t est d&eacute;j&agrave; compt&eacute; ; ajoutez ici ce qui est envoy&eacute; en plus ou le transport.</div>'
@@ -14413,6 +14410,7 @@ window.depEnregistrerDepot = function(){
     fiche.rangDepart = existant.rangDepart || null;
     fiche.rangDepartId = existant.rangDepartId || null;
   }
+  if(existant && existant.futLots) fiche.futLots = existant.futLots;   // le lot des fûts vendus suit la fiche
   _depAssignerRangDepart(fiche, departId);
 
   db.ref('dct_depot/'+id).set(fiche);
@@ -24370,7 +24368,7 @@ function _depCaisseLignes(){
 function _depLigneCaisse(o){
   var n = parseInt(o.futs, 10) || 0;
   return '<div class="bl-l" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eee;">'
-    + '<div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">' + _depLibObjetCaisse(o) + (n > 0 ? ' &middot; ' + n + ' f&ucirc;t' + (n > 1 ? 's' : '') : '') + '</div>'
+    + '<div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">' + _depLibObjetCaisse(o) + (n > 0 ? ' &middot; ' + n + ' &times; ' + esc(o.futType || 'F\u00fbt 270 L') + (o.futPu != null && o.futPu !== '' ? ' &agrave; ' + _depEuros(parseFloat(o.futPu)) + ' &euro;' : '') : '') + '</div>'
     + '<div style="font-size:11.5px;color:#888;margin-top:1px;">' + esc(o.date ? dateFr(o.date) : '') + (o.note ? ' &middot; ' + esc(o.note) : '') + (o.par ? ' &middot; ' + esc(o.par) : '') + '</div></div>'
     + '<b style="color:#B3261E;white-space:nowrap;">&minus; ' + _depEuros(o.montant) + ' &euro;</b>'
     + '<span onclick="depSupprimerDepenseCaisse(\'' + o._id + '\')" style="cursor:pointer;color:#992020;font-weight:800;font-size:14px;white-space:nowrap;" title="Supprimer">&#128465;</span></div>';
@@ -24432,11 +24430,38 @@ function _depNbFutsChezClient(){
   var dep = window.depotClients || {};
   return Object.keys(dep).filter(function(k){ return dep[k] && !_depEstFusionnee(dep[k]) && _depEstFutChezClient(dep[k]); }).length;
 }
+/* LOTS (Cobey, 13/11/2026) : chaque achat de fûts est un lot = type (« Fût 270 L »), prix d'achat à l'unité, quantité.
+   Un client peut prendre des fûts de plusieurs lots ; le prix de vente reste 35 € quel que soit le lot ; la différence entre
+   35 € et le prix d'achat du lot est le bénéfice. Le lot de chaque vente est noté sur la fiche (`futLots` : { idLot: nombre }).
+   Les ventes faites avant cette version (sans lot) sont imputées aux lots les plus anciens. */
+function _depLotsFuts(){
+  var lots = _depCaisseLignes().filter(function(o){ return (parseInt(o.futs, 10) || 0) > 0; }).map(function(o){
+    var n = parseInt(o.futs, 10) || 0, pu = (o.futPu != null && o.futPu !== '') ? parseFloat(o.futPu) : depArrondi2((parseFloat(o.montant) || 0) / n);
+    return { id: o._id, type: o.futType || 'Fût 270 L', pu: pu, achetes: n, vendus: 0, restants: n, date: o.date || '', ts: o.ts || 0 };
+  });
+  lots.sort(function(a, b){ return String(a.date).localeCompare(String(b.date)) || (a.ts - b.ts); });
+  var sansLot = 0;
+  _depFichesFuts().forEach(function(f){
+    var pl = f.c.futLots || {}, deja = 0;
+    Object.keys(pl).forEach(function(k){
+      var n = parseInt(pl[k], 10) || 0, L = lots.filter(function(l){ return l.id === k; })[0];
+      if(L){ L.vendus += n; deja += n; }
+    });
+    if(f.nb - deja > 0) sansLot += f.nb - deja;
+  });
+  lots.forEach(function(l){
+    if(sansLot <= 0) return;
+    var pris = Math.min(Math.max(0, l.achetes - l.vendus), sansLot); l.vendus += pris; sansLot -= pris;
+  });
+  lots.forEach(function(l){ l.restants = l.achetes - l.vendus; });
+  if(sansLot > 0 && lots.length){ lots[lots.length - 1].vendus += sansLot; lots[lots.length - 1].restants -= sansLot; }
+  return lots;
+}
 function _depStockFuts(){
   var fs = _depFichesFuts(), a = _depFutsAchetes(), v = fs.reduce(function(s, o){ return s + o.nb; }, 0);
   // « chez les clients » : vendus, fiche pas encore basculée dans une collecte (le client remplit son fût)
   var chez = fs.filter(function(o){ return o.x.src === 'depot' && _depEstFutChezClient(o.c); });
-  return { achetes: a, vendus: v, restants: a - v,
+  return { achetes: a, vendus: v, restants: a - v, lots: _depLotsFuts(),
            chezNb: chez.reduce(function(s, o){ return s + o.nb; }, 0), chezClients: chez.length };
 }
 window.depOuvrirEspaceFuts = function(){
@@ -24461,6 +24486,11 @@ function depRenderFuts(){
     + '</div>'
     + '<div class="dep-meta"><span>' + st.achetes + ' achet&eacute;' + (st.achetes>1?'s':'') + ' &middot; ' + st.vendus + ' vendu' + (st.vendus>1?'s':'') + ' &middot; ' + (st.vendus - st.chezNb) + ' en collecte ou parti' + ((st.vendus - st.chezNb)>1?'s':'') + '</span></div>'
     + (st.restants < 0 ? '<div style="font-size:11.5px;color:#B3261E;font-weight:700;margin-top:6px;">Plus de f&ucirc;ts vendus que d\'achats saisis : ajoutez l\'achat manquant.</div>' : '')
+    + (st.lots.length ? '<div style="margin-top:10px;border-top:1px solid rgba(0,0,0,.1);padding-top:6px;">' + st.lots.map(function(l){
+        return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;font-weight:700;">'
+          + '<span>' + esc(l.type) + ' &middot; lot du ' + esc(l.date ? dateFr(l.date) : '') + (estDirection() ? ' &middot; achet&eacute; ' + _depEuros(l.pu) + ' &euro;' : '') + '</span>'
+          + '<span style="color:' + (l.restants < 0 ? '#B3261E' : (l.restants === 0 ? 'var(--text3)' : '#1565A8')) + ';white-space:nowrap;">' + l.restants + ' / ' + l.achetes + '</span></div>';
+      }).join('') + '</div>' : '')
     + '</div>'
     + (st.restants < 1
       ? '<button class="btn btn-gray" style="margin-bottom:6px;opacity:.6;" onclick="depOuvrirVenteFut()">+ Vendre un f&ucirc;t</button>'
@@ -24495,7 +24525,7 @@ function depRenderFuts(){
     h += '<div class="dep-sec">Achats de f&ucirc;ts</div>'
       + '<div class="ft-c ft-ach" style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">'
       + (achats.length ? achats.map(function(o){
-          return '<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:13px;"><span>' + esc(o.date ? dateFr(o.date) : '') + ' &middot; <b>' + (parseInt(o.futs, 10) || 0) + ' f&ucirc;ts</b></span>'
+          return '<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:13px;"><span>' + esc(o.date ? dateFr(o.date) : '') + ' &middot; <b>' + (parseInt(o.futs, 10) || 0) + ' &times; ' + esc(o.futType || 'F\u00fbt 270 L') + '</b>' + (o.futPu != null && o.futPu !== '' ? ' &agrave; ' + _depEuros(parseFloat(o.futPu)) + ' &euro;' : '') + '</span>'
             + '<b style="color:#B3261E;white-space:nowrap;">&minus; ' + _depEuros(o.montant) + ' &euro;</b></div>';
         }).join('') : '<div style="font-size:12.5px;color:var(--text3);font-weight:600;">Aucun achat saisi.</div>')
       + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.45;">Un achat se saisit dans Rapport financier &rsaquo; Bilan &rsaquo; D&eacute;penses de la caisse principale, avec le nombre de f&ucirc;ts.</div>'
@@ -24571,14 +24601,31 @@ window.depConfirmerBasculeFut = function(){
 };
 
 var _depFutMeth = '', _depFutMethA = '', _depFutVerseManuel = false;
-// Nombre de fûts : − / + ou saisie directe, sans plafond fixe (limité seulement par le stock).
-window.depFutNb = function(delta){
-  var e = $('ft-nb'); if(!e) return;
-  var stock = _depStockFuts().restants;
-  var n = (parseInt(e.value, 10) || 1) + delta;
-  if(n < 1) n = 1;
-  if(n > stock){ n = Math.max(1, stock); toast('⚠️ Il ne reste que ' + stock + ' fût' + (stock > 1 ? 's' : '') + ' en stock.'); }
-  e.value = String(n);
+// Choix des fûts par lot : chaque lot disponible a son compteur − / +, plafonné à ce qui reste dans le lot.
+var _depFutSel = {};
+function _depFutRenderLots(){
+  var box = $('ft-lots'); if(!box) return;
+  var lots = _depLotsFuts().filter(function(l){ return l.restants > 0; });
+  box.innerHTML = lots.map(function(l){
+    var n = _depFutSel[l.id] || 0;
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;border:1.5px solid ' + (n > 0 ? 'var(--green,#009A44)' : 'var(--border)') + ';border-radius:14px;background:#fff;">'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:800;">' + esc(l.type) + '</div>'
+      + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;">Lot du ' + esc(l.date ? dateFr(l.date) : '') + (estDirection() ? ' &middot; achet&eacute; ' + _depEuros(l.pu) + ' &euro;' : '') + ' &middot; ' + l.restants + ' dispo</div></div>'
+      + '<button type="button" class="dep-st" onclick="depFutLot(\'' + l.id + '\',-1)" style="width:44px;flex:none;font-size:22px;font-weight:800;">&minus;</button>'
+      + '<b style="min-width:26px;text-align:center;font-size:20px;">' + n + '</b>'
+      + '<button type="button" class="dep-st" onclick="depFutLot(\'' + l.id + '\',1)" style="width:44px;flex:none;font-size:22px;font-weight:800;">+</button></div>';
+  }).join('') || '<div class="dep-vide" style="padding:12px;">Aucun f&ucirc;t disponible.</div>';
+  var tot = 0; Object.keys(_depFutSel).forEach(function(k){ tot += _depFutSel[k] || 0; });
+  var nbE = $('ft-nb'); if(nbE) nbE.value = String(tot);
+  var sn = $('ft-stock-note'); if(sn) sn.textContent = tot + ' f\u00fbt' + (tot > 1 ? 's' : '') + ' choisi' + (tot > 1 ? 's' : '') + ' sur ' + _depStockFuts().restants + ' en stock';
+}
+window.depFutLot = function(id, delta){
+  var L = _depLotsFuts().filter(function(l){ return l.id === id; })[0]; if(!L) return;
+  var n = (_depFutSel[id] || 0) + delta;
+  if(n < 0) n = 0;
+  if(n > L.restants){ n = L.restants; toast('⚠️ Il ne reste que ' + L.restants + ' fût' + (L.restants > 1 ? 's' : '') + ' dans ce lot.'); }
+  _depFutSel[id] = n;
+  _depFutRenderLots();
   depFutVenteCalc();
 };
 window.depSetLivraisonFut = function(oui){
@@ -24624,7 +24671,9 @@ window.depOuvrirVenteFut = function(){
   window._depDepotPhotos = []; try{ _depRenderPhotosGrille('ft'); }catch(e){}
   depSetLivraisonFut(false);
   var dtE = $('ft-date'); if(dtE) dtE.value = new Date().toISOString().slice(0, 10);
-  var nb = $('ft-nb'); if(nb) nb.value = '1';
+  // un fût du lot le plus ancien est proposé d'office
+  _depFutSel = {}; var l0 = _depLotsFuts().filter(function(l){ return l.restants > 0; })[0]; if(l0) _depFutSel[l0.id] = 1;
+  _depFutRenderLots();
   _depFutMeth = ''; depFutMethode(''); _depFutMethA = ''; depFutMethodeA(''); _depFutVerseManuel = false;
   try{ window.depEditerLignes('ft-lignes', [], function(){ depFutVenteCalc(); }); }catch(e){}
   depFutVenteCalc();
@@ -24643,10 +24692,15 @@ function _depEnregistrerVenteFutExecuter(){
   var livF = !!window._depLivraisonFut, ladr = livF ? (($('ft-liv-adresse') || {}).value || '').trim() : '', lprix = livF ? (parseFloat(($('ft-liv-prix') || {}).value) || 0) : 0;
   var lville = livF ? _depVilleLire('ft') : { livraisonVille: '', livraisonVilleAutre: '' };
   if(!prenom && !nom){ toast('⚠️ Indiquez au moins le nom ou le prénom.'); return; }
-  var nb = parseInt(($('ft-nb') || {}).value, 10) || 0;
-  if(nb < 1){ toast('⚠️ Indiquez le nombre de fûts.'); return; }
-  var stockF = _depStockFuts().restants;
-  if(nb > stockF){ toast(stockF < 1 ? '⛔ Plus de fût en stock : la vente est impossible.' : '⛔ Il ne reste que ' + stockF + ' fût' + (stockF > 1 ? 's' : '') + ' en stock.'); return; }
+  // fûts choisis par lot ; chaque lot est revérifié (le stock a pu changer depuis l'ouverture du formulaire)
+  var futLots = {}, nb = 0, lotsDispo = _depLotsFuts();
+  for(var kk in _depFutSel){
+    var nL = _depFutSel[kk] || 0; if(nL < 1) continue;
+    var Lk = lotsDispo.filter(function(l){ return l.id === kk; })[0];
+    if(!Lk || nL > Lk.restants){ toast('⛔ Il ne reste que ' + (Lk ? Lk.restants : 0) + ' fût(s) dans ce lot : corrigez la quantité.'); return; }
+    futLots[kk] = nL; nb += nL;
+  }
+  if(nb < 1){ toast(_depStockFuts().restants < 1 ? '⛔ Plus de fût en stock : la vente est impossible.' : '⚠️ Choisissez au moins un fût.'); return; }
   var pu = DEP_PRIX_FUT;
   var adresseF = (($('ft-adresse') || {}).value || '').trim(), cpF = (($('ft-cp') || {}).value || '').trim(), villeF = (($('ft-ville') || {}).value || '').trim();
   var dateDepot = (($('ft-date') || {}).value || new Date().toISOString().slice(0, 10));
@@ -24660,7 +24714,7 @@ function _depEnregistrerVenteFutExecuter(){
   var fiche = {
     civilite: civ, prenom: prenom, nom: nom, name: _composeNom(civ, prenom, nom),
     tel: tel, tel2: tel2, adresse: adresseF, infos: infosF, ville: villeF, cp: cpF, dept: cpF.substring(0, 2),
-    futDepose: dateDepot,
+    futDepose: dateDepot, futLots: futLots,
     colis: lignesF.map(function(l){ return (l.qte > 1 ? (l.qte + ' ') : '') + l.nom; }).join(', '), nbColis: lignesF.reduce(function(sm, l){ return sm + (l.qte || 0); }, 0) || nb,
     prix: depArrondi2(lignesF.reduce(function(sm, l){ return sm + (l.total || 0); }, 0)), prixADefinir: false,
     departId: DEP_ID_DEPOT,
@@ -24858,6 +24912,7 @@ window.depRenderRapfinBilan = function(){
     + '</div>';
 
   // ── 3. Les dépenses de la caisse principale : l'objet s'écrit librement (avec suggestions des objets déjà utilisés) ──
+  var typesFuts = []; b.caisse.forEach(function(o){ if(o.futType && typesFuts.indexOf(o.futType) < 0) typesFuts.push(o.futType); }); if(typesFuts.indexOf('Fût 270 L') < 0) typesFuts.unshift('Fût 270 L');
   var deja = {}; b.caisse.forEach(function(o){ if(o.objet && !(parseInt(o.futs, 10) > 0)) deja[o.objet] = 1; });
   var formCaisse = ''
     + '<div class="bl-f" style="border-top:1.5px solid var(--border);margin-top:8px;padding-top:10px;">'
@@ -24871,8 +24926,17 @@ window.depRenderRapfinBilan = function(){
     +   '</select>'
     +   '<div id="dep-cs-bloc-libre" style="display:none;"><label for="dep-cs-libre" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Quel objet ? (&agrave; &eacute;crire)</label>'
     +     '<input class="bl-in" id="dep-cs-libre" type="text" autocomplete="off" placeholder="ex. Achat camion, Salaire Aminata&hellip;" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
-    +   '<div id="dep-cs-bloc-futs" style="display:none;"><label for="dep-cs-futs" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Combien de f&ucirc;ts ach&egrave;te-t-on ?</label>'
-    +     '<input class="bl-in" id="dep-cs-futs" type="number" inputmode="numeric" min="1" step="1" placeholder="ex. 40" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
+    +   '<div id="dep-cs-bloc-futs" style="display:none;">'
+    +     '<label for="dep-cs-futtype" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Type de f&ucirc;t</label>'
+    +     '<input class="bl-in" id="dep-cs-futtype" type="text" list="dep-cs-futtypes" autocomplete="off" value="F&ucirc;t 270 L" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;">'
+    +     '<datalist id="dep-cs-futtypes">' + typesFuts.map(function(t){ return '<option value="' + esc(t) + '">'; }).join('') + '</datalist>'
+    +     '<div style="display:flex;gap:8px;">'
+    +       '<div style="flex:1;min-width:0;"><label for="dep-cs-futpu" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Prix d\'achat &agrave; l\'unit&eacute; (&euro;)</label>'
+    +         '<input class="bl-in" id="dep-cs-futpu" type="number" inputmode="decimal" min="0" step="0.01" placeholder="ex. 17" oninput="depFutAchatCalc()" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
+    +       '<div style="flex:1;min-width:0;"><label for="dep-cs-futs" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Quantit&eacute;</label>'
+    +         '<input class="bl-in" id="dep-cs-futs" type="number" inputmode="numeric" min="1" step="1" placeholder="ex. 20" oninput="depFutAchatCalc()" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
+    +     '</div>'
+    +     '<div id="dep-cs-futtotal" style="font-size:13px;font-weight:800;margin-top:6px;"></div></div>'
     +   '<div style="display:flex;gap:8px;">'
     +     '<div style="flex:1;min-width:0;"><label for="dep-cs-montant" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">2. Montant (&euro;)</label>'
     +       '<input class="bl-in" id="dep-cs-montant" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
@@ -24901,7 +24965,7 @@ window.depRenderRapfinBilan = function(){
 
   // Les champs du formulaire gardent ce qu'on est en train de taper si le bilan se redessine.
   var gard = {};
-  ['dep-cs-objet', 'dep-cs-libre', 'dep-cs-futs', 'dep-cs-montant', 'dep-cs-note'].forEach(function(i){ var e = $(i); if(e && e.value) gard[i] = e.value; });
+  ['dep-cs-objet', 'dep-cs-libre', 'dep-cs-futtype', 'dep-cs-futpu', 'dep-cs-futs', 'dep-cs-montant', 'dep-cs-note'].forEach(function(i){ var e = $(i); if(e && e.value) gard[i] = e.value; });
   box.innerHTML = h;
   Object.keys(gard).forEach(function(i){ var e = $(i); if(e) e.value = gard[i]; });
   depObjetCaisseChange();
@@ -24951,16 +25015,27 @@ window.depObjetCaisseChange = function(){
   var l = $('dep-cs-bloc-libre'), f = $('dep-cs-bloc-futs');
   if(l) l.style.display = (v === '__autre') ? 'block' : 'none';
   if(f) f.style.display = (v === '__futs') ? 'block' : 'none';
+  // achat de fûts : le montant est calculé (prix × quantité), pas saisi
+  var m = $('dep-cs-montant'); if(m){ m.readOnly = (v === '__futs'); m.style.background = (v === '__futs') ? '#f1f3f1' : ''; if(v === '__futs') depFutAchatCalc(); }
+};
+window.depFutAchatCalc = function(){
+  var pu = parseFloat(($('dep-cs-futpu') || {}).value) || 0, q = parseInt(($('dep-cs-futs') || {}).value, 10) || 0;
+  var tot = depArrondi2(pu * q), m = $('dep-cs-montant'); if(m) m.value = tot > 0 ? String(tot) : '';
+  var t = $('dep-cs-futtotal'); if(t) t.innerHTML = tot > 0 ? 'Montant de la d&eacute;pense : ' + _depEuros(pu) + ' &euro; &times; ' + q + ' = <span style="color:#B3261E;">' + _depEuros(tot) + ' &euro;</span>' : '';
 };
 
 window.depAjouterDepenseCaisse = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   var choix = (($('dep-cs-objet') || {}).value || '');
-  var objet = '', futsN = 0;
+  var objet = '', futsN = 0, futType = '', futPu = null;
   if(!choix){ toast('⚠️ Choisissez l\'objet de la dépense.'); return; }
   if(choix === '__futs'){
     objet = 'Achat de fûts'; futsN = parseInt(($('dep-cs-futs') || {}).value, 10) || 0;
-    if(futsN < 1){ toast('⚠️ Indiquez le nombre de fûts achetés.'); return; }
+    futType = (($('dep-cs-futtype') || {}).value || '').trim() || 'Fût 270 L';
+    futPu = parseFloat(($('dep-cs-futpu') || {}).value);
+    if(isNaN(futPu) || futPu <= 0){ toast('⚠️ Indiquez le prix d\'achat à l\'unité.'); return; }
+    if(futsN < 1){ toast('⚠️ Indiquez la quantité de fûts achetés.'); return; }
+    ($('dep-cs-montant') || {}).value = String(depArrondi2(futPu * futsN));
   } else if(choix === '__autre'){
     objet = (($('dep-cs-libre') || {}).value || '').trim();
     if(!objet){ toast('⚠️ Écrivez l\'objet de la dépense.'); return; }
@@ -24970,7 +25045,7 @@ window.depAjouterDepenseCaisse = function(){
   var date = ($('dep-cs-date') || {}).value || new Date().toISOString().slice(0, 10);
   if(!window.db || !window.firebaseReady){ toast('❌ Connexion indisponible.'); return; }
   var u = window.currentUser || {};
-  var obj = { objet: objet, futs: futsN > 0 ? futsN : null, montant: depArrondi2(montant), date: date, note: (($('dep-cs-note') || {}).value || '').trim(), ts: Date.now(), par: u.name || u.id || '', parId: u.id || '' };
+  var obj = { objet: objet, futs: futsN > 0 ? futsN : null, futType: futsN > 0 ? futType : null, futPu: futsN > 0 ? depArrondi2(futPu) : null, montant: depArrondi2(montant), date: date, note: (($('dep-cs-note') || {}).value || '').trim(), ts: Date.now(), par: u.name || u.id || '', parId: u.id || '' };
   db.ref('dct_finance/caisse').push(obj).then(function(){
     _depCaisseFormOuvert = false;
     try{ if($('s-rapfin-bilan') && $('s-rapfin-bilan').classList.contains('active')) depRenderRapfinBilan(); }catch(e){}
@@ -24983,6 +25058,10 @@ window.depSupprimerDepenseCaisse = function(idLigne){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
   if(!idLigne || !window.db || !window.firebaseReady) return;
   var lf = ((window.financeData || {}).caisse || {})[idLigne];
+  if(lf && (parseInt(lf.futs, 10) || 0) > 0){
+    var lotS = _depLotsFuts().filter(function(l){ return l.id === idLigne; })[0];
+    if(lotS && lotS.vendus > 0){ toast('⛔ Ce lot est déjà entamé (' + lotS.vendus + ' fût' + (lotS.vendus > 1 ? 's' : '') + ' vendu' + (lotS.vendus > 1 ? 's' : '') + ') : on ne peut plus le supprimer.'); return; }
+  }
   if(lf) window._depCorbeille('depense', 'caisse_' + idLigne, { titre: _depTexteBrut(_depLibObjetCaisse(lf)) + ' · ' + lf.montant + ' €',
     sous: 'Dépense de la caisse principale', departId: '', ecritures: [{ p: 'dct_finance/caisse/' + idLigne, v: lf }] });
   db.ref('dct_finance/caisse/' + idLigne).remove().then(function(){
