@@ -6984,3 +6984,11 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Dans le Bilan : bouton « + Nouvelle dépense » EN HAUT de la carte (le formulaire est replié, il s'ouvre au clic et se referme après l'enregistrement), puis « Les 5 dernières » dépenses, puis « Voir toutes les dépenses (N) ».
 - Nouvel écran « Dépenses de la caisse » : toutes les dépenses rangées par mois (total du mois), total général, recherche (objet, note, personne), suppression possible. Se met à jour tout seul.
 - Testé (faux Firebase) : 8 dépenses sur 2 mois → carte = 5 dernières + bouton ; liste = Novembre (260 €) / Octobre (100 €) ; recherche « depense 3 » → 1 ligne ; formulaire replié par défaut et après chaque enregistrement.
+
+### 13/11/2026 — Fûts, étape 2 : basculer le client dans une collecte (v3.99.352, departs.js v2.22.78)
+> Cobey : « on le basculera dans une collecte pour le prochain chargement […] que tout soit logique depuis la dépense jusqu'au client mis dans le conteneur et jusqu'à sa ramasse ». « Ok fais l'étape 2 des fûts ».
+- Écran Fûts : chaque client encore « En attente au dépôt » a un bouton **« 📅 Basculer dans une collecte »** → fenêtre avec la liste des collectes non terminées (à venir / en cours) → « Basculer ».
+- La fiche quitte le Dépôt d'attente (`dct_depot`) et devient un client de la collecte choisie (`dct/clients/<collecte>/<id>`, non affecté à un camion, prêt pour le dispatch) avec TOUT ce qu'elle porte : prix, ligne « Achat d'un fût 270 L », versements déjà reçus, auteur de la vente. Elle garde une trace `futBascule` {de, le, par}. Fil d'activité : « a basculé X (fût) dans la collecte du … ».
+- La carte du client affiche ensuite « En collecte du Dimanche 22 novembre 2026 » ; le stock ne bouge pas (le fût reste compté vendu). La suite du parcours (dispatch → ramasse → container) est celle de n'importe quel client de collecte.
+- Testé (faux Firebase) : achat 10 fûts, vente 2 fûts (70 €, 30 € versés), bascule sans choix refusée, bascule dans la collecte du 22/11 : dépôt vidé, fiche présente dans la collecte avec prix 70 € et versement 30 €.
+- Non testé : le dispatch / la validation de ramasse d'un client fût (même code que les autres clients) et l'impression de la facture avec la ligne fût.

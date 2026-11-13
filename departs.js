@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.77';
+var DEP_VERSION = 'v2.22.78';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -24346,8 +24346,10 @@ function depRenderFuts(){
   } else {
     h += fiches.map(function(o){
       var c = o.c, pay = depCalculerPaiement(c), x = o.x;
-      var lieu = x.src === 'depot' && (!c.departId || c.departId === DEP_ID_DEPOT) ? 'En attente au d&eacute;p&ocirc;t'
-        : (x.src === 'col' ? 'En collecte' : esc(nomDepart(c.departId) || 'Container'));
+      var auDepot = x.src === 'depot' && (!c.departId || c.departId === DEP_ID_DEPOT);
+      var colF = x.src === 'col' ? (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0] : null;
+      var lieu = auDepot ? 'En attente au d&eacute;p&ocirc;t'
+        : (x.src === 'col' ? 'En collecte' + (colF && colF.date ? ' du ' + esc(colF.date) : '') : esc(nomDepart(c.departId) || 'Container'));
       var ouvre = x.src === 'depot' ? "depOuvrirFacture('', '" + x.clientId + "', true)"
         : (x.src === 'france' ? "depOuvrirFacture('', '" + x.clientId + "', false)" : "depOuvrirFacture('" + x.collecteId + "', '" + x.clientId + "')");
       return '<div class="dep-card ft-c ' + (pay.reste > 0 ? 'ft-du' : 'ft-ok') + '" style="cursor:pointer;" onclick="' + ouvre + '">'
@@ -24355,6 +24357,7 @@ function depRenderFuts(){
         + '<div class="dep-meta"><span>' + o.nb + ' f&ucirc;t' + (o.nb>1?'s':'') + ' &middot; ' + lieu + '</span></div>'
         + '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-top:4px;"><span>Total ' + _depEuros(pay.total) + ' &euro;</span>'
         + '<span style="color:' + (pay.reste > 0 ? '#B3261E' : '#006b2d') + ';">' + (pay.reste > 0 ? 'Reste ' + _depEuros(pay.reste) + ' &euro;' : 'Pay&eacute;') + '</span></div>'
+        + (auDepot ? '<button class="btn btn-green" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirBasculeFut(\'' + x.clientId + '\')">&#128197; Basculer dans une collecte</button>' : '')
         + '</div>';
     }).join('');
   }
@@ -24372,6 +24375,63 @@ function depRenderFuts(){
   }
   box.innerHTML = h;
 }
+
+/* BASCULE d'un client fût dans une collecte : sa fiche quitte le Dépôt d'attente et devient un client de la collecte choisie
+   (même fiche : prix, ligne « Achat d'un fût 270 L », versements déjà reçus), prêt à être affecté à un camion pour la ramasse.
+   Cobey, 13/11/2026 : « on le basculera dans une collecte pour le prochain chargement […] tout soit logique jusqu'à sa ramasse ». */
+var _depBasculeFutId = '';
+window.depOuvrirBasculeFut = function(depotId){
+  var c = (window.depotClients || {})[depotId];
+  if(!c){ toast('⚠️ Fiche introuvable.'); return; }
+  var cols = (window.collectes || []).filter(function(k){ return k && k.id && k.statut !== 'terminee'; });
+  _depBasculeFutId = depotId;
+  var m = $('modal-fut-bascule'); if(m) m.remove();
+  m = document.createElement('div'); m.id = 'modal-fut-bascule'; m.className = 'modal-overlay';
+  var h = '<div class="modal-sheet">'
+    + '<div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:4px;">&#128197; Basculer dans une collecte</div>'
+    + '<div style="font-size:13px;color:#666;margin-bottom:14px;">' + esc(c.name || '') + ' &middot; ' + esc(c.colis || '') + '</div>';
+  if(cols.length){
+    h += '<label for="fut-bascule-col" style="font-size:12px;font-weight:800;color:#666;">Collecte</label>'
+      + '<select id="fut-bascule-col" style="width:100%;padding:11px;border:1.5px solid #ddd;border-radius:10px;font-size:15px;font-weight:700;margin:4px 0 12px;">'
+      + '<option value="">Choisir la collecte&hellip;</option>'
+      + cols.map(function(k){ return '<option value="' + esc(k.id) + '">' + esc(k.date || k.id) + '</option>'; }).join('')
+      + '</select>'
+      + '<button style="width:100%;padding:13px;background:#006b2d;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;margin-bottom:8px;" onclick="depConfirmerBasculeFut()">&#9989; Basculer</button>';
+  } else {
+    h += '<div style="background:#fff3e0;border-radius:8px;padding:12px;font-size:13px;color:#e65100;margin-bottom:12px;text-align:center;">Aucune collecte ouverte.<br>Cr&eacute;ez-en une depuis la Collecte d\'abord.</div>';
+  }
+  h += '<button style="width:100%;padding:12px;background:#f0f0f0;color:#333;border:none;border-radius:10px;font-size:13px;font-weight:700;" onclick="closeModal(\'modal-fut-bascule\')">Annuler</button></div>';
+  m.innerHTML = h; document.body.appendChild(m); openModal('modal-fut-bascule');
+};
+window.depConfirmerBasculeFut = function(){
+  var colId = (($('fut-bascule-col') || {}).value || '');
+  if(!colId){ toast('⚠️ Choisissez une collecte.'); return; }
+  var id = _depBasculeFutId, c = (window.depotClients || {})[id];
+  if(!c){ toast('⚠️ Fiche introuvable.'); closeModal('modal-fut-bascule'); return; }
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  var col = (window.collectes || []).filter(function(k){ return k && k.id === colId; })[0] || {};
+  var newId = (typeof window._nouvelIdClient === 'function') ? window._nouvelIdClient() : ('C' + Date.now().toString(36).toUpperCase());
+  var u = window.currentUser || {};
+  var fiche = JSON.parse(JSON.stringify(c));
+  fiche.departId = '';                       // il n'est plus « en attente » : il rejoindra un container à la ramasse
+  fiche.futBascule = { de: id, le: Date.now(), par: u.name || u.id || '' };
+  if(!window.clientsParCollecte[colId]) window.clientsParCollecte[colId] = {};
+  window.clientsParCollecte[colId][newId] = fiche;
+  if(!window.dispatchParCollecte[colId]) window.dispatchParCollecte[colId] = { trucks: {}, assigned: {} };
+  if(!window.dispatchParCollecte[colId].assigned) window.dispatchParCollecte[colId].assigned = {};
+  window.dispatchParCollecte[colId].assigned[newId] = null;
+  delete window.depotClients[id];
+  window._lastWriteTime = Date.now();
+  var maj = {};
+  maj['dct/clients/' + colId + '/' + newId] = fiche;
+  maj['dct/dispatch/' + colId + '/assigned/' + newId] = null;
+  maj['dct_depot/' + id] = null;
+  db.ref().update(maj).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'écriture refusée')); });
+  try{ depActivite('&#128197;', 'a bascul&eacute; <strong>' + esc(fiche.name || '') + '</strong> (f&ucirc;t) dans la collecte du <strong>' + esc(col.date || '') + '</strong>'); }catch(e){}
+  closeModal('modal-fut-bascule');
+  toast('✅ ' + (fiche.name || 'Client') + ' basculé dans la collecte');
+  try{ depRenderFuts(); }catch(e){}
+};
 
 var _depFutMeth = '';
 window.depFutMethode = function(m){
