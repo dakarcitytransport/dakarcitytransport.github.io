@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.73';
+var DEP_VERSION = 'v2.22.74';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -24315,7 +24315,10 @@ function depRenderFuts(){
     + '<div class="dep-meta"><span>' + st.achetes + ' achet&eacute;' + (st.achetes>1?'s':'') + ' &middot; ' + st.vendus + ' vendu' + (st.vendus>1?'s':'') + '</span></div>'
     + (st.restants < 0 ? '<div style="font-size:11.5px;color:#B3261E;font-weight:700;margin-top:6px;">Plus de f&ucirc;ts vendus que d\'achats saisis : ajoutez l\'achat manquant.</div>' : '')
     + '</div>'
-    + '<button class="btn btn-green" style="margin-bottom:16px;" onclick="depOuvrirVenteFut()">+ Vendre un f&ucirc;t</button>';
+    + (st.restants < 1
+      ? '<button class="btn btn-gray" style="margin-bottom:6px;opacity:.6;" onclick="depOuvrirVenteFut()">+ Vendre un f&ucirc;t</button>'
+        + '<div style="font-size:12px;color:#B3261E;font-weight:700;margin-bottom:16px;">Stock vide : la vente est impossible tant qu\'un achat de f&ucirc;ts n\'est pas saisi.</div>'
+      : '<button class="btn btn-green" style="margin-bottom:16px;" onclick="depOuvrirVenteFut()">+ Vendre un f&ucirc;t</button>');
 
   h += '<div class="dep-sec" style="border-top:none;padding-top:0;">Clients f&ucirc;ts</div>';
   if(!fiches.length){
@@ -24362,6 +24365,10 @@ window.depFutVenteCalc = function(){
   var t = $('ft-total'); if(t) t.innerHTML = 'Total : ' + _depEuros(depArrondi2(nb * pu)) + ' &euro;';
 };
 window.depOuvrirVenteFut = function(){
+  var stock = _depStockFuts().restants;
+  if(stock < 1){ toast('⛔ Plus de fût en stock à Émerainville : la vente est impossible.'); return; }
+  var sel = $('ft-nb');
+  if(sel) [].forEach.call(sel.options, function(o){ o.disabled = parseInt(o.value, 10) > stock; });
   ['ft-prenom', 'ft-nom', 'ft-tel', 'ft-verse', 'ft-note'].forEach(function(i){ var e = $(i); if(e) e.value = ''; });
   var nb = $('ft-nb'); if(nb) nb.value = '1';
   _depFutMeth = ''; depFutMethode('');
@@ -24374,6 +24381,8 @@ window.depEnregistrerVenteFut = function(){
   if(!prenom && !nom){ toast('⚠️ Indiquez au moins le nom ou le prénom.'); return; }
   var nb = parseInt(($('ft-nb') || {}).value, 10) || 0;
   if(nb < 1){ toast('⚠️ Indiquez le nombre de fûts.'); return; }
+  var stockF = _depStockFuts().restants;
+  if(nb > stockF){ toast(stockF < 1 ? '⛔ Plus de fût en stock : la vente est impossible.' : '⛔ Il ne reste que ' + stockF + ' fût' + (stockF > 1 ? 's' : '') + ' en stock.'); return; }
   var pu = DEP_PRIX_FUT;
   var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * pu);
   if(verse < 0){ toast('⚠️ Montant versé invalide.'); return; }

@@ -6963,3 +6963,8 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 ### 12/11/2026 — Fût : prix fixe de 35 €, choix de 1 à 3 fûts (v3.99.347, departs.js v2.22.73)
 > Cobey : « le fût de 270 litres sera toujours facturé à 35 € […] quand on crée un client via l'espace fût, on pourra sélectionner un fût, deux fûts ou trois fûts qui seront de 35 € et qui s'afficheront sur la [facture] » (message coupé).
 - Plus de champ prix : `DEP_PRIX_FUT = 35`. Menu « 1 fût / 2 fûts / 3 fûts », total calculé (35 / 70 / 105 €), ligne « Achat d'un fût 270 L » × N sur la facture. Testé : 2 fûts → 70 €, 30 € versés, reste 40 €.
+
+### 13/11/2026 — Fûts : vente impossible sans stock (v3.99.348, departs.js v2.22.74)
+> Cobey : « on ne peut vendre des fûts uniquement s'il y en a en stock à Émerainville. S'il n'y a pas de stock, la vente est impossible. Est-ce que c'est mis en place ? » (non : seul un avertissement existait).
+- Stock 0 : le bouton « + Vendre un fût » est grisé avec le message « Stock vide… », et l'écran de vente refuse de s'ouvrir. Le menu 1/2/3 fûts grise les quantités supérieures au stock. À l'enregistrement, une vente dépassant le stock est refusée (« Il ne reste que N fût(s) »). Testé : stock 0 refusé ; stock 2 → 3 fûts refusé, 2 fûts accepté.
+- Limite connue : le contrôle se fait sur le téléphone ; deux ventes simultanées du dernier fût par deux personnes pourraient passer toutes les deux.
