@@ -6972,3 +6972,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 ### 13/11/2026 — Fûts : écrans au look V2 (v3.99.349, departs.js v2.22.75, look-v2.css)
 > Cobey : « j'ai vu que tu as mis l'interface dans Fût dans l'ancien look, avec une carte de l'ancien look ».
 - Écran Fûts : carte stock bleue (gros chiffre), clients en carte verte (payé) ou orange (reste dû), achats en carte rouge ; formulaire de vente dans une carte arrondie à champs arrondis ; carte « Émerainville · fûts » du Stockage assortie (classes `ft-*` dans `tools/gen_look_css.py`). Les autres cartes du Stockage (Mitry, Dépôt Dakar) restent en V1 : elles font partie du chantier « V2 partout ».
+
+### 13/11/2026 — Dépense de caisse : formulaire clair, objet en menu (v3.99.350, departs.js v2.22.76)
+> Cobey (capture) : « un peu brouillon, on ne sait pas où on rentre quelle dépense, quel objet […] des menus déroulants avec comme objet fût déjà, et pour le reste […] l'objet doit être écrit et saisi après, mais avec une certaine logique ».
+- Formulaire en 3 étapes avec une étiquette au-dessus de chaque champ (plus de simples textes grisés) : 1. Objet (menu), 2. Montant, 3. Date, puis Note facultative.
+- Menu « Objet » : « Choisir l'objet… » / « 🛢️ Achat de fûts » / les objets déjà écrits avant (ex. « Achat barigo », sans doublon) / « ✏️ Autre objet (à écrire)… ». « Achat de fûts » fait apparaître « Combien de fûts achète-t-on ? » (obligatoire) ; « Autre objet » fait apparaître « Quel objet ? (à écrire) » (obligatoire). Aucun objet ne se saisit sans choix.
+- Testé (faux Firebase) : refus sans objet, refus fûts sans nombre, refus « autre » sans texte, enregistrement fûts (5 / 175 €), « Achat barigo » écrit puis réutilisé depuis le menu, pas de doublon « Achat de fûts ».

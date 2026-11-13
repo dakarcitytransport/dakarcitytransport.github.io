@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.75';
+var DEP_VERSION = 'v2.22.76';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -24583,7 +24583,7 @@ window.depRenderRapfinBilan = function(){
     + '</div>';
 
   // ── 3. Les dépenses de la caisse principale : l'objet s'écrit librement (avec suggestions des objets déjà utilisés) ──
-  var deja = {}; b.caisse.forEach(function(o){ if(o.objet) deja[o.objet] = 1; });
+  var deja = {}; b.caisse.forEach(function(o){ if(o.objet && !(parseInt(o.futs, 10) > 0)) deja[o.objet] = 1; });
   h += '<div class="bl-c bl-cs" style="' + carte + '">'
     + '<div class="bl-t" style="' + titre + '">&#127974; D&Eacute;PENSES DE LA CAISSE PRINCIPALE &middot; ' + _depEuros(b.totCaisse) + ' &euro;</div>'
     + (b.caisse.length
@@ -24596,15 +24596,26 @@ window.depRenderRapfinBilan = function(){
         }).join('')
       : '<div style="font-size:12.5px;color:var(--text3);font-weight:600;padding:4px 0 8px;">Aucune d&eacute;pense de caisse pour l\'instant.</div>')
     + '<div class="bl-f" style="border-top:1.5px solid var(--border);margin-top:8px;padding-top:10px;">'
-    +   '<div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">+ Nouvelle d&eacute;pense</div>'
-    +   '<input class="bl-in" id="dep-cs-objet" type="text" list="dep-cs-objets" autocomplete="off" placeholder="Objet de la d&eacute;pense (ex. Achat camion)" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);margin-bottom:8px;">'
-    +   '<datalist id="dep-cs-objets">' + Object.keys(deja).map(function(k){ return '<option value="' + esc(k) + '">'; }).join('') + '</datalist>'
-    +   '<input class="bl-in" id="dep-cs-futs" type="number" inputmode="numeric" min="0" step="1" placeholder="Nombre de f&ucirc;ts (seulement si c\'est un achat de f&ucirc;ts)" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);margin-bottom:8px;">'
+    +   '<div style="font-size:14px;font-weight:800;margin-bottom:2px;">+ Nouvelle d&eacute;pense</div>'
+    +   '<label for="dep-cs-objet" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">1. Objet de la d&eacute;pense</label>'
+    +   '<select class="bl-in" id="dep-cs-objet" onchange="depObjetCaisseChange()" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;">'
+    +     '<option value="">Choisir l\'objet&hellip;</option>'
+    +     '<option value="__futs">&#128738;&#65039; Achat de f&ucirc;ts</option>'
+    +     Object.keys(deja).sort().map(function(k){ return '<option value="o:' + esc(k) + '">' + esc(k) + '</option>'; }).join('')
+    +     '<option value="__autre">&#9999;&#65039; Autre objet (&agrave; &eacute;crire)&hellip;</option>'
+    +   '</select>'
+    +   '<div id="dep-cs-bloc-libre" style="display:none;"><label for="dep-cs-libre" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Quel objet ? (&agrave; &eacute;crire)</label>'
+    +     '<input class="bl-in" id="dep-cs-libre" type="text" autocomplete="off" placeholder="ex. Achat camion, Salaire Aminata&hellip;" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
+    +   '<div id="dep-cs-bloc-futs" style="display:none;"><label for="dep-cs-futs" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Combien de f&ucirc;ts ach&egrave;te-t-on ?</label>'
+    +     '<input class="bl-in" id="dep-cs-futs" type="number" inputmode="numeric" min="1" step="1" placeholder="ex. 40" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
     +   '<div style="display:flex;gap:8px;">'
-    +     '<input class="bl-in" id="dep-cs-montant" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Montant (&euro;)" style="flex:1;min-width:0;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);">'
-    +     '<input class="bl-in" id="dep-cs-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="flex:1;min-width:0;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);">'
+    +     '<div style="flex:1;min-width:0;"><label for="dep-cs-montant" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">2. Montant (&euro;)</label>'
+    +       '<input class="bl-in" id="dep-cs-montant" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
+    +     '<div style="flex:1;min-width:0;"><label for="dep-cs-date" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">3. Date</label>'
+    +       '<input class="bl-in" id="dep-cs-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff;"></div>'
     +   '</div>'
-    +   '<input class="bl-in" id="dep-cs-note" type="text" placeholder="Note (facultatif)" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);margin:8px 0;">'
+    +   '<label for="dep-cs-note" style="display:block;font-size:12px;font-weight:800;color:var(--text3);margin:10px 0 4px;">Note (facultatif)</label>'
+    +   '<input class="bl-in" id="dep-cs-note" type="text" placeholder="Pr&eacute;cision utile, fournisseur&hellip;" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);font:700 15px var(--font,inherit);background:#fff; margin-bottom:12px;">'
     +   '<button class="btn btn-green" onclick="depAjouterDepenseCaisse()">Enregistrer la d&eacute;pense</button>'
     + '</div></div>';
 
@@ -24614,17 +24625,32 @@ window.depRenderRapfinBilan = function(){
 
   // Les champs du formulaire gardent ce qu'on est en train de taper si le bilan se redessine.
   var gard = {};
-  ['dep-cs-objet', 'dep-cs-futs', 'dep-cs-montant', 'dep-cs-note'].forEach(function(i){ var e = $(i); if(e && e.value) gard[i] = e.value; });
+  ['dep-cs-objet', 'dep-cs-libre', 'dep-cs-futs', 'dep-cs-montant', 'dep-cs-note'].forEach(function(i){ var e = $(i); if(e && e.value) gard[i] = e.value; });
   box.innerHTML = h;
   Object.keys(gard).forEach(function(i){ var e = $(i); if(e) e.value = gard[i]; });
+  depObjetCaisseChange();
+};
+
+// Selon l'objet choisi : « Achat de fûts » demande le nombre de fûts ; « Autre objet » demande d'écrire l'objet.
+window.depObjetCaisseChange = function(){
+  var v = ($('dep-cs-objet') || {}).value || '';
+  var l = $('dep-cs-bloc-libre'), f = $('dep-cs-bloc-futs');
+  if(l) l.style.display = (v === '__autre') ? 'block' : 'none';
+  if(f) f.style.display = (v === '__futs') ? 'block' : 'none';
 };
 
 window.depAjouterDepenseCaisse = function(){
   if(!estDirection()){ toast('⛔ Réservé à la direction.'); return; }
-  var objet = (($('dep-cs-objet') || {}).value || '').trim();
-  var futsN = parseInt(($('dep-cs-futs') || {}).value, 10) || 0;
-  if(!objet && futsN > 0) objet = 'Achat de fûts';
-  if(!objet){ toast('⚠️ Indiquez l\'objet de la dépense.'); return; }
+  var choix = (($('dep-cs-objet') || {}).value || '');
+  var objet = '', futsN = 0;
+  if(!choix){ toast('⚠️ Choisissez l\'objet de la dépense.'); return; }
+  if(choix === '__futs'){
+    objet = 'Achat de fûts'; futsN = parseInt(($('dep-cs-futs') || {}).value, 10) || 0;
+    if(futsN < 1){ toast('⚠️ Indiquez le nombre de fûts achetés.'); return; }
+  } else if(choix === '__autre'){
+    objet = (($('dep-cs-libre') || {}).value || '').trim();
+    if(!objet){ toast('⚠️ Écrivez l\'objet de la dépense.'); return; }
+  } else { objet = choix.replace(/^o:/, ''); }
   var montant = parseFloat(($('dep-cs-montant') || {}).value);
   if(!montant || montant <= 0){ toast('⚠️ Indiquez un montant.'); return; }
   var date = ($('dep-cs-date') || {}).value || new Date().toISOString().slice(0, 10);
