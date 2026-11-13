@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.85';
+var DEP_VERSION = 'v2.22.86';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3386,11 +3386,18 @@ function injecterEcrans(){
   +       '<select class="fi" id="ft-nb" onchange="depFutVenteCalc()" style="font-size:18px;font-weight:700;"><option value="1">1 f&ucirc;t</option><option value="2">2 f&ucirc;ts</option><option value="3">3 f&ucirc;ts</option></select></div>'
   +     '<div id="ft-total" style="font-size:14px;font-weight:800;margin:-4px 0 14px;color:var(--text);">Total : 0 &euro;</div>'
   +     '<div class="fg"><label class="fl">Date du d&eacute;p&ocirc;t du f&ucirc;t chez le client</label><input class="fi" id="ft-date" type="date" style="max-width:100%;min-width:0;box-sizing:border-box;"></div>'
-  +     '<div class="fg"><label class="fl">Pay&eacute; maintenant (&euro;) &mdash; facultatif</label><input class="fi" id="ft-verse" type="number" min="0" step="0.01" placeholder="0" style="font-size:18px;font-weight:700;text-align:center;"></div>'
+  +     '<div class="dep-sec">Paiement &agrave; la remise du f&ucirc;t</div>'
+  +     '<div class="fg"><label class="fl">Achat du f&ucirc;t pay&eacute; (&euro;)</label><input class="fi" id="ft-verse" type="number" min="0" step="0.01" placeholder="0" oninput="_depFutVerseManuel=true" style="font-size:18px;font-weight:700;text-align:center;"></div>'
   +     '<div style="display:flex;gap:8px;margin:-4px 0 14px;">'
   +       '<button type="button" class="dep-st" id="ft-m-esp" onclick="depFutMethode(\'especes\')" style="flex:1;">Esp&egrave;ces</button>'
   +       '<button type="button" class="dep-st" id="ft-m-vir" onclick="depFutMethode(\'virement\')" style="flex:1;">Virement</button>'
   +     '</div>'
+  +     '<div class="fg"><label class="fl">Acompte sur le frais de transport (&euro;) <span style="color:#aaa;font-weight:500;">&middot; facultatif</span></label><input class="fi" id="ft-acompte" type="number" min="0" step="0.01" placeholder="0" style="font-size:18px;font-weight:700;text-align:center;"></div>'
+  +     '<div style="display:flex;gap:8px;margin:-4px 0 6px;">'
+  +       '<button type="button" class="dep-st" id="ft-a-esp" onclick="depFutMethodeA(\'especes\')" style="flex:1;">Esp&egrave;ces</button>'
+  +       '<button type="button" class="dep-st" id="ft-a-vir" onclick="depFutMethodeA(\'virement\')" style="flex:1;">Virement</button>'
+  +     '</div>'
+  +     '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:14px;">L\'achat du f&ucirc;t est not&eacute; &agrave; chaque remise. L\'acompte sur le transport est un premier versement : il sera d&eacute;duit du prix total sur la facture.</div>'
   +     '<div class="dep-sec">Destinataire &agrave; Dakar</div>'
   +     '<div class="fg"><label class="fl">Nom du destinataire</label><input class="fi" id="ft-dest-nom" autocomplete="off" placeholder="Awa Ndiaye"></div>'
   +     '<div class="fg"><label class="fl">Num&eacute;ro du destinataire</label><input class="fi" id="ft-dest-tel" type="tel" autocomplete="off" placeholder="77 000 00 00"></div>'
@@ -24489,13 +24496,19 @@ window.depConfirmerBasculeFut = function(){
   try{ depRenderFuts(); }catch(e){}
 };
 
-var _depFutMeth = '';
+var _depFutMeth = '', _depFutMethA = '', _depFutVerseManuel = false;
 window.depSetLivraisonFut = function(oui){
   var bOui = $('ft-liv-oui'), bNon = $('ft-liv-non'), bloc = $('ft-liv-bloc');
   if(bOui) bOui.className = 'dep-st' + (oui ? ' on' : '');
   if(bNon) bNon.className = 'dep-st' + (oui ? '' : ' on');
   if(bloc) bloc.style.display = oui ? 'block' : 'none';
   window._depLivraisonFut = !!oui;
+};
+window.depFutMethodeA = function(m){
+  _depFutMethA = m;
+  var e = $('ft-a-esp'), v = $('ft-a-vir');
+  if(e) e.classList.toggle('on', m === 'especes');
+  if(v) v.classList.toggle('on', m === 'virement');
 };
 window.depFutMethode = function(m){
   _depFutMeth = m;
@@ -24506,6 +24519,8 @@ window.depFutMethode = function(m){
 window.depFutVenteCalc = function(){
   var nb = parseInt(($('ft-nb') || {}).value, 10) || 0, pu = DEP_PRIX_FUT;
   var t = $('ft-total'); if(t) t.innerHTML = 'Total : ' + _depEuros(depArrondi2(nb * pu)) + ' &euro;';
+  // le montant de l'achat est proposé tout de suite (modifiable) : l'achat du fût est acté à chaque remise
+  var v = $('ft-verse'); if(v && !_depFutVerseManuel) v.value = String(depArrondi2(nb * pu));
 };
 window.depOuvrirVenteFut = function(){
   var stock = _depStockFuts().restants;
@@ -24518,7 +24533,8 @@ window.depOuvrirVenteFut = function(){
   depSetLivraisonFut(false);
   var dtE = $('ft-date'); if(dtE) dtE.value = new Date().toISOString().slice(0, 10);
   var nb = $('ft-nb'); if(nb) nb.value = '1';
-  _depFutMeth = ''; depFutMethode('');
+  _depFutMeth = ''; depFutMethode(''); _depFutMethA = ''; depFutMethodeA(''); _depFutVerseManuel = false;
+  var acE = $('ft-acompte'); if(acE) acE.value = '';
   depFutVenteCalc();
   goTo('s-dep-fut-vente');
 };
@@ -24531,17 +24547,19 @@ window.depEnregistrerVenteFut = function(){
   if(nb < 1){ toast('⚠️ Indiquez le nombre de fûts.'); return; }
   var stockF = _depStockFuts().restants;
   if(nb > stockF){ toast(stockF < 1 ? '⛔ Plus de fût en stock : la vente est impossible.' : '⛔ Il ne reste que ' + stockF + ' fût' + (stockF > 1 ? 's' : '') + ' en stock.'); return; }
-  var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * DEP_PRIX_FUT);
-  if(verse < 0){ toast('⚠️ Montant versé invalide.'); return; }
-  if(verse > 0 && !_depFutMeth){ toast('⚠️ Choisissez le mode de paiement (espèces ou virement).'); return; }
-  if(verse > total){ toast('⚠️ Le versé dépasse le total.'); return; }
+  var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * DEP_PRIX_FUT), acompte = parseFloat(($('ft-acompte') || {}).value) || 0;
+  if(verse < 0 || acompte < 0){ toast('⚠️ Montant invalide.'); return; }
+  if(verse > 0 && !_depFutMeth){ toast('⚠️ Choisissez le mode de paiement de l\'achat du fût (espèces ou virement).'); return; }
+  if(acompte > 0 && !_depFutMethA){ toast('⚠️ Choisissez le mode de paiement de l\'acompte (espèces ou virement).'); return; }
+  if(verse > total){ toast('⚠️ Le versé pour l\'achat dépasse le prix des fûts.'); return; }
   if(!(window._depDepotPhotos || []).length){ toast('⚠️ Ajoutez au moins une photo des fûts déposés chez le client.'); return; }
   var nomC = _composeNom(_civDct.ft || '', prenom, nom);
   var texte = $('dep-vers-confirm-texte');
   if(!texte){ _depEnregistrerVenteFutExecuter(); return; }
   texte.innerHTML = 'Enregistrer la vente de <strong>' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + '</strong> (' + _depEuros(total) + '&nbsp;&euro;) &agrave; <strong>' + esc(nomC) + '</strong>'
-    + (verse > 0 ? '<br>avec un versement de <strong>' + _depEuros(verse) + '&nbsp;&euro;</strong> par <strong>' + (_depFutMeth === 'especes' ? 'Esp&egrave;ces' : 'Virement') + '</strong>' : '<br><span style="font-size:12px;">Aucun versement pour l\'instant.</span>')
-    + '&nbsp;?';
+    + (verse > 0 ? '<br>&bull; achat du f&ucirc;t : <strong>' + _depEuros(verse) + '&nbsp;&euro;</strong> par <strong>' + (_depFutMeth === 'especes' ? 'Esp&egrave;ces' : 'Virement') + '</strong>' : '<br>&bull; achat du f&ucirc;t : <strong>rien pay&eacute;</strong> pour l\'instant')
+    + (acompte > 0 ? '<br>&bull; acompte transport : <strong>' + _depEuros(acompte) + '&nbsp;&euro;</strong> par <strong>' + (_depFutMethA === 'especes' ? 'Esp&egrave;ces' : 'Virement') + '</strong>' : '')
+    + '<br>Total encaiss&eacute; : <strong>' + _depEuros(depArrondi2(verse + acompte)) + '&nbsp;&euro;</strong>&nbsp;?';
   _depVersPending = { type: 'fut', run: _depEnregistrerVenteFutExecuter };
   openModal('modal-dep-vers-confirm');
 };
@@ -24560,9 +24578,10 @@ function _depEnregistrerVenteFutExecuter(){
   var pu = DEP_PRIX_FUT;
   var adresseF = (($('ft-adresse') || {}).value || '').trim(), cpF = (($('ft-cp') || {}).value || '').trim(), villeF = (($('ft-ville') || {}).value || '').trim();
   var dateDepot = (($('ft-date') || {}).value || new Date().toISOString().slice(0, 10));
-  var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * pu);
-  if(verse < 0){ toast('⚠️ Montant versé invalide.'); return; }
+  var verse = parseFloat(($('ft-verse') || {}).value) || 0, total = depArrondi2(nb * pu), acompte = parseFloat(($('ft-acompte') || {}).value) || 0;
+  if(verse < 0 || acompte < 0){ toast('⚠️ Montant invalide.'); return; }
   if(verse > 0 && !_depFutMeth){ toast('⚠️ Choisissez le mode de paiement (espèces ou virement).'); return; }
+  if(acompte > 0 && !_depFutMethA){ toast('⚠️ Choisissez le mode de paiement de l\'acompte.'); return; }
   if(verse > total){ toast('⚠️ Le versé dépasse le total.'); return; }
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
   var photosFut = window._depDepotPhotos || [];
@@ -24583,7 +24602,10 @@ function _depEnregistrerVenteFutExecuter(){
     bg: u.bg || '#eee', color: u.color || '#333', by: u.name || '', creeLe: Date.now()
   };
   try{ _depMajDepuisLignes(fiche); }catch(e){}
-  if(verse > 0) fiche.versements = [{ montant: depArrondi2(verse), le: Date.now(), par: u.name || u.id || '', methode: _depFutMeth }];
+  var versF = [];
+  if(verse > 0) versF.push({ montant: depArrondi2(verse), le: Date.now(), par: u.name || u.id || '', methode: _depFutMeth, nature: 'fut' });
+  if(acompte > 0) versF.push({ montant: depArrondi2(acompte), le: Date.now(), par: u.name || u.id || '', methode: _depFutMethA, estAcompte: true, nature: 'acompteTransport' });
+  if(versF.length) fiche.versements = versF;
   db.ref('dct_depot/' + id).set(fiche);
   var mapPh = {}; photosFut.forEach(function(p, i){ mapPh['p' + i] = p; });
   db.ref('dct_photos_colis/' + id).set(mapPh);
@@ -24592,7 +24614,7 @@ function _depEnregistrerVenteFutExecuter(){
   var ckey = tel ? tel.replace(/\s/g, '') : (prenom + '_' + nom).toLowerCase();
   window.dctContacts[ckey] = { civilite: civ, prenom: prenom, nom: nom, name: fiche.name, tel: tel, tel2: tel2, adresse: adresseF, infos: infosF, ville: villeF, cp: cpF, dept: cpF.substring(0, 2), by: (u.name || '') };
   try{ sauvegarder(); }catch(e){}
-  depActivite('&#128738;&#65039;', 'a vendu ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' &agrave; <strong>' + esc(fiche.name) + '</strong> &mdash; ' + _depEuros(total) + ' &euro;' + (verse > 0 ? ' (pay&eacute; ' + _depEuros(verse) + ' &euro;)' : ''));
+  depActivite('&#128738;&#65039;', 'a vendu ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' &agrave; <strong>' + esc(fiche.name) + '</strong> &mdash; ' + _depEuros(total) + ' &euro;' + (verse > 0 ? ' (pay&eacute; ' + _depEuros(verse) + ' &euro;)' : '') + (acompte > 0 ? ' + acompte transport ' + _depEuros(acompte) + ' &euro;' : ''));
   toast('✅ Vente enregistrée — ' + fiche.name);
   depOuvrirFacture('', id, true);
 };
