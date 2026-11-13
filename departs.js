@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.90';
+var DEP_VERSION = 'v2.22.91';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -3370,7 +3370,7 @@ function injecterEcrans(){
   +   '<div class="content"><div class="ft-c ft-form">'
   // Mêmes informations qu'à l'inscription d'un client de collecte (Cobey, 13/11/2026) : le suivi est ensuite identique jusqu'au container.
   +     '<div class="fg"><label class="fl">Civilit&eacute;</label><div id="ft-civ" style="display:flex;gap:6px;"></div></div>'
-  +     '<div class="form-row">'
+  +     '<div class="form-row" id="ft-ligne-nom">'
   +       '<div class="fg" id="ft-bloc-prenom"><label class="fl">Pr&eacute;nom</label><input class="fi" id="ft-prenom" autocomplete="off" placeholder="Fatou"></div>'
   +       '<div class="fg"><label class="fl" id="ft-lab-nom">Nom</label><input class="fi" id="ft-nom" autocomplete="off" placeholder="Diallo"></div>'
   +     '</div>'
@@ -17413,6 +17413,8 @@ function _depSuggRemplir(prefixe, c){
     var el = $(ch[k]);
     if(el) el.value = c[k] || '';
   });
+  // la civilité suit le contact (M. / Mme / Société), comme à l'inscription d'une collecte
+  try{ if($(prefixe + '-civ') && typeof _civDct === 'object'){ _civDct[prefixe] = c.civilite || ''; _renderCivDct(prefixe); } }catch(e){}
   var div = $(_depSuggDivId(prefixe));
   if(div) div.classList.remove('show');
   if(prefixe === 'fa' && typeof majZoneFrance === 'function'){ try{ majZoneFrance(); }catch(e){} }
@@ -24581,6 +24583,13 @@ window.depOuvrirVenteFut = function(){
   if(sel) [].forEach.call(sel.options, function(o){ o.disabled = parseInt(o.value, 10) > stock; });
   ['ft-prenom', 'ft-nom', 'ft-tel', 'ft-tel2', 'ft-adresse', 'ft-infos', 'ft-cp', 'ft-ville', 'ft-verse', 'ft-note', 'ft-dest-nom', 'ft-dest-tel', 'ft-dest-tel2', 'ft-liv-adresse', 'ft-liv-prix', 'ft-liv-ville', 'ft-liv-ville-autre'].forEach(function(i){ var e = $(i); if(e) e.value = ''; });
   _civDct.ft = ''; try{ _renderCivDct('ft'); }catch(e){}
+  // Mêmes aides qu'à l'inscription d'un client de collecte : un contact déjà connu se retrouve en tapant le nom ou le numéro,
+  // l'adresse se complète, le code postal retrouve la ville (Cobey, 13/11/2026).
+  try{
+    _depSuggestionsInit('ft', 'ft-ligne-nom');
+    _depAdresseAutocompleteInit('ft', 'ft-adresse');
+    _depCpVilleInit('ft');
+  }catch(e){ console.error('departs: autocomplete fût', e); }
   window._depDepotPhotos = []; try{ _depRenderPhotosGrille('ft'); }catch(e){}
   depSetLivraisonFut(false);
   var dtE = $('ft-date'); if(dtE) dtE.value = new Date().toISOString().slice(0, 10);
