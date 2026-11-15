@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.108';
+var DEP_VERSION = 'v2.22.111';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10030,8 +10030,37 @@ function _depExporterEtiquettesPDFViaCanvas(conteneur, nomFichier){
     // lot) — et on sauvegarde quoi qu'il arrive tout ce qui a pu être
     // capturé, avec un message clair sur ce qui a été sauté.
     var echecs = [];
+    // 15/11/2026 — Cobey : « il me met génération du PDF mais rien n'arrive ». html2canvas recopiait TOUTE l'appli
+    // (tous les écrans) à chaque étiquette : ~2,5 s chacune, des dizaines de secondes pour un camion, sans rien afficher.
+    // On sort temporairement de la page tout ce qui n'est pas l'étiquette (remis en place à la fin, quoi qu'il arrive).
+    var _retires = [];
+    (function(){
+      try{
+        Array.prototype.slice.call(document.body.children).forEach(function(el){
+          if(el.contains(conteneur) || /^(SCRIPT|STYLE|LINK)$/.test(el.tagName)) return;
+          _retires.push({ el: el, parent: document.body, next: el.nextSibling });
+          document.body.removeChild(el);
+        });
+      }catch(e){ console.error('departs: allègement page PDF', e); }
+    })();
+    function _remettrePage(){
+      try{
+        while(_retires.length){
+          var r = _retires.pop();
+          if(r.next && r.next.parentNode === r.parent) r.parent.insertBefore(r.el, r.next); else r.parent.appendChild(r.el);
+        }
+      }catch(e){ console.error('departs: remise en place page PDF', e); }
+    }
+    var _prom = {};
+    function _lancer(j){
+      if(!_prom[j]){
+        _prom[j] = window.html2canvas(docsArr[j], { scale: DEP_PDF_SCALE_CAPTURE, useCORS: true, backgroundColor: '#ffffff' });
+        _prom[j].catch(function(){});   // l'erreur est traitée quand on arrive à cette étiquette
+      }
+    }
     function capturerSuivant(i, retente){
       if (i >= docsArr.length){
+        _remettrePage();
         if (pdf){
           pdf.save(nomFichier || 'Etiquettes.pdf');
           if (echecs.length) toast('⚠️ ' + echecs.length + ' étiquette(s) sur ' + docsArr.length + ' n\'a/n\'ont pas pu être générée(s) — réessayez pour elles.');
@@ -10040,11 +10069,12 @@ function _depExporterEtiquettesPDFViaCanvas(conteneur, nomFichier){
         }
         return;
       }
-      window.html2canvas(docsArr[i], {
-        scale: DEP_PDF_SCALE_CAPTURE,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-      }).then(function(canvas){
+      if(docsArr.length > 1 && !retente) toast('⏳ PDF : étiquette ' + (i + 1) + ' sur ' + docsArr.length + '…');
+      // Les captures partent 3 par 3 (les suivantes se préparent pendant qu'on assemble la page courante).
+      if(retente) delete _prom[i];
+      for(var j = i; j < Math.min(i + 3, docsArr.length); j++) _lancer(j);
+      _prom[i].then(function(canvas){
+        delete _prom[i];
         var imgWmm = (canvas.width / DEP_PDF_SCALE_CAPTURE) * 25.4 / 96;
         var imgHmm = (canvas.height / DEP_PDF_SCALE_CAPTURE) * 25.4 / 96;
         var ratio = Math.min(largeurUtile / imgWmm, hauteurUtile / imgHmm);
@@ -11426,6 +11456,8 @@ function depRenderEtiquettes(c, ctx, n, plan){
   // qu'à la fiche elle-même). window._depEtiquettesQrPretes sert
   // maintenant de verrou, posé à false pendant le dessin.
   window._depEtiquettesQrPretes = false;
+  // Les outils du PDF se chargent dès l'affichage des étiquettes, pour que « Imprimer » parte tout de suite (15/11/2026).
+  try{ _depChargerHtml2canvasEtJsPDF(function(){}); }catch(ePre){}
   var _qrFaits = 0;
   var _qrTotal = n;
   if(!_qrTotal){ window._depEtiquettesQrPretes = true; }
@@ -22477,6 +22509,8 @@ function _depRenderEtiquettesMultiples(items){
   // Même correctif que depRenderEtiquettes (voir §37c) : on n'autorise
   // l'impression qu'une fois tous les QR de TOUS les clients dessinés.
   window._depEtiquettesQrPretes = false;
+  // Les outils du PDF se chargent dès l'affichage des étiquettes, pour que « Imprimer » parte tout de suite (15/11/2026).
+  try{ _depChargerHtml2canvasEtJsPDF(function(){}); }catch(ePre){}
   var idx2 = 0;
   function dessinerSuivant(){
     if(idx2 >= qrJobs.length){ window._depEtiquettesQrPretes = true; return; }
