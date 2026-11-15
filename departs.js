@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.107';
+var DEP_VERSION = 'v2.22.108';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9753,13 +9753,15 @@ function _depChargerQR(cb){
   if(_depQrEnCours){ setTimeout(function(){ _depChargerQR(cb); }, 200); return; }
   _depQrEnCours = true;
   var s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js';
+  // Copie hébergée avec l'appli d'abord (15/11/2026) ; internet (cdnjs) seulement en secours.
+  s.src = 'libs/qrious.min.js?v=1';
+  var _qrSecours = false;
   s.onload = function(){ _depQrEnCours = false; cb(); };
   // v1.19.29 : appelle quand même `cb` en cas d'échec (pas de connexion...)
   // — avant, ça bloquait silencieusement toute la chaîne, y compris
   // l'export PDF automatique de depOuvrirFacturePDF qui attend ce
   // callback pour se déclencher (voir depGenererQR).
-  s.onerror = function(){ _depQrEnCours = false; console.error('departs: échec chargement de la librairie QR (connexion internet ?)'); cb(); };
+  s.onerror = function(){ if(!_qrSecours){ _qrSecours = true; s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js'; return; } _depQrEnCours = false; console.error('departs: échec chargement de la librairie QR (connexion internet ?)'); cb(); };
   document.head.appendChild(s);
 }
 
@@ -9813,17 +9815,21 @@ function _depChargerHtml2canvasEtJsPDF(cb){
   _depHtml2canvasEnCours = true;
   function chargerScript(src, suite){
     var s = document.createElement('script');
-    s.src = src;
+    var secours = false;
+    // Copie hébergée avec l'appli d'abord (15/11/2026 : blocage des PDF quand
+    // cdnjs ne répondait pas) ; l'adresse internet ne sert plus que de secours.
+    s.src = src.local;
     s.onload = suite;
     s.onerror = function(){
+      if(!secours){ secours = true; s.src = src.cdn; return; }
       _depHtml2canvasEnCours = false;
       console.error('departs: échec chargement PDF (connexion internet ?)');
       toast('⚠️ Impossible de générer le PDF (connexion internet ?).');
     };
     document.head.appendChild(s);
   }
-  chargerScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', function(){
-    chargerScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', function(){
+  chargerScript({ local: 'libs/html2canvas.min.js?v=1', cdn: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js' }, function(){
+    chargerScript({ local: 'libs/jspdf.umd.min.js?v=1', cdn: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js' }, function(){
       _depHtml2canvasEnCours = false;
       cb();
     });

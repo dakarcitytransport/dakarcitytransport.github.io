@@ -72,7 +72,7 @@ if(/[?&]facture=/.test(location.search)){
 (function(){ try{ var t=localStorage.getItem('dct_look_test'), c=localStorage.getItem('dct_look_cache'), v=(t==='v1'||t==='v2')?t:c;
   var h=document.documentElement; if(v==='v2') h.classList.add('look-v2'); h.setAttribute('data-mode', localStorage.getItem('dct_look_mode')||'auto'); }catch(e){} })();
 </script>
-<link rel="stylesheet" href="look-v2.css?v=3.99.378">
+<link rel="stylesheet" href="look-v2.css?v=3.99.379">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -2291,7 +2291,7 @@ function _fusionnerListeCollectes(distant, local, supprimees){
 
 // ===== FIN FIREBASE =====
 
-var APP_VERSION = 'v3.99.378';
+var APP_VERSION = 'v3.99.379';
 var APP_UPDATE = '19/08/2026 à 13:40';
 var COLLABS = [
   {id:'IS',name:'Issyaka',   bg:'#FFE8CC',color:'#A04800'},
@@ -12887,13 +12887,17 @@ function ouvrirModalAnnuler(id,tk,type){
 }
 // Retire la copie créée par un report. 'ok' = retirée (copie gardée 30 jours dans la corbeille), 'garde' = laissée car déjà
 // affectée à un camion ou payée, 'absent' = déjà partie.
-function _retirerCopieReport(lien){
+function _retirerCopieReport(lien, origine){
   try{
     var dest=lien.colId, nid=lien.newId;
     var c=(clientsParCollecte[dest]||{})[nid];
     if(!c) return 'absent';
     var aff=((dispatchParCollecte[dest]||{}).assigned||{})[nid];
-    var nbVers=Object.keys(c.versements||{}).length+Object.keys(c.versementsLivraison||{}).length;
+    // 15/11/2026 : la copie emporte les paiements DÉJÀ présents sur la fiche d'origine (même argent, pas un nouveau). Seul un paiement
+    // propre à la copie (absent de l'origine) la fait garder.
+    var _cle=function(v){ return (v&&v.le||0)+'|'+(v&&v.montant||0)+'|'+(v&&v.methode||''); };
+    var _deOrigine={}; ['versements','versementsLivraison'].forEach(function(f){ Object.values((origine&&origine[f])||{}).forEach(function(v){ _deOrigine[f+_cle(v)]=1; }); });
+    var nbVers=0; ['versements','versementsLivraison'].forEach(function(f){ Object.values(c[f]||{}).forEach(function(v){ if(!_deOrigine[f+_cle(v)]) nbVers++; }); });
     if(aff || nbVers>0) return 'garde';
     var col=(collectes||[]).filter(function(x){return x&&x.id===dest;})[0];
     try{ if(typeof window._depCorbeille==='function') window._depCorbeille('clientCol', dest+'_'+nid, {
@@ -12920,7 +12924,7 @@ function confirmerAnnuler(){
   // Annuler un report = retirer aussi la copie posée dans l'autre collecte (Cobey, 08/11/2026 : « le client est toujours affiché dans la collecte reportée »).
   var _lienReport = (type==='report' && tk.reportLinks) ? tk.reportLinks[curAnnulerId] : null, _resCopie = '';
   if(type==='report'){
-    if(_lienReport){ _resCopie = _retirerCopieReport(_lienReport); if(_resCopie!=='garde') delete tk.reportLinks[curAnnulerId]; }
+    if(_lienReport){ _resCopie = _retirerCopieReport(_lienReport, (clientsParCollecte[currentCollecteId]||{})[curAnnulerId]); if(_resCopie!=='garde') delete tk.reportLinks[curAnnulerId]; }
     else _resCopie = 'sanslien';
   }
   // Supprimer le finTs aussi
