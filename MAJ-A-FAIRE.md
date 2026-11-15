@@ -7154,3 +7154,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Cobey : « quand on veut imprimer les étiquettes avec les colis, il imprime aussi les étiquettes d'achat de fût. Ça n'a pas de sens : c'est le prix du transport qui aura une étiquette qu'on va coller sur le fût. » → « Ok ».
 - La ligne d'achat d'un fût (« Achat d'un fût 270 L », ou ancienne saisie « achat fût 270 ») ne donne plus d'étiquette (`_depSansAchatFut`, dans `_depPlanEtiquettes` et `_depNbEtiquettes`) ; elle reste sur la facture, prix inchangé. Le « sur N » ne compte que les vrais colis.
 - Testé : 3 fûts → 1/3, 2/3, 3/3 (avant : 6) ; 2 fûts + 2 cartons → 4 étiquettes.
+
+## 15/11/2026 — v3.99.382 (departs.js v2.22.113) — Supprimer une photo sur la fiche du colis
+- Cobey : « Où est-ce que je peux supprimer les photos qu'on a prises ? Un collaborateur a pris une mauvaise photo, il n'arrive pas à la supprimer. » → « Ok ».
+- Avant : ✕ seulement pendant la validation ; galerie France : admin ou auteur sous 5 min ; AUCUNE suppression sur « Photos du colis » de la fiche une fois enregistrée.
+- Maintenant : un ✕ sur chaque photo de la fiche du colis (et de l'accès rapide). Direction : toutes les photos ; un collaborateur : les siennes, le jour même ; les photos de remise de Mamadou : jamais. Confirmation, copie 30 jours dans Réglages › Corbeille (section « Photos des colis »), ligne dans l'activité.
+- Testé (faux Firebase) : admin voit 2 ✕, suppression → photo retirée de la base, entrée en corbeille ; collaborateur avec une photo vieille de 3 jours : aucun ✕.

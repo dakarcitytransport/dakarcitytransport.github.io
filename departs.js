@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.112';
+var DEP_VERSION = 'v2.22.113';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -14219,7 +14219,8 @@ function _depChargerPhotosFiche(clientId, c, boxId, estFrance){
       var estRemise = (i === idxRemise);
       Object.keys(v).forEach(function(k){
         if(!v[k] || !v[k].d) return;
-        arr.push(estRemise ? Object.assign({}, v[k], { q: v[k].par, remise: true }) : v[k]);
+        // _chem : emplacement exact de la photo, pour pouvoir la supprimer (15/11/2026).
+        arr.push(estRemise ? Object.assign({}, v[k], { q: v[k].par, remise: true }) : Object.assign({}, v[k], { _chem: chemin + ids[i] + '/' + k }));
       });
     });
     arr.sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
@@ -14239,7 +14240,10 @@ function _depRenderPhotosLecture(box, photos){
   photos.forEach(function(p, idx){
     h += '<div onclick="_depAgrandirPhoto(' + idx + ')" style="border-radius:10px;overflow:hidden;'
       +   'border:1.5px solid var(--border);background:#fff;cursor:pointer;">'
-      +   '<img src="' + p.d + '" style="width:100%;height:80px;object-fit:cover;display:block;">'
+      +   '<div style="position:relative;"><img src="' + p.d + '" style="width:100%;height:80px;object-fit:cover;display:block;">'
+      +   (_depPeutSupprimerPhotoFiche(p) ? '<button type="button" title="Supprimer cette photo" onclick="event.stopPropagation();_depSupprimerPhotoFiche(' + idx + ')" '
+      +     'style="position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:13px;line-height:24px;padding:0;cursor:pointer;">&#10005;</button>' : '')
+      +   '</div>'
       // v2.9.3 : nom du collaborateur qui a pris la photo (p.q, déjà
       // enregistré à la prise) — Cobey : « c'est possible de mettre le nom
       // de la personne qui a pris la photo ? ».
@@ -14255,6 +14259,37 @@ function _depRenderPhotosLecture(box, photos){
   box.innerHTML = h;
   window._depPhotosFicheCourantes = photos;
 }
+
+// 15/11/2026 — Cobey : « un collaborateur a pris une mauvaise photo, il n'arrive pas à la supprimer. » Direction : toutes les photos du
+// colis ; un collaborateur : les siennes, le jour même. Les photos de remise de Mamadou ne se suppriment pas ici.
+function _depPeutSupprimerPhotoFiche(p){
+  if(!p || !p._chem || p.remise) return false;
+  var u = window.currentUser || {};
+  if(u.admin) return true;
+  if(!p.uid || p.uid !== u.id || !p.ts) return false;
+  return new Date(p.ts).toDateString() === new Date().toDateString();
+}
+window._depSupprimerPhotoFiche = function(idx){
+  var p = (window._depPhotosFicheCourantes || [])[idx];
+  if(!p || !_depPeutSupprimerPhotoFiche(p)){ toast('⛔ Cette photo ne peut pas être supprimée.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  if(!confirm('Supprimer cette photo' + (p.q ? ' (prise par ' + p.q + ')' : '') + ' ?\nUne copie est gardée 30 jours dans la corbeille.')) return;
+  var ctx = _depFicheLectureCtx || {};
+  var clientId = p._chem.split('/')[1] || '';
+  var c = ctx.france ? ((window.franceData || {}).clients || {})[clientId] : ctx.depot ? (window.depotClients || {})[clientId] : (((window.clientsParCollecte || {})[ctx.colId] || {})[clientId]);
+  try{
+    var copie = {}; Object.keys(p).forEach(function(k){ if(k !== '_chem') copie[k] = p[k]; });
+    window._depCorbeille('photoColis', p._chem, { titre: 'Photo de ' + (c ? _depNomFiche(c) : 'colis'), sous: (p.q ? 'prise par ' + p.q + ' · ' : '') + dateHeureFr(p.ts || 0),
+      departId: (c && c.departId) || '', ecritures: [{ p: p._chem, v: copie }] });
+  }catch(e){ console.error('corbeille photo', e); }
+  db.ref(p._chem).remove().then(function(){
+    toast('🗑️ Photo supprimée');
+    try{ depActivite('&#128247;', 'a supprim&eacute; une photo du colis de <strong>' + esc(c ? _depNomFiche(c) : '') + '</strong>'); }catch(e){}
+    window._depPhotosFicheCourantes = (window._depPhotosFicheCourantes || []).filter(function(x){ return x !== p; });
+    var box = $('dep-ficheL-photos-box') || $('dep-photos-rapide-box') || $('e-photos-box');
+    if(box) _depRenderPhotosLecture(box, window._depPhotosFicheCourantes);
+  }).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'suppression refusée')); });
+};
 
 window._depAgrandirPhoto = function(idx){
   var photos = window._depPhotosFicheCourantes || [];
@@ -28003,6 +28038,7 @@ var DEP_CORB_SECTIONS = [
   { cle:'depart',   ico:'&#128230;', titre:'Containers',          types:['depart'] },
   { cle:'collecte', ico:'&#128197;', titre:'Collectes',           types:['collecteDk', 'collecteFr'] },
   { cle:'client',   ico:'&#128100;', titre:'Clients',             types:['clientFr', 'clientCol', 'clientDepot'], parConteneur:true },
+  { cle:'photo',    ico:'&#128247;', titre:'Photos des colis',    types:['photoColis'] },
   { cle:'contact',  ico:'&#128210;', titre:'Contacts du carnet',  types:['contact'] },
   { cle:'facture',  ico:'&#129534;', titre:'Factures manuelles',  types:['facture'] },
   { cle:'depense',  ico:'&#128182;', titre:'D&eacute;penses',     types:['depense'], parConteneur:true }
