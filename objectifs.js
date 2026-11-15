@@ -165,6 +165,14 @@
     for(var i = 0; i < cols.length; i++){ if(cols[i] && cols[i].id === x.collecteId) return isoDeLibelle(cols[i].date); }
     return '';
   }
+  // Cobey (15/11/2026) : « on avait objectivé 20 clients pour les dimanches, mais comme on a créé une collecte exceptionnelle le samedi, il met un objectif
+  // pour le samedi. On ne met que les objectifs de dimanche. » Une collecte exceptionnelle compte dans le total du container, mais n'a ni objectif
+  // ni barre de dimanche, et ne décale ni le début du container ni les semaines.
+  function estExceptionnelle(x){
+    try{ if(!x || x.src === 'france' || x.src === 'depot') return false;
+      var cf = (window.collectes || []).filter(function(c){ return c && c.id === x.collecteId; })[0]; return !!(cf && cf.type === 'exceptionnel');
+    }catch(e){ return false; }
+  }
   function containers(){
     var d = window.departsData || {};
     return Object.keys(d).map(function(k){ var o = d[k]; if(!o || typeof o !== 'object') return null; o = Object.assign({}, o); o._id = k; return o; })
@@ -176,7 +184,7 @@
   function infoContainer(d){
     var fin = d.dateDepart; if(!fin || isNaN(jours(fin))) return null;
     var debut = null;
-    fichesRamassees(d._id).forEach(function(x){ if(x.src === 'depot') return; var i = dateRamasse(x); if(i && (!debut || i < debut)) debut = i; });
+    fichesRamassees(d._id).forEach(function(x){ if(x.src === 'depot' || estExceptionnelle(x)) return; var i = dateRamasse(x); if(i && (!debut || i < debut)) debut = i; });
     var f = jours(fin), dj = debut ? jours(debut) : f - 21;
     // Cobey : « la semaine dernière était la première semaine : le dernier chargement a été fait il y a 2 semaines, mais on n'a pas fait de ramasse faute de
     // clients ». Le container commence donc le premier DIMANCHE APRÈS LE CHARGEMENT DU PRÉCÉDENT (même pays), qu'il y ait eu une ramasse ou non.
@@ -381,7 +389,7 @@
   }
   function messageDimanche(){
     var obj = objDimanche(), aujIso = auj(), ref = null, refIso = '';
-    var cols = (typeof collectes !== 'undefined' && Array.isArray(collectes)) ? collectes.filter(function(c){ return c && c.date && c.type !== 'futs'; }) : [];
+    var cols = (typeof collectes !== 'undefined' && Array.isArray(collectes)) ? collectes.filter(function(c){ return c && c.date && c.type !== 'futs' && c.type !== 'exceptionnel'; }) : [];
     // Le dimanche même : bilan de la collecte du jour (quel que soit son statut). Sinon : le prochain dimanche.
     var duJour = cols.filter(function(c){ return isoDeLibelle(c.date) === aujIso; })[0];
     if(duJour){ ref = duJour; refIso = aujIso; }
@@ -559,7 +567,7 @@
       xs.forEach(function(x){
         var co = auteurDe(x.c, liste); if(!co) return;
         tot[co.id].n++; tot[co.id].eu += parseFloat(x.c.prix) || 0;
-        if(debutSem){ var di = dateRamasse(x); if(di && di >= debutSem) tot[co.id].nSem++; }
+        if(debutSem && !estExceptionnelle(x)){ var di = dateRamasse(x); if(di && di >= debutSem) tot[co.id].nSem++; }
       });
       if(!xs.length) return;
       nbAvecClients++;
@@ -809,7 +817,7 @@
     var nT = 0, euT = 0;
     xs.forEach(function(x){
       var pr = parseFloat(x.c.prix) || 0; nT++; euT += pr;
-      var di = dateRamasse(x), w = (info && di) ? Math.max(0, Math.min(N - 1, Math.floor((jours(di) - dj) / 7))) : -1;
+      var di = dateRamasse(x), w = (info && di && !estExceptionnelle(x)) ? Math.max(0, Math.min(N - 1, Math.floor((jours(di) - dj) / 7))) : -1;
       if(w >= 0) cnt[w]++;
       var co = auteurDe(x.c, liste); if(!co) return;
       tot[co.id].n++; tot[co.id].eu += pr; if(w >= 0) tot[co.id].cnt[w]++;
@@ -997,7 +1005,7 @@
       if(info){
         var dj = jours(info.debut), cnt = [], cntP = [], liste0 = collabsClassement(); for(var k = 0; k < info.N; k++){ cnt.push(0); cntP.push(0); }
         fichesRamassees(d._id).forEach(function(x){
-          var di = dateRamasse(x); if(!di) return;
+          var di = dateRamasse(x); if(!di || estExceptionnelle(x)) return;
           var w = Math.max(0, Math.min(info.N - 1, Math.floor((jours(di) - dj) / 7))); cnt[w]++;
           if(moi){ var co = auteurDe(x.c, liste0); if(co && co.id === moi) cntP[w]++; }
         });

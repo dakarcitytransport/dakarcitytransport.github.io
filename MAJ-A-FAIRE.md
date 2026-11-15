@@ -7166,3 +7166,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Cause : la fiche ouverte par scan gardait le Retour d'origine (« rouvrir le dernier container ouvert »), or le scan n'ouvre aucun container. Ajouter la photo n'y est pour rien.
 - Maintenant : fiche ouverte par scan (colis de collecte ou du dépôt, pas France) → « Retour » ramène à l'écran des Espaces, comme la facture ouverte par scan. (Un retour vers le container serait renvoyé vers la caméra par la pile de navigation : écarté.)
 - Testé (faux Firebase, caméra et lecteur QR simulés) : scan → fiche → Retour = Espaces, avec ou sans container.
+
+## 15/11/2026 — v3.99.384 (objectifs.js) — Collecte exceptionnelle : pas d'objectif de dimanche
+- Cobey : « Sur la bannière d'objectifs… on s'était objectivé 20 clients pour les dimanches. Comme on a créé une collecte exceptionnelle le samedi, il met un objectif pour le samedi avec 20 clients. Ce n'est pas bon, on ne met que les objectifs de dimanche. » → « Ok et oui » (les clients d'une exceptionnelle comptent quand même dans l'objectif du container).
+- Bannière du dimanche : ne retient plus que les collectes normales (la collecte exceptionnelle du samedi est ignorée, comme les livraisons de fûts).
+- Une exceptionnelle compte dans le total du container et au classement, mais pas dans les barres « par dimanche », ni dans « cette semaine », et ne décale plus le début du container (`estExceptionnelle`).
+- Testé : avec une exceptionnelle le samedi 21 et une normale le dimanche 22, la bannière affichait « Collecte du 21/11 » avant, « Collecte du 22/11 » après.
