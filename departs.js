@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.111';
+var DEP_VERSION = 'v2.22.112';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -1369,8 +1369,14 @@ window._depNbPhysique = _depNbPhysique;
 // Le nombre d'ETIQUETTES : un lot filmé en 3 paquets en demande 3, même
 // s'il ne compte que pour un colis. C'est au dépôt qu'on le sait, d'où le
 // champ "Paquets" sur la ligne (l.nbLot).
+// 15/11/2026 — Cobey : « il imprime aussi les étiquettes d'achat de fût… ça n'a pas de sens : c'est le prix du transport qui aura
+// l'étiquette qu'on colle sur le fût. » La ligne d'ACHAT d'un fût (prix seulement, reste sur la facture) ne donne jamais d'étiquette.
+var DEP_RE_LIGNE_ACHAT_FUT = /^\s*achat\s+(d['’]\s*un\s+)?f[uû]ts?\b/i;
+function _depSansAchatFut(lignes){
+  return (lignes || []).filter(function(l){ return !DEP_RE_LIGNE_ACHAT_FUT.test((l && l.nom) || ''); });
+}
 function _depNbEtiquettes(lignes){
-  return (lignes || []).reduce(function(s, l){
+  return _depSansAchatFut(lignes).reduce(function(s, l){
     var q = parseFloat(l.qte) || 0;
     return s + (l.lot ? (parseInt(l.nbLot, 10) || 1) : q);
   }, 0);
@@ -1384,7 +1390,7 @@ window._depNbEtiquettes = _depNbEtiquettes;
    celui qui décharge à Dakar doit pouvoir le comprendre (demande de
    l'équipe DCT du 18/09/2026). */
 function _depPlanEtiquettes(c){
-  var lignes = _depLignesColis(c);
+  var lignes = _depSansAchatFut(_depLignesColis(c));
   var total = _depNbPhysique(lignes) || 1;
   var plan = [], rang = 0;
   lignes.forEach(function(l){

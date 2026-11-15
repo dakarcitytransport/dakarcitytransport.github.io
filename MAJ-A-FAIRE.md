@@ -7149,3 +7149,8 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Cobey : « Quand j'appuie sur imprimer toutes les étiquettes, il me met génération du PDF, mais il n'y a rien qui arrive » puis « ça fonctionne, mais ça met quelques secondes quand même. C'est un peu long. »
 - Cause : à chaque étiquette, html2canvas recopiait toute l'appli (≈2,5 s chacune) sans rien afficher. Maintenant : la page est allégée pendant la capture (remise en place à la fin), captures lancées 3 par 3, outils du PDF préchargés à l'affichage des étiquettes, compteur « PDF : étiquette 3 sur 15… ».
 - Mesuré (navigateur de test, 15 étiquettes) : ≈38 s → ≈25 s ; un iPhone reste plus lent qu'un ordinateur.
+
+## 15/11/2026 — v3.99.381 (departs.js v2.22.112) — Pas d'étiquette pour l'achat d'un fût
+- Cobey : « quand on veut imprimer les étiquettes avec les colis, il imprime aussi les étiquettes d'achat de fût. Ça n'a pas de sens : c'est le prix du transport qui aura une étiquette qu'on va coller sur le fût. » → « Ok ».
+- La ligne d'achat d'un fût (« Achat d'un fût 270 L », ou ancienne saisie « achat fût 270 ») ne donne plus d'étiquette (`_depSansAchatFut`, dans `_depPlanEtiquettes` et `_depNbEtiquettes`) ; elle reste sur la facture, prix inchangé. Le « sur N » ne compte que les vrais colis.
+- Testé : 3 fûts → 1/3, 2/3, 3/3 (avant : 6) ; 2 fûts + 2 cartons → 4 étiquettes.
