@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.104';
+var DEP_VERSION = 'v2.22.105';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -18125,6 +18125,8 @@ function greffer(){
     window.goTo = function(id){
       var r = origGoTo.apply(this, arguments);
       try{ if(_livOuverte && !_LIV_ECRANS[id]) window.depSortirLivraison(); }catch(e){ console.error('livraison: sortie', e); }
+      // Retour sur l'écran Fûts (après une modification ou une suppression de fiche) : toujours redessiné, jamais l'ancien contenu.
+      try{ if(id === 's-dep-futs' && typeof depRenderFuts === 'function') depRenderFuts(); }catch(e){}
       return r;
     };
     window.goTo._depLiv = true;
@@ -24516,6 +24518,14 @@ window.depOuvrirFicheFut = function(clientId, src, colId){
   var c = depot ? (window.depotClients || {})[clientId] : ((window.clientsParCollecte || {})[colId] || {})[clientId];
   if(!c){ toast('⚠️ Client introuvable.'); return; }
   _depDepotViaCarre = false; _depDepotViaDakar = false; _depDepotDepart = c.departId || DEP_ID_DEPOT;
+  if(!depot && typeof openClientFiche === 'function'){
+    // Un client de livraison / de collecte s'ouvre comme partout : openClientFiche pose le client courant et remplit le formulaire de
+    // modification (sans lui, « Modifier la fiche » puis « Supprimer ce client » ne faisaient rien : client courant vide, vérifié le 15/11/2026).
+    window.currentCollecteId = colId;
+    openClientFiche(clientId, 's-dep-futs');
+    var bk2 = $('client-back'); if(bk2) bk2.onclick = function(){ depOuvrirEspaceFuts(); };
+    return;
+  }
   var bk = $('client-back'); if(bk) bk.onclick = function(){ depOuvrirEspaceFuts(); };
   depRenderFicheLecture(depot ? '' : colId, clientId, depot);
   goTo('s-dep-fiche-lecture');
