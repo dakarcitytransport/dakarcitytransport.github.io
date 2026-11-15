@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.105';
+var DEP_VERSION = 'v2.22.107';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -24592,13 +24592,21 @@ window._depSeparerLivraisons = function(){
   try{
     var cols = window.collectes || [];
     var futs = cols.filter(function(c){ return c && c.type === 'futs'; });
+    var base = {}; futs.forEach(function(c){ base[c.id] = 1; });
     if(futs.length){
       futs.forEach(function(c){
+        if(window._collectesSupprimees && window._collectesSupprimees[c.id]) return;   // supprimée sur ce téléphone : ne revient pas avec l'écho de la base
         var i = window.livsFuts.map(function(z){ return z && z.id; }).indexOf(c.id);
         if(i < 0) window.livsFuts.push(c); else window.livsFuts[i] = c;
       });
       window.collectes = cols.filter(function(c){ return !(c && c.type === 'futs'); });
     }
+    // Une livraison que la base ne connaît plus (supprimée depuis un autre téléphone) disparaît ici aussi, sauf si elle vient d'être créée ici.
+    window.livsFuts = window.livsFuts.filter(function(k){
+      var garde = !k || base[k.id] || k.id === _livOuverte || ((window._livRecentes || {})[k.id] || 0) > Date.now() - 60000;
+      if(!garde && k){ delete window.clientsLiv[k.id]; delete window.dispatchLiv[k.id]; }
+      return garde;
+    });
     [['clientsParCollecte', 'clientsLiv'], ['dispatchParCollecte', 'dispatchLiv']].forEach(function(p){
       var src = window[p[0]] || {};
       Object.keys(src).forEach(function(k){
@@ -24677,6 +24685,7 @@ window.depCreerLivraisonFuts = function(){
   var now = new Date(), dow = now.getDay(), deb = new Date(now); deb.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow)); deb.setHours(0, 0, 0, 0);
   var fin = new Date(deb); fin.setDate(deb.getDate() + 6); fin.setHours(23, 59, 59, 999);
   var statut = (dt >= deb && dt <= fin) ? 'en_cours' : 'a_venir';
+  window._livRecentes = window._livRecentes || {}; window._livRecentes[id] = Date.now();
   window.livsFuts.unshift({ id: id, date: label, type: 'futs', statut: statut });
   window.clientsLiv[id] = {}; window.dispatchLiv[id] = { trucks: {}, assigned: {} };
   // écrite tout de suite dans la base (comme les autres écritures directes) : sinon le prochain rafraîchissement venu de la base,
@@ -24686,6 +24695,43 @@ window.depCreerLivraisonFuts = function(){
   try{ depActivite('&#128666;', 'a cr&eacute;&eacute; la livraison de f&ucirc;ts du <strong>' + esc(label) + '</strong>'); }catch(e){}
   toast('✅ Livraison du ' + label + ' créée');
   depOuvrirLivraisonFuts(id);
+};
+// Supprimer une livraison de fûts (Cobey, 15/11/2026 : « je ne peux pas supprimer une journée de livraison créée pour les fûts »).
+// Refusée si un client est déjà livré ou a payé, ou si des dépenses de tournée sont saisies : il faut d'abord les basculer / les supprimer.
+window.depSupprimerLivraisonFuts = function(id){
+  if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
+  var L = _depColFuts(id); if(!L){ toast('⚠️ Livraison introuvable.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  if(_livOuverte === id) window.depSortirLivraison();
+  var cl = (window.clientsLiv || {})[id] || {}, ids = Object.keys(cl), nbF = 0, bloque = '';
+  ids.forEach(function(i){
+    var c = cl[i], n = 0;
+    try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')) n += (l.qte || 0); }); }catch(e){}
+    nbF += n;
+    if(!bloque && (_depLivreFut(id, i) || (Array.isArray(c.versements) && c.versements.length))) bloque = (c.name || 'Un client') + ' est déjà livré ou a payé';
+  });
+  var dep = ((window.depensesData || {})[id]) || {};
+  if(!bloque && Object.keys(dep).some(function(k){ return Object.keys(dep[k] || {}).length; })) bloque = 'des dépenses de tournée sont saisies';
+  if(bloque){ toast('⛔ Suppression impossible : ' + bloque + '. Basculez ou supprimez-les d\'abord.'); return; }
+  var msg = 'Supprimer la livraison du ' + L.date + ' ?' + (ids.length ? '\n\n' + ids.length + ' client' + (ids.length > 1 ? 's' : '') + ' inscrit' + (ids.length > 1 ? 's' : '') + ' (' + nbF + ' fût' + (nbF > 1 ? 's' : '') + ') seront supprimés et les fûts reviendront en stock (copie gardée 30 jours dans la corbeille).' : '');
+  if(!confirm(msg)) return;
+  var u = window.currentUser || {};
+  ids.forEach(function(i){
+    var c = cl[i];
+    try{ window._depCorbeille('clientCol', id + '_' + i, { titre: c.name || 'Client', sous: 'Livraison de fûts du ' + L.date, departId: c.departId || '',
+      ecritures: [{ p: 'dct/clients/' + id + '/' + i, v: c }] }); }catch(e){}
+  });
+  window.livsFuts = window.livsFuts.filter(function(k){ return k && k.id !== id; });
+  delete window.clientsLiv[id]; delete window.dispatchLiv[id];
+  window._collectesSupprimees = window._collectesSupprimees || {};
+  window._collectesSupprimees[id] = Date.now();
+  window._lastWriteTime = Date.now();
+  var maj = {}; maj['dct/clients/' + id] = null; maj['dct/dispatch/' + id] = null; maj['dct/collectes_supprimees/' + id] = Date.now();
+  db.ref().update(maj).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'écriture refusée')); });
+  db.ref('dct/collectes').transaction(function(distant){ return _fusionnerListeCollectes(distant, _depListeComplete(), window._collectesSupprimees); });
+  try{ depActivite('&#128465;&#65039;', 'a supprim&eacute; la livraison de f&ucirc;ts du <strong>' + esc(L.date) + '</strong>' + (ids.length ? ' (' + ids.length + ' client' + (ids.length > 1 ? 's' : '') + ')' : '')); }catch(e){}
+  toast('🗑️ Livraison supprimée');
+  depRenderFuts();
 };
 window.depOuvrirLivraisonFuts = function(id){
   if(!depEntrerLivraison(id)){ toast('⚠️ Livraison introuvable.'); return; }
@@ -24872,7 +24918,8 @@ function depRenderFuts(){
     + (livs.length ? livs.map(function(k){
         var cl = (window.clientsLiv || {})[k.id] || (window.clientsParCollecte || {})[k.id] || {}, ids = Object.keys(cl), nbF = 0, liv = 0;
         ids.forEach(function(i){ var c = cl[i]; var n = 0; try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')) n += (l.qte || 0); }); }catch(e){} nbF += n; if(_depLivreFut(k.id, i)) liv++; });
-        return '<div class="dep-card ft-c" style="cursor:pointer;" onclick="depOuvrirLivraisonFuts(\'' + k.id + '\')"><div class="dep-card-top"><div class="dep-nom">&#128666; ' + esc(k.date) + '</div></div>'
+        return '<div class="dep-card ft-c" style="cursor:pointer;" onclick="depOuvrirLivraisonFuts(\'' + k.id + '\')"><div class="dep-card-top"><div class="dep-nom">&#128666; ' + esc(k.date) + '</div>'
+          + '<span onclick="event.stopPropagation();depSupprimerLivraisonFuts(\'' + k.id + '\')" style="cursor:pointer;font-size:18px;padding:2px 6px;" title="Supprimer cette livraison">&#128465;&#65039;</span></div>'
           + '<div class="dep-meta"><span>' + ids.length + ' client' + (ids.length > 1 ? 's' : '') + ' &middot; ' + nbF + ' f&ucirc;t' + (nbF > 1 ? 's' : '') + ' &middot; ' + liv + ' livr&eacute;' + (liv > 1 ? 's' : '') + (k.statut === 'terminee' ? ' &middot; termin&eacute;e' : '') + '</span></div></div>';
       }).join('') : '<div class="dep-vide" style="padding:14px;">Aucune livraison. Cr&eacute;ez-en une pour inscrire des clients.</div>');
   var aL = fiches.filter(function(o){ return _depEtatFut(o) === 'a_livrer'; });

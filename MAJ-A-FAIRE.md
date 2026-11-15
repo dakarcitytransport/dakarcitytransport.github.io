@@ -7133,3 +7133,8 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 > Cobey : « par rapport au fût, j'ai inscrit un client (Eric Coy) pour tester mais je n'arrive pas à le supprimer : quand je fais Modifier, Supprimer client, il reste ».
 - Cause (reproduite) : la fiche s'ouvrait depuis l'écran Fûts sans poser le « client courant » ni remplir le formulaire de modification ; « Modifier la fiche » puis « Supprimer ce client » (et « Enregistrer ») ne faisaient donc rien. La fiche d'un client de livraison s'ouvre maintenant par `openClientFiche` comme partout ; en plus, l'écran Fûts se redessine toujours quand on y revient (plus d'ancien contenu après une suppression).
 - Testé (faux Firebase) : Fûts › carte du client › Modifier la fiche › Supprimer ce client → client retiré de la livraison, retour sur Fûts sans le client, stock revenu de 4 à 6 fûts ; les champs propres aux fûts (lots, lignes de colis, pays) sont conservés à l'enregistrement (recollage de l'existant).
+
+## 15/11/2026 — v3.99.378 (departs.js v2.22.107) — Supprimer une livraison de fûts
+- Cobey : « On ne peut pas également supprimer des journées de collègues qu'on a créées pour les fûts. Par exemple, il y en a une créée le samedi… je ne peux pas la supprimer. »
+- Fûts : chaque carte de livraison a un bouton 🗑. Refusé si un client est déjà livré / a payé, ou s'il y a des dépenses de tournée (basculer ou supprimer d'abord). Sinon : confirmation, les clients inscrits vont en corbeille (30 jours), les fûts reviennent en stock, la livraison disparaît (aussi chez les autres téléphones).
+- Testé (faux Firebase) : livraison vide, livraison avec client non payé (stock 4→6), livraison avec client payé (refus).
