@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.113';
+var DEP_VERSION = 'v2.22.114';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -10204,6 +10204,14 @@ function _depScanBoucle(){
           }
           else if(dl.depot) depOuvrirFicheDepot(cible.departId || '', dl.clientId);
           else depOuvrirFicheClient(dl.collecteId, dl.clientId);
+          // 15/11/2026 — Cobey : « on a scanné un colis, ajouté une photo, appuyé sur retour : "départ introuvable". » Après un scan
+          // aucun container n'a été ouvert : le Retour d'origine (dernier container ouvert) échouait. Il ramène à l'écran des espaces,
+          // comme la facture ouverte par scan (voir depOuvrirFacture).
+          if(!dl.france){
+            var _retourScan = function(){ goTo('s-espaces'); };
+            var _bkS = $('client-back'); if(_bkS) _bkS.onclick = _retourScan;
+            var _cnS = $('client-cancel'); if(_cnS) _cnS.onclick = _retourScan;
+          }
           return;
         }
       }

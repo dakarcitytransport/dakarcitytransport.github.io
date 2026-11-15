@@ -7160,3 +7160,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Avant : ✕ seulement pendant la validation ; galerie France : admin ou auteur sous 5 min ; AUCUNE suppression sur « Photos du colis » de la fiche une fois enregistrée.
 - Maintenant : un ✕ sur chaque photo de la fiche du colis (et de l'accès rapide). Direction : toutes les photos ; un collaborateur : les siennes, le jour même ; les photos de remise de Mamadou : jamais. Confirmation, copie 30 jours dans Réglages › Corbeille (section « Photos des colis »), ligne dans l'activité.
 - Testé (faux Firebase) : admin voit 2 ✕, suppression → photo retirée de la base, entrée en corbeille ; collaborateur avec une photo vieille de 3 jours : aucun ✕.
+
+## 15/11/2026 — v3.99.383 (departs.js v2.22.114) — Retour après un scan QR : plus de « Départ introuvable »
+- Cobey : « On a scanné un colis via le QR code, on a rajouté une nouvelle photo, on a appuyé sur retour et un message d'erreur apparaît : départ introuvable. » → « Ok ».
+- Cause : la fiche ouverte par scan gardait le Retour d'origine (« rouvrir le dernier container ouvert »), or le scan n'ouvre aucun container. Ajouter la photo n'y est pour rien.
+- Maintenant : fiche ouverte par scan (colis de collecte ou du dépôt, pas France) → « Retour » ramène à l'écran des Espaces, comme la facture ouverte par scan. (Un retour vers le container serait renvoyé vers la caméra par la pile de navigation : écarté.)
+- Testé (faux Firebase, caméra et lecteur QR simulés) : scan → fiche → Retour = Espaces, avec ou sans container.
