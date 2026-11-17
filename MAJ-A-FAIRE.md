@@ -7180,3 +7180,10 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Section « À placer » : cases à cocher + choix de la journée + « Placer N cochés » ; bouton « Placer dans une journée » sur chaque carte. Sur un client « En transit » : « Remettre à placer » (refusé s'il est déjà dans un camion ou livré).
 - Technique : la liste « À placer » est une livraison spéciale `liv_attente` (type futs, sans date), qui réutilise fiche, stock, paiements, photos ; elle n'apparaît pas dans la liste des journées et ne se supprime pas. Un placement déplace la même fiche (même identifiant : photos et paiements suivent) et note l'étape dans son historique.
 - Testé (faux Firebase) : inscription sans journée → À placer=1 ; placement → En transit=1, base à jour ; remise à placer ; liste « À placer » non supprimable ; fiche d'un client à placer ouvrable ; inscription directe dans une journée ; capture d'écran V2.
+
+## 17/11/2026 — v3.99.386 (departs.js v2.22.116) — Archiver les journées de livraison de fûts
+- Cobey : « une livraison finie peut être archivée, sinon elles vont se cumuler dans l'interface » → « on fait la possibilité de le faire manuellement, et sinon archiver automatiquement le soir à minuit ».
+- Écran Fûts : bouton « 📦 Archiver » sur chaque journée sans client « en transit » (refusé sinon). La journée quitte la liste ; « Journées archivées (N) » en bas (repliée) permet de la revoir ou de la « ↩ Désarchiver ». Rien n'est supprimé : clients, argent, photos, historique restent.
+- Automatique : toute journée dont la date est passée (minuit passé) et sans client en transit est rangée seule, au premier lancement / à l'ouverture de l'écran Fûts (au plus une fois toutes les 10 min, et seulement par un téléphone autorisé aux fûts). Pas de minuteur côté serveur : c'est l'appli qui s'en charge à l'ouverture.
+- Une journée archivée n'est plus proposée à l'inscription ni au placement.
+- Testé (faux Firebase) : journée finie et passée → archivée seule ; journée vide future → non ; journée avec client en transit → non (et archivage manuel refusé) ; archivage manuel d'une journée vide ; base à jour ; désarchivage.

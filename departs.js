@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.115';
+var DEP_VERSION = 'v2.22.116';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -24680,6 +24680,58 @@ function _depLivraisonsFuts(){ return window.livsFuts || []; }
    ne leur est donnée : elle réutilise tout (fiche, stock, paiements, photos). Elle n'apparaît jamais dans la liste des journées. */
 var DEP_LIV_ATTENTE = 'liv_attente';
 function _depLivraisonsReelles(){ return _depLivraisonsFuts().filter(function(k){ return k && k.id !== DEP_LIV_ATTENTE; }); }
+function _depLivraisonsActives(){ return _depLivraisonsReelles().filter(function(k){ return !k.archivee; }); }
+/* ARCHIVAGE des journées de livraison finies (Cobey, 17/11/2026) : « une livraison finie peut être archivée, sinon elles vont se cumuler dans l'interface »
+   → à la main (bouton « Archiver ») et automatiquement : une journée dont tous les clients sont déposés est rangée dès que sa date est passée (minuit passé),
+   au premier lancement de l'appli. Rien n'est supprimé : clients, argent et photos restent ; « Journées archivées » permet de la revoir ou de la désarchiver. */
+function _depEnTransitDe(id){
+  var cl = (window.clientsLiv || {})[id] || (window.clientsParCollecte || {})[id] || {};
+  return Object.keys(cl).filter(function(cid){ return cl[cid] && !_depLivreFut(id, cid); }).length;
+}
+function _depEcrireListeLivraisons(){
+  window._lastWriteTime = Date.now();
+  try{ db.ref('dct/collectes').transaction(function(distant){ return _fusionnerListeCollectes(distant, _depListeComplete(), {}); }); }catch(e){ console.error('fûts: archivage', e); }
+}
+function _depArchiverLivraison(L, auto){
+  L.archivee = true; L.archiveeLe = Date.now(); L.archiveePar = auto ? 'auto' : ((window.currentUser || {}).name || '');
+}
+window.depArchiverLivraisonFuts = function(id){
+  if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
+  var L = _depColFuts(id); if(!L || id === DEP_LIV_ATTENTE) return;
+  var n = _depEnTransitDe(id);
+  if(n > 0){ toast('⚠️ ' + n + ' client' + (n > 1 ? 's' : '') + ' pas encore déposé' + (n > 1 ? 's' : '') + ' : on ne peut pas archiver cette journée.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  if(!confirm('Archiver la livraison du ' + L.date + ' ?\nElle quitte la liste mais rien n\'est supprimé : tu la retrouves dans « Journées archivées ».')) return;
+  _depArchiverLivraison(L, false); _depEcrireListeLivraisons();
+  try{ depActivite('&#128230;', 'a archiv&eacute; la livraison de f&ucirc;ts du <strong>' + esc(L.date) + '</strong>'); }catch(e){}
+  toast('📦 Livraison archivée'); depRenderFuts();
+};
+window.depDesarchiverLivraisonFuts = function(id){
+  if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
+  var L = _depColFuts(id); if(!L) return;
+  delete L.archivee; delete L.archiveeLe; delete L.archiveePar; L.archivee = false;
+  _depEcrireListeLivraisons();
+  toast('↩️ Livraison désarchivée'); depRenderFuts();
+};
+var _depArchivageAutoTs = 0;
+function _depArchivageAuto(force){
+  try{
+    if(!window.db || !window.firebaseReady || !_depPeutCase('futs')) return;
+    if(!force && Date.now() - _depArchivageAutoTs < 10 * 60000) return;
+    _depArchivageAutoTs = Date.now();
+    var auj = new Date(); auj.setHours(0, 0, 0, 0);
+    var n = 0;
+    _depLivraisonsReelles().forEach(function(L){
+      if(L.archivee || L.id === _livOuverte) return;
+      var d = _depParseDateSure(L.date);
+      if(!(d instanceof Date) || isNaN(d.getTime()) || d >= auj) return;   // la date de la journée doit être passée (minuit passé)
+      if(_depEnTransitDe(L.id) > 0) return;
+      _depArchiverLivraison(L, true); n++;
+    });
+    if(n) _depEcrireListeLivraisons();
+  }catch(e){ console.error('fûts: archivage automatique', e); }
+}
+window.depArchivageAuto = function(){ _depArchivageAuto(true); };
 function _depAssurerAttente(){
   if(_depColFuts(DEP_LIV_ATTENTE)) return;
   window._livRecentes = window._livRecentes || {}; window._livRecentes[DEP_LIV_ATTENTE] = Date.now();
@@ -24726,6 +24778,7 @@ window._depSeparerLivraisons = function(){
       if(window.dispatchLiv[_livOuverte]) window.dispatchParCollecte[_livOuverte] = window.dispatchLiv[_livOuverte];
     }
   }catch(e){ console.error('livraisons: séparation', e); }
+  setTimeout(_depArchivageAuto, 3000);   // minuit passé : les journées finies se rangent toutes seules (au plus une fois toutes les 10 min)
 };
 function _depListeComplete(){ return (window.collectes || []).concat(window.livsFuts || []).filter(function(c, i, a){ return c && a.map(function(z){ return z && z.id; }).indexOf(c.id) === i; }); }
 // Écrit la livraison (liste, clients, camions) dans la base : appelé à la sortie, pour que rien ne reste dans la sauvegarde différée.
@@ -24870,7 +24923,7 @@ function _depPlacerListeFuts(ids, toId){
   if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
   var L = _depColFuts(toId);
-  if(!L || toId === DEP_LIV_ATTENTE || L.statut === 'terminee'){ toast('⚠️ Choisissez une journée de livraison.'); return; }
+  if(!L || toId === DEP_LIV_ATTENTE || L.statut === 'terminee' || L.archivee){ toast('⚠️ Choisissez une journée de livraison.'); return; }
   var n = 0, noms = [];
   ids.forEach(function(id){
     var o = _depFichesFuts().filter(function(z){ return z.x.clientId === id && z.x.collecteId === DEP_LIV_ATTENTE; })[0];
@@ -24889,7 +24942,7 @@ window.depPlacerFutsCoches = function(){
   _depPlacerListeFuts(ids, (($('ft-place-jour') || {}).value || ''));
 };
 window.depOuvrirPlacementFuts = function(clientId){
-  var jours = _depLivraisonsReelles().filter(function(k){ return k.statut !== 'terminee'; })
+  var jours = _depLivraisonsActives().filter(function(k){ return k.statut !== 'terminee'; })
     .sort(function(a, b){ return _depParseDateSure(a.date) - _depParseDateSure(b.date); });
   if(!jours.length){ toast('⚠️ Créez d\'abord une journée de livraison (écran Fûts).'); return; }
   var m = $('modal-fut-placer'); if(m) m.remove();
@@ -25042,6 +25095,7 @@ window.depOuvrirEspaceFuts = function(){
 function depRenderFuts(){
   var box = $('dep-futs-content');
   if(!box) return;
+  _depArchivageAuto();
   var st = _depStockFuts(), fiches = _depFichesFuts().sort(function(a, b){ return (b.c.creeLe || 0) - (a.c.creeLe || 0); });
   var h = '<div class="dep-card ft-c ft-stock" style="border-left-color:#1565A8;">'
     + '<div class="dep-card-top"><div class="dep-nom">&#128738;&#65039; F&ucirc;ts</div></div>'
@@ -25107,25 +25161,32 @@ function depRenderFuts(){
       + '<span style="color:' + (pay.reste > 0 ? '#B3261E' : '#006b2d') + ';">' + (pay.reste > 0 ? 'Reste ' + _depEuros(pay.reste) + ' &euro;' : 'Pay&eacute;') + '</span></div>'
       + bouton + '</div>';
   }
+  function carteJournee(k, archivee){
+    var cl = (window.clientsLiv || {})[k.id] || (window.clientsParCollecte || {})[k.id] || {}, ids = Object.keys(cl), nbF = 0, liv = 0;
+        ids.forEach(function(i){ var c = cl[i]; var n = 0; try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')) n += (l.qte || 0); }); }catch(e){} nbF += n; if(_depLivreFut(k.id, i)) liv++; });
+        return '<div class="dep-card ft-c" style="cursor:pointer;" onclick="depOuvrirLivraisonFuts(\'' + k.id + '\')"><div class="dep-card-top"><div class="dep-nom">&#128666; ' + esc(k.date) + '</div>'
+          + (archivee
+              ? '<span onclick="event.stopPropagation();depDesarchiverLivraisonFuts(\'' + k.id + '\')" style="cursor:pointer;font-size:12.5px;font-weight:800;padding:2px 8px;color:#1565A8;" title="Remettre dans la liste">&#8617; D&eacute;sarchiver</span></div>'
+              : (_depEnTransitDe(k.id) === 0 ? '<span onclick="event.stopPropagation();depArchiverLivraisonFuts(\'' + k.id + '\')" style="cursor:pointer;font-size:12.5px;font-weight:800;padding:2px 8px;color:#1565A8;" title="Archiver cette livraison">&#128230; Archiver</span>' : '')
+                + '<span onclick="event.stopPropagation();depSupprimerLivraisonFuts(\'' + k.id + '\')" style="cursor:pointer;font-size:18px;padding:2px 6px;" title="Supprimer cette livraison">&#128465;&#65039;</span></div>')
+          + '<div class="dep-meta"><span>' + ids.length + ' client' + (ids.length > 1 ? 's' : '') + ' &middot; ' + nbF + ' f&ucirc;t' + (nbF > 1 ? 's' : '') + ' &middot; ' + liv + ' livr&eacute;' + (liv > 1 ? 's' : '') + (k.statut === 'terminee' ? ' &middot; termin&eacute;e' : '') + '</span></div></div>';
+  }
   // Livraisons : créer, ouvrir (même écran que les collectes : camions, dispatch, carte, dépenses)
-  var livs = _depLivraisonsReelles().slice().sort(function(a, b){ return (b.statut === 'terminee') - (a.statut === 'terminee') ? ((a.statut === 'terminee') - (b.statut === 'terminee')) : (_depParseDateSure(a.date) - _depParseDateSure(b.date)); });
+  var tousLivs = _depLivraisonsReelles(), archLivs = tousLivs.filter(function(k){ return k.archivee; }).sort(function(a, b){ return _depParseDateSure(b.date) - _depParseDateSure(a.date); });
+  var livs = _depLivraisonsActives().slice().sort(function(a, b){ return (b.statut === 'terminee') - (a.statut === 'terminee') ? ((a.statut === 'terminee') - (b.statut === 'terminee')) : (_depParseDateSure(a.date) - _depParseDateSure(b.date)); });
   h += '<div class="dep-sec" style="border-top:none;padding-top:0;">&#128666; Livraisons de f&ucirc;ts (' + livs.length + ')</div>'
     + '<div style="display:flex;gap:8px;margin-bottom:10px;"><input class="fi" id="liv-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="flex:1;min-width:0;max-width:100%;box-sizing:border-box;">'
     + '<button class="btn btn-green" style="width:auto;margin:0;padding:0 16px;" onclick="depCreerLivraisonFuts()">+ Nouvelle</button></div>'
-    + (livs.length ? livs.map(function(k){
-        var cl = (window.clientsLiv || {})[k.id] || (window.clientsParCollecte || {})[k.id] || {}, ids = Object.keys(cl), nbF = 0, liv = 0;
-        ids.forEach(function(i){ var c = cl[i]; var n = 0; try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')) n += (l.qte || 0); }); }catch(e){} nbF += n; if(_depLivreFut(k.id, i)) liv++; });
-        return '<div class="dep-card ft-c" style="cursor:pointer;" onclick="depOuvrirLivraisonFuts(\'' + k.id + '\')"><div class="dep-card-top"><div class="dep-nom">&#128666; ' + esc(k.date) + '</div>'
-          + '<span onclick="event.stopPropagation();depSupprimerLivraisonFuts(\'' + k.id + '\')" style="cursor:pointer;font-size:18px;padding:2px 6px;" title="Supprimer cette livraison">&#128465;&#65039;</span></div>'
-          + '<div class="dep-meta"><span>' + ids.length + ' client' + (ids.length > 1 ? 's' : '') + ' &middot; ' + nbF + ' f&ucirc;t' + (nbF > 1 ? 's' : '') + ' &middot; ' + liv + ' livr&eacute;' + (liv > 1 ? 's' : '') + (k.statut === 'terminee' ? ' &middot; termin&eacute;e' : '') + '</span></div></div>';
+    + (livs.length ? livs.map(function(k){ return carteJournee(k, false);
       }).join('') : '<div class="dep-vide" style="padding:14px;">Aucune journ&eacute;e de livraison. Cr&eacute;ez-en une pour y placer vos clients.</div>');
+  if(archLivs.length) h += '<details style="margin:4px 0 12px;"><summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--text3);padding:6px 2px;">&#128230; Journ&eacute;es archiv&eacute;es (' + archLivs.length + ')</summary>' + archLivs.map(function(k){ return carteJournee(k, true); }).join('') + '</details>';
   var aL = fiches.filter(function(o){ return _depEtatFut(o) === 'a_livrer'; });
   var aPlL = fiches.filter(function(o){ return _depEtatFut(o) === 'a_placer'; });
   var chezL = fiches.filter(function(o){ return _depEtatFut(o) === 'chez'; });
   var apresL = fiches.filter(function(o){ return _depEtatFut(o) === 'collecte'; });
   // Clients inscrits sans journée : on les coche, on choisit la journée, on les place (Cobey, 17/11/2026).
   Object.keys(_depPlaceSel).forEach(function(i){ if(!aPlL.some(function(o){ return o.x.clientId === i; })) delete _depPlaceSel[i]; });
-  var nSel = Object.keys(_depPlaceSel).length, joursOuv = _depLivraisonsReelles().filter(function(k){ return k.statut !== 'terminee'; })
+  var nSel = Object.keys(_depPlaceSel).length, joursOuv = _depLivraisonsActives().filter(function(k){ return k.statut !== 'terminee'; })
     .sort(function(a, b){ return _depParseDateSure(a.date) - _depParseDateSure(b.date); });
   h += '<div class="dep-sec">&#128203; &Agrave; placer (' + aPlL.length + ')</div>'
     + (aPlL.length ? '<div style="font-size:12px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:8px;">Clients enregistr&eacute;s, pas encore dans une journ&eacute;e de livraison. Cochez ceux d\'une m&ecirc;me journ&eacute;e, choisissez-la, puis placez-les.</div>'
@@ -25302,7 +25363,7 @@ window.depFutVenteCalc = function(){
 window.depOuvrirVenteFut = function(colId){
   _depAssurerAttente();
   // La liste « À placer » est toujours proposée en premier (inscrire sans connaître la journée), puis les journées de livraison ouvertes.
-  var livsOuv = _depLivraisonsFuts().filter(function(k){ return k.statut !== 'terminee'; })
+  var livsOuv = _depLivraisonsFuts().filter(function(k){ return k.statut !== 'terminee' && !k.archivee; })
     .sort(function(a, b){ return (b.id === DEP_LIV_ATTENTE) - (a.id === DEP_LIV_ATTENTE); });
   var stock = _depStockFuts().restants;
   if(stock < 1){ toast('⛔ Plus de fût en stock à Émerainville : la vente est impossible.'); return; }
