@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.114';
+var DEP_VERSION = 'v2.22.115';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -24675,6 +24675,20 @@ var _livOuverte = '', _livPrecedente = null;
 var _LIV_ECRANS = { 's-collecte':1, 's-camion':1, 's-client':1, 's-client-fiche':1, 's-add':1, 's-dep-fiche-lecture':1, 's-dep-valider':1, 's-facture':1,
   's-dep-impression':1, 's-etiquette':1, 's-dep-suivi':1, 's-dep-fut-vente':1, 's-facture-publique':1 };
 function _depLivraisonsFuts(){ return window.livsFuts || []; }
+/* Liste « À PLACER » (Cobey, 17/11/2026) : « pour les ventes de fûts, pouvoir enregistrer des clients d'abord, puis les placer dans une journée de livraison, pour
+   mieux s'organiser selon les personnes enregistrées. » C'est une livraison spéciale, sans date (id fixe), qui garde les clients inscrits tant qu'aucune journée
+   ne leur est donnée : elle réutilise tout (fiche, stock, paiements, photos). Elle n'apparaît jamais dans la liste des journées. */
+var DEP_LIV_ATTENTE = 'liv_attente';
+function _depLivraisonsReelles(){ return _depLivraisonsFuts().filter(function(k){ return k && k.id !== DEP_LIV_ATTENTE; }); }
+function _depAssurerAttente(){
+  if(_depColFuts(DEP_LIV_ATTENTE)) return;
+  window._livRecentes = window._livRecentes || {}; window._livRecentes[DEP_LIV_ATTENTE] = Date.now();
+  window.livsFuts.push({ id: DEP_LIV_ATTENTE, date: 'À placer', type: 'futs', statut: 'a_venir', special: 'attente' });
+  window.clientsLiv[DEP_LIV_ATTENTE] = window.clientsLiv[DEP_LIV_ATTENTE] || {};
+  window.dispatchLiv[DEP_LIV_ATTENTE] = window.dispatchLiv[DEP_LIV_ATTENTE] || { trucks: {}, assigned: {} };
+  window._lastWriteTime = Date.now();
+  try{ db.ref('dct/collectes').transaction(function(distant){ return _fusionnerListeCollectes(distant, _depListeComplete(), {}); }); }catch(e){ console.error('fûts: liste à placer', e); }
+}
 function _depColFuts(colId){ return _depLivraisonsFuts().filter(function(k){ return k && k.id === colId; })[0] || null; }
 // À appeler après chaque chargement venu de la base : sort les livraisons de `collectes`, `clientsParCollecte` et `dispatchParCollecte`.
 window._depSeparerLivraisons = function(){
@@ -24753,10 +24767,11 @@ function _depLivreFut(colId, id){
     return v.indexOf(id) >= 0;
   });
 }
-// 'a_livrer' (inscrit dans une livraison, pas encore déposé) | 'chez' (fût chez le client) | 'collecte' (basculé, ramassé ou parti)
+// 'a_placer' (inscrit, pas encore dans une journée de livraison) | 'a_livrer' (« en transit » : dans une journée, pas encore déposé) | 'chez' (fût chez le client) | 'collecte' (basculé, ramassé ou parti)
 function _depEtatFut(o){
   var x = o.x;
   if(x.src === 'depot') return (!o.c.departId || o.c.departId === DEP_ID_DEPOT) ? 'chez' : 'collecte';
+  if(x.src === 'col' && x.collecteId === DEP_LIV_ATTENTE) return 'a_placer';
   if(x.src === 'col' && _depColFuts(x.collecteId)) return _depLivreFut(x.collecteId, x.clientId) ? 'chez' : 'a_livrer';
   return 'collecte';
 }
@@ -24788,6 +24803,7 @@ window.depCreerLivraisonFuts = function(){
 // Supprimer une livraison de fûts (Cobey, 15/11/2026 : « je ne peux pas supprimer une journée de livraison créée pour les fûts »).
 // Refusée si un client est déjà livré ou a payé, ou si des dépenses de tournée sont saisies : il faut d'abord les basculer / les supprimer.
 window.depSupprimerLivraisonFuts = function(id){
+  if(id === DEP_LIV_ATTENTE){ toast('⚠️ La liste « À placer » ne se supprime pas.'); return; }
   if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
   var L = _depColFuts(id); if(!L){ toast('⚠️ Livraison introuvable.'); return; }
   if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
@@ -24822,6 +24838,91 @@ window.depSupprimerLivraisonFuts = function(id){
   toast('🗑️ Livraison supprimée');
   depRenderFuts();
 };
+
+/* PLACER / REMETTRE À PLACER (Cobey, 17/11/2026) : une fiche passe de la liste « À placer » à une journée de livraison (« en transit »), ou revient
+   à la liste tant qu'elle n'est ni dans un camion ni livrée. Même fiche, même identifiant : photos, paiements et historique suivent. */
+var _depPlaceSel = {};
+window.depCocherPlacementFut = function(id, on){ if(on) _depPlaceSel[id] = 1; else delete _depPlaceSel[id]; depRenderFuts(); };
+function _depDeplacerFicheLiv(clientId, fromId, toId){
+  if(_livOuverte === fromId || _livOuverte === toId) window.depSortirLivraison();
+  var src = window.clientsLiv[fromId] || {}, c = src[clientId];
+  if(!c) return false;
+  var u = window.currentUser || {};
+  var versTxt = toId === DEP_LIV_ATTENTE ? 'remis &agrave; placer (sans journ&eacute;e)' : 'plac&eacute; dans la livraison du ' + esc((_depColFuts(toId) || {}).date || '');
+  if(!Array.isArray(c.hist)) c.hist = [];
+  c.hist.push({ q: u.name || u.id || '', a: 'a ' + versTxt, ts: Date.now(), type: 'placement' });
+  c.futLiv = toId;
+  delete src[clientId];
+  if(!window.clientsLiv[toId]) window.clientsLiv[toId] = {};
+  window.clientsLiv[toId][clientId] = c;
+  if(!window.dispatchLiv[toId]) window.dispatchLiv[toId] = { trucks: {}, assigned: {} };
+  if(!window.dispatchLiv[toId].assigned) window.dispatchLiv[toId].assigned = {};
+  window.dispatchLiv[toId].assigned[clientId] = null;
+  if(window.dispatchLiv[fromId] && window.dispatchLiv[fromId].assigned) delete window.dispatchLiv[fromId].assigned[clientId];
+  window._lastWriteTime = Date.now();
+  var maj = {};
+  maj['dct/clients/' + fromId + '/' + clientId] = null; maj['dct/clients/' + toId + '/' + clientId] = c;
+  maj['dct/dispatch/' + fromId + '/assigned/' + clientId] = null; maj['dct/dispatch/' + toId + '/assigned/' + clientId] = null;
+  try{ db.ref().update(maj).catch(function(e){ toast('❌ Échec : ' + ((e && e.message) || 'écriture refusée')); }); }catch(e){ console.error('fûts: placement', e); return false; }
+  return true;
+}
+function _depPlacerListeFuts(ids, toId){
+  if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  var L = _depColFuts(toId);
+  if(!L || toId === DEP_LIV_ATTENTE || L.statut === 'terminee'){ toast('⚠️ Choisissez une journée de livraison.'); return; }
+  var n = 0, noms = [];
+  ids.forEach(function(id){
+    var o = _depFichesFuts().filter(function(z){ return z.x.clientId === id && z.x.collecteId === DEP_LIV_ATTENTE; })[0];
+    if(o && _depDeplacerFicheLiv(id, DEP_LIV_ATTENTE, toId)){ n++; noms.push(o.c.name || 'Client'); }
+  });
+  _depPlaceSel = {};
+  if(n){
+    try{ depActivite('&#128666;', 'a plac&eacute; <strong>' + esc(noms.join(', ')) + '</strong> dans la livraison du <strong>' + esc(L.date) + '</strong>'); }catch(e){}
+    toast('✅ ' + n + ' client' + (n > 1 ? 's' : '') + ' placé' + (n > 1 ? 's' : '') + ' dans la livraison du ' + L.date);
+  } else toast('⚠️ Rien à placer.');
+  depRenderFuts();
+}
+window.depPlacerFutsCoches = function(){
+  var ids = Object.keys(_depPlaceSel);
+  if(!ids.length){ toast('⚠️ Cochez d\'abord les clients à placer.'); return; }
+  _depPlacerListeFuts(ids, (($('ft-place-jour') || {}).value || ''));
+};
+window.depOuvrirPlacementFuts = function(clientId){
+  var jours = _depLivraisonsReelles().filter(function(k){ return k.statut !== 'terminee'; })
+    .sort(function(a, b){ return _depParseDateSure(a.date) - _depParseDateSure(b.date); });
+  if(!jours.length){ toast('⚠️ Créez d\'abord une journée de livraison (écran Fûts).'); return; }
+  var m = $('modal-fut-placer'); if(m) m.remove();
+  m = document.createElement('div'); m.id = 'modal-fut-placer'; m.className = 'modal-overlay';
+  m.innerHTML = '<div class="modal-sheet"><div style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:10px;">&#128666; Placer dans une journ&eacute;e</div>'
+    + '<select id="fut-placer-jour" style="width:100%;padding:11px;border:1.5px solid #ddd;border-radius:10px;font-size:15px;font-weight:700;margin:4px 0 12px;">'
+    + jours.map(function(k){ return '<option value="' + esc(k.id) + '">' + esc(k.date) + '</option>'; }).join('') + '</select>'
+    + '<button style="width:100%;padding:13px;background:#006b2d;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;margin-bottom:8px;" onclick="depConfirmerPlacementFut(\'' + clientId + '\')">Placer</button>'
+    + '<button style="width:100%;padding:12px;background:#f0f0f0;color:#333;border:none;border-radius:10px;font-size:13px;font-weight:700;" onclick="closeModal(\'modal-fut-placer\')">Annuler</button></div>';
+  document.body.appendChild(m); openModal('modal-fut-placer');
+};
+window.depConfirmerPlacementFut = function(clientId){
+  var toId = (($('fut-placer-jour') || {}).value || '');
+  closeModal('modal-fut-placer');
+  _depPlacerListeFuts([clientId], toId);
+};
+window.depRemettreAPlacerFut = function(clientId, fromId){
+  if(!_depPeutCase('futs')){ toast('⛔ Réservé.'); return; }
+  if(!window.db || !window.firebaseReady){ toast('⚠️ Connexion indisponible, réessayez.'); return; }
+  var c = ((window.clientsLiv || {})[fromId] || {})[clientId];
+  if(!c){ toast('⚠️ Client introuvable.'); return; }
+  var aff = (((window.dispatchLiv || {})[fromId] || {}).assigned || {})[clientId];
+  if(aff || _depLivreFut(fromId, clientId)){ toast('⚠️ ' + (c.name || 'Ce client') + ' est déjà dans un camion ou livré : retirez-le d\'abord du camion.'); return; }
+  if(!confirm('Remettre ' + (c.name || 'ce client') + ' dans la liste « À placer » ?')) return;
+  var L = _depColFuts(fromId);
+  _depAssurerAttente();
+  if(_depDeplacerFicheLiv(clientId, fromId, DEP_LIV_ATTENTE)){
+    try{ depActivite('&#8617;', 'a remis <strong>' + esc(c.name || '') + '</strong> &agrave; placer (retir&eacute; de la livraison du ' + esc((L || {}).date || '') + ')'); }catch(e){}
+    toast('↩️ Remis dans la liste « À placer »');
+  }
+  depRenderFuts();
+};
+
 window.depOuvrirLivraisonFuts = function(id){
   if(!depEntrerLivraison(id)){ toast('⚠️ Livraison introuvable.'); return; }
   try{ ouvrirCollecte(id); }catch(e){ console.error('livraison', e); toast('⚠️ Livraison indisponible.'); }
@@ -24832,7 +24933,8 @@ function _depStockFuts(){
   // « chez les clients » : vendus, fiche pas encore basculée dans une collecte (le client remplit son fût)
   var chez = fs.filter(function(o){ return _depEtatFut(o) === 'chez'; });
   var aLiv = fs.filter(function(o){ return _depEtatFut(o) === 'a_livrer'; });
-  return { achetes: a, vendus: v, restants: a - v, lots: _depLotsFuts(),
+  var aPl = fs.filter(function(o){ return _depEtatFut(o) === 'a_placer'; });
+  return { aPlacerNb: aPl.reduce(function(s, o){ return s + o.nb; }, 0), aPlacerClients: aPl.length, achetes: a, vendus: v, restants: a - v, lots: _depLotsFuts(),
            chezNb: chez.reduce(function(s, o){ return s + o.nb; }, 0), chezClients: chez.length,
            aLivrerNb: aLiv.reduce(function(s, o){ return s + o.nb; }, 0), aLivrerClients: aLiv.length };
 }
@@ -24953,7 +25055,7 @@ function depRenderFuts(){
     +     '<b style="font-size:32px;color:#B8720C;">' + st.chezNb + '</b>'
     +     '<div style="font-size:11.5px;font-weight:700;color:var(--text3);">' + st.chezClients + ' client' + (st.chezClients>1?'s':'') + '</div></div>'
     + '</div>'
-    + '<div class="dep-meta"><span>' + st.achetes + ' achet&eacute;' + (st.achetes>1?'s':'') + ' &middot; ' + st.vendus + ' r&eacute;serv&eacute;' + (st.vendus>1?'s':'') + ' (inscrits) &middot; ' + st.aLivrerNb + ' &agrave; livrer &middot; ' + (st.vendus - st.chezNb - st.aLivrerNb) + ' en collecte ou parti' + ((st.vendus - st.chezNb - st.aLivrerNb)>1?'s':'') + '</span></div>'
+    + '<div class="dep-meta"><span>' + st.achetes + ' achet&eacute;' + (st.achetes>1?'s':'') + ' &middot; ' + st.vendus + ' r&eacute;serv&eacute;' + (st.vendus>1?'s':'') + ' (inscrits) &middot; ' + st.aLivrerNb + ' en transit &middot; ' + st.aPlacerNb + ' &agrave; placer &middot; ' + (st.vendus - st.chezNb - st.aLivrerNb - st.aPlacerNb) + ' en collecte ou parti' + ((st.vendus - st.chezNb - st.aLivrerNb - st.aPlacerNb)>1?'s':'') + '</span></div>'
     + (st.restants < 0 ? '<div style="font-size:11.5px;color:#B3261E;font-weight:700;margin-top:6px;">Plus de f&ucirc;ts vendus que d\'achats saisis : ajoutez l\'achat manquant.</div>' : '')
     + (st.lots.length ? '<div style="margin-top:10px;border-top:1px solid rgba(0,0,0,.1);padding-top:6px;">' + st.lots.map(function(l){
         return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;font-weight:700;">'
@@ -24970,15 +25072,21 @@ function depRenderFuts(){
     var c = o.c, pay = depCalculerPaiement(c), x = o.x, etat = _depEtatFut(o);
     var colF = x.src === 'col' ? (_depColFuts(x.collecteId) || (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0]) : null;
     var jDep = c.futDepose ? Math.max(0, Math.floor((Date.now() - new Date(c.futDepose + 'T12:00:00').getTime()) / 86400000)) : null;
-    var lieu = etat === 'a_livrer' ? '&Agrave; livrer &middot; ' + (colF && colF.date ? esc(colF.date) : 'livraison')
+    var lieu = etat === 'a_placer' ? '&Agrave; placer &middot; pas encore de journ&eacute;e de livraison'
+      : etat === 'a_livrer' ? 'En transit &middot; livraison du ' + (colF && colF.date ? esc(colF.date) : '?')
       : (etat === 'chez' ? 'F&ucirc;t chez le client' + (c.futDepose ? ' depuis le ' + esc(dateFr(c.futDepose)) + ' (' + (jDep === 0 ? "aujourd'hui" : jDep + ' j') + ')' : (colF && colF.date ? ' &middot; livr&eacute; le ' + esc(colF.date) : ''))
         : (x.src === 'col' ? 'En collecte' + (colF && colF.date ? ' du ' + esc(colF.date) : '') : esc(nomDepart(c.departId) || 'Container')));
     var ouvre = "depOuvrirFicheFut('" + x.clientId + "', '" + (x.src === 'depot' ? 'depot' : 'col') + "', '" + (x.collecteId || '') + "')";
-    var bouton = etat === 'a_livrer'
-      ? '<button class="btn btn-gray" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirLivraisonFuts(\'' + x.collecteId + '\')">&#128666; Ouvrir la livraison</button>'
+    var bouton = etat === 'a_placer'
+      ? '<button class="btn btn-green" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirPlacementFuts(\'' + x.clientId + '\')">&#128666; Placer dans une journ&eacute;e</button>'
+      : etat === 'a_livrer'
+      ? '<div style="display:flex;gap:8px;margin-top:10px;"><button class="btn btn-gray" style="margin:0;flex:1;" onclick="event.stopPropagation();depOuvrirLivraisonFuts(\'' + x.collecteId + '\')">&#128666; Ouvrir la livraison</button>'
+        + '<button class="btn btn-gray" style="margin:0;flex:1;" onclick="event.stopPropagation();depRemettreAPlacerFut(\'' + x.clientId + '\', \'' + x.collecteId + '\')">&#8617; Remettre &agrave; placer</button></div>'
       : (etat === 'chez' ? '<button class="btn btn-green" style="margin-top:10px;" onclick="event.stopPropagation();depOuvrirBasculeFut(\'' + x.clientId + '\', \'' + (x.src === 'depot' ? 'depot' : 'col') + '\', \'' + (x.collecteId || '') + '\')">&#9989; Le client est pr&ecirc;t : basculer dans une collecte</button>' : '');
     return '<div class="dep-card ft-c ' + (pay.reste > 0 ? 'ft-du' : 'ft-ok') + '" style="cursor:pointer;" onclick="' + ouvre + '">'
-      + '<div class="dep-card-top"><div class="dep-nom">' + esc(c.name || 'Client') + '</div></div>'
+      + '<div class="dep-card-top"><div class="dep-nom">' + (etat === 'a_placer'
+          ? '<input type="checkbox" ' + (_depPlaceSel[x.clientId] ? 'checked ' : '') + 'onclick="event.stopPropagation();depCocherPlacementFut(\'' + x.clientId + '\', this.checked)" style="width:20px;height:20px;vertical-align:-4px;margin-right:8px;"> ' : '')
+          + esc(c.name || 'Client') + '</div></div>'
       + '<div class="dep-meta"><span>' + o.nb + ' f&ucirc;t' + (o.nb>1?'s':'') + ' &middot; ' + lieu + '</span></div>'
       + (c.by || c.ville || c.cp ? '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:2px;">' + (c.by ? 'Enregistr&eacute; par ' + esc(c.by) : '') + (c.ville || c.cp ? (c.by ? ' &middot; ' : '') + esc((c.cp || '') + ' ' + (c.ville || '')) : '') + '</div>' : '')
       // Nouveau look : le détail des prix par objet, comme dans le dispatch (ft-v2, masqué en V1) ; l'ancien total / reste reste pour la V1 (ft-v1, masqué en V2).
@@ -25000,7 +25108,7 @@ function depRenderFuts(){
       + bouton + '</div>';
   }
   // Livraisons : créer, ouvrir (même écran que les collectes : camions, dispatch, carte, dépenses)
-  var livs = _depLivraisonsFuts().slice().sort(function(a, b){ return (b.statut === 'terminee') - (a.statut === 'terminee') ? ((a.statut === 'terminee') - (b.statut === 'terminee')) : (_depParseDateSure(a.date) - _depParseDateSure(b.date)); });
+  var livs = _depLivraisonsReelles().slice().sort(function(a, b){ return (b.statut === 'terminee') - (a.statut === 'terminee') ? ((a.statut === 'terminee') - (b.statut === 'terminee')) : (_depParseDateSure(a.date) - _depParseDateSure(b.date)); });
   h += '<div class="dep-sec" style="border-top:none;padding-top:0;">&#128666; Livraisons de f&ucirc;ts (' + livs.length + ')</div>'
     + '<div style="display:flex;gap:8px;margin-bottom:10px;"><input class="fi" id="liv-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="flex:1;min-width:0;max-width:100%;box-sizing:border-box;">'
     + '<button class="btn btn-green" style="width:auto;margin:0;padding:0 16px;" onclick="depCreerLivraisonFuts()">+ Nouvelle</button></div>'
@@ -25010,12 +25118,25 @@ function depRenderFuts(){
         return '<div class="dep-card ft-c" style="cursor:pointer;" onclick="depOuvrirLivraisonFuts(\'' + k.id + '\')"><div class="dep-card-top"><div class="dep-nom">&#128666; ' + esc(k.date) + '</div>'
           + '<span onclick="event.stopPropagation();depSupprimerLivraisonFuts(\'' + k.id + '\')" style="cursor:pointer;font-size:18px;padding:2px 6px;" title="Supprimer cette livraison">&#128465;&#65039;</span></div>'
           + '<div class="dep-meta"><span>' + ids.length + ' client' + (ids.length > 1 ? 's' : '') + ' &middot; ' + nbF + ' f&ucirc;t' + (nbF > 1 ? 's' : '') + ' &middot; ' + liv + ' livr&eacute;' + (liv > 1 ? 's' : '') + (k.statut === 'terminee' ? ' &middot; termin&eacute;e' : '') + '</span></div></div>';
-      }).join('') : '<div class="dep-vide" style="padding:14px;">Aucune livraison. Cr&eacute;ez-en une pour inscrire des clients.</div>');
+      }).join('') : '<div class="dep-vide" style="padding:14px;">Aucune journ&eacute;e de livraison. Cr&eacute;ez-en une pour y placer vos clients.</div>');
   var aL = fiches.filter(function(o){ return _depEtatFut(o) === 'a_livrer'; });
+  var aPlL = fiches.filter(function(o){ return _depEtatFut(o) === 'a_placer'; });
   var chezL = fiches.filter(function(o){ return _depEtatFut(o) === 'chez'; });
   var apresL = fiches.filter(function(o){ return _depEtatFut(o) === 'collecte'; });
-  h += '<div class="dep-sec">&#128666; &Agrave; livrer (' + aL.length + ')</div>'
-    + (aL.length ? aL.map(carteFut).join('') : '<div class="dep-vide" style="padding:14px;">Aucun fût à livrer.</div>');
+  // Clients inscrits sans journée : on les coche, on choisit la journée, on les place (Cobey, 17/11/2026).
+  Object.keys(_depPlaceSel).forEach(function(i){ if(!aPlL.some(function(o){ return o.x.clientId === i; })) delete _depPlaceSel[i]; });
+  var nSel = Object.keys(_depPlaceSel).length, joursOuv = _depLivraisonsReelles().filter(function(k){ return k.statut !== 'terminee'; })
+    .sort(function(a, b){ return _depParseDateSure(a.date) - _depParseDateSure(b.date); });
+  h += '<div class="dep-sec">&#128203; &Agrave; placer (' + aPlL.length + ')</div>'
+    + (aPlL.length ? '<div style="font-size:12px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:8px;">Clients enregistr&eacute;s, pas encore dans une journ&eacute;e de livraison. Cochez ceux d\'une m&ecirc;me journ&eacute;e, choisissez-la, puis placez-les.</div>'
+        + (joursOuv.length
+          ? '<div style="display:flex;gap:8px;margin-bottom:10px;"><select class="fi" id="ft-place-jour" style="flex:1;min-width:0;">' + joursOuv.map(function(k){ return '<option value="' + esc(k.id) + '">&#128666; ' + esc(k.date) + '</option>'; }).join('') + '</select>'
+            + '<button class="btn btn-green" style="width:auto;margin:0;padding:0 14px;' + (nSel ? '' : 'opacity:.55;') + '" onclick="depPlacerFutsCoches()">Placer ' + (nSel ? nSel + ' ' : '') + 'coch&eacute;' + (nSel > 1 ? 's' : '') + '</button></div>'
+          : '<div style="font-size:12px;color:#8A5200;background:#FFF3E0;border-radius:8px;padding:8px 10px;font-weight:700;margin-bottom:10px;">Cr&eacute;ez d\'abord une journ&eacute;e de livraison (plus haut) pour y placer ces clients.</div>')
+        + aPlL.map(carteFut).join('')
+      : '<div class="dep-vide" style="padding:14px;">Aucun client &agrave; placer.</div>');
+  h += '<div class="dep-sec">&#128666; En transit (' + aL.length + ')</div>'
+    + (aL.length ? aL.map(carteFut).join('') : '<div class="dep-vide" style="padding:14px;">Aucun fût en transit (placé dans une journée, pas encore déposé).</div>');
   h += '<div class="dep-sec">&#127968; Chez les clients (' + chezL.length + ')</div>'
     + (chezL.length ? chezL.map(carteFut).join('') : '<div class="dep-vide" style="padding:16px;">Aucun f&ucirc;t chez un client pour l\'instant.</div>');
   if(apresL.length) h += '<div class="dep-sec">&#128197; Bascul&eacute;s en collecte ou partis (' + apresL.length + ')</div>' + apresL.map(carteFut).join('');
@@ -25179,8 +25300,10 @@ window.depFutVenteCalc = function(){
 
 };
 window.depOuvrirVenteFut = function(colId){
-  var livsOuv = _depLivraisonsFuts().filter(function(k){ return k.statut !== 'terminee'; });
-  if(!livsOuv.length){ toast('⚠️ Créez d\'abord une livraison de fûts (écran Fûts).'); return; }
+  _depAssurerAttente();
+  // La liste « À placer » est toujours proposée en premier (inscrire sans connaître la journée), puis les journées de livraison ouvertes.
+  var livsOuv = _depLivraisonsFuts().filter(function(k){ return k.statut !== 'terminee'; })
+    .sort(function(a, b){ return (b.id === DEP_LIV_ATTENTE) - (a.id === DEP_LIV_ATTENTE); });
   var stock = _depStockFuts().restants;
   if(stock < 1){ toast('⛔ Plus de fût en stock à Émerainville : la vente est impossible.'); return; }
   var sn = $('ft-stock-note'); if(sn) sn.textContent = stock + ' f\u00fbt' + (stock > 1 ? 's' : '') + ' en stock \u00e0 \u00c9merainville';
@@ -25198,7 +25321,7 @@ window.depOuvrirVenteFut = function(colId){
   // un fût du lot le plus ancien est proposé d'office
   var selL = $('ft-livraison');
   if(selL){
-    selL.innerHTML = livsOuv.map(function(k){ return '<option value="' + esc(k.id) + '">&#128666; ' + esc(k.date) + '</option>'; }).join('');
+    selL.innerHTML = livsOuv.map(function(k){ return '<option value="' + esc(k.id) + '">' + (k.id === DEP_LIV_ATTENTE ? '&#128203; &Agrave; placer (je choisirai la journ&eacute;e plus tard)' : '&#128666; ' + esc(k.date)) + '</option>'; }).join('');
     var pre = (typeof colId === 'string' && livsOuv.some(function(k){ return k.id === colId; })) ? colId : livsOuv[0].id;
     selL.value = pre;
   }
@@ -25274,9 +25397,11 @@ function _depEnregistrerVenteFutExecuter(){
   var ckey = tel ? tel.replace(/\s/g, '') : (prenom + '_' + nom).toLowerCase();
   window.dctContacts[ckey] = { civilite: civ, prenom: prenom, nom: nom, name: fiche.name, tel: tel, tel2: tel2, adresse: adresseF, infos: infosF, ville: villeF, cp: cpF, dept: cpF.substring(0, 2), by: (u.name || '') };
   try{ sauvegarder(); }catch(e){}
-  depActivite('&#128738;&#65039;', 'a inscrit <strong>' + esc(fiche.name) + '</strong> pour ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + ' (livraison du ' + esc((_depColFuts(colLiv) || {}).date || '') + ')');
-  toast('✅ ' + fiche.name + ' inscrit dans la livraison du ' + (_depColFuts(colLiv) || {}).date);
+  var estAttente = (colLiv === DEP_LIV_ATTENTE);
+  depActivite('&#128738;&#65039;', 'a inscrit <strong>' + esc(fiche.name) + '</strong> pour ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + (estAttente ? ' (&agrave; placer)' : ' (livraison du ' + esc((_depColFuts(colLiv) || {}).date || '') + ')'));
+  toast('✅ ' + fiche.name + (estAttente ? ' inscrit : à placer dans une journée' : ' inscrit dans la livraison du ' + (_depColFuts(colLiv) || {}).date));
   try{ if(Array.isArray(window._navPile)) window._navPile = window._navPile.filter(function(e){ return e && e.id !== 's-dep-fut-vente'; }); }catch(e){}
+  if(estAttente){ setTimeout(function(){ try{ depOuvrirEspaceFuts(); }catch(e){} }, 60); return; }   // pas de journée : retour à l'écran Fûts, section « À placer »
   setTimeout(function(){ try{ depEntrerLivraison(colLiv); ouvrirCollecte(colLiv); }catch(e){} }, 60);
 };
 
