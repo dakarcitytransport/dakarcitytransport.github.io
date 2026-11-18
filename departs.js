@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.117';
+var DEP_VERSION = 'v2.22.118';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -7884,6 +7884,12 @@ function _depArchiveItemsBruts(type){
       return { date: new Date(_depQuandDepart(d)), item: d };
     });
   }
+  // 18/11/2026 — Cobey : « l'archivage on peut le mettre dans la case des archives, pas besoin de le mettre dans l'espace fûts. »
+  if(type === 'livs'){
+    return (window.livsFuts || []).filter(function(k){ return k && k.archivee && k.id !== DEP_LIV_ATTENTE; }).map(function(k){
+      return { date: (typeof parseDate === 'function') ? parseDate(k.date) : new Date(NaN), item: k };
+    });
+  }
   if(type === 'collectes'){
     return (window.colsN ? window.colsN() : (window.collectes || [])).filter(function(c){ return c && c.statut === 'terminee'; }).map(function(c){
       var dt = (typeof parseDate === 'function') ? parseDate(c.date) : new Date(NaN);
@@ -7987,6 +7993,15 @@ function _depArchiveCarteCollecteFr(r){
     + '</div>';
 }
 
+function _depArchiveCarteLivraison(k){
+  var cl = (window.clientsLiv || {})[k.id] || {}, ids = Object.keys(cl), nbF = 0, total = 0;
+  ids.forEach(function(i){ var c = cl[i]; total += parseFloat(c && c.prix) || 0; try{ _depLignesColis(c).forEach(function(l){ if(DEP_RE_FUT.test(l.nom || '')) nbF += (l.qte || 0); }); }catch(e){} });
+  return '<div class="dep-card" style="border-left-color:#8B5E34;cursor:pointer;" onclick="depOuvrirLivraisonFuts(\''+k.id+'\')">'
+    +   '<div class="dep-card-top"><div class="dep-nom">&#128666; '+esc(k.date||'Livraison')+'</div>'
+    +     '<span onclick="event.stopPropagation();depDesarchiverLivraisonFuts(\''+k.id+'\');depRenderArchive();" style="cursor:pointer;font-size:12.5px;font-weight:800;padding:2px 8px;color:#1565A8;" title="Remettre dans l\'espace Fûts">&#8617; D&eacute;sarchiver</span></div>'
+    +   '<div class="dep-meta"><span>&#128100; <b>'+ids.length+'</b> client'+(ids.length>1?'s':'')+'</span><span>&#128738;&#65039; <b>'+nbF+'</b> f&ucirc;t'+(nbF>1?'s':'')+'</span><span>&#128176; <b>'+_depEuros(total)+'</b> &euro;</span></div>'
+    + '</div>';
+}
 function _depArchiveCarteCollecte(c){
   var cls = (window.clientsParCollecte||{})[c.id] || {};
   var nb = Object.keys(cls).length;
@@ -8132,13 +8147,15 @@ window.depRenderArchive = function(){
     html += _depArchiveCarteDossier('&#128203;', 'Collectes terminées', colsTerminees.length+' collecte'+(colsTerminees.length>1?'s':''), 'depArchiveOuvrir(\'collectes\')');
     var nbColsFr = _depArchiveItemsBruts('collectesFr').length;
     html += _depArchiveCarteDossier('&#127467;&#127479;', 'Collectes France terminées', nbColsFr+' collecte'+(nbColsFr>1?'s':''), 'depArchiveOuvrir(\'collectesFr\')');
+    var nbLivs = _depArchiveItemsBruts('livs').length;
+    html += _depArchiveCarteDossier('&#128738;&#65039;', 'Livraisons de fûts', nbLivs+' journée'+(nbLivs>1?'s':''), 'depArchiveOuvrir(\'livs\')');
     box.innerHTML = html;
     return;
   }
 
   var items = _depArchiveItemsBruts(etat.type).filter(function(o){ return o.date && !isNaN(o.date.getTime()); });
   var groupe = _depArchiveGrouper(items);
-  var nomCategorie = (etat.type === 'departs') ? 'Départs clôturés' : (etat.type === 'collectesFr' ? 'Collectes France terminées' : 'Collectes terminées');
+  var nomCategorie = (etat.type === 'departs') ? 'Départs clôturés' : (etat.type === 'collectesFr' ? 'Collectes France terminées' : (etat.type === 'livs' ? 'Livraisons de fûts archivées' : 'Collectes terminées'));
 
   if(!etat.annee){
     // Niveau 1 : années
@@ -8213,7 +8230,7 @@ window.depRenderArchive = function(){
     return dy - dx;
   });
   itemsTries.forEach(function(it){
-    html += (etat.type === 'departs') ? _depArchiveCarteDepart(it) : (etat.type === 'collectesFr' ? _depArchiveCarteCollecteFr(it) : _depArchiveCarteCollecte(it));
+    html += (etat.type === 'departs') ? _depArchiveCarteDepart(it) : (etat.type === 'collectesFr' ? _depArchiveCarteCollecteFr(it) : (etat.type === 'livs' ? _depArchiveCarteLivraison(it) : _depArchiveCarteCollecte(it)));
   });
   box.innerHTML = html;
 };
@@ -25124,6 +25141,7 @@ function depRenderFuts(){
         + '<div style="font-size:12px;color:#B3261E;font-weight:700;margin-bottom:16px;">Stock vide : l\'inscription est impossible tant qu\'un achat de f&ucirc;ts n\'est pas saisi.</div>'
       : '<button class="btn btn-green" style="margin-bottom:16px;" onclick="depOuvrirVenteFut()">+ Inscrire un client f&ucirc;t</button>');
 
+  if(estDirection()) h += '<div style="font-size:12px;color:var(--text3);font-weight:600;line-height:1.45;margin:-8px 2px 16px;">Pour ajouter un achat de f&ucirc;ts : Rapport financier &rsaquo; Bilan &rsaquo; D&eacute;penses de la caisse principale.</div>';
   function carteFut(o){
     var c = o.c, pay = depCalculerPaiement(c), x = o.x, etat = _depEtatFut(o);
     var colF = x.src === 'col' ? (_depColFuts(x.collecteId) || (window.collectes || []).filter(function(k){ return k && k.id === x.collecteId; })[0]) : null;
@@ -25205,7 +25223,7 @@ function depRenderFuts(){
     + (chezL.length ? chezL.map(carteFut).join('') : '<div class="dep-vide" style="padding:16px;">Aucun f&ucirc;t chez un client pour l\'instant.</div>');
   if(apresL.length) hChez += '<div class="dep-sec">&#128197; Bascul&eacute;s en collecte ou partis (' + apresL.length + ')</div>' + apresL.map(carteFut).join('');
 
-  hLiv += hArch;
+  if(archLivs.length) hLiv += '<div style="text-align:center;font-size:12px;color:#888;padding:14px 10px;">&#128230; ' + archLivs.length + ' journ&eacute;e' + (archLivs.length > 1 ? 's' : '') + ' archiv&eacute;e' + (archLivs.length > 1 ? 's' : '') + ' : voir <b>Archives</b> &rsaquo; Livraisons de f&ucirc;ts.</div>';
   // Trois onglets, dans l'ordre du travail : Clients (à placer) → Livraisons (journées + en transit) → Chez les clients (Cobey, 18/11/2026).
   var ong = _depFutsOnglet;
   var tabHtml = '<div style="display:flex;gap:4px;background:var(--white,#fff);border:1px solid var(--border,#ddd);border-radius:14px;padding:4px;margin:0 0 14px;">'
@@ -25215,17 +25233,6 @@ function depRenderFuts(){
           + (on ? 'background:#006b2d;color:#fff;' : 'background:transparent;color:var(--text3,#667);') + '">' + t[1] + ' <span style="opacity:.8;font-weight:700;">' + t[2] + '</span></button>';
       }).join('') + '</div>';
   h += tabHtml + (ong === 'liv' ? hLiv : (ong === 'chez' ? hChez : hCl));
-  if(estDirection()){
-    var achats = _depCaisseLignes().filter(function(o){ return (parseInt(o.futs, 10) || 0) > 0; });
-    h += '<div class="dep-sec">Achats de f&ucirc;ts</div>'
-      + '<div class="ft-c ft-ach" style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">'
-      + (achats.length ? achats.map(function(o){
-          return '<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:13px;"><span>' + esc(o.date ? dateFr(o.date) : '') + ' &middot; <b>' + (parseInt(o.futs, 10) || 0) + ' &times; ' + esc(o.futType || 'F\u00fbt 270 L') + '</b>' + (o.futPu != null && o.futPu !== '' ? ' &agrave; ' + _depEuros(parseFloat(o.futPu)) + ' &euro;' : '') + '</span>'
-            + '<b style="color:#B3261E;white-space:nowrap;">&minus; ' + _depEuros(o.montant) + ' &euro;</b></div>';
-        }).join('') : '<div style="font-size:12.5px;color:var(--text3);font-weight:600;">Aucun achat saisi.</div>')
-      + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;margin-top:8px;line-height:1.45;">Un achat se saisit dans Rapport financier &rsaquo; Bilan &rsaquo; D&eacute;penses de la caisse principale, avec le nombre de f&ucirc;ts.</div>'
-      + '</div>';
-  }
   box.innerHTML = h;
 }
 
