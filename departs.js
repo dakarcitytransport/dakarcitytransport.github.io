@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.116';
+var DEP_VERSION = 'v2.22.117';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25092,6 +25092,8 @@ window.depOuvrirEspaceFuts = function(){
   goTo('s-dep-futs');
   depRenderFuts();
 };
+var _depFutsOnglet = 'clients';
+window.depFutsOnglet = function(o){ _depFutsOnglet = o; depRenderFuts(); };
 function depRenderFuts(){
   var box = $('dep-futs-content');
   if(!box) return;
@@ -25174,12 +25176,13 @@ function depRenderFuts(){
   // Livraisons : créer, ouvrir (même écran que les collectes : camions, dispatch, carte, dépenses)
   var tousLivs = _depLivraisonsReelles(), archLivs = tousLivs.filter(function(k){ return k.archivee; }).sort(function(a, b){ return _depParseDateSure(b.date) - _depParseDateSure(a.date); });
   var livs = _depLivraisonsActives().slice().sort(function(a, b){ return (b.statut === 'terminee') - (a.statut === 'terminee') ? ((a.statut === 'terminee') - (b.statut === 'terminee')) : (_depParseDateSure(a.date) - _depParseDateSure(b.date)); });
-  h += '<div class="dep-sec" style="border-top:none;padding-top:0;">&#128666; Livraisons de f&ucirc;ts (' + livs.length + ')</div>'
+  var hCl = '', hLiv = '', hChez = '';
+  hLiv += '<div class="dep-sec" style="border-top:none;padding-top:0;">&#128666; Journ&eacute;es de livraison de f&ucirc;ts (' + livs.length + ')</div>'
     + '<div style="display:flex;gap:8px;margin-bottom:10px;"><input class="fi" id="liv-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '" style="flex:1;min-width:0;max-width:100%;box-sizing:border-box;">'
     + '<button class="btn btn-green" style="width:auto;margin:0;padding:0 16px;" onclick="depCreerLivraisonFuts()">+ Nouvelle</button></div>'
     + (livs.length ? livs.map(function(k){ return carteJournee(k, false);
       }).join('') : '<div class="dep-vide" style="padding:14px;">Aucune journ&eacute;e de livraison. Cr&eacute;ez-en une pour y placer vos clients.</div>');
-  if(archLivs.length) h += '<details style="margin:4px 0 12px;"><summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--text3);padding:6px 2px;">&#128230; Journ&eacute;es archiv&eacute;es (' + archLivs.length + ')</summary>' + archLivs.map(function(k){ return carteJournee(k, true); }).join('') + '</details>';
+  var hArch = ''; if(archLivs.length) hArch += '<details style="margin:4px 0 12px;"><summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--text3);padding:6px 2px;">&#128230; Journ&eacute;es archiv&eacute;es (' + archLivs.length + ')</summary>' + archLivs.map(function(k){ return carteJournee(k, true); }).join('') + '</details>';
   var aL = fiches.filter(function(o){ return _depEtatFut(o) === 'a_livrer'; });
   var aPlL = fiches.filter(function(o){ return _depEtatFut(o) === 'a_placer'; });
   var chezL = fiches.filter(function(o){ return _depEtatFut(o) === 'chez'; });
@@ -25188,7 +25191,7 @@ function depRenderFuts(){
   Object.keys(_depPlaceSel).forEach(function(i){ if(!aPlL.some(function(o){ return o.x.clientId === i; })) delete _depPlaceSel[i]; });
   var nSel = Object.keys(_depPlaceSel).length, joursOuv = _depLivraisonsActives().filter(function(k){ return k.statut !== 'terminee'; })
     .sort(function(a, b){ return _depParseDateSure(a.date) - _depParseDateSure(b.date); });
-  h += '<div class="dep-sec">&#128203; &Agrave; placer (' + aPlL.length + ')</div>'
+  hCl += '<div class="dep-sec" style="border-top:none;padding-top:0;">&#128203; &Agrave; placer (' + aPlL.length + ')</div>'
     + (aPlL.length ? '<div style="font-size:12px;color:var(--text3);font-weight:600;line-height:1.45;margin-bottom:8px;">Clients enregistr&eacute;s, pas encore dans une journ&eacute;e de livraison. Cochez ceux d\'une m&ecirc;me journ&eacute;e, choisissez-la, puis placez-les.</div>'
         + (joursOuv.length
           ? '<div style="display:flex;gap:8px;margin-bottom:10px;"><select class="fi" id="ft-place-jour" style="flex:1;min-width:0;">' + joursOuv.map(function(k){ return '<option value="' + esc(k.id) + '">&#128666; ' + esc(k.date) + '</option>'; }).join('') + '</select>'
@@ -25196,12 +25199,22 @@ function depRenderFuts(){
           : '<div style="font-size:12px;color:#8A5200;background:#FFF3E0;border-radius:8px;padding:8px 10px;font-weight:700;margin-bottom:10px;">Cr&eacute;ez d\'abord une journ&eacute;e de livraison (plus haut) pour y placer ces clients.</div>')
         + aPlL.map(carteFut).join('')
       : '<div class="dep-vide" style="padding:14px;">Aucun client &agrave; placer.</div>');
-  h += '<div class="dep-sec">&#128666; En transit (' + aL.length + ')</div>'
+  hLiv += '<div class="dep-sec">&#128666; En transit (' + aL.length + ')</div>'
     + (aL.length ? aL.map(carteFut).join('') : '<div class="dep-vide" style="padding:14px;">Aucun fût en transit (placé dans une journée, pas encore déposé).</div>');
-  h += '<div class="dep-sec">&#127968; Chez les clients (' + chezL.length + ')</div>'
+  hChez += '<div class="dep-sec" style="border-top:none;padding-top:0;">&#127968; Chez les clients (' + chezL.length + ')</div>'
     + (chezL.length ? chezL.map(carteFut).join('') : '<div class="dep-vide" style="padding:16px;">Aucun f&ucirc;t chez un client pour l\'instant.</div>');
-  if(apresL.length) h += '<div class="dep-sec">&#128197; Bascul&eacute;s en collecte ou partis (' + apresL.length + ')</div>' + apresL.map(carteFut).join('');
+  if(apresL.length) hChez += '<div class="dep-sec">&#128197; Bascul&eacute;s en collecte ou partis (' + apresL.length + ')</div>' + apresL.map(carteFut).join('');
 
+  hLiv += hArch;
+  // Trois onglets, dans l'ordre du travail : Clients (à placer) → Livraisons (journées + en transit) → Chez les clients (Cobey, 18/11/2026).
+  var ong = _depFutsOnglet;
+  var tabHtml = '<div style="display:flex;gap:4px;background:var(--white,#fff);border:1px solid var(--border,#ddd);border-radius:14px;padding:4px;margin:0 0 14px;">'
+    + [['clients', '&#128101; Clients', aPlL.length], ['liv', '&#128666; Livraisons', livs.length], ['chez', '&#127968; Chez eux', chezL.length]].map(function(t){
+        var on = (ong === t[0]);
+        return '<button type="button" onclick="depFutsOnglet(\'' + t[0] + '\')" style="flex:1;min-width:0;border:0;border-radius:10px;padding:9px 2px;font:800 12.5px var(--font,inherit);cursor:pointer;'
+          + (on ? 'background:#006b2d;color:#fff;' : 'background:transparent;color:var(--text3,#667);') + '">' + t[1] + ' <span style="opacity:.8;font-weight:700;">' + t[2] + '</span></button>';
+      }).join('') + '</div>';
+  h += tabHtml + (ong === 'liv' ? hLiv : (ong === 'chez' ? hChez : hCl));
   if(estDirection()){
     var achats = _depCaisseLignes().filter(function(o){ return (parseInt(o.futs, 10) || 0) > 0; });
     h += '<div class="dep-sec">Achats de f&ucirc;ts</div>'
@@ -25462,7 +25475,7 @@ function _depEnregistrerVenteFutExecuter(){
   depActivite('&#128738;&#65039;', 'a inscrit <strong>' + esc(fiche.name) + '</strong> pour ' + nb + ' f&ucirc;t' + (nb > 1 ? 's' : '') + (estAttente ? ' (&agrave; placer)' : ' (livraison du ' + esc((_depColFuts(colLiv) || {}).date || '') + ')'));
   toast('✅ ' + fiche.name + (estAttente ? ' inscrit : à placer dans une journée' : ' inscrit dans la livraison du ' + (_depColFuts(colLiv) || {}).date));
   try{ if(Array.isArray(window._navPile)) window._navPile = window._navPile.filter(function(e){ return e && e.id !== 's-dep-fut-vente'; }); }catch(e){}
-  if(estAttente){ setTimeout(function(){ try{ depOuvrirEspaceFuts(); }catch(e){} }, 60); return; }   // pas de journée : retour à l'écran Fûts, section « À placer »
+  if(estAttente){ _depFutsOnglet = 'clients'; setTimeout(function(){ try{ depOuvrirEspaceFuts(); }catch(e){} }, 60); return; }   // pas de journée : retour à l'écran Fûts, section « À placer »
   setTimeout(function(){ try{ depEntrerLivraison(colLiv); ouvrirCollecte(colLiv); }catch(e){} }, 60);
 };
 

@@ -7187,3 +7187,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Automatique : toute journée dont la date est passée (minuit passé) et sans client en transit est rangée seule, au premier lancement / à l'ouverture de l'écran Fûts (au plus une fois toutes les 10 min, et seulement par un téléphone autorisé aux fûts). Pas de minuteur côté serveur : c'est l'appli qui s'en charge à l'ouverture.
 - Une journée archivée n'est plus proposée à l'inscription ni au placement.
 - Testé (faux Firebase) : journée finie et passée → archivée seule ; journée vide future → non ; journée avec client en transit → non (et archivage manuel refusé) ; archivage manuel d'une journée vide ; base à jour ; désarchivage.
+
+## 18/11/2026 — v3.99.387 (departs.js v2.22.117) — Écran Fûts en 3 onglets
+- Cobey : « l'organisation de l'interface est mal faite : l'archivage est entre l'inscription et un dispatch. Il faut classer : d'abord pouvoir inscrire un client, ensuite les dispatchs de livraison, ensuite voir les fûts chez les clients. On peut faire un deuxième onglet pour les dispatchs. » → aperçu validé → « vas-y on teste ça ».
+- Écran Fûts : la carte du stock et « + Inscrire un client fût » restent en haut ; dessous 3 onglets, dans l'ordre du travail : **👥 Clients** (liste « À placer », cases à cocher, choix de la journée, Placer) → **🚚 Livraisons** (créer une journée, liste des journées, clients « En transit » avec Remettre à placer, « Journées archivées » repliées tout en bas) → **🏠 Chez eux** (fûts chez le client avec le bouton de basculement, puis basculés / partis). Le nombre de chaque onglet est affiché. Les achats de fûts (direction) restent en bas.
+- L'onglet choisi est retenu ; après une inscription « à placer », retour sur l'onglet Clients.
+- Testé (faux Firebase + captures V2) : inscription, placement, remise à placer, archivage, désarchivage et les 3 onglets.
