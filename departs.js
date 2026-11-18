@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.118';
+var DEP_VERSION = 'v2.22.119';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -28484,15 +28484,30 @@ window.depCorbRetablir = function(cle){
     var id = col.id;
     if((window.collectes || []).some(function(c){ return c && c.id === id; })){ toast('⚠️ Cette collecte existe déjà.'); return; }
     var cp = function(v){ return JSON.parse(JSON.stringify(v)); };
-    window.collectes.unshift(cp(col));
-    window.clientsParCollecte[id] = cp(x.clients || {});
-    window.dispatchParCollecte[id] = x.dispatch ? cp(x.dispatch) : { trucks: {}, assigned: {} };
-    if(x.depenses){ try{ window.depensesData[id] = cp(x.depenses); db.ref('dct_depenses/' + id).set(cp(x.depenses)); }catch(z){} }
-    try{ delete _collectesSupprimees[id]; db.ref('dct/collectes_supprimees/' + id).remove(); }catch(z){}
-    try{ _mettreAJourStatuts(); }catch(z){}
-    sauvegarder();
-    try{ renderCollectesList(); }catch(z){}
-    fini();
+    // 18/11/2026 — Cobey : « je l'ai rétablie, mais je ne la revois plus dans la collecte » (collecte du samedi 21, 4 clients, 2 105 €, perdue).
+    // Avant : le rétablissement ne touchait que la mémoire du téléphone et l'enregistrement partait 0,8 s plus tard ; un rechargement venu de la
+    // base entre-temps oubliait la collecte, et la copie de la corbeille était déjà effacée. Maintenant : on écrit DANS LA BASE (clients, camions,
+    // dépenses, liste des collectes) et la copie de la corbeille n'est effacée qu'une fois la base confirmée.
+    var clientsR = cp(x.clients || {}), dispatchR = x.dispatch ? cp(x.dispatch) : { trucks: {}, assigned: {} };
+    var maj2 = {};
+    maj2['dct/clients/' + id] = clientsR;
+    maj2['dct/dispatch/' + id] = dispatchR;
+    maj2['dct/collectes_supprimees/' + id] = null;
+    if(x.depenses) maj2['dct_depenses/' + id] = cp(x.depenses);
+    window._lastWriteTime = Date.now();
+    db.ref().update(maj2).then(function(){
+      return db.ref('dct/collectes').transaction(function(distant){ return _fusionnerListeCollectes(distant, [cp(col)], {}); });
+    }).then(function(){
+      try{ delete _collectesSupprimees[id]; }catch(z){}
+      if(!(window.collectes || []).some(function(c){ return c && c.id === id; })) window.collectes.unshift(cp(col));
+      window.clientsParCollecte[id] = cp(clientsR);
+      window.dispatchParCollecte[id] = cp(dispatchR);
+      if(x.depenses){ try{ window.depensesData[id] = cp(x.depenses); }catch(z){} }
+      try{ _baseSync.clients[id] = JSON.stringify(window.clientsParCollecte[id]); _baseSync.dispatch[id] = JSON.stringify(window.dispatchParCollecte[id]); }catch(z){}
+      try{ _mettreAJourStatuts(); }catch(z){}
+      try{ renderCollectesList(); }catch(z){}
+      fini();
+    }).catch(echec);
     return;
   }
   var maj = {}, n = 0;
