@@ -7207,3 +7207,11 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Corrections : `depCorbRetablir` (collecte) écrit d'abord dans la base (clients, camions, dépenses, liste des collectes via transaction, tombstone retiré) et n'efface la copie de la corbeille qu'une fois la base confirmée ; en cas d'échec, message d'erreur et la copie reste. `_effacerCollecte` oublie `_baseSync` de la collecte supprimée.
 - Testé (faux Firebase) : suppression puis rétablissement avec rechargement simulé juste après : la base garde la collecte et ses clients.
 - À refaire par Cobey : recréer la collecte du samedi 21 et y remettre SODEM, Chantal Zoure, Bocoum.
+
+## 23/11/2026 — v3.99.390 (dct-app.html) — Collectes : clôture automatique à minuit, pour tous les jours
+- Cobey : « les collectes passées doivent être clôturées automatiquement une fois leur journée passée. On l'avait fait pour les dimanches, pas pour les jours exceptionnels. Il faut une règle pour tous : une collecte passée, le soir même à minuit, elle se clôture automatiquement. » → « ok ».
+- Cause : `_mettreAJourStatuts` raisonnait par SEMAINE (tout ce qui est dans la semaine en cours = « En cours », « Terminée » seulement après le dimanche), et ne tournait qu'au lancement de l'appli.
+- Maintenant : toute collecte dont le jour est passé (minuit dépassé) → « Terminée » (dimanche comme exceptionnelle) ; les autres de la semaine → « En cours » ; les semaines suivantes → « À venir ». Recalcul au lancement, toutes les 10 minutes et juste après minuit (appli restée ouverte la nuit), seulement quand quelqu'un est connecté.
+- Une collecte rouverte à la main (crayon › En cours) reste ouverte jusqu'à minuit du jour où on l'a rouverte (`statutManuelJusquA`), puis la règle reprend.
+- Testé (faux Firebase) : hier → terminée, il y a 3 jours → terminée, aujourd'hui → en cours, demain → en cours, +20 jours → à venir, réouverture manuelle tenue puis re-clôture après expiration.
+- Rappel : une collecte « Terminée » est verrouillée 🔒 (isLocked) : pour saisir un paiement ou valider tard, la rouvrir avec le crayon.
