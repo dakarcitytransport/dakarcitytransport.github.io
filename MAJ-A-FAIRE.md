@@ -7215,3 +7215,10 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Une collecte rouverte à la main (crayon › En cours) reste ouverte jusqu'à minuit du jour où on l'a rouverte (`statutManuelJusquA`), puis la règle reprend.
 - Testé (faux Firebase) : hier → terminée, il y a 3 jours → terminée, aujourd'hui → en cours, demain → en cours, +20 jours → à venir, réouverture manuelle tenue puis re-clôture après expiration.
 - Rappel : une collecte « Terminée » est verrouillée 🔒 (isLocked) : pour saisir un paiement ou valider tard, la rouvrir avec le crayon.
+
+## 23/11/2026 — v3.99.391 (objectifs.js) — Objectifs : d'où viennent les clients de chacun
+- Cobey : « dans les stats de chaque collaborateur, onglet Objectifs, on voit ce qu'il a ramassé chaque dimanche, mais ses dépôts directs, ses clients de collectes exceptionnelles ou France, on ne les voit pas en détail » → « ok ».
+- Dans le bilan d'un container (Historique) et sur la page « En cours » : nouveau bloc **🔎 D'OÙ VIENNENT LES CLIENTS**, pour la personne choisie (ou l'équipe) : clients des collectes du dimanche (dans les barres), dépôts directs (comptés dans la semaine du dépôt), clients de collectes France (semaine du ramassage), clients de collectes exceptionnelles (dans le total, pas dans les barres), chacun avec « voir la liste » (nom + montant). Le total en haut et le détail se rejoignent.
+- Sous chaque barre de semaine : « dont N dépôts · N France » quand il y en a.
+- Ce sont les clients RAMASSÉS (comme le bilan) ; les clients inscrits mais pas encore ramassés n'y sont pas.
+- Testé (faux Firebase + capture) : page En cours et bilan avec dimanche, exceptionnelle, dépôt direct et France ; singulier/pluriel corrects.

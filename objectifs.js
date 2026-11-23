@@ -809,31 +809,69 @@
     collabsClassement().forEach(function(c){ if(c.id === moi) nom = c.name; });
     return { admin: admin, reel: reel, moi: nom ? moi : '', tu: !admin && moi === reel && !!nom, nom: nom };
   }
+  // Cobey, 23/11/2026 : « on ne voit pas en détail les dépôts directs, les collectes exceptionnelles, ni France » → d'où viennent les clients de chacun.
+  function typeFiche(x){
+    if(x.src === 'depot') return 'depot';
+    if(x.src === 'france') return 'france';
+    return estExceptionnelle(x) ? 'exc' : 'dim';
+  }
+  function detVide(){ return { dim: 0, depot: [], france: [], exc: [] }; }
+  // « dont 1 dépôt · 2 France » sous la barre d'une semaine (Cobey, 23/11/2026)
+  function notesSemaines(wkD, wkF){
+    return wkD.map(function(d, i){ var f = wkF[i], t = '';
+      if(d) t = 'dont ' + d + ' dépôt' + (d > 1 ? 's' : '');
+      if(f) t += (t ? ' · ' : 'dont ') + f + ' France';
+      return t; });
+  }
+  function detAjouter(det, x){
+    var t = typeFiche(x), pr = parseFloat(x.c.prix) || 0;
+    if(t === 'dim') det.dim++; else det[t].push({ n: String(x.c.name || ((x.c.prenom || '') + ' ' + (x.c.nom || '')).trim() || 'Client'), e: pr });
+  }
+  function detailHtml(det, sujet){
+    var nb = det.dim + det.depot.length + det.france.length + det.exc.length;
+    if(!nb) return '';
+    var lignes = [
+      ['depot', '🏠', 'dépôt direct', 'dépôts directs', 'comptés dans la semaine du dépôt'],
+      ['france', '🇫🇷', 'client de collecte France', 'clients de collectes France', 'comptés dans la semaine du ramassage'],
+      ['exc', '📍', 'client de collecte exceptionnelle', 'clients de collectes exceptionnelles', 'comptés dans le total, pas dans les barres des dimanches']
+    ];
+    var h = '<div class="pg-t"><b>🔎 D’OÙ VIENNENT LES CLIENTS</b><span>' + esc(sujet) + ' · ' + nb + ' ramassé' + (nb > 1 ? 's' : '') + '</span></div>'
+      + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="pg-sum">'
+      + '<div><i>📅</i><span><b>' + det.dim + '</b> client' + (det.dim > 1 ? 's' : '') + ' des collectes du dimanche <small style="opacity:.75">· dans les barres ci-dessus</small></span></div>';
+    lignes.forEach(function(l){
+      var arr = det[l[0]];
+      h += '<div><i>' + l[1] + '</i><span><b>' + arr.length + '</b> ' + (arr.length > 1 ? l[3] : l[2]) + (arr.length ? ' <small style="opacity:.75">· ' + l[4] + '</small>' : '')
+        + (arr.length ? '<details style="margin-top:3px"><summary style="cursor:pointer;font-weight:800;font-size:11.5px">voir la liste</summary>'
+          + arr.map(function(c){ return '<div style="font-size:12px;padding:1px 0">' + esc(c.n) + (c.e ? ' · ' + eurosFr(c.e) : '') + '</div>'; }).join('') + '</details>' : '')
+        + '</span></div>';
+    });
+    return h + '</div></div></div>';
+  }
   function statsContainer(d){
     var liste = collabsClassement(), xs = fichesRamassees(d._id), info = infoContainer(d), N = info ? info.N : 1, dj = info ? jours(info.debut) : 0;
-    var tot = {}, cnt = [];
-    for(var k = 0; k < N; k++) cnt.push(0);
-    liste.forEach(function(co){ var c = []; for(var k2 = 0; k2 < N; k2++) c.push(0); tot[co.id] = { co: co, n: 0, eu: 0, cnt: c }; });
-    var nT = 0, euT = 0;
+    var tot = {}, cnt = [], wkD = [], wkF = [];
+    for(var k = 0; k < N; k++){ cnt.push(0); wkD.push(0); wkF.push(0); }
+    liste.forEach(function(co){ var c = [], d0 = [], f0 = []; for(var k2 = 0; k2 < N; k2++){ c.push(0); d0.push(0); f0.push(0); } tot[co.id] = { co: co, n: 0, eu: 0, cnt: c, wkD: d0, wkF: f0, det: detVide() }; });
+    var nT = 0, euT = 0, detT = detVide();
     xs.forEach(function(x){
-      var pr = parseFloat(x.c.prix) || 0; nT++; euT += pr;
+      var pr = parseFloat(x.c.prix) || 0; nT++; euT += pr; detAjouter(detT, x);
       var di = dateRamasse(x), w = (info && di && !estExceptionnelle(x)) ? Math.max(0, Math.min(N - 1, Math.floor((jours(di) - dj) / 7))) : -1;
-      if(w >= 0) cnt[w]++;
+      if(w >= 0){ cnt[w]++; if(x.src === 'depot') wkD[w]++; if(x.src === 'france') wkF[w]++; }
       var co = auteurDe(x.c, liste); if(!co) return;
-      tot[co.id].n++; tot[co.id].eu += pr; if(w >= 0) tot[co.id].cnt[w]++;
+      tot[co.id].n++; tot[co.id].eu += pr; if(w >= 0){ tot[co.id].cnt[w]++; if(x.src === 'depot') tot[co.id].wkD[w]++; if(x.src === 'france') tot[co.id].wkF[w]++; } detAjouter(tot[co.id].det, x);
     });
     var rang = liste.map(function(co){ return tot[co.id]; }).sort(function(a, b){ return (b.eu - a.eu) || (b.n - a.n) || a.co.name.localeCompare(b.co.name); });
-    return { d: d, info: info, N: N, cnt: cnt, tot: tot, rang: rang, nT: nT, euT: euT };
+    return { d: d, info: info, N: N, cnt: cnt, wkD: wkD, wkF: wkF, tot: tot, rang: rang, nT: nT, euT: euT, det: detT };
   }
   // Barres verticales alignées : toute la ramasse (bleu) et, à côté, la personne (vert).
-  function barresHtml(cnt, cntP, N, sem, avecP, dj0){
+  function barresHtml(cnt, cntP, N, sem, avecP, dj0, notes){
     var mx = Math.max(Math.max.apply(null, cnt), avecP ? Math.max.apply(null, cntP) : 0, 1), bars = '', labs = '';
     var hh = function(v){ return v > 0 ? Math.max(4, Math.round(v / mx * 88)) : 2; };
     for(var w = 0; w < N; w++){
       var fut = w + 1 > sem;
       bars += '<div class="pg-c' + (fut ? ' fut' : '') + '"><div class="pg-duo">'
         + (fut ? '' : '<div class="pg-b t" style="height:' + hh(cnt[w]) + 'px"><b>' + cnt[w] + '</b></div>' + (avecP ? '<div class="pg-b p" style="height:' + hh(cntP[w]) + 'px"><b>' + cntP[w] + '</b></div>' : '')) + '</div></div>';
-      labs += '<span class="' + (w + 1 === sem ? 'cur' : (fut ? 'fut' : '')) + '">S' + (w + 1) + (dj0 ? '<small>' + dateCourte(isoDe(dj0 + 7 * w)) + '</small>' : '') + '</span>';
+      labs += '<span class="' + (w + 1 === sem ? 'cur' : (fut ? 'fut' : '')) + '">S' + (w + 1) + (dj0 ? '<small>' + dateCourte(isoDe(dj0 + 7 * w)) + '</small>' : '') + ((notes && notes[w]) ? '<small style="display:block;font-size:9px;font-weight:700;opacity:.8">' + notes[w] + '</small>' : '') + '</span>';
     }
     return { bars: bars, labs: labs };
   }
@@ -919,11 +957,12 @@
     } else {
       h += '<div class="pg-t"><b>📦 LE CONTAINER</b></div><div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="hs-tl"><div>CLIENTS<b>' + st.nT + '</b></div><div>EUROS<b>' + eurosFr(st.euT) + '</b></div><div>' + (st.info && !st.info.incertain ? 'SEMAINES<b>' + st.N : 'ÉTAT<b>' + esc(etatLib(o))) + '</b></div></div></div></div>';
     }
-    var gb = barresHtml(st.cnt, me ? me.cnt : [], st.N, st.N, !!me, st.info ? jours(st.info.debut) : 0);
+    var gb = barresHtml(st.cnt, me ? me.cnt : [], st.N, st.N, !!me, st.info ? jours(st.info.debut) : 0, notesSemaines(me ? me.wkD : st.wkD, me ? me.wkF : st.wkF));
     if(st.info && st.info.incertain) h += '<div class="pg-pied" style="margin:8px 4px">📅 Pas de détail par semaine pour ce container : aucune ramasse enregistrée avec une date.</div>';
     else h += '<div class="pg-t"><b>📅 PAR DIMANCHE</b><span>' + (me ? (q.tu ? 'ta ramasse' : 'vue de ' + esc(q.nom)) : 'toute la ramasse') + '</span></div>'
       + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))"><div class="pg-leg"><span><i class="lt"></i>Toute la ramasse</span>' + (me ? '<span><i class="lp"></i>' + (q.tu ? 'Toi' : esc(q.nom)) + '</span>' : '') + '</div>'
       + '<div class="pg-gr2" style="grid-template-columns:repeat(' + st.N + ',1fr)">' + gb.bars + '</div><div class="pg-lab" style="grid-template-columns:repeat(' + st.N + ',1fr)">' + gb.labs + '</div></div></div>';
+    h += detailHtml(me ? me.det : st.det, me ? (q.tu ? 'toi' : q.nom) : 'toute l’équipe');
     h += '<div class="pg-t"><b>🏆 CLASSEMENT FINAL</b></div><div class="opg"><div class="ob-m b on hs-cl" style="background:rgba(255,255,255,.55)">';
     st.rang.forEach(function(r, i){
       var av = (window.photosProfil && window.photosProfil.avatar) ? window.photosProfil.avatar(r.co.id, 26) : '';
@@ -1003,13 +1042,15 @@
         + '<div class="ob-l2">' + esc(m.txt) + '</div>' + note + '</div></div>';
       // 2. par dimanche : barres verticales (toute la ramasse, et ce que la personne a ramené) + résumé écrit
       if(info){
-        var dj = jours(info.debut), cnt = [], cntP = [], liste0 = collabsClassement(); for(var k = 0; k < info.N; k++){ cnt.push(0); cntP.push(0); }
+        var dj = jours(info.debut), cnt = [], cntP = [], liste0 = collabsClassement(), wkDE = [], wkFE = [], wkDM = [], wkFM = []; for(var k = 0; k < info.N; k++){ cnt.push(0); cntP.push(0); wkDE.push(0); wkFE.push(0); wkDM.push(0); wkFM.push(0); }
+        var detE = detVide(), detM = detVide();
         fichesRamassees(d._id).forEach(function(x){
+          detAjouter(detE, x); if(moi){ var co0 = auteurDe(x.c, liste0); if(co0 && co0.id === moi) detAjouter(detM, x); }
           var di = dateRamasse(x); if(!di || estExceptionnelle(x)) return;
-          var w = Math.max(0, Math.min(info.N - 1, Math.floor((jours(di) - dj) / 7))); cnt[w]++;
-          if(moi){ var co = auteurDe(x.c, liste0); if(co && co.id === moi) cntP[w]++; }
+          var w = Math.max(0, Math.min(info.N - 1, Math.floor((jours(di) - dj) / 7))); cnt[w]++; if(x.src === 'depot') wkDE[w]++; if(x.src === 'france') wkFE[w]++;
+          if(moi){ var co = auteurDe(x.c, liste0); if(co && co.id === moi){ cntP[w]++; if(x.src === 'depot') wkDM[w]++; if(x.src === 'france') wkFM[w]++; } }
         });
-        var od = objDimanche(), gb = barresHtml(cnt, cntP, info.N, info.sem, !!moi, dj), bars = gb.bars, labs = gb.labs;
+        var od = objDimanche(), gb = barresHtml(cnt, cntP, info.N, info.sem, !!moi, dj, notesSemaines(moi ? wkDM : wkDE, moi ? wkFM : wkFE)), bars = gb.bars, labs = gb.labs;
         var tu = !admin && moi === reel, wk = info.sem - 1, nT = cnt[wk], nP = cntP[wk], pcw = nT > 0 ? Math.round(nP / nT * 100) : 0, sT = 0, sP = 0;
         cnt.forEach(function(v){ sT += v; }); cntP.forEach(function(v){ sP += v; });
         var resume = '';
@@ -1034,7 +1075,8 @@
           + '<div class="opg"><div class="ob-m b on" style="background:linear-gradient(135deg,rgba(74,85,200,.14),rgba(74,85,200,.04))">'
           + '<div class="pg-leg"><span><i class="lt"></i>Toute la ramasse</span>' + (moi ? '<span><i class="lp"></i>' + (tu ? 'Toi' : esc(cibleNom)) + '</span>' : '') + '</div>'
           + '<div class="pg-gr2" style="grid-template-columns:repeat(' + info.N + ',1fr)">' + bars + '</div>'
-          + '<div class="pg-lab" style="grid-template-columns:repeat(' + info.N + ',1fr)">' + labs + '</div>' + resume + '</div></div>';
+          + '<div class="pg-lab" style="grid-template-columns:repeat(' + info.N + ',1fr)">' + labs + '</div>' + resume + '</div></div>'
+          + detailHtml(moi ? detM : detE, moi ? (tu ? 'toi' : cibleNom) : 'toute l’équipe');
       }
       // 3. le classement, tout le monde en même temps
       var lignes = classement.filter(function(x){ return x.container === String(d.nom || 'Container').replace(/^Chargement\s+/i, '') + (d.dateDepart ? ' · ' + dateCourte(d.dateDepart) : ''); });
