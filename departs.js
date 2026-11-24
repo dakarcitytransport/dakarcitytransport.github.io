@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.123';
+var DEP_VERSION = 'v2.22.125';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -25023,6 +25023,28 @@ window.depOuvrirLivraisonFuts = function(id){
   try{ ouvrirCollecte(id); }catch(e){ console.error('livraison', e); toast('⚠️ Livraison indisponible.'); }
 };
 
+/* ENCAISSEMENT EN COURS (Cobey, 24/11/2026) : l'argent déjà reçu des clients fûts (acomptes, paiements à la livraison) tant qu'ils ne sont pas ramassés. Il n'est pas
+   encore dans un container (qui ne compte que les clients ramassés) : il s'affiche ici, à part, et entre dans le container à la ramasse de chaque client. */
+function _depEncaissementEnCours(){
+  var r = { nb: 0, total: 0, paye: 0, reste: 0, payeFut: 0, payeColis: 0 };
+  _depFichesFuts().forEach(function(o){
+    var x = o.x, c = o.c;
+    var enLivraison = x.src === 'col' && !!_depColFuts(x.collecteId);
+    var attendRamasse = _depFutAttendRamasse(x);
+    var depotAttente = x.src === 'depot' && (!c.departId || c.departId === DEP_ID_DEPOT);
+    if(!(enLivraison || attendRamasse || depotAttente)) return;
+    var p = depCalculerPaiement(c);
+    r.nb++; r.total += p.total; r.paye += p.paye; r.reste += p.reste;
+    // ce qui a été reçu pour l'achat du fût (35 € le fût) / ce qui a été reçu en acompte sur le transport (colis)
+    (Array.isArray(c.versements) ? c.versements : []).forEach(function(v){
+      var m = parseFloat(v && v.montant) || 0;
+      if(v && v.nature === 'fut') r.payeFut += m; else r.payeColis += m;
+    });
+  });
+  r.total = depArrondi2(r.total); r.paye = depArrondi2(r.paye); r.reste = depArrondi2(r.reste); r.payeFut = depArrondi2(r.payeFut); r.payeColis = depArrondi2(r.payeColis);
+  return r;
+}
+window._depEncaissementEnCours = _depEncaissementEnCours;
 function _depStockFuts(){
   var fs = _depFichesFuts(), a = _depFutsAchetes(), v = fs.reduce(function(s, o){ return s + o.nb; }, 0);
   // « chez les clients » : vendus, fiche pas encore basculée dans une collecte (le client remplit son fût)
@@ -25166,6 +25188,17 @@ function depRenderFuts(){
         + '<div style="font-size:12px;color:#B3261E;font-weight:700;margin-bottom:16px;">Stock vide : l\'inscription est impossible tant qu\'un achat de f&ucirc;ts n\'est pas saisi.</div>'
       : '<button class="btn btn-green" style="margin-bottom:16px;" onclick="depOuvrirVenteFut()">+ Inscrire un client f&ucirc;t</button>');
 
+  (function(){
+    var enc = _depEncaissementEnCours();
+    if(!(enc.paye > 0 || enc.reste > 0)) return;
+    h += '<div class="dep-card ft-c" style="border-left-color:#1565A8;margin-bottom:14px;">'
+      + '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.05em;">&#128176; ENCAISSEMENT EN COURS</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:4px;"><b style="font-size:26px;color:#1565A8;">' + _depEuros(enc.paye) + ' &euro;</b>'
+      +   '<span style="font-size:12px;font-weight:700;color:var(--text3);text-align:right;">re&ccedil;us de ' + enc.nb + ' client' + (enc.nb > 1 ? 's' : '') + '<br>reste &agrave; encaisser ' + _depEuros(enc.reste) + ' &euro;</span></div>'
+      + '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;margin-top:8px;"><span>&#128738;&#65039; Achat des f&ucirc;ts</span><b>' + _depEuros(enc.payeFut) + ' &euro;</b></div>'
+      + '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;margin-top:3px;"><span>&#128230; Acomptes transport</span><b>' + _depEuros(enc.payeColis) + ' &euro;</b></div>'
+      + '<div style="font-size:11.5px;color:var(--text3);font-weight:600;line-height:1.45;margin-top:6px;">Argent re&ccedil;u des clients f&ucirc;ts pas encore ramass&eacute;s. Cet argent n\'est pas encore dans le container : il y entre &agrave; la ramasse de chaque client.</div></div>';
+  })();
   if(estDirection()) h += '<div style="font-size:12px;color:var(--text3);font-weight:600;line-height:1.45;margin:-8px 2px 16px;">Pour ajouter un achat de f&ucirc;ts : Rapport financier &rsaquo; Bilan &rsaquo; D&eacute;penses de la caisse principale.</div>';
   function carteFut(o){
     var c = o.c, pay = depCalculerPaiement(c), x = o.x, etat = _depEtatFut(o);
@@ -25651,6 +25684,11 @@ window.depRenderRapfinBilan = function(){
     + '<div class="bl-t" style="' + titre + '">&#128230; BILAN GLOBAL &middot; TRANSPORT DES COLIS</div>'
     + ligne('Total factur&eacute;', _depEuros(b.g.colisTotal) + ' &euro;', 'var(--text)', 'pay&eacute; et non pay&eacute;')
     + ligne('Recettes', _depEuros(b.recettes) + ' &euro;', vert, 'r&eacute;ellement encaiss&eacute; &middot; hors livraison &middot; ' + b.g.nb + ' container' + (b.g.nb>1?'s':''))
+    + (function(){
+        var enc = _depEncaissementEnCours();
+        return enc.paye > 0 ? ligne('&#128176; Encaissement en cours', _depEuros(enc.paye) + ' &euro;', '#1565A8',
+          enc.nb + ' client' + (enc.nb > 1 ? 's' : '') + ' f&ucirc;ts pas encore ramass&eacute;s &middot; achat des f&ucirc;ts ' + _depEuros(enc.payeFut) + ' &euro; + acomptes transport ' + _depEuros(enc.payeColis) + ' &euro; &middot; pas encore dans les recettes') : '';
+      })()
     + ligne('D&eacute;penses', '&minus; ' + _depEuros(b.depenses) + ' &euro;', rouge, 'camions, containers et caisse principale')
     + (b.taxePrestataire > 0 ? ligne('&#129309; Taxes prestataire', '&minus; ' + _depEuros(b.taxePrestataire) + ' &euro;', rouge, 'pr&eacute;lev&eacute;es par les partenaires Mali') : '')
     + '<div class="bl-ben" style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 2px;margin-top:6px;border-top:2px solid var(--border);">'

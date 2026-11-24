@@ -7256,3 +7256,10 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - `compteursDepart` : un client fût basculé non ramassé (`_depFutAttendRamasse`) n'est plus ajouté du tout (clients, colis, euros, payé, reste dû) ; les clients fûts encore dans leur livraison (`clientsLiv`) non plus. Ils entrent dans le container, avec leur argent, une fois leur ramasse validée. (Remplace la règle du 13/11 « seul l'argent d'une livraison compte dans les finances du container » et celle de v3.99.393.)
 - Les lignes « Fûts » du Rapport financier (information par container) ne changent pas.
 - Testé (faux Firebase) : client ramassé + fût ramassé + fût en attente + fût en livraison → 2 clients, 230 € facturés et payés.
+
+## 24/11/2026 — v3.99.396 (departs.js v2.22.125) — « Encaissement en cours » (argent des fûts pas encore ramassés)
+- Cobey : « on va mettre une ligne “encaissement en cours” avec l'argent reçu des clients fûts, leurs acomptes ; ces clients ne sont pas encore ramassés, donc pas comptabilisés dans le container » ; « l'achat de leurs fûts et leurs acomptes » ; « une fois ramassés, ils vont dans le container avec leurs prix et sortent de l'encaissement en cours ».
+- `_depEncaissementEnCours` : somme de ce qui a été reçu sur les fiches fûts pas encore ramassées (dans une livraison, dans la liste « à placer », basculées en collecte non validées, anciens fûts du dépôt), séparée en **achat des fûts** (versements `nature:'fut'`) et **acomptes transport** (`nature:'colis'` ou sans nature), avec le reste à encaisser.
+- Affiché : (1) écran Fûts, carte « 💰 ENCAISSEMENT EN COURS » sous le stock ; (2) Bilan global, ligne « 💰 Encaissement en cours » juste sous les Recettes, SANS entrer dans les recettes ni le bénéfice.
+- À la ramasse validée, la fiche entre dans le container (avec son prix et ses paiements, v3.99.395) et sort de l'encaissement en cours.
+- Testé (faux Firebase) : fût en livraison (50 €) + fût basculé en attente (100 €) comptés = 150 € (70 € achat + 80 € acomptes) ; un fût basculé et ramassé (165 €) exclu ; ligne présente dans l'écran Fûts et dans le Bilan.
