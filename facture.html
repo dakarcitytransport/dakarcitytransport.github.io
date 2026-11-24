@@ -935,7 +935,20 @@ var _connexionAnonyme = firebase.auth
         return suiteAffichageFacture(full || c);
       });
     }
-    return suiteAffichageFacture(c);
+    return suiteAffichageFacture(c).then(function(){
+      // 24/11/2026 — Cobey : la facture ouverte juste avant l'enregistrement d'un paiement gardait l'ancien chiffre (« 0 € payé » alors que 100 € avaient été
+      // versés). Elle suit maintenant la fiche en direct : un paiement, une correction de prix ou un colis ajouté s'affichent tout seuls, sans recharger.
+      var derniere = JSON.stringify(c);
+      refClient.on('value', function(sn){
+        var c2 = sn.val(); if(!c2) return;
+        var js = JSON.stringify(c2); if(js === derniere) return;
+        derniere = js;
+        try{
+          window._depPubFactureCtx = { ctx: ctx, c: c2 };
+          depRenderFacturePublique(c2, ctx);
+        }catch(e){ console.error('facture: mise à jour en direct', e); }
+      });
+    });
   }).catch(function(e){
     console.error('facture: lecture Firebase', e);
     afficherErreur();

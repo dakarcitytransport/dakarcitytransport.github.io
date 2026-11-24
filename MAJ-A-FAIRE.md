@@ -7222,3 +7222,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Sous chaque barre de semaine : « dont N dépôts · N France » quand il y en a.
 - Ce sont les clients RAMASSÉS (comme le bilan) ; les clients inscrits mais pas encore ramassés n'y sont pas.
 - Testé (faux Firebase + capture) : page En cours et bilan avec dimanche, exceptionnelle, dépôt direct et France ; singulier/pluriel corrects.
+
+## 24/11/2026 — facture.html — La facture client se met à jour en direct
+- Cobey (cas Penda, 23/11) : la facture publique ouverte juste avant l'enregistrement d'un paiement affichait « 0 € payé / Non payé » alors que 100 € étaient bien versés (la page lisait la fiche une seule fois à l'ouverture) → « ok » pour qu'elle se mette à jour toute seule.
+- `facture.html` s'abonne maintenant à la fiche du client (`refClient.on('value')`) et se redessine quand elle change (paiement, prix, colis, destinataire). Plus besoin de recharger.
+- Testé (faux Firebase) : facture ouverte avec 0 € payé ; un paiement de 100 € est écrit ailleurs → la page passe seule à « Payé 100 € · Reste 230 € · Partiellement payé ».
+- Pas de numéro de version : c'est la page publique. Les factures déjà ouvertes sur un téléphone doivent être rechargées une fois ; ensuite elles suivent seules.
