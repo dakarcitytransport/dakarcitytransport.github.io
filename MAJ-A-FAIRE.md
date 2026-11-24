@@ -7244,3 +7244,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - `compteursDepart` : un client fût basculé (`futBascule`) dont la ramasse n'est pas validée est compté en « silencieux » (comme les livraisons) : pas dans le nombre de clients ni de colis du container, mais son ARGENT encaissé/dû reste dans les recettes (`_depFutAttendRamasse`, `_depRamasseValidee`). Dès que sa ramasse est validée, il est compté.
 - Liste du container : pastille bleue « 🛢️ Fût livré · à ramasser » sur ces fiches.
 - Testé (faux Firebase) : normal ramassé + fût en attente + fût ramassé → 2 clients (le fût en attente exclu), 395 € et 280 € payés conservés.
+
+## 24/11/2026 — v3.99.394 (departs.js v2.22.122) — Fûts à ramasser : absents de la liste du container
+- Cobey (capture : Coulibaly Maimouna, n° 54, « Fût livré · à ramasser » dans Chargement DKR) : « même là, les clients fût à ramasser ne devraient même pas apparaître dans le conteneur. Ils ne prennent leur place que quand ils ont été ramassés. »
+- La liste des clients d'un container (écran du départ et carré Dépôt) ne montre plus les clients fûts basculés dont la ramasse n'est pas validée (`_depFutAttendRamasse`) : ni ligne, ni numéro (les numéros se suivent sans eux). La pastille « Fût livré · à ramasser » ajoutée en v3.99.393 est retirée (plus utile).
+- Inchangé : leur argent déjà encaissé/dû reste dans les recettes du container (compteursDepart), sans les compter comme clients.
+- Testé (faux Firebase) : liste du container avec un client normal ramassé, un fût ramassé et un fût en attente → seul le fût en attente est absent ; 2 clients, 395 € / 280 € payés conservés.

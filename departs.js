@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.121';
+var DEP_VERSION = 'v2.22.122';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -5294,7 +5294,7 @@ window.depCarreDepotContainer = function(departId){
   // d'une collecte OU inscrits directement au dépôt (comme depDetail),
   // pas seulement ces derniers (retour de Cobey du 28/08/2026 : un
   // client passé par la collecte n'apparaissait pas ici).
-  var clientsCollecte = tousLesClients().filter(function(x){ return x.c.departId === departId; });
+  var clientsCollecte = tousLesClients().filter(function(x){ return x.c.departId === departId && !_depFutAttendRamasse(x); });
   var clientsDepot = Object.keys(window.depotClients||{})
     .filter(function(k){ return (window.depotClients[k]||{}).departId === departId; })
     .map(function(k){ return { depot:true, clientId:k, c: window.depotClients[k] }; });
@@ -8935,7 +8935,8 @@ window.depDetail = function(id, gardeFiltres){
 
   // Les clients rattachés : ceux venus d'une collecte + ceux inscrits
   // directement au dépôt (hors collecte)
-  var clients = tousLesClients().filter(function(x){ return x.c.departId === id; });
+  // Cobey, 24/11/2026 : « les clients fûts à ramasser ne doivent même pas apparaître dans le container : ils n'y prennent leur place qu'une fois ramassés. »
+  var clients = tousLesClients().filter(function(x){ return x.c.departId === id && !_depFutAttendRamasse(x); });
   var clientsDepot = Object.keys(window.depotClients||{})
     .filter(function(k){ return window.depotClients[k] && window.depotClients[k].departId === id && !(id === DEP_ID_DEPOT && _depEstFutChezClient(window.depotClients[k])); })
     .map(function(k){ return { depot:true, clientId:k, c: window.depotClients[k] }; });
@@ -9103,10 +9104,6 @@ window.depDetail = function(id, gardeFiltres){
         _pastilleDouble = ' <span style="font-size:10.5px;font-weight:800;color:#8A5200;background:#FFF3E0;'
           + 'border:1.5px solid #E58A00;border-radius:20px;padding:2px 8px;white-space:nowrap;">'
           + '&#128279; ' + _nbFact + ' factures</span>';
-      }
-      // Fût livré, basculé dans une collecte, pas encore ramassé : non compté dans les clients du container, mais visible ici.
-      if(!x.depot && !x.france && _depFutAttendRamasse(x)){
-        _pastilleDouble += ' <span style="font-size:10.5px;font-weight:800;color:#1565A8;background:#E7F0FB;border:1.5px solid #1565A8;border-radius:20px;padding:2px 8px;white-space:nowrap;">&#128738;&#65039; F&ucirc;t livr&eacute; &middot; &agrave; ramasser</span>';
       }
       // v3.99.60 — Cobey, 21/10/2026 : « idem pour notre côté DCT, code
       // couleur [...] un visuel plus fort [...] c'est pas assez voyant
