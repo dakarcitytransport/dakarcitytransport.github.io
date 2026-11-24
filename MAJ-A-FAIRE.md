@@ -7237,3 +7237,10 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Bouton « Copier » (SMS) : même texte sans les `*`, émojis conservés ; le bouton WhatsApp garde les `*` (gras).
 - Les autres messages (arrivée du container, avis expéditeur, relance de paiement) ne changent pas.
 - Testé : matin / après-midi, version SMS sans astérisques, cas civilité, société, prénom seul, sans nom.
+
+## 24/11/2026 — v3.99.393 (departs.js v2.22.121) — Container : on ne compte que les clients ramassés (fûts en attente exclus)
+- Cobey : « le nombre de clients dans les containers ne comptait que les clients ramassés : une fois validé à la ramasse, il entrait dans le container. Il y a un truc à changer. » → « ok ».
+- Constat (container DKR du 29/11) : carte « 51 clients » vs objectif « 48 / 100 » ; les 3 clients de l'écart (Mamadou thierno Diallo, Coulibaly Maimouna, Penda) sont des clients FÛTS livrés (container attribué à la validation de la livraison) puis basculés dans la collecte du 29, pas encore ramassés.
+- `compteursDepart` : un client fût basculé (`futBascule`) dont la ramasse n'est pas validée est compté en « silencieux » (comme les livraisons) : pas dans le nombre de clients ni de colis du container, mais son ARGENT encaissé/dû reste dans les recettes (`_depFutAttendRamasse`, `_depRamasseValidee`). Dès que sa ramasse est validée, il est compté.
+- Liste du container : pastille bleue « 🛢️ Fût livré · à ramasser » sur ces fiches.
+- Testé (faux Firebase) : normal ramassé + fût en attente + fût ramassé → 2 clients (le fût en attente exclu), 395 € et 280 € payés conservés.

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.120';
+var DEP_VERSION = 'v2.22.121';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2408,6 +2408,23 @@ function appliquerProfils(){
   }catch(e){}
 }
 
+// Ramasse validée dans un camion ? (utilisé pour ne compter dans un container que les clients réellement ramassés)
+function _depRamasseValidee(colId, clientId){
+  var d = (window.dispatchParCollecte || {})[colId], t = (d && d.trucks) || {};
+  return Object.keys(t).some(function(k){
+    var v = t[k] && t[k].validated; if(!v) return false;
+    if(!Array.isArray(v)) v = Object.values(v);
+    return v.indexOf(clientId) >= 0;
+  });
+}
+// Un client fût déjà livré (il a reçu son container à la livraison) puis basculé dans une collecte, pas encore ramassé : il n'est pas
+// compté parmi les clients du container (Cobey, 24/11/2026 : « le nombre de clients d'un container ne compte que les clients ramassés »),
+// mais son argent déjà encaissé reste dans les recettes.
+function _depFutAttendRamasse(x){
+  return !!(x && x.c && x.c.futBascule && x.collecteId && !_depRamasseValidee(x.collecteId, x.clientId));
+}
+window._depFutAttendRamasse = _depFutAttendRamasse;
+
 // Tous les clients de toutes les collectes, à plat
 function tousLesClients(){
   var out = [];
@@ -2488,7 +2505,7 @@ function compteursDepart(departId){
     if(tl > 0){ r.livTrop += tl; r.livTropNb++; }
   }
 
-  tousLesClients().forEach(function(x){ ajouter(x.c); });
+  tousLesClients().forEach(function(x){ ajouter(x.c, _depFutAttendRamasse(x)); });
   // Fûts livrés ou à livrer rattachés à ce container (livraisons rangées à part) : leur argent compte dans ses recettes, sans les mêler à ses clients.
   Object.keys(window.clientsLiv || {}).forEach(function(lid){
     if(lid === _livOuverte) return;
@@ -9086,6 +9103,10 @@ window.depDetail = function(id, gardeFiltres){
         _pastilleDouble = ' <span style="font-size:10.5px;font-weight:800;color:#8A5200;background:#FFF3E0;'
           + 'border:1.5px solid #E58A00;border-radius:20px;padding:2px 8px;white-space:nowrap;">'
           + '&#128279; ' + _nbFact + ' factures</span>';
+      }
+      // Fût livré, basculé dans une collecte, pas encore ramassé : non compté dans les clients du container, mais visible ici.
+      if(!x.depot && !x.france && _depFutAttendRamasse(x)){
+        _pastilleDouble += ' <span style="font-size:10.5px;font-weight:800;color:#1565A8;background:#E7F0FB;border:1.5px solid #1565A8;border-radius:20px;padding:2px 8px;white-space:nowrap;">&#128738;&#65039; F&ucirc;t livr&eacute; &middot; &agrave; ramasser</span>';
       }
       // v3.99.60 — Cobey, 21/10/2026 : « idem pour notre côté DCT, code
       // couleur [...] un visuel plus fort [...] c'est pas assez voyant
