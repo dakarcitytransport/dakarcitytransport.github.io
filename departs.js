@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.125';
+var DEP_VERSION = 'v2.22.126';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -23505,7 +23505,7 @@ function _depRapfinLigneResultat(departId, cp){
     + '<div class="rf-q"><span>Encaiss&eacute;</span><b class="rf-g">' + _depEuros(cp.colisPaye || 0) + ' &euro;</b></div>'
     + '<div class="rf-q"><span>' + (_depEstContainerMali(departId) ? 'Taxe prestataire' : 'D&eacute;pens&eacute;') + '</span><b>' + (dep2 > 0 ? '&minus; ' : '') + _depEuros(dep2) + ' &euro;</b></div>'
     + '<div class="rf-b"><span>&#128176; B&eacute;n&eacute;fice r&eacute;el</span><b style="color:' + (resultat < 0 ? '#B3261E' : '#006b2d') + ';">' + _depEuros(resultat) + ' &euro;</b></div></div>';
-  return v2 + _depLigneFutsContainer(departId) + '<div class="rf-res" style="display:flex;justify-content:space-between;align-items:baseline;'
+  return v2 + _depLigneFutsContainer(departId) + _depLigneEncaissementContainer(departId, true) + '<div class="rf-res" style="display:flex;justify-content:space-between;align-items:baseline;'
     + 'margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
     + '<span style="font-size:11.5px;color:var(--text3);font-weight:700;">&#128176; B&eacute;n&eacute;fice r&eacute;el'
     +   '<span style="font-weight:500;color:#999;"> (' + sousTitre + ')</span></span>'
@@ -23536,6 +23536,7 @@ window.depRapfinContainer = function(id){
     + (estDepot ? '' : ' · part le ' + dateFr(d.dateDepart));
 
   var h = _depBlocCaisse(cp);
+  if(!estDepot) h += _depLigneEncaissementContainer(id, false);
   if(!estDepot && depPaysDepart(d) !== 'ML') h += _depBlocFutsContainer(id);
 
   /* v1.66.0 — Ce que ce container a coûté, et ce qu'il laisse.
@@ -25025,7 +25026,7 @@ window.depOuvrirLivraisonFuts = function(id){
 
 /* ENCAISSEMENT EN COURS (Cobey, 24/11/2026) : l'argent déjà reçu des clients fûts (acomptes, paiements à la livraison) tant qu'ils ne sont pas ramassés. Il n'est pas
    encore dans un container (qui ne compte que les clients ramassés) : il s'affiche ici, à part, et entre dans le container à la ramasse de chaque client. */
-function _depEncaissementEnCours(){
+function _depEncaissementEnCours(departId){
   var r = { nb: 0, total: 0, paye: 0, reste: 0, payeFut: 0, payeColis: 0 };
   _depFichesFuts().forEach(function(o){
     var x = o.x, c = o.c;
@@ -25033,6 +25034,7 @@ function _depEncaissementEnCours(){
     var attendRamasse = _depFutAttendRamasse(x);
     var depotAttente = x.src === 'depot' && (!c.departId || c.departId === DEP_ID_DEPOT);
     if(!(enLivraison || attendRamasse || depotAttente)) return;
+    if(departId && c.departId !== departId) return;   // pour un container précis : seulement ses fûts
     var p = depCalculerPaiement(c);
     r.nb++; r.total += p.total; r.paye += p.paye; r.reste += p.reste;
     // ce qui a été reçu pour l'achat du fût (35 € le fût) / ce qui a été reçu en acompte sur le transport (colis)
@@ -25143,6 +25145,22 @@ window.depBlocBeneficeLivraison = function(){
     if(fg && fg.parentNode) fg.parentNode.insertBefore(bloc, fg.nextSibling); else cont.insertBefore(bloc, cont.firstChild);
   }catch(e){ console.error('livraison: bénéfice', e); }
 };
+// « Encaissement en cours » d'un container précis (Cobey, 24/11/2026) : l'argent reçu des clients fûts rattachés à CE container, pas encore ramassés
+// (pas dans ses clients ni dans son facturé : il y entre à leur ramasse).
+function _depLigneEncaissementContainer(depId, carte){
+  if(_depEstContainerMali(depId)) return '';
+  var e = _depEncaissementEnCours(depId);
+  if(!(e.paye > 0 || e.reste > 0)) return '';
+  var detail = 'achat des f&ucirc;ts ' + _depEuros(e.payeFut) + ' &euro; + acomptes transport ' + _depEuros(e.payeColis) + ' &euro;';
+  var inner = '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;">'
+    + '<span style="font-size:12px;font-weight:800;color:#1565A8;">&#128176; Encaissement en cours</span>'
+    + '<b style="font-size:' + (carte ? '15' : '17') + 'px;color:#1565A8;">' + _depEuros(e.paye) + ' &euro;</b></div>'
+    + '<div style="font-size:11px;color:var(--text3);font-weight:600;line-height:1.4;margin-top:3px;">' + e.nb + ' client' + (e.nb > 1 ? 's' : '') + ' f&ucirc;t' + (e.nb > 1 ? 's' : '') + ' &agrave; ramasser &middot; ' + detail
+    + ' &middot; reste &agrave; encaisser ' + _depEuros(e.reste) + ' &euro;. Entre dans ce container &agrave; leur ramasse.</div>';
+  return carte
+    ? '<div class="rf-enc" style="margin-top:8px;padding:7px 10px;border-radius:10px;background:rgba(21,101,168,.1);">' + inner + '</div>'
+    : '<div style="background:#fff;border:1.5px solid #1565A8;border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">' + inner + '</div>';
+}
 function _depLigneFutsContainer(depId){
   if(_depEstContainerMali(depId)) return '';
   var f = _depFutsDeContainer(depId);

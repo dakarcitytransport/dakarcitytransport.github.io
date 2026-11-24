@@ -7263,3 +7263,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Affiché : (1) écran Fûts, carte « 💰 ENCAISSEMENT EN COURS » sous le stock ; (2) Bilan global, ligne « 💰 Encaissement en cours » juste sous les Recettes, SANS entrer dans les recettes ni le bénéfice.
 - À la ramasse validée, la fiche entre dans le container (avec son prix et ses paiements, v3.99.395) et sort de l'encaissement en cours.
 - Testé (faux Firebase) : fût en livraison (50 €) + fût basculé en attente (100 €) comptés = 150 € (70 € achat + 80 € acomptes) ; un fût basculé et ramassé (165 €) exclu ; ligne présente dans l'écran Fûts et dans le Bilan.
+
+## 24/11/2026 — v3.99.397 (departs.js v2.22.126) — « Encaissement en cours » dans le container concerné
+- Cobey : « il faut mettre la ligne encaissement en cours dans le container concerné. »
+- Rapport financier › Containers : chaque carte de container, et le détail d'un container (sous la caisse, avant la ligne Fûts), affichent « 💰 Encaissement en cours » = argent reçu des clients fûts RATTACHÉS à ce container et pas encore ramassés, avec achat des fûts / acomptes transport, nombre de clients et reste à encaisser (`_depLigneEncaissementContainer`, `_depEncaissementEnCours(departId)`). Pas de ligne pour un container du Mali ni quand rien n'est à encaisser.
+- Reste inchangé : carte « Encaissement en cours » de l'écran Fûts et ligne du Bilan global (tous containers). Pas de montant dans l'écran Départ (v1.59.0 : montré aux clients).
+- Testé (faux Firebase) : 2 fûts en attente rattachés à un container → 150 € (70 € achat + 80 € acomptes) dans la liste des containers et dans le détail ; un autre container → 0 (pas de ligne).
