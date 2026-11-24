@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.122';
+var DEP_VERSION = 'v2.22.123';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -2505,12 +2505,9 @@ function compteursDepart(departId){
     if(tl > 0){ r.livTrop += tl; r.livTropNb++; }
   }
 
-  tousLesClients().forEach(function(x){ ajouter(x.c, _depFutAttendRamasse(x)); });
-  // Fûts livrés ou à livrer rattachés à ce container (livraisons rangées à part) : leur argent compte dans ses recettes, sans les mêler à ses clients.
-  Object.keys(window.clientsLiv || {}).forEach(function(lid){
-    if(lid === _livOuverte) return;
-    Object.keys(window.clientsLiv[lid] || {}).forEach(function(k){ ajouter(window.clientsLiv[lid][k], true); });
-  });
+  // Cobey, 24/11/2026 : « les clients fûts à ramasser n'ont rien à faire dans le container : ni dans les clients, ni dans le total facturé. » Un fût livré (dans sa
+  // livraison ou basculé dans une collecte) n'entre dans le container, avec son argent, qu'une fois RAMASSÉ.
+  tousLesClients().forEach(function(x){ if(_depFutAttendRamasse(x)) return; ajouter(x.c); });
   // v1.48.0 : une facture regroupée ne comptait qu'une fois côté Collecte,
   // mais deux fois pour le Dépôt direct et France & Europe — le total
   // annoncé en haut du container dépassait alors le nombre de fiches

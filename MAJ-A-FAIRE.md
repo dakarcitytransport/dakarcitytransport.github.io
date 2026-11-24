@@ -7250,3 +7250,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - La liste des clients d'un container (écran du départ et carré Dépôt) ne montre plus les clients fûts basculés dont la ramasse n'est pas validée (`_depFutAttendRamasse`) : ni ligne, ni numéro (les numéros se suivent sans eux). La pastille « Fût livré · à ramasser » ajoutée en v3.99.393 est retirée (plus utile).
 - Inchangé : leur argent déjà encaissé/dû reste dans les recettes du container (compteursDepart), sans les compter comme clients.
 - Testé (faux Firebase) : liste du container avec un client normal ramassé, un fût ramassé et un fût en attente → seul le fût en attente est absent ; 2 clients, 395 € / 280 € payés conservés.
+
+## 24/11/2026 — v3.99.395 (departs.js v2.22.123) — Container : les fûts à ramasser ne comptent plus du tout (ni clients, ni euros)
+- Cobey : « tout à l'heure je t'ai demandé de ne pas les compter, mais là tu me dis que leurs factures sont comptées ? » (container DKR : 48 clients mais 8 360 € ; les 48 clients font 6 650 €, les 1 710 € de plus viennent de 6 clients fûts livrés pas encore ramassés).
+- `compteursDepart` : un client fût basculé non ramassé (`_depFutAttendRamasse`) n'est plus ajouté du tout (clients, colis, euros, payé, reste dû) ; les clients fûts encore dans leur livraison (`clientsLiv`) non plus. Ils entrent dans le container, avec leur argent, une fois leur ramasse validée. (Remplace la règle du 13/11 « seul l'argent d'une livraison compte dans les finances du container » et celle de v3.99.393.)
+- Les lignes « Fûts » du Rapport financier (information par container) ne changent pas.
+- Testé (faux Firebase) : client ramassé + fût ramassé + fût en attente + fût en livraison → 2 clients, 230 € facturés et payés.
