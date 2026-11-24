@@ -7228,3 +7228,12 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - `facture.html` s'abonne maintenant à la fiche du client (`refClient.on('value')`) et se redessine quand elle change (paiement, prix, colis, destinataire). Plus besoin de recharger.
 - Testé (faux Firebase) : facture ouverte avec 0 € payé ; un paiement de 100 € est écrit ailleurs → la page passe seule à « Payé 100 € · Reste 230 € · Partiellement payé ».
 - Pas de numéro de version : c'est la page publique. Les factures déjà ouvertes sur un téléphone doivent être rechargées une fois ; ensuite elles suivent seules.
+
+## 24/11/2026 — v3.99.392 (departs.js v2.22.120) — Nouveau message de rappel de ramasse (WhatsApp)
+- Cobey : nouveau texte de rappel avec mise en valeur (« écrire en couleur pour souligner l'importance ») ; la date et le créneau restent ceux du planning ; « avec les 🔴, vas-y » ; « il faut aussi nommer le client ».
+- `_depTexteMessageRelance` : gras WhatsApp (`*…*`) sur la date, le créneau, la demande de confirmation et « préparer votre colis avant notre arrivée » ; ✅ devant la demande de confirmation ; phrase d'avertissement en majuscules entre deux 🔴 (« ANNULÉ », au masculin) ; 📦 après « collecte de votre colis ».
+- Date = date de la collecte ; créneau = heure programmée du client dans le dispatch (matinée 8h-12h, après-midi 13h-18h, sans heure : pas de créneau) ; inchangés.
+- « Bonjour » + nom complet de la fiche (civilité, prénom, nom : « Bonjour Mme Alimah Traoré ») ; émoji de début retiré pour les sociétés ; sans nom : « Bonjour 👋 » (avant : « Bonjour bonjour »).
+- Bouton « Copier » (SMS) : même texte sans les `*`, émojis conservés ; le bouton WhatsApp garde les `*` (gras).
+- Les autres messages (arrivée du container, avis expéditeur, relance de paiement) ne changent pas.
+- Testé : matin / après-midi, version SMS sans astérisques, cas civilité, société, prénom seul, sans nom.

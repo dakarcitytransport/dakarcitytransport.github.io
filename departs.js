@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.119';
+var DEP_VERSION = 'v2.22.120';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -20510,18 +20510,27 @@ function _depCreneauRelance(heure){
 // l'heure programmée pour CE client sur la tournée (voir _depCreneauRelance,
 // hours[id]) — plusieurs clients du même camion reçoivent donc des
 // horaires différents, comme avant.
-function _depTexteMessageRelance(c, creneauTxt, dateTxt){
-  var prenom = (c.prenom || c.name || '').trim() || 'bonjour';
+// 24/11/2026 — Cobey : nouveau message, avec mise en valeur (gras WhatsApp `*…*` et émojis de couleur) et phrase d'avertissement en rouge.
+// La date et le créneau restent ceux du planning (date de la collecte, heure programmée dans le dispatch) ; `pourSms` retire les `*` pour la copie
+// (SMS classique), les émojis restent.
+function _depTexteMessageRelance(c, creneauTxt, dateTxt, pourSms){
+  var g = function(t){ return pourSms ? t : '*' + t + '*'; };
+  // Cobey, 24/11/2026 : « il faut nommer le client » → le nom complet de la fiche (civilité, prénom, nom) ; sans nom, simplement « Bonjour ».
+  var nomClient = String(c.name || '').trim();
+  if(!nomClient) nomClient = [c.civilite, c.prenom, c.nom].filter(function(x){ return x && x !== 'Societe'; }).join(' ').trim();
+  nomClient = nomClient.replace(/^[^\p{L}\p{N}]+/u, '').trim();   // pas d'émoji de début (ex. « 🏢 Association… »)
   var ligne = 'Dakar City Transport passera chez vous'
-    + (dateTxt ? (' le ' + dateTxt) : '')
-    + (creneauTxt ? (', ' + creneauTxt) : '')
-    + ', pour la collecte de votre colis.';
-  return 'Bonjour ' + prenom + ' \u{1F44B}\n\n'
+    + (dateTxt ? (' le ' + g(dateTxt)) : '')
+    + (creneauTxt ? (', ' + g(creneauTxt)) : '')
+    + ', pour la collecte de votre colis \u{1F4E6}.';
+  return 'Bonjour' + (nomClient ? ' ' + nomClient : '') + ' \u{1F44B}\n\n'
     + ligne + '\n\n'
-    + 'Pourriez-vous nous confirmer la bonne réception de ce message afin de valider votre ramasse ?\n\n'
-    + 'Merci également de bien vouloir préparer votre colis avant notre arrivée \u{1F4E6}.\n\n'
+    + '\u2705 ' + g('Pourriez-vous nous confirmer la bonne réception de ce message afin de valider votre ramasse ?') + '\n\n'
+    + '\u{1F534} ' + g('ATTENTION : SANS RETOUR DE VOTRE PART, LE RENDEZ-VOUS SERA AUTOMATIQUEMENT ANNULÉ.') + ' \u{1F534}\n\n'
+    + 'Merci également de bien vouloir ' + g('préparer votre colis avant notre arrivée') + ' \u{1F4E6}.\n\n'
     + 'À très bientôt !\nL’équipe Dakar City Transport';
 }
+window._depTexteMessageRelance = _depTexteMessageRelance;
 
 // Format international requis par WhatsApp (wa.me) : chiffres seuls, sans
 // le 0 initial. Les clients de la collecte sont ramassés en France — un
@@ -20638,6 +20647,7 @@ function _depAjouterWhatsappCamion(k, src){
     var tel = _depTelIntlRelance(c.tel);
     var creneau = _depCreneauRelance(hours[id]);
     var msg = _depTexteMessageRelance(c, creneau, dateTxt);
+    var msgSms = _depTexteMessageRelance(c, creneau, dateTxt, true);   // pour « Copier » : sans les astérisques
 
     var ligne = document.createElement('div');
     ligne.className = 'route-detail-row dep-relance-whatsapp';
@@ -20662,7 +20672,7 @@ function _depAjouterWhatsappCamion(k, src){
     btnCop.onclick = (function(texte){ return function(e){
       if(e) e.stopPropagation();
       _depCopierTexteRelance(texte);
-    }; })(msg);
+    }; })(msgSms);
 
     ligne.appendChild(btnWa);
     ligne.appendChild(btnCop);
