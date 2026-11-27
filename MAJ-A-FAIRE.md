@@ -7269,3 +7269,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Rapport financier › Containers : chaque carte de container, et le détail d'un container (sous la caisse, avant la ligne Fûts), affichent « 💰 Encaissement en cours » = argent reçu des clients fûts RATTACHÉS à ce container et pas encore ramassés, avec achat des fûts / acomptes transport, nombre de clients et reste à encaisser (`_depLigneEncaissementContainer`, `_depEncaissementEnCours(departId)`). Pas de ligne pour un container du Mali ni quand rien n'est à encaisser.
 - Reste inchangé : carte « Encaissement en cours » de l'écran Fûts et ligne du Bilan global (tous containers). Pas de montant dans l'écran Départ (v1.59.0 : montré aux clients).
 - Testé (faux Firebase) : 2 fûts en attente rattachés à un container → 150 € (70 € achat + 80 € acomptes) dans la liste des containers et dans le détail ; un autre container → 0 (pas de ligne).
+
+## 27/11/2026 — v3.99.398 (departs.js v2.22.127, look-v2.css) — Container arrivé : carte verte (remis) / orange (en attente)
+- Cobey (capture, Chargement DKR) : « je trouve qu'il n'y a pas de différence de couleur entre un client dont le colis a été remis et celui qui est en attente. »
+- Cause : la couleur de carte posée en v3.99.60 (vert remis / orange en attente) était un fond inline sur la carte, entièrement recouvert dans le nouveau look par le bandeau (couleur selon le paiement) et le corps blanc.
+- Dans le nouveau look, une carte de client d'un container arrivé à Dakar prend maintenant une couleur d'ensemble : **vert** (bandeau, corps, contour) = remis au client ; **orange** = en attente de retrait / de livraison. Classes `dc-remis` / `dc-attente` posées par `depDetail`, règles dans `tools/gen_look_css.py` → `look-v2.css`. Ancien look inchangé.
+- Testé (faux Firebase, capture V2) : container « arrivé » avec un client en attente (carte orange) et un remis au client (carte verte).

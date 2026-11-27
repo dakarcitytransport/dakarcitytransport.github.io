@@ -503,6 +503,13 @@ html.look-v2 #s-depart-detail .cli-ct{display:flex;gap:10px;align-items:flex-sta
 html.look-v2 #s-depart-detail .cli-n{flex:none;min-width:30px;height:30px;border-radius:10px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-weight:800;color:#26338f;font-size:14px;padding:0 6px}
 html.look-v2 #s-depart-detail .cli-t{font-size:13.5px;font-weight:700;line-height:1.35;padding-top:5px;white-space:pre-line}
 html.look-v2 #s-depart-detail .cli-bd .dep-cli-btns{margin-top:10px !important}
+/* Colis remis / en attente de retrait (container arrivé à Dakar) : la carte entière change de couleur — vert = remis au client, orange = en attente (Cobey, 27/11/2026 : « pas de différence de couleur entre un colis remis et un colis en attente ») */
+html.look-v2 #s-depart-detail .dep-cli.dc-remis{box-shadow:inset 0 0 0 2.5px rgba(26,138,92,.7) !important}
+html.look-v2 #s-depart-detail .dep-cli.dc-remis .cli-hd{background:linear-gradient(135deg,rgba(26,138,92,.38),rgba(26,138,92,.16)) !important}
+html.look-v2 #s-depart-detail .dep-cli.dc-remis .cli-bd{background:rgba(26,138,92,.14) !important}
+html.look-v2 #s-depart-detail .dep-cli.dc-attente{box-shadow:inset 0 0 0 2.5px rgba(224,140,30,.8) !important}
+html.look-v2 #s-depart-detail .dep-cli.dc-attente .cli-hd{background:linear-gradient(135deg,rgba(224,140,30,.42),rgba(224,140,30,.18)) !important}
+html.look-v2 #s-depart-detail .dep-cli.dc-attente .cli-bd{background:rgba(224,140,30,.16) !important}
 
 /* ── clients d'une collecte : même carte que dans un container (bandeau / paiement / contenu / auteur-camion-bouton) ── */
 html.look-v2 #collecte-content .client-row:has(> .cr-hd){display:block !important;padding:0 !important;overflow:hidden;background:var(--lk-glass);border:1px solid var(--lk-edge) !important;border-radius:24px;margin:0 0 12px;box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}

@@ -389,7 +389,7 @@
    1. CONSTANTES ET ÉTAT
    ───────────────────────────────────────────── */
 
-var DEP_VERSION = 'v2.22.126';
+var DEP_VERSION = 'v2.22.127';
 
 // v1.21.5 : voir points 41-42 du changelog ci-dessus. Doit s'exécuter le
 // plus tôt possible (avant même demarrer()/greffer(), qui n'arrivent
@@ -9116,7 +9116,8 @@ window.depDetail = function(id, gardeFiltres){
       var _bordureCli = _cliColoree
         ? (_depColisRemis(c) ? 'background:#EAF7EE;' : 'background:#FFF3E0;')
         : (_nbFus ? 'border-left:4px solid #00b34e;' : (_nbFact > 1 ? 'border-left:4px solid #E58A00;' : ''));
-      h += '<div class="dep-cli" style="cursor:pointer;' + _bordureCli
+      var _classeRemise = _cliColoree ? (_depColisRemis(c) ? ' dc-remis' : ' dc-attente') : '';   // V2 : la carte entière prend la couleur (vert remis / orange en attente)
+      h += '<div class="dep-cli' + _classeRemise + '" style="cursor:pointer;' + _bordureCli
         +     '" onclick="'+clic+'">'
         +   '<div class="cli-hd ' + (_depEtatCarte(c, x)) + '">'
         +   '<div class="dep-cli-n">'+_depPastilleRang(c, id)
