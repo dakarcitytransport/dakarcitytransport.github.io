@@ -7275,3 +7275,9 @@ Plus de « … N autres clients » : la liste dépliée affiche chaque client (h
 - Cause : la couleur de carte posée en v3.99.60 (vert remis / orange en attente) était un fond inline sur la carte, entièrement recouvert dans le nouveau look par le bandeau (couleur selon le paiement) et le corps blanc.
 - Dans le nouveau look, une carte de client d'un container arrivé à Dakar prend maintenant une couleur d'ensemble : **vert** (bandeau, corps, contour) = remis au client ; **orange** = en attente de retrait / de livraison. Classes `dc-remis` / `dc-attente` posées par `depDetail`, règles dans `tools/gen_look_css.py` → `look-v2.css`. Ancien look inchangé.
 - Testé (faux Firebase, capture V2) : container « arrivé » avec un client en attente (carte orange) et un remis au client (carte verte).
+
+## 27/11/2026 — v3.99.399 (look.js, look-v2.css) — Carte client d'un container : plus de texte qui déborde
+- Cobey (capture) : « il y a des écritures qui débordent » (bouton « ✅ Relancé — 17/11 à 21… » coupé et chevauchant « Photos »).
+- Cause : quand une carte a deux boutons d'action (ex. « Prévenu » et « Relancé — date »), le 2e devenait une petite icône de la grille à 3 colonnes alors que son texte est long.
+- `look.js` : tout 2e bouton d'action (Relancer/Relancé/Prévenir/Prévenu/Demander un avis…) reçoit la classe `lk-long` → pleine largeur, texte qui passe à la ligne ; `look-v2.css` : `.lk-long` et `.lk-ico{min-width:0;overflow:hidden}` (généré par `tools/gen_look_css.py`).
+- Testé (faux Firebase, capture V2) : carte avec « Prévenir (arrivé) » + « Relancé — 18/11 à 22h09 » + Facture + Photos : le bouton « Relancé » est sur sa propre ligne, entier.

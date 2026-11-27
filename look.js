@@ -392,6 +392,7 @@
       btns.forEach(function(b){
         if(b === princ){ b.classList.add('lk-main'); return; }
         b.classList.add('lk-ico');                         // bouton secondaire : étiquette écrite en toutes lettres
+        if(RE_PRINCIPAL.test(b.textContent)) b.classList.add('lk-long');   // 2e bouton d'action au texte long (ex. « Relancé — 17/11 à 21h30 ») : pleine largeur, sans déborder
         if(/D[ée]tacher/i.test(b.textContent)) b.classList.add('lk-det');
       });
       if(princ) g.insertBefore(princ, g.firstChild);

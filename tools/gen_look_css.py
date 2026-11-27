@@ -446,6 +446,8 @@ html.look-v2 .fr-carte .fr-co .badge{display:inline-flex;align-items:center;bord
 html.look-v2 .dep-cli-btns{display:grid !important;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px !important}
 html.look-v2 .dep-cli-btn.lk-main{grid-column:1 / -1}
 html.look-v2 .dep-cli-btn.lk-ico{grid-column:auto;height:auto;min-height:44px;width:auto;min-width:0;flex:none;padding:10px 8px;border-radius:15px;font-size:13px;font-weight:800;background:rgba(255,255,255,.8) !important;border:1px solid #fff !important;color:#26338f !important;box-shadow:0 3px 8px rgba(0,0,0,.07);display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+html.look-v2 .dep-cli-btn.lk-long{grid-column:1 / -1 !important;white-space:normal;text-align:center;line-height:1.3}
+html.look-v2 .dep-cli-btn.lk-ico{min-width:0;overflow:hidden;text-overflow:ellipsis}
 html.look-v2 .dep-cli-btn.lk-det{grid-column:1 / -1;color:#a02a1e !important;background:rgba(192,57,43,.1) !important;border-color:rgba(192,57,43,.25) !important}
 html.look-v2 .dep-cli-btns > .dep-cli-btn:not(.lk-main):not(.lk-ico){grid-column:1 / -1}
 
